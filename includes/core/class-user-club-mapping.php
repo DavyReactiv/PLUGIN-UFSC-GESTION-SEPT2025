@@ -18,9 +18,11 @@ class UFSC_User_Club_Mapping {
         
         $settings = UFSC_SQL::get_settings();
         $clubs_table = $settings['table_clubs'];
+        $pk_col = ufsc_club_col( 'id' );
+        $responsable_col = ufsc_club_col( 'responsable_id' );
         
         $club_id = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$clubs_table} WHERE responsable_id = %d LIMIT 1",
+            "SELECT `{$pk_col}` FROM `{$clubs_table}` WHERE `{$responsable_col}` = %d LIMIT 1",
             $user_id
         ) );
         
@@ -38,9 +40,10 @@ class UFSC_User_Club_Mapping {
         
         $settings = UFSC_SQL::get_settings();
         $clubs_table = $settings['table_clubs'];
+        $responsable_col = ufsc_club_col( 'responsable_id' );
         
         $club = $wpdb->get_row( $wpdb->prepare(
-            "SELECT * FROM {$clubs_table} WHERE responsable_id = %d LIMIT 1",
+            "SELECT * FROM `{$clubs_table}` WHERE `{$responsable_col}` = %d LIMIT 1",
             $user_id
         ) );
         
