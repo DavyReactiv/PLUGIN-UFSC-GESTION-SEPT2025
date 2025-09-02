@@ -22,6 +22,15 @@ require_once UFSC_CL_DIR.'includes/frontend/class-club-form-handler.php';
 require_once UFSC_CL_DIR.'includes/core/class-uploads.php';
 require_once UFSC_CL_DIR.'includes/core/class-permissions.php';
 
+// New UFSC Gestion enhancement classes
+require_once UFSC_CL_DIR.'includes/common/class-ufsc-utils.php';
+require_once UFSC_CL_DIR.'includes/core/class-ufsc-transaction.php';
+require_once UFSC_CL_DIR.'includes/core/class-ufsc-db-migrations.php';
+require_once UFSC_CL_DIR.'includes/frontend/class-club-dashboard.php';
+require_once UFSC_CL_DIR.'includes/frontend/class-affiliation-form.php';
+require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-licences-list-table.php';
+require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-clubs-list-table.php';
+
 // New frontend layer components
 require_once UFSC_CL_DIR.'includes/frontend/class-frontend-shortcodes.php';
 require_once UFSC_CL_DIR.'includes/api/class-rest-api.php';
@@ -67,6 +76,11 @@ final class UFSC_CL_Bootstrap {
         // Shortcodes front
         add_action( 'init', array( 'UFSC_SQL_Shortcodes', 'register_shortcodes' ) );
         add_action( 'init', array( 'UFSC_Frontend_Shortcodes', 'register' ) );
+        
+        // Initialize new UFSC Gestion enhancement components
+        add_action( 'init', array( 'UFSC_Club_Dashboard', 'init' ) );
+        add_action( 'init', array( 'UFSC_Affiliation_Form', 'init' ) );
+        add_action( 'plugins_loaded', array( 'UFSC_DB_Migrations', 'run_migrations' ) );
         
         // Initialize UFSC Gestion WooCommerce hooks
         add_action( 'plugins_loaded', 'ufsc_init_woocommerce_hooks' );

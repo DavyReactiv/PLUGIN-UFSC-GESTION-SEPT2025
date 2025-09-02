@@ -49,6 +49,25 @@ class UFSC_SQL_Admin {
 
     /* ---------------- Liste Clubs ---------------- */
     public static function render_clubs(){
+        // Check if we should show edit/new form
+        if ( isset($_GET['action']) && $_GET['action']==='edit' ){
+            $id = (int) $_GET['id'];
+            self::render_club_form($id);
+            return;
+        } elseif ( isset($_GET['action']) && $_GET['action']==='new' ){
+            self::render_club_form(0);
+            return;
+        } elseif ( isset($_GET['export']) ){
+            self::handle_clubs_export();
+            return;
+        }
+
+        // Use enhanced list table
+        UFSC_Clubs_List_Table::render();
+    }
+
+    /* ---------------- Handle clubs export ---------------- */
+    private static function handle_clubs_export() {
         global $wpdb;
         $s = UFSC_SQL::get_settings();
         $t = $s['table_clubs'];
@@ -58,51 +77,7 @@ class UFSC_SQL_Admin {
         $where = $status ? $wpdb->prepare("WHERE statut=%s",$status) : '';
 
         $rows = $wpdb->get_results("SELECT $pk, nom, region, statut, quota_licences FROM `$t` $where ORDER BY $pk DESC");
-
-        echo '<div class="wrap"><h1>'.esc_html__('Clubs (SQL)','ufsc-clubs').'</h1>';
-        echo '<p><a href="'.esc_url( admin_url('admin.php?page=ufsc-clubs&action=new') ).'" class="button button-primary">'.esc_html__('Ajouter un club','ufsc-clubs').'</a> ';
-        echo '<a href="'.esc_url( admin_url('admin.php?page=ufsc-clubs&export=1') ).'" class="button">'.esc_html__('Exporter CSV','ufsc-clubs').'</a></p>';
-
-        echo '<form method="get" style="margin:10px 0">';
-        echo '<input type="hidden" name="page" value="ufsc-clubs"/>';
-        echo '<select name="status"><option value="">— Statut —</option>';
-        foreach( UFSC_SQL::statuses() as $k=>$v ){
-            echo '<option value="'.esc_attr($k).'" '.selected($status,$k,false).'>'.esc_html($v).'</option>';
-        }
-        echo '</select> ';
-        submit_button(__('Filtrer','ufsc-clubs'),'secondary',null,false);
-        echo '</form>';
-
-        if ( isset($_GET['action']) && $_GET['action']==='edit' ){
-            $id = (int) $_GET['id'];
-            self::render_club_form($id);
-            echo '</div>';
-            return;
-        } elseif ( isset($_GET['action']) && $_GET['action']==='new' ){
-            self::render_club_form(0);
-            echo '</div>';
-            return;
-        } elseif ( isset($_GET['export']) ){
-            self::csv_clubs($rows);
-            return;
-        }
-
-        echo '<table class="widefat striped"><thead><tr>';
-        echo '<th>ID</th><th>'.esc_html__('Nom du club','ufsc-clubs').'</th><th>'.esc_html__('Région','ufsc-clubs').'</th><th>'.esc_html__('Statut','ufsc-clubs').'</th><th>'.esc_html__('Quota','ufsc-clubs').'</th><th>'.esc_html__('Actions','ufsc-clubs').'</th>';
-        echo '</tr></thead><tbody>';
-        if ( $rows ){
-            foreach($rows as $r){
-                $map = array('valide'=>'success','a_regler'=>'info','desactive'=>'off','en_attente'=>'wait');
-                $cls = isset($map[$r->statut]) ? $map[$r->statut] : 'info';
-                $badge = UFSC_CL_Utils::esc_badge( UFSC_SQL::statuses()[$r->statut] ?? $r->statut, $cls );
-                $view = admin_url('admin.php?page=ufsc-clubs&action=edit&id='.$r->$pk);
-                $del  = wp_nonce_url( admin_url('admin-post.php?action=ufsc_sql_delete_club&id='.$r->$pk), 'ufsc_sql_delete_club' );
-                echo '<tr><td>'.(int)$r->$pk.'</td><td>'.esc_html($r->nom).'</td><td>'.esc_html($r->region).'</td><td>'.$badge.'</td><td>'.(int)$r->quota_licences.'</td><td><a class="button" href="'.$view.'">'.esc_html__('Consulter','ufsc-clubs').'</a> <a class="button button-link-delete" href="'.$del.'">'.esc_html__('Supprimer','ufsc-clubs').'</a></td></tr>';
-            }
-        } else {
-            echo '<tr><td colspan="6">'.esc_html__('Aucun club','ufsc-clubs').'</td></tr>';
-        }
-        echo '</tbody></table></div>';
+        self::csv_clubs($rows);
     }
 
     private static function csv_clubs($rows){

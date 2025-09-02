@@ -333,3 +333,155 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ========================================
+   ENHANCED LIST TABLES STYLES
+   ======================================== */
+
+/* Additional badge styles for enhanced lists */
+.ufsc-badge.badge-success {
+    background: #e7f7ed;
+    color: #137d3b;
+    border: 1px solid #b8e6ca;
+}
+
+.ufsc-badge.badge-warning {
+    background: #fff7e6;
+    color: #8a5a00;
+    border: 1px solid #ffd699;
+}
+
+.ufsc-badge.badge-info {
+    background: #e6f1ff;
+    color: #1257a0;
+    border: 1px solid #cfe1ff;
+}
+
+.ufsc-badge.badge-danger {
+    background: #f6e6e6;
+    color: #7d0013;
+    border: 1px solid #e6b3b3;
+}
+
+.ufsc-badge.badge-secondary {
+    background: #f6f7f7;
+    color: #50575e;
+    border: 1px solid #dcdcde;
+}
+
+/* Filters panel */
+.ufsc-filters-panel {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.ufsc-filters-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.ufsc-filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.ufsc-filters-row label {
+    font-weight: 600;
+    margin-right: 5px;
+    white-space: nowrap;
+}
+
+.ufsc-filters-row select,
+.ufsc-filters-row input[type="date"],
+.ufsc-filters-row input[type="number"] {
+    padding: 5px 8px;
+    border: 1px solid #ccd0d4;
+    border-radius: 3px;
+}
+
+.ufsc-filters-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Search panel */
+.ufsc-search-panel {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.ufsc-search-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.ufsc-search-form input[type="search"] {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ccd0d4;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+/* Results info */
+.ufsc-results-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+    color: #646970;
+}
+
+.ufsc-results-info select {
+    padding: 3px 6px;
+    font-size: 13px;
+    border: 1px solid #ccd0d4;
+    border-radius: 3px;
+}
+
+/* Enhanced table styles */
+.wp-list-table th a {
+    text-decoration: none;
+    color: #2271b1;
+}
+
+.wp-list-table th a:hover {
+    color: #135e96;
+}
+
+.wp-list-table .ufsc-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+}
+
+/* Responsive filters */
+@media (max-width: 768px) {
+    .ufsc-filters-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .ufsc-search-form {
+        flex-direction: column;
+    }
+    
+    .ufsc-results-info {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+}
