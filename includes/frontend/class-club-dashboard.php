@@ -259,23 +259,7 @@ class UFSC_Club_Dashboard {
      * @return string Badge HTML
      */
     private static function render_status_badge( $status ) {
-        $statuses = UFSC_SQL::statuses();
-        $label = isset( $statuses[ $status ] ) ? $statuses[ $status ] : $status;
-        
-        $badge_classes = array(
-            'valide' => 'ufsc-badge-success',
-            'a_regler' => 'ufsc-badge-warning',
-            'en_attente' => 'ufsc-badge-info',
-            'desactive' => 'ufsc-badge-danger'
-        );
-        
-        $class = isset( $badge_classes[ $status ] ) ? $badge_classes[ $status ] : 'ufsc-badge-default';
-        
-        return sprintf( 
-            '<span class="ufsc-status-badge %s">%s</span>',
-            esc_attr( $class ),
-            esc_html( $label )
-        );
+        return UFSC_Badge_Helper::render_status_badge( $status );
     }
 
     /**

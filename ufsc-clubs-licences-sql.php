@@ -33,10 +33,14 @@ require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-clubs-list-table
 
 // New frontend layer components
 require_once UFSC_CL_DIR.'includes/frontend/class-frontend-shortcodes.php';
+require_once UFSC_CL_DIR.'includes/frontend/class-auth-shortcodes.php';
 require_once UFSC_CL_DIR.'includes/api/class-rest-api.php';
 require_once UFSC_CL_DIR.'includes/core/class-audit-logger.php';
 require_once UFSC_CL_DIR.'includes/core/class-email-notifications.php';
 require_once UFSC_CL_DIR.'includes/core/class-import-export.php';
+require_once UFSC_CL_DIR.'includes/core/class-badge-helper.php';
+require_once UFSC_CL_DIR.'includes/core/class-user-club-mapping.php';
+require_once UFSC_CL_DIR.'includes/admin/class-user-club-admin.php';
 require_once UFSC_CL_DIR.'includes/cli/class-wp-cli-commands.php';
 
 // New UFSC Gestion modules

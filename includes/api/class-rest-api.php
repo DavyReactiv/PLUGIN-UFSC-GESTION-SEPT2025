@@ -72,6 +72,13 @@ class UFSC_REST_API {
             'callback' => array( __CLASS__, 'handle_import_commit' ),
             'permission_callback' => array( __CLASS__, 'check_club_permissions' )
         ));
+
+        // Attestation download route with nonce security
+        register_rest_route( 'ufsc/v1', '/attestation/(?P<type>[a-z_]+)/(?P<nonce>[a-z0-9]+)', array(
+            'methods' => 'GET',
+            'callback' => array( __CLASS__, 'handle_attestation_download' ),
+            'permission_callback' => '__return_true' // Public with nonce verification
+        ));
     }
 
     /**
@@ -135,6 +142,84 @@ class UFSC_REST_API {
         }
 
         return new WP_Error( 'rest_invalid_method', __( 'Méthode non supportée.', 'ufsc-clubs' ), array( 'status' => 405 ) );
+    }
+
+    /**
+     * Handle club endpoint (GET/PUT)
+     */
+    public static function handle_club( $request ) {
+        $method = $request->get_method();
+        $user_id = get_current_user_id();
+        $club_id = ufsc_get_user_club_id( $user_id );
+
+        if ( $method === 'GET' ) {
+            return self::get_club_info( $club_id, $request );
+        } elseif ( $method === 'PUT' ) {
+            return self::update_club_info( $club_id, $request );
+        }
+
+        return new WP_Error( 'rest_invalid_method', __( 'Méthode non supportée.', 'ufsc-clubs' ), array( 'status' => 405 ) );
+    }
+
+    /**
+     * Handle stats endpoint
+     */
+    public static function handle_stats( $request ) {
+        $user_id = get_current_user_id();
+        $club_id = ufsc_get_user_club_id( $user_id );
+        $season = $request->get_param( 'season' );
+
+        if ( ! $season ) {
+            $wc_settings = ufsc_get_woocommerce_settings();
+            $season = $wc_settings['season'];
+        }
+
+        $stats = self::get_cached_club_stats( $club_id, $season );
+        
+        return new WP_REST_Response( array(
+            'stats' => $stats,
+            'season' => $season,
+            'club_id' => $club_id,
+            'cached_at' => time()
+        ), 200 );
+    }
+
+    /**
+     * Handle attestation download
+     */
+    public static function handle_attestation_download( $request ) {
+        $type = $request->get_param( 'type' );
+        $nonce = $request->get_param( 'nonce' );
+
+        // Verify nonce and extract data
+        $attestation_data = self::verify_attestation_nonce( $type, $nonce );
+        if ( ! $attestation_data ) {
+            return new WP_Error( 'invalid_nonce', __( 'Lien d\'attestation invalide ou expiré.', 'ufsc-clubs' ), array( 'status' => 403 ) );
+        }
+
+        // Generate attestation file
+        $file_path = self::generate_attestation_file( $type, $attestation_data );
+        if ( ! $file_path || ! file_exists( $file_path ) ) {
+            return new WP_Error( 'generation_failed', __( 'Erreur lors de la génération de l\'attestation.', 'ufsc-clubs' ), array( 'status' => 500 ) );
+        }
+
+        // Log download
+        ufsc_audit_log( 'attestation_downloaded', array(
+            'type' => $type,
+            'club_id' => $attestation_data['club_id'],
+            'user_id' => $attestation_data['user_id'],
+            'nonce' => $nonce
+        ) );
+
+        // Serve file
+        header( 'Content-Type: application/pdf' );
+        header( 'Content-Disposition: attachment; filename="' . basename( $file_path ) . '"' );
+        header( 'Content-Length: ' . filesize( $file_path ) );
+        readfile( $file_path );
+        
+        // Clean up temporary file
+        unlink( $file_path );
+        exit;
     }
 
     /**
@@ -236,29 +321,294 @@ class UFSC_REST_API {
 
     // STUB METHODS - To be implemented according to database schema
 
+    /**
+     * Get club information with caching
+     */
+    private static function get_club_info( $club_id, $request ) {
+        $cache_key = "ufsc_club_info_{$club_id}";
+        $club_info = get_transient( $cache_key );
+
+        if ( false === $club_info ) {
+            global $wpdb;
+            $settings = UFSC_SQL::get_settings();
+            $clubs_table = $settings['table_clubs'];
+
+            $club = $wpdb->get_row( $wpdb->prepare(
+                "SELECT * FROM {$clubs_table} WHERE id = %d",
+                $club_id
+            ) );
+
+            if ( ! $club ) {
+                return new WP_Error( 'club_not_found', __( 'Club non trouvé.', 'ufsc-clubs' ), array( 'status' => 404 ) );
+            }
+
+            // Get additional info
+            $quota_info = self::get_club_quota( $club_id );
+            $licence_count = self::count_club_licences( $club_id, array() );
+
+            $club_info = array(
+                'id' => $club->id,
+                'nom' => $club->nom,
+                'region' => $club->region,
+                'statut' => $club->statut,
+                'adresse' => $club->adresse,
+                'complement_adresse' => $club->complement_adresse,
+                'code_postal' => $club->code_postal,
+                'ville' => $club->ville,
+                'email' => $club->email,
+                'telephone' => $club->telephone,
+                'num_affiliation' => $club->num_affiliation,
+                'quota' => $quota_info,
+                'licence_count' => $licence_count,
+                'is_validated' => ufsc_is_validated_club( $club_id ),
+                'can_edit' => ! ufsc_is_validated_club( $club_id ),
+                'responsable_id' => $club->responsable_id
+            );
+
+            // Cache for 1 hour
+            set_transient( $cache_key, $club_info, HOUR_IN_SECONDS );
+        }
+
+        return new WP_REST_Response( $club_info, 200 );
+    }
+
+    /**
+     * Update club information
+     */
+    private static function update_club_info( $club_id, $request ) {
+        $data = $request->get_json_params();
+
+        // Check if club is validated (restrictions apply)
+        if ( ufsc_is_validated_club( $club_id ) ) {
+            // Only allow limited fields for validated clubs
+            $allowed_fields = array( 'email', 'telephone', 'precision_distribution' );
+            $data = array_intersect_key( $data, array_flip( $allowed_fields ) );
+            
+            if ( empty( $data ) ) {
+                return new WP_Error( 'club_validated', __( 'Ce club est validé, seuls certains champs peuvent être modifiés.', 'ufsc-clubs' ), array( 'status' => 403 ) );
+            }
+        }
+
+        // Sanitize data
+        $sanitized_data = array();
+        foreach ( $data as $key => $value ) {
+            if ( $key === 'email' && ! is_email( $value ) ) {
+                return new WP_Error( 'invalid_email', __( 'Adresse email invalide.', 'ufsc-clubs' ), array( 'status' => 400 ) );
+            }
+            $sanitized_data[ $key ] = sanitize_text_field( $value );
+        }
+
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $clubs_table = $settings['table_clubs'];
+
+        $result = $wpdb->update(
+            $clubs_table,
+            $sanitized_data,
+            array( 'id' => $club_id ),
+            array_fill( 0, count( $sanitized_data ), '%s' ),
+            array( '%d' )
+        );
+
+        if ( $result === false ) {
+            return new WP_Error( 'update_failed', __( 'Échec de la mise à jour.', 'ufsc-clubs' ), array( 'status' => 500 ) );
+        }
+
+        // Invalidate cache
+        delete_transient( "ufsc_club_info_{$club_id}" );
+
+        // Log update
+        ufsc_audit_log( 'club_updated', array(
+            'club_id' => $club_id,
+            'updated_fields' => array_keys( $sanitized_data ),
+            'user_id' => get_current_user_id()
+        ) );
+
+        return new WP_REST_Response( array(
+            'message' => __( 'Club mis à jour avec succès.', 'ufsc-clubs' ),
+            'updated_fields' => array_keys( $sanitized_data )
+        ), 200 );
+    }
+
+    /**
+     * Generate attestation nonce with expiration
+     */
+    public static function generate_attestation_nonce( $type, $club_id, $user_id, $expiry_hours = 24 ) {
+        $data = array(
+            'type' => $type,
+            'club_id' => $club_id,
+            'user_id' => $user_id,
+            'expires' => time() + ( $expiry_hours * HOUR_IN_SECONDS )
+        );
+
+        $nonce = wp_hash( serialize( $data ) . wp_create_nonce( 'ufsc_attestation' ) );
+        
+        // Store nonce data temporarily
+        set_transient( "ufsc_attestation_nonce_{$nonce}", $data, $expiry_hours * HOUR_IN_SECONDS );
+
+        return $nonce;
+    }
+
+    /**
+     * Verify attestation nonce
+     */
+    private static function verify_attestation_nonce( $type, $nonce ) {
+        $data = get_transient( "ufsc_attestation_nonce_{$nonce}" );
+        
+        if ( ! $data || $data['type'] !== $type ) {
+            return false;
+        }
+
+        if ( time() > $data['expires'] ) {
+            delete_transient( "ufsc_attestation_nonce_{$nonce}" );
+            return false;
+        }
+
+        return $data;
+    }
+
+    /**
+     * Generate attestation file
+     */
+    private static function generate_attestation_file( $type, $data ) {
+        // This would integrate with your PDF generation system
+        // For now, return a stub implementation
+        
+        $upload_dir = wp_upload_dir();
+        $temp_dir = $upload_dir['basedir'] . '/ufsc_temp/';
+        
+        if ( ! file_exists( $temp_dir ) ) {
+            wp_mkdir_p( $temp_dir );
+        }
+
+        $filename = "attestation_{$type}_{$data['club_id']}_" . time() . '.pdf';
+        $file_path = $temp_dir . $filename;
+
+        // TODO: Implement actual PDF generation
+        // For now, create a placeholder file
+        file_put_contents( $file_path, "Attestation PDF placeholder for club {$data['club_id']}" );
+
+        return $file_path;
+    }
+
     private static function fetch_club_licences( $club_id, $args ) {
-        // TODO: Implement actual database query
-        return array();
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        $where = array( "club_id = %d" );
+        $where_values = array( $club_id );
+
+        // Add search filter
+        if ( ! empty( $args['search'] ) ) {
+            $where[] = "(nom LIKE %s OR prenom LIKE %s OR email LIKE %s)";
+            $search_term = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $where_values[] = $search_term;
+            $where_values[] = $search_term;
+            $where_values[] = $search_term;
+        }
+
+        // Add status filter
+        if ( ! empty( $args['status'] ) ) {
+            $where[] = "statut = %s";
+            $where_values[] = $args['status'];
+        }
+
+        $offset = ( $args['page'] - 1 ) * $args['per_page'];
+        $order = ! empty( $args['sort'] ) ? $args['sort'] : 'nom ASC';
+
+        $sql = "SELECT * FROM {$licences_table} WHERE " . implode( ' AND ', $where ) . 
+               " ORDER BY {$order} LIMIT %d OFFSET %d";
+
+        $where_values[] = $args['per_page'];
+        $where_values[] = $offset;
+
+        return $wpdb->get_results( $wpdb->prepare( $sql, $where_values ) );
     }
 
     private static function count_club_licences( $club_id, $args ) {
-        // TODO: Implement count query
-        return 0;
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        $where = array( "club_id = %d" );
+        $where_values = array( $club_id );
+
+        // Add search filter
+        if ( ! empty( $args['search'] ) ) {
+            $where[] = "(nom LIKE %s OR prenom LIKE %s OR email LIKE %s)";
+            $search_term = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+            $where_values[] = $search_term;
+            $where_values[] = $search_term;
+            $where_values[] = $search_term;
+        }
+
+        // Add status filter
+        if ( ! empty( $args['status'] ) ) {
+            $where[] = "statut = %s";
+            $where_values[] = $args['status'];
+        }
+
+        $sql = "SELECT COUNT(*) FROM {$licences_table} WHERE " . implode( ' AND ', $where );
+
+        return (int) $wpdb->get_var( $wpdb->prepare( $sql, $where_values ) );
     }
 
     private static function get_licence_club_id( $licence_id ) {
-        // TODO: Implement club ID lookup for licence
-        return 0;
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        return (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT club_id FROM {$licences_table} WHERE id = %d",
+            $licence_id
+        ) );
     }
 
     private static function create_licence_record( $club_id, $data ) {
-        // TODO: Implement licence creation
-        return 0;
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        // Add club_id and timestamps
+        $insert_data = array_merge( $data, array(
+            'club_id' => $club_id,
+            'date_creation' => current_time( 'mysql' ),
+            'statut' => 'en_attente'
+        ) );
+
+        $result = $wpdb->insert( $licences_table, $insert_data );
+        
+        if ( $result === false ) {
+            return false;
+        }
+
+        return $wpdb->insert_id;
     }
 
     private static function get_club_quota( $club_id ) {
-        // TODO: Implement quota calculation
-        return array( 'total' => 10, 'used' => 3, 'remaining' => 7 );
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $clubs_table = $settings['table_clubs'];
+        $licences_table = $settings['table_licences'];
+
+        // Get club quota
+        $quota_total = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT quota_licences FROM {$clubs_table} WHERE id = %d",
+            $club_id
+        ) );
+
+        // Count current licences
+        $used = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d",
+            $club_id
+        ) );
+
+        return array( 
+            'total' => $quota_total, 
+            'used' => $used, 
+            'remaining' => max( 0, $quota_total - $used ) 
+        );
     }
 
     private static function create_payment_order( $club_id, $licence_ids ) {
@@ -271,12 +621,37 @@ class UFSC_REST_API {
         $stats = get_transient( $cache_key );
 
         if ( false === $stats ) {
-            // TODO: Calculate real stats
+            global $wpdb;
+            $settings = UFSC_SQL::get_settings();
+            $licences_table = $settings['table_licences'];
+
+            // Calculate real stats
+            $total_licences = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d",
+                $club_id
+            ) );
+
+            $paid_licences = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d AND (statut = 'valide' OR statut = 'a_regler')",
+                $club_id
+            ) );
+
+            $validated_licences = (int) $wpdb->get_var( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d AND statut = 'valide'",
+                $club_id
+            ) );
+
+            $quota_info = self::get_club_quota( $club_id );
+
             $stats = array(
-                'total_licences' => 0,
-                'paid_licences' => 0,
-                'validated_licences' => 0,
-                'quota_remaining' => 10
+                'total_licences' => $total_licences,
+                'paid_licences' => $paid_licences,
+                'validated_licences' => $validated_licences,
+                'quota_remaining' => $quota_info['remaining'],
+                'quota_total' => $quota_info['total'],
+                'quota_used' => $quota_info['used'],
+                'season' => $season,
+                'last_updated' => current_time( 'mysql' )
             );
 
             set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
