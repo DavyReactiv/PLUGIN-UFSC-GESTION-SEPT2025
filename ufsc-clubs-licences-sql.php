@@ -42,6 +42,7 @@ require_once UFSC_CL_DIR.'includes/core/class-email-notifications.php';
 require_once UFSC_CL_DIR.'includes/core/class-import-export.php';
 require_once UFSC_CL_DIR.'includes/core/class-badge-helper.php';
 require_once UFSC_CL_DIR.'includes/core/class-user-club-mapping.php';
+require_once UFSC_CL_DIR.'includes/core/column-map.php';
 require_once UFSC_CL_DIR.'includes/admin/class-user-club-admin.php';
 require_once UFSC_CL_DIR.'includes/cli/class-wp-cli-commands.php';
 
