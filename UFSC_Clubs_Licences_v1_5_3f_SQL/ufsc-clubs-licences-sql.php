@@ -17,6 +17,10 @@ require_once UFSC_CL_DIR.'includes/admin/class-admin-menu.php';
 require_once UFSC_CL_DIR.'includes/core/class-sql.php';
 require_once UFSC_CL_DIR.'includes/admin/class-sql-admin.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-sql-shortcodes.php';
+require_once UFSC_CL_DIR.'includes/frontend/class-club-form.php';
+require_once UFSC_CL_DIR.'includes/frontend/class-club-form-handler.php';
+require_once UFSC_CL_DIR.'includes/core/class-uploads.php';
+require_once UFSC_CL_DIR.'includes/core/class-permissions.php';
 
 final class UFSC_CL_Bootstrap {
     private static $instance = null;

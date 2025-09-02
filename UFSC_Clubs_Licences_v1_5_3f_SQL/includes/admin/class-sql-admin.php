@@ -200,7 +200,7 @@ class UFSC_SQL_Admin {
         }
 
         // Validation des données
-        $validation_errors = UFSC_CL_Utils::validate_club_data($data);
+        $validation_errors = UFSC_CL_Utils::validate_club_data($data, false);
         if ( !empty($validation_errors) ) {
             UFSC_CL_Utils::log('Erreurs de validation club: ' . implode(', ', $validation_errors), 'warning');
             $error_message = implode(', ', $validation_errors);

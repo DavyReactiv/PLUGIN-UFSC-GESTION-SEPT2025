@@ -55,6 +55,12 @@ class UFSC_SQL {
                 'rna_number'=>array('RNA','text'),
                 'iban'=>array('IBAN','text'),
                 'logo_url'=>array('Logo URL','text'),
+                'doc_statuts'=>array('Document Statuts','text'),
+                'doc_recepisse'=>array('Document Récépissé','text'),
+                'doc_jo'=>array('Document JO','text'),
+                'doc_pv_ag'=>array('Document PV AG','text'),
+                'doc_cer'=>array('Document CER','text'),
+                'doc_attestation_cer'=>array('Document Attestation CER','text'),
             ),
             'licence_fields' => array(
                 'club_id'=>array('Club','number'),
