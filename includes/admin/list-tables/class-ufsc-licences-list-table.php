@@ -594,19 +594,7 @@ class UFSC_Licences_List_Table {
     }
 
     private static function render_status_badge( $status ) {
-        $badge_classes = array(
-            'active' => 'badge-success',
-            'paid' => 'badge-success',
-            'pending_payment' => 'badge-warning',
-            'pending_review' => 'badge-info',
-            'draft' => 'badge-secondary',
-            'rejected' => 'badge-danger',
-            'cancelled' => 'badge-danger',
-            'expired' => 'badge-danger'
-        );
-
-        $class = isset( $badge_classes[ $status ] ) ? $badge_classes[ $status ] : 'badge-secondary';
-        return '<span class="ufsc-badge ' . esc_attr( $class ) . '">' . esc_html( $status ) . '</span>';
+        return UFSC_Badges::render_licence_badge( $status );
     }
 
     private static function render_payment_status_badge( $status ) {

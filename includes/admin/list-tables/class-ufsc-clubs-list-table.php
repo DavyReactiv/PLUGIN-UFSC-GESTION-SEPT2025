@@ -472,18 +472,7 @@ class UFSC_Clubs_List_Table {
     }
 
     private static function render_status_badge( $status ) {
-        $statuses = UFSC_SQL::statuses();
-        $label = isset( $statuses[ $status ] ) ? $statuses[ $status ] : $status;
-        
-        $badge_classes = array(
-            'valide' => 'badge-success',
-            'a_regler' => 'badge-warning',
-            'en_attente' => 'badge-info',
-            'desactive' => 'badge-danger'
-        );
-
-        $class = isset( $badge_classes[ $status ] ) ? $badge_classes[ $status ] : 'badge-secondary';
-        return '<span class="ufsc-badge ' . esc_attr( $class ) . '">' . esc_html( $label ) . '</span>';
+        return UFSC_Badges::render_club_badge( $status );
     }
 
     private static function render_documents_badge( $club ) {
