@@ -557,6 +557,12 @@ class UFSC_Frontend_Shortcodes {
                     <?php endif; ?>
                 </div>
 
+                <!-- Documents Section -->
+                <div class="ufsc-form-section">
+                    <h4><?php esc_html_e( 'Documents du Club', 'ufsc-clubs' ); ?></h4>
+                    <?php self::render_club_documents_list( $atts['club_id'] ); ?>
+                </div>
+
                 <div class="ufsc-form-actions">
                     <button type="submit" name="ufsc_update_club" class="ufsc-btn ufsc-btn-primary">
                         <?php esc_html_e( 'Mettre à jour', 'ufsc-clubs' ); ?>
@@ -723,44 +729,238 @@ class UFSC_Frontend_Shortcodes {
      * TODO: Implement according to database schema
      */
     private static function get_club_name( $club_id ) {
-        // STUB: Return club name
-        return "Club Test #{$club_id}";
+        global $wpdb;
+        
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+            return false;
+        }
+        
+        $table = ufsc_get_clubs_table();
+        $name_col = ufsc_club_col( 'name' );
+        
+        if ( ! $name_col ) {
+            return false;
+        }
+        
+        $name = $wpdb->get_var( $wpdb->prepare(
+            "SELECT `{$name_col}` FROM `{$table}` WHERE `id` = %d",
+            $club_id
+        ) );
+        
+        return $name ?: false;
     }
 
     /**
      * Get club licences with pagination and filters
-     * TODO: Implement according to database schema
      */
     private static function get_club_licences( $club_id, $args ) {
-        // STUB: Return array of licence objects
-        return array();
+        global $wpdb;
+        
+        if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+            return array();
+        }
+        
+        $table = ufsc_get_licences_table();
+        $club_id_col = ufsc_lic_col( 'club_id' );
+        
+        if ( ! $club_id_col ) {
+            return array();
+        }
+        
+        // Get table columns to check what's available
+        $available_columns = $wpdb->get_col( "DESCRIBE `{$table}`" );
+        
+        $where_conditions = array( $wpdb->prepare( "`{$club_id_col}` = %d", $club_id ) );
+        $where_values = array();
+        
+        // Status filter
+        if ( ! empty( $args['status'] ) ) {
+            $status_col = ufsc_get_mapped_column_if_exists( $table, 'status', 'licences' );
+            if ( $status_col ) {
+                $where_conditions[] = "`{$status_col}` = %s";
+                $where_values[] = $args['status'];
+            }
+        }
+        
+        // Season filter
+        if ( ! empty( $args['season'] ) ) {
+            $season_col = ufsc_get_mapped_column_if_exists( $table, 'season', 'licences' );
+            if ( $season_col ) {
+                $where_conditions[] = "`{$season_col}` = %s";
+                $where_values[] = $args['season'];
+            }
+        }
+        
+        // Search filter
+        if ( ! empty( $args['s'] ) ) {
+            $search_fields = array();
+            foreach ( array( 'first_name', 'last_name', 'email' ) as $logical_field ) {
+                $mapped_col = ufsc_get_mapped_column_if_exists( $table, $logical_field, 'licences' );
+                if ( $mapped_col ) {
+                    $search_fields[] = "`{$mapped_col}` LIKE %s";
+                    $where_values[] = '%' . $wpdb->esc_like( $args['s'] ) . '%';
+                }
+            }
+            if ( ! empty( $search_fields ) ) {
+                $where_conditions[] = '(' . implode( ' OR ', $search_fields ) . ')';
+            }
+        }
+        
+        // Build WHERE clause
+        $where_sql = implode( ' AND ', $where_conditions );
+        
+        // Pagination
+        $paged = max( 1, (int) ( $args['paged'] ?? 1 ) );
+        $per_page = max( 1, (int) ( $args['per_page'] ?? 20 ) );
+        $offset = ( $paged - 1 ) * $per_page;
+        
+        // Build the query
+        $sql = "SELECT * FROM `{$table}` WHERE {$where_sql} ORDER BY `id` DESC LIMIT %d OFFSET %d";
+        $query_values = array_merge( $where_values, array( $per_page, $offset ) );
+        
+        $prepared_sql = $wpdb->prepare( $sql, $query_values );
+        return $wpdb->get_results( $prepared_sql );
     }
 
     /**
      * Get club licences count
-     * TODO: Implement according to database schema
      */
     private static function get_club_licences_count( $club_id, $args ) {
-        // STUB: Return total count
-        return 0;
+        global $wpdb;
+        
+        if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+            return 0;
+        }
+        
+        $table = ufsc_get_licences_table();
+        $club_id_col = ufsc_lic_col( 'club_id' );
+        
+        if ( ! $club_id_col ) {
+            return 0;
+        }
+        
+        $where_conditions = array( $wpdb->prepare( "`{$club_id_col}` = %d", $club_id ) );
+        $where_values = array();
+        
+        // Status filter
+        if ( ! empty( $args['status'] ) ) {
+            $status_col = ufsc_get_mapped_column_if_exists( $table, 'status', 'licences' );
+            if ( $status_col ) {
+                $where_conditions[] = "`{$status_col}` = %s";
+                $where_values[] = $args['status'];
+            }
+        }
+        
+        // Season filter
+        if ( ! empty( $args['season'] ) ) {
+            $season_col = ufsc_get_mapped_column_if_exists( $table, 'season', 'licences' );
+            if ( $season_col ) {
+                $where_conditions[] = "`{$season_col}` = %s";
+                $where_values[] = $args['season'];
+            }
+        }
+        
+        // Search filter
+        if ( ! empty( $args['s'] ) ) {
+            $search_fields = array();
+            foreach ( array( 'first_name', 'last_name', 'email' ) as $logical_field ) {
+                $mapped_col = ufsc_get_mapped_column_if_exists( $table, $logical_field, 'licences' );
+                if ( $mapped_col ) {
+                    $search_fields[] = "`{$mapped_col}` LIKE %s";
+                    $where_values[] = '%' . $wpdb->esc_like( $args['s'] ) . '%';
+                }
+            }
+            if ( ! empty( $search_fields ) ) {
+                $where_conditions[] = '(' . implode( ' OR ', $search_fields ) . ')';
+            }
+        }
+        
+        // Build WHERE clause
+        $where_sql = implode( ' AND ', $where_conditions );
+        
+        // Build the query
+        $sql = "SELECT COUNT(*) FROM `{$table}` WHERE {$where_sql}";
+        
+        if ( ! empty( $where_values ) ) {
+            $prepared_sql = $wpdb->prepare( $sql, $where_values );
+        } else {
+            $prepared_sql = $sql;
+        }
+        
+        return (int) $wpdb->get_var( $prepared_sql );
     }
 
     /**
      * Get club statistics
-     * TODO: Implement with caching
      */
     private static function get_club_stats( $club_id, $season ) {
         $cache_key = "ufsc_stats_{$club_id}_{$season}";
         $stats = get_transient( $cache_key );
         
         if ( false === $stats ) {
-            // STUB: Calculate stats
-            $stats = array(
-                'total_licences' => 0,
-                'paid_licences' => 0,
-                'validated_licences' => 0,
-                'quota_remaining' => 10
-            );
+            global $wpdb;
+            
+            if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+                $stats = array(
+                    'total_licences' => 0,
+                    'paid_licences' => 0,
+                    'validated_licences' => 0,
+                    'quota_remaining' => 0
+                );
+            } else {
+                $table = ufsc_get_licences_table();
+                $club_id_col = ufsc_lic_col( 'club_id' );
+                
+                if ( ! $club_id_col ) {
+                    $stats = array(
+                        'total_licences' => 0,
+                        'paid_licences' => 0,
+                        'validated_licences' => 0,
+                        'quota_remaining' => 0
+                    );
+                } else {
+                    // Total licences
+                    $total = (int) $wpdb->get_var( $wpdb->prepare(
+                        "SELECT COUNT(*) FROM `{$table}` WHERE `{$club_id_col}` = %d",
+                        $club_id
+                    ) );
+                    
+                    // Paid licences - check multiple possible payment columns
+                    $paid = 0;
+                    $paid_season_col = ufsc_get_mapped_column_if_exists( $table, 'paid_season', 'licences' );
+                    if ( $paid_season_col && $season ) {
+                        $paid = (int) $wpdb->get_var( $wpdb->prepare(
+                            "SELECT COUNT(*) FROM `{$table}` WHERE `{$club_id_col}` = %d AND `{$paid_season_col}` = %s",
+                            $club_id, $season
+                        ) );
+                    } else {
+                        $paid_flag_col = ufsc_get_mapped_column_if_exists( $table, 'paid_flag', 'licences' );
+                        if ( $paid_flag_col ) {
+                            $paid = (int) $wpdb->get_var( $wpdb->prepare(
+                                "SELECT COUNT(*) FROM `{$table}` WHERE `{$club_id_col}` = %d AND `{$paid_flag_col}` = 1",
+                                $club_id
+                            ) );
+                        }
+                    }
+                    
+                    // Validated licences
+                    $validated = 0;
+                    $status_col = ufsc_get_mapped_column_if_exists( $table, 'status', 'licences' );
+                    if ( $status_col ) {
+                        $validated = (int) $wpdb->get_var( $wpdb->prepare(
+                            "SELECT COUNT(*) FROM `{$table}` WHERE `{$club_id_col}` = %d AND `{$status_col}` IN ('valide','validée','validé','validated')",
+                            $club_id
+                        ) );
+                    }
+                    
+                    $stats = array(
+                        'total_licences' => $total,
+                        'paid_licences' => $paid,
+                        'validated_licences' => $validated,
+                        'quota_remaining' => 0 // This could be calculated based on club quota if available
+                    );
+                }
+            }
             
             // Cache for 1 hour
             set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
@@ -771,16 +971,22 @@ class UFSC_Frontend_Shortcodes {
 
     /**
      * Get club data
-     * TODO: Implement according to database schema
      */
     private static function get_club_data( $club_id ) {
-        // STUB: Return club object
-        return (object) array(
-            'id' => $club_id,
-            'nom' => 'Club Test',
-            'email' => 'test@example.com',
-            'telephone' => '01 23 45 67 89'
-        );
+        global $wpdb;
+        
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+            return false;
+        }
+        
+        $table = ufsc_get_clubs_table();
+        
+        $club = $wpdb->get_row( $wpdb->prepare(
+            "SELECT * FROM `{$table}` WHERE `id` = %d",
+            $club_id
+        ) );
+        
+        return $club ?: false;
     }
 
     /**
@@ -827,15 +1033,148 @@ class UFSC_Frontend_Shortcodes {
     }
 
     /**
+     * Render club documents list for frontend display
+     */
+    private static function render_club_documents_list( $club_id ) {
+        // Get default document types and allow filtering
+        $doc_types = apply_filters( 'ufsc_club_documents_types', array(
+            'statuts' => __( 'Statuts', 'ufsc-clubs' ),
+            'assurance' => __( 'Attestation d\'assurance', 'ufsc-clubs' ),
+            'rib' => __( 'RIB', 'ufsc-clubs' ),
+            'attestation_ufsc' => __( 'Attestation UFSC', 'ufsc-clubs' )
+        ) );
+        
+        echo '<div class="ufsc-documents-list">';
+        
+        $has_documents = false;
+        foreach ( $doc_types as $slug => $label ) {
+            $attachment_id = (int) get_option( 'ufsc_club_doc_' . $slug . '_' . $club_id );
+            
+            if ( $attachment_id ) {
+                $attachment_url = wp_get_attachment_url( $attachment_id );
+                if ( $attachment_url ) {
+                    $has_documents = true;
+                    echo '<div class="ufsc-document-item">';
+                    echo '<span class="ufsc-document-label">' . esc_html( $label ) . ':</span>';
+                    echo '<div class="ufsc-document-actions">';
+                    echo '<a href="' . esc_url( $attachment_url ) . '" target="_blank" rel="noopener" class="ufsc-btn ufsc-btn-small">' . esc_html__( 'Voir', 'ufsc-clubs' ) . '</a> ';
+                    echo '<a href="' . esc_url( $attachment_url ) . '" download class="ufsc-btn ufsc-btn-small">' . esc_html__( 'Télécharger', 'ufsc-clubs' ) . '</a>';
+                    echo '</div>';
+                    echo '</div>';
+                }
+            }
+        }
+        
+        if ( ! $has_documents ) {
+            echo '<p class="ufsc-no-documents">' . esc_html__( 'Aucun document disponible.', 'ufsc-clubs' ) . '</p>';
+        }
+        
+        echo '</div>';
+    }
+
+    /**
      * Handle club update
-     * TODO: Implement update logic with validation restrictions
      */
     private static function handle_club_update( $club_id, $data ) {
-        // STUB: Handle club update
-        return array(
-            'success' => true,
-            'message' => __( 'Club mis à jour avec succès.', 'ufsc-clubs' )
+        if ( ! is_user_logged_in() ) {
+            return array( 'success' => false, 'message' => __( 'Non autorisé', 'ufsc-clubs' ) );
+        }
+        
+        $is_admin = current_user_can( 'manage_options' );
+        global $wpdb;
+        
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+            return array( 'success' => false, 'message' => __( 'Configuration manquante', 'ufsc-clubs' ) );
+        }
+        
+        $table = ufsc_get_clubs_table();
+        
+        // Determine allowed fields based on user permissions
+        $allowed_fields = $is_admin ? null : array( 'email', 'telephone' );
+        
+        $update_data = array();
+        
+        // Map logical field names to actual database columns
+        $field_mappings = array(
+            'name' => 'nom',
+            'email' => 'email', 
+            'phone' => 'telephone',
+            'address' => 'adresse',
+            'city' => 'ville',
+            'zipcode' => 'code_postal',
+            'region' => 'region'
         );
+        
+        foreach ( $field_mappings as $logical_key => $form_field ) {
+            if ( isset( $data[ $form_field ] ) ) {
+                $db_column = ufsc_club_col( $logical_key );
+                if ( $db_column ) {
+                    // Check if user is allowed to update this field
+                    if ( $allowed_fields && ! in_array( $form_field, $allowed_fields, true ) ) {
+                        continue;
+                    }
+                    
+                    $value = sanitize_text_field( wp_unslash( $data[ $form_field ] ) );
+                    $update_data[ $db_column ] = $value;
+                }
+            }
+        }
+        
+        // Update database if there are changes
+        if ( ! empty( $update_data ) ) {
+            $result = $wpdb->update( $table, $update_data, array( 'id' => (int) $club_id ) );
+            if ( $result === false ) {
+                return array( 'success' => false, 'message' => __( 'Échec de la mise à jour', 'ufsc-clubs' ) );
+            }
+        }
+        
+        // Handle logo upload for admins only
+        if ( $is_admin && ! empty( $_FILES['club_logo']['name'] ) ) {
+            if ( ! function_exists( 'wp_handle_upload' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/file.php';
+            }
+            if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
+                require_once ABSPATH . 'wp-admin/includes/image.php';
+            }
+            
+            $logo_mimes = array(
+                'jpg|jpeg|jpe' => 'image/jpeg',
+                'gif' => 'image/gif', 
+                'png' => 'image/png'
+            );
+            
+            $logo_upload = wp_handle_upload( $_FILES['club_logo'], array(
+                'test_form' => false,
+                'mimes' => $logo_mimes
+            ) );
+            
+            if ( ! isset( $logo_upload['error'] ) ) {
+                $logo_attachment = array(
+                    'post_mime_type' => $logo_upload['type'],
+                    'post_title' => sanitize_file_name( $_FILES['club_logo']['name'] ),
+                    'post_content' => '',
+                    'post_status' => 'inherit'
+                );
+                
+                $logo_attachment_id = wp_insert_attachment( $logo_attachment, $logo_upload['file'] );
+                
+                if ( $logo_attachment_id ) {
+                    $logo_metadata = wp_generate_attachment_metadata( $logo_attachment_id, $logo_upload['file'] );
+                    wp_update_attachment_metadata( $logo_attachment_id, $logo_metadata );
+                    
+                    // Remove old logo if exists
+                    $old_logo_id = get_option( 'ufsc_club_logo_' . $club_id );
+                    if ( $old_logo_id ) {
+                        wp_delete_attachment( $old_logo_id, true );
+                    }
+                    
+                    // Save new logo using same storage pattern as admin
+                    update_option( 'ufsc_club_logo_' . $club_id, $logo_attachment_id );
+                }
+            }
+        }
+        
+        return array( 'success' => true, 'message' => __( 'Club mis à jour avec succès.', 'ufsc-clubs' ) );
     }
 
     /**

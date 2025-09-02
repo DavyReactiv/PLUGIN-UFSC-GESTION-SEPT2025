@@ -104,8 +104,13 @@ class UFSC_Club_Dashboard {
         $settings = UFSC_SQL::get_settings();
         $table = $settings['table_clubs'];
         
+        $manager_col = ufsc_club_col( 'manager_user_id' );
+        if ( ! $manager_col ) {
+            return null; // Fallback if column mapping not available
+        }
+        
         $club = $wpdb->get_row( $wpdb->prepare( 
-            "SELECT * FROM `{$table}` WHERE responsable_id = %d LIMIT 1", 
+            "SELECT * FROM `{$table}` WHERE `{$manager_col}` = %d LIMIT 1", 
             $user_id 
         ) );
         
@@ -137,8 +142,13 @@ class UFSC_Club_Dashboard {
         $settings = UFSC_SQL::get_settings();
         $table = $settings['table_clubs'];
         
+        $manager_col = ufsc_club_col( 'manager_user_id' );
+        if ( ! $manager_col ) {
+            return false; // Fallback if column mapping not available
+        }
+        
         $result = $wpdb->get_var( $wpdb->prepare( 
-            "SELECT id FROM `{$table}` WHERE id = %d AND responsable_id = %d", 
+            "SELECT id FROM `{$table}` WHERE id = %d AND `{$manager_col}` = %d", 
             $club_id, 
             $user_id 
         ) );
