@@ -27,6 +27,20 @@
     font-size: 1rem;
 }
 
+/* Constrain club logo */
+.ufsc-club-profile .ufsc-logo img,
+.ufsc-logo-preview img,
+.ufsc-logo img { max-width:240px; max-height:160px; width:auto; height:auto; object-fit:contain; display:block; margin:0 auto; }
+
+/* Dashboard header CTA spacing */
+.ufsc-dashboard-actions { margin-top:8px; }
+.ufsc-dashboard-actions .ufsc-btn { padding:10px 14px; font-weight:600; }
+
+/* Documents list */
+.ufsc-docs-list { list-style:none; padding:0; margin:8px 0 0; }
+.ufsc-docs-list li { margin:6px 0; display:flex; gap:10px; align-items:center; }
+.ufsc-docs-list a { text-decoration:underline; }
+
 /* Navigation */
 .ufsc-dashboard-nav {
     background: #f8f9fa;
