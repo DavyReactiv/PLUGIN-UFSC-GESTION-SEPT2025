@@ -73,6 +73,7 @@ final class UFSC_CL_Bootstrap {
         add_action( 'admin_post_ufsc_sql_delete_club', array( 'UFSC_SQL_Admin', 'handle_delete_club' ) );
         add_action( 'admin_post_ufsc_sql_save_licence', array( 'UFSC_SQL_Admin', 'handle_save_licence' ) );
         add_action( 'admin_post_ufsc_sql_delete_licence', array( 'UFSC_SQL_Admin', 'handle_delete_licence' ) );
+        add_action( 'admin_post_ufsc_send_license_payment', array( 'UFSC_SQL_Admin', 'handle_send_license_payment' ) );
         add_action( 'admin_post_ufsc_export_data', array( 'UFSC_SQL_Admin', 'handle_export_data' ) );
 
         // AJAX handlers

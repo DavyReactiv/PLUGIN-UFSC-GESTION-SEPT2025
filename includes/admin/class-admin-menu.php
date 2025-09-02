@@ -73,6 +73,11 @@ class UFSC_CL_Admin_Menu {
         if ( strpos($hook, 'ufsc') !== false ){
             wp_enqueue_style( 'ufsc-admin', UFSC_CL_URL.'assets/admin/css/admin.css', array(), UFSC_CL_VERSION );
             wp_enqueue_script( 'ufsc-admin', UFSC_CL_URL.'assets/admin/js/admin.js', array('jquery'), UFSC_CL_VERSION, true );
+            
+            // Enqueue license form validation script on license pages
+            if (strpos($hook, 'ufsc-sql-licences') !== false || (isset($_GET['page']) && $_GET['page'] === 'ufsc-sql-licences')) {
+                wp_enqueue_script( 'ufsc-license-form', UFSC_CL_URL.'assets/js/ufsc-license-form.js', array('jquery'), UFSC_CL_VERSION, true );
+            }
         }
     }
     public static function register_front(){
