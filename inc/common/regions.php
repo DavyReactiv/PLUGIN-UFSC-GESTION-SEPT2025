@@ -31,6 +31,15 @@ function ufsc_get_regions_labels() {
 }
 
 /**
+ * Alias for ufsc_get_regions_labels for consistency
+ * 
+ * @return array List of region labels
+ */
+function ufsc_get_regions_list() {
+    return ufsc_get_regions_labels();
+}
+
+/**
  * Validate if a region is in the approved list
  * 
  * @param string $region Region to validate

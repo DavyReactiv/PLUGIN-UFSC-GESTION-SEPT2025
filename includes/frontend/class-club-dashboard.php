@@ -113,6 +113,18 @@ class UFSC_Club_Dashboard {
     }
 
     /**
+
+     * Render status badge
+     * 
+     * @param string $status Status value
+     * @return string Badge HTML
+     */
+    private static function render_status_badge( $status ) {
+        return UFSC_Badge_Helper::render_status_badge( $status );
+    }
+
+    /**
+    
      * Check if user can edit club
      * 
      * @param int $user_id User ID
