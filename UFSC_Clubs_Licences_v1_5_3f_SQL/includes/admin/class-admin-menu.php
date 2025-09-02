@@ -5,12 +5,12 @@ class UFSC_CL_Admin_Menu {
     public static function register(){
         // Menu principal unifié UFSC
         add_menu_page( 
-            __( 'UFSC – Gestion', 'ufsc-clubs' ), 
-            __( 'UFSC – Gestion', 'ufsc-clubs' ), 
+            __( 'UFSC Gestion', 'ufsc-clubs' ), 
+            __( 'UFSC Gestion', 'ufsc-clubs' ), 
             'manage_options', 
             'ufsc-dashboard', 
             array( __CLASS__, 'render_dashboard' ), 
-            'dashicons-admin-home', 
+            'dashicons-groups', 
             58 
         );
         
@@ -44,11 +44,20 @@ class UFSC_CL_Admin_Menu {
         
         add_submenu_page( 
             'ufsc-dashboard', 
-            __('Réglages','ufsc-clubs'), 
-            __('Réglages','ufsc-clubs'), 
+            __('Paramètres','ufsc-clubs'), 
+            __('Paramètres','ufsc-clubs'), 
             'manage_options', 
             'ufsc-settings', 
             array( 'UFSC_SQL_Admin', 'render_settings' ) 
+        );
+        
+        add_submenu_page( 
+            'ufsc-dashboard', 
+            __('WooCommerce','ufsc-clubs'), 
+            __('WooCommerce','ufsc-clubs'), 
+            'manage_options', 
+            'ufsc-woocommerce', 
+            array( 'UFSC_SQL_Admin', 'render_woocommerce_settings' ) 
         );
     }
     public static function enqueue_admin( $hook ){

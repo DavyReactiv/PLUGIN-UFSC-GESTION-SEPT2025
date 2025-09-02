@@ -23,22 +23,8 @@ class UFSC_CL_Utils {
     }
     
     public static function regions(){
-        $default = array(
-            'UFSC AUVERGNE-RHONE-ALPES',
-            'UFSC BOURGOGNE-FRANCHE-COMTE',
-            'UFSC BRETAGNE',
-            'UFSC CENTRE-VAL DE LOIRE',
-            'UFSC GRAND EST',
-            'UFSC HAUTS-DE-FRANCE',
-            'UFSC ILE-DE-FRANCE',
-            'UFSC NORMANDIE',
-            'UFSC NOUVELLE-AQUITAINE',
-            'UFSC OCCITANIE',
-            'UFSC PAYS DE LA LOIRE',
-            'UFSC PROVENCE-ALPES-COTE D\'AZUR',
-            'UFSC DROM-COM'
-        );
-        return apply_filters( 'ufsc_regions_list', $default );
+        // Use the new common regions function for consistency
+        return ufsc_get_regions_labels();
     }
     
     /**

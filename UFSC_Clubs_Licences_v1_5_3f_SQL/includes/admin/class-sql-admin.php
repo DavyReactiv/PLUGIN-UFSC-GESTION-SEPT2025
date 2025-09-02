@@ -469,4 +469,11 @@ class UFSC_SQL_Admin {
         wp_safe_redirect( admin_url('admin.php?page=ufsc-licences') );
         exit;
     }
+
+    /**
+     * Render WooCommerce settings page
+     */
+    public static function render_woocommerce_settings() {
+        ufsc_render_woocommerce_settings_page();
+    }
 } /* end class */
