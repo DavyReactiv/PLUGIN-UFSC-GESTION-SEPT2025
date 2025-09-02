@@ -604,27 +604,11 @@ class UFSC_Frontend_Shortcodes {
                             </div>
                         <?php else: ?>
                             <p class="ufsc-text-muted"><?php esc_html_e( 'Aucun logo configuré.', 'ufsc-clubs' ); ?></p>
-
-                        <?php else: ?>
-                            <?php if ( $is_admin ): ?>
-                                <div class="ufsc-logo-upload">
-                                    <input type="file" id="club_logo" name="club_logo" accept="image/*">
-                                    <label for="club_logo" class="ufsc-upload-label">
-                                        <?php esc_html_e( 'Choisir un logo', 'ufsc-clubs' ); ?>
-                                    </label>
-                                    <p class="ufsc-help-text">
-                                        <?php esc_html_e( 'Formats acceptés: JPG, PNG, SVG. Taille max: 2MB', 'ufsc-clubs' ); ?>
-                                    </p>
-                                </div>
-                            <?php else: ?>
-                                <p><?php esc_html_e( 'Aucun logo disponible', 'ufsc-clubs' ); ?></p>
-                            <?php endif; ?>
-
                         <?php endif; ?>
                     </div>
 
                     <!-- Other Documents -->
-                    <?php 
+                    <?php
                     $document_types = array(
                         'doc_statuts' => __( 'Statuts', 'ufsc-clubs' ),
                         'doc_recepisse' => __( 'Récépissé', 'ufsc-clubs' ),
@@ -635,6 +619,34 @@ class UFSC_Frontend_Shortcodes {
                         'doc_attestation_affiliation' => __( 'Attestation UFSC', 'ufsc-clubs' )
                     );
                     
+                    foreach ( $document_types as $doc_type => $doc_label ):
+                        $attachment_id = (int) get_option( 'ufsc_club_' . $doc_type . '_' . $atts['club_id'] );
+                        if ( $attachment_id ) :
+                            $attachment_url   = wp_get_attachment_url( $attachment_id );
+                            $attachment_title = get_the_title( $attachment_id );
+                            if ( $attachment_url ) :
+                    ?>
+                        <div class="ufsc-document-item">
+                            <h5><?php echo esc_html( $doc_label ); ?></h5>
+                            <div class="ufsc-document-links">
+                                <a href="<?php echo esc_url( $attachment_url ); ?>" target="_blank" rel="noopener">
+                                    <?php esc_html_e( 'Voir', 'ufsc-clubs' ); ?>
+                                </a>
+                                <a href="<?php echo esc_url( $attachment_url ); ?>" download="<?php echo esc_attr( $attachment_title ); ?>">
+                                    <?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?>
+                                </a>
+                            </div>
+                        </div>
+                    <?php
+                            endif;
+                        endif;
+                    endforeach;
+                    ?>
+                </fieldset>
+
+                <!-- Contact Section -->
+                <fieldset class="ufsc-form-section">
+                    <legend><?php esc_html_e( 'Contact', 'ufsc-clubs' ); ?></legend>
 
                     <div class="ufsc-form-row">
                         <div class="ufsc-form-field">
@@ -672,32 +684,23 @@ class UFSC_Frontend_Shortcodes {
                             <div class="ufsc-form-field">
                                 <label for="adresse"><?php esc_html_e( 'Adresse', 'ufsc-clubs' ); ?></label>
                                 <textarea id="adresse" name="adresse" rows="3"><?php echo esc_textarea( $club->adresse ?? '' ); ?></textarea>
-
-                    foreach ( $document_types as $doc_type => $doc_label ): 
-                        $attachment_id = get_option( 'ufsc_club_' . $doc_type . '_' . $atts['club_id'] );
-                        if ( $attachment_id ):
-                            $attachment_url = wp_get_attachment_url( $attachment_id );
-                            $attachment_title = get_the_title( $attachment_id );
-                    ?>
-                        <div class="ufsc-document-item">
-                            <h5><?php echo esc_html( $doc_label ); ?></h5>
-                            <div class="ufsc-document-links">
-                                <a href="<?php echo esc_url( $attachment_url ); ?>" target="_blank" rel="noopener">
-                                    <?php esc_html_e( 'Voir', 'ufsc-clubs' ); ?>
-                                </a>
-                                <a href="<?php echo esc_url( $attachment_url ); ?>" download>
-                                    <?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?>
-                                </a>
-
                             </div>
                         </div>
-                    <?php 
-                        endif;
-                    endforeach; 
-                    ?>
-                </fieldset>
 
-
+                        <div class="ufsc-form-row">
+                            <div class="ufsc-form-field">
+                                <label for="ville"><?php esc_html_e( 'Ville', 'ufsc-clubs' ); ?></label>
+                                <input type="text" id="ville" name="ville" 
+                                       value="<?php echo esc_attr( $club->ville ?? '' ); ?>">
+                            </div>
+                            
+                            <div class="ufsc-form-field">
+                                <label for="code_postal"><?php esc_html_e( 'Code postal', 'ufsc-clubs' ); ?></label>
+                                <input type="text" id="code_postal" name="code_postal" 
+                                       value="<?php echo esc_attr( $club->code_postal ?? '' ); ?>" 
+                                       pattern="[0-9]{5}" maxlength="5">
+                            </div>
+                        </div>
 
                         <div class="ufsc-form-row">
                             <div class="ufsc-form-field">
@@ -726,77 +729,14 @@ class UFSC_Frontend_Shortcodes {
                         </div>
                     <?php endif; ?>
 
-                <?php if ( $is_admin || true ): // Allow all club managers to update email/telephone ?>
-                    <div class="ufsc-form-actions">
-                        <button type="submit" name="ufsc_update_club" class="ufsc-btn ufsc-btn-primary">
-                            <?php esc_html_e( 'Mettre à jour', 'ufsc-clubs' ); ?>
-                        </button>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Documents Section -->
-                <div class="ufsc-form-section">
-                    <h4><?php esc_html_e( 'Documents du Club', 'ufsc-clubs' ); ?></h4>
-                    <?php self::render_club_documents_list( $atts['club_id'] ); ?>
-
-                </div>
-
-                <!-- Documents Section -->
-                <div class="ufsc-form-section">
-                    <h4><?php esc_html_e( 'Documents du Club', 'ufsc-clubs' ); ?></h4>
-                    <div class="ufsc-documents-section">
-                        <?php
-                        $document_types = apply_filters( 'ufsc_club_documents_types', array(
-                            'statuts' => __( 'Statuts', 'ufsc-clubs' ),
-                            'rib' => __( 'RIB', 'ufsc-clubs' ),
-                            'assurance' => __( 'Assurance', 'ufsc-clubs' )
-                        ) );
-                        
-                        $has_documents = false;
-                        foreach ( $document_types as $slug => $label ) {
-                            $doc_id = get_option( 'ufsc_club_doc_' . $slug . '_' . $atts['club_id'] );
-                            if ( $doc_id ) {
-                                $has_documents = true;
-                                break;
-                            }
-                        }
-                        
-                        if ( $has_documents ): ?>
-                            <ul class="ufsc-docs-list">
-                                <?php foreach ( $document_types as $slug => $label ):
-                                    $doc_id = get_option( 'ufsc_club_doc_' . $slug . '_' . $atts['club_id'] );
-                                    if ( $doc_id ):
-                                        $doc_url = wp_get_attachment_url( $doc_id );
-                                        $doc_filename = get_the_title( $doc_id );
-                                ?>
-                                    <li>
-                                        <strong><?php echo esc_html( $label ); ?>:</strong>
-                                        <a href="<?php echo esc_url( $doc_url ); ?>" target="_blank">
-                                            <?php esc_html_e( 'Voir', 'ufsc-clubs' ); ?>
-                                        </a>
-                                        <a href="<?php echo esc_url( $doc_url ); ?>" download="<?php echo esc_attr( $doc_filename ); ?>">
-                                            <?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?>
-                                        </a>
-                                    </li>
-                                <?php endif; endforeach; ?>
-                            </ul>
-                        <?php else: ?>
-                            <p class="ufsc-text-muted"><?php esc_html_e( 'Aucun document configuré.', 'ufsc-clubs' ); ?></p>
-                        <?php endif; ?>
-                        
-                        <?php if ( $is_admin ): ?>
-                            <p class="ufsc-help-text">
-                                <?php esc_html_e( 'Les documents peuvent être gérés depuis l\'administration.', 'ufsc-clubs' ); ?>
-                            </p>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <div class="ufsc-form-actions">
-                    <button type="submit" name="ufsc_update_club" class="ufsc-btn ufsc-btn-primary">
-                        <?php esc_html_e( 'Mettre à jour', 'ufsc-clubs' ); ?>
-                    </button>
-                </div>
+                    <?php if ( $is_admin || true ): // Allow all club managers to update email/telephone ?>
+                        <div class="ufsc-form-actions">
+                            <button type="submit" name="ufsc_update_club" class="ufsc-btn ufsc-btn-primary">
+                                <?php esc_html_e( 'Mettre à jour', 'ufsc-clubs' ); ?>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                </fieldset>
 
             </form>
         </div>
@@ -967,40 +907,6 @@ class UFSC_Frontend_Shortcodes {
             $club_id
         ) );
         return $name ? $name : "Club #{$club_id}";
-
-        
-
-        $settings = UFSC_SQL::get_settings();
-        $table = $settings['table_clubs'];
-        $pk = ufsc_club_col( 'id' );
-        $nom_col = ufsc_club_col( 'nom' );
-        
-        $nom = $wpdb->get_var( $wpdb->prepare(
-            "SELECT `{$nom_col}` FROM `{$table}` WHERE `{$pk}` = %d LIMIT 1",
-            $club_id
-        ) );
-        
-        return $nom ?: '';
-
-        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
-            return false;
-        }
-        
-        $table = ufsc_get_clubs_table();
-        $name_col = ufsc_club_col( 'name' );
-        
-        if ( ! $name_col ) {
-            return false;
-        }
-        
-        $name = $wpdb->get_var( $wpdb->prepare(
-            "SELECT `{$name_col}` FROM `{$table}` WHERE `id` = %d",
-            $club_id
-        ) );
-        
-        return $name ?: false;
-
-
     }
 
     /**
@@ -1255,48 +1161,7 @@ class UFSC_Frontend_Shortcodes {
     }
 
     /**
-     * Get club statistics with caching
-
-            $season_col = ufsc_get_mapped_column_if_exists( $table, 'season', 'licences' );
-            if ( $season_col ) {
-                $where_conditions[] = "`{$season_col}` = %s";
-                $where_values[] = $args['season'];
-            }
-        }
-        
-        // Search filter
-        if ( ! empty( $args['s'] ) ) {
-            $search_fields = array();
-            foreach ( array( 'first_name', 'last_name', 'email' ) as $logical_field ) {
-                $mapped_col = ufsc_get_mapped_column_if_exists( $table, $logical_field, 'licences' );
-                if ( $mapped_col ) {
-                    $search_fields[] = "`{$mapped_col}` LIKE %s";
-                    $where_values[] = '%' . $wpdb->esc_like( $args['s'] ) . '%';
-                }
-            }
-            if ( ! empty( $search_fields ) ) {
-                $where_conditions[] = '(' . implode( ' OR ', $search_fields ) . ')';
-            }
-        }
-        
-        // Build WHERE clause
-        $where_sql = implode( ' AND ', $where_conditions );
-        
-        // Build the query
-        $sql = "SELECT COUNT(*) FROM `{$table}` WHERE {$where_sql}";
-        
-        if ( ! empty( $where_values ) ) {
-            $prepared_sql = $wpdb->prepare( $sql, $where_values );
-        } else {
-            $prepared_sql = $sql;
-        }
-        
-        return (int) $wpdb->get_var( $prepared_sql );
-    }
-
-    /**
      * Get club statistics
-
      */
     private static function get_club_stats( $club_id, $season ) {
         $cache_key = "ufsc_stats_{$club_id}_{$season}";
