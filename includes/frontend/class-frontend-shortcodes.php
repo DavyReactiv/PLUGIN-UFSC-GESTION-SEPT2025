@@ -963,25 +963,8 @@ class UFSC_Frontend_Shortcodes {
             }
         }
         
-        // Get table columns to check what's available
-        $available_columns = $wpdb->get_col( "DESCRIBE `{$table}`" );
-        
-        $where_conditions = array( $wpdb->prepare( "`{$club_id_col}` = %d", $club_id ) );
-        $where_values = array();
-        
-        // Status filter
-        if ( ! empty( $args['status'] ) ) {
-            $status_col = ufsc_get_mapped_column_if_exists( $table, 'status', 'licences' );
-            if ( $status_col ) {
-                $where_conditions[] = "`{$status_col}` = %s";
-                $where_values[] = $args['status'];
-
-            }
-        }
-        
-        // Season filter
+        // Season filter (if applicable) 
         if ( ! empty( $args['season'] ) ) {
-
             $season_column = null;
             foreach ( ['season', 'saison', 'paid_season'] as $col ) {
                 if ( in_array( $col, $columns ) ) {
@@ -998,17 +981,10 @@ class UFSC_Frontend_Shortcodes {
         
         // Pagination
         $offset = ( $args['paged'] - 1 ) * $args['per_page'];
-        $limit = $wpdb->prepare( "LIMIT %d OFFSET %d", $args['per_page'], $offset );
         
-        $query = "SELECT * FROM `{$licences_table}` {$where_clause} ORDER BY id DESC {$limit}";
+        $sql = "SELECT * FROM `{$licences_table}` {$where_clause} ORDER BY id DESC LIMIT {$args['per_page']} OFFSET {$offset}";
         
-        // Add search parameters if needed
-        if ( ! empty( $args['search'] ) && ! empty( $search_params ) ) {
-            $query = $wpdb->prepare( $query, $search_params );
-        }
-        
-        return $wpdb->get_results( $query );
-
+        return $wpdb->get_results( $sql );
     }
 
     /**
@@ -1104,11 +1080,6 @@ class UFSC_Frontend_Shortcodes {
         $where_clause = ! empty( $where_conditions ) ? 'WHERE ' . implode( ' AND ', $where_conditions ) : '';
         
         $query = "SELECT COUNT(*) FROM `{$licences_table}` {$where_clause}";
-        
-        // Add search parameters if needed
-        if ( ! empty( $args['search'] ) && ! empty( $search_params ) ) {
-            $query = $wpdb->prepare( $query, $search_params );
-        }
         
         return (int) $wpdb->get_var( $query );
     }
