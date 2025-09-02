@@ -223,6 +223,7 @@ class UFSC_SQL_Admin {
             echo '</div>';
             
             echo '</div>';
+        }
 
         // Add Documents panel for club editing
         if ( $id && ! $readonly ) {
@@ -502,7 +503,9 @@ class UFSC_SQL_Admin {
         wp_update_attachment_metadata( $attachment_id, $attachment_data );
         
         return $attachment_id;
+    }
 
+    /**
      * Handle club document uploads (logo and attestation)
      */
     private static function handle_club_document_uploads( $club_id ) {
