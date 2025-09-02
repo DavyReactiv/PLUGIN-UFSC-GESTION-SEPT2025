@@ -105,44 +105,29 @@ final class UFSC_CL_Bootstrap {
      * Enqueue frontend assets
      */
     public function enqueue_frontend_assets() {
-        // Only enqueue on pages that might have UFSC shortcodes
         global $post;
-        
         $should_enqueue = false;
-        
-        // Check if current page has UFSC shortcodes
+
         if ( $post && has_shortcode( $post->post_content, 'ufsc_club_dashboard' ) ) {
             $should_enqueue = true;
-        } elseif ( $post && ( 
+        } elseif ( $post && (
             has_shortcode( $post->post_content, 'ufsc_club_licences' ) ||
             has_shortcode( $post->post_content, 'ufsc_club_stats' ) ||
             has_shortcode( $post->post_content, 'ufsc_club_profile' ) ||
             has_shortcode( $post->post_content, 'ufsc_add_licence' )
-        ) ) {
-            $should_enqueue = true;
-        }
+        ) ) { $should_enqueue = true; }
 
-        // Also enqueue on specific page templates or if user is logged in and visiting frontend
         if ( ! $should_enqueue && is_user_logged_in() ) {
-            // You can add specific page checks here
-            $should_enqueue = is_page( array( 'tableau-de-bord', 'club-dashboard', 'mon-club' ) );
+            if ( function_exists('is_account_page') && is_account_page() ) {
+                $should_enqueue = true;
+            } else {
+                $should_enqueue = is_page( array( 'tableau-de-bord', 'club-dashboard', 'mon-club', 'mon-compte', 'my-account' ) );
+            }
         }
 
         if ( $should_enqueue ) {
-            wp_enqueue_style( 
-                'ufsc-frontend', 
-                UFSC_CL_URL . 'assets/frontend/css/frontend.css', 
-                array(), 
-                UFSC_CL_VERSION 
-            );
-
-            wp_enqueue_script( 
-                'ufsc-frontend', 
-                UFSC_CL_URL . 'assets/frontend/js/frontend.js', 
-                array( 'jquery' ), 
-                UFSC_CL_VERSION, 
-                true 
-            );
+            wp_enqueue_style('ufsc-frontend', UFSC_CL_URL . 'assets/frontend/css/frontend.css', array(), UFSC_CL_VERSION );
+            wp_enqueue_script('ufsc-frontend', UFSC_CL_URL . 'assets/frontend/js/frontend.js', array('jquery'), UFSC_CL_VERSION, true );
         }
     }
 

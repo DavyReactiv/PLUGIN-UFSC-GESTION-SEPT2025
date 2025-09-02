@@ -15,15 +15,12 @@ class UFSC_User_Club_Mapping {
      */
     public static function get_user_club_id( $user_id ) {
         global $wpdb;
-        
-        $settings = UFSC_SQL::get_settings();
-        $clubs_table = $settings['table_clubs'];
-        
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) { return false; }
+        $clubs_table = ufsc_get_clubs_table();
         $club_id = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$clubs_table} WHERE responsable_id = %d LIMIT 1",
+            "SELECT id FROM `{$clubs_table}` WHERE responsable_id = %d LIMIT 1",
             $user_id
         ) );
-        
         return $club_id ? (int) $club_id : false;
     }
 
@@ -35,15 +32,12 @@ class UFSC_User_Club_Mapping {
      */
     public static function get_user_club( $user_id ) {
         global $wpdb;
-        
-        $settings = UFSC_SQL::get_settings();
-        $clubs_table = $settings['table_clubs'];
-        
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) { return false; }
+        $clubs_table = ufsc_get_clubs_table();
         $club = $wpdb->get_row( $wpdb->prepare(
-            "SELECT * FROM {$clubs_table} WHERE responsable_id = %d LIMIT 1",
+            "SELECT * FROM `{$clubs_table}` WHERE responsable_id = %d LIMIT 1",
             $user_id
         ) );
-        
         return $club ?: false;
     }
 
@@ -56,54 +50,16 @@ class UFSC_User_Club_Mapping {
      */
     public static function associate_user_with_club( $user_id, $club_id ) {
         global $wpdb;
-        
-        // Verify user exists
-        $user = get_user_by( 'id', $user_id );
-        if ( ! $user ) {
-            return false;
-        }
-        
-        // Verify club exists
-        $settings = UFSC_SQL::get_settings();
-        $clubs_table = $settings['table_clubs'];
-        
-        $club_exists = $wpdb->get_var( $wpdb->prepare(
-            "SELECT id FROM {$clubs_table} WHERE id = %d",
-            $club_id
-        ) );
-        
-        if ( ! $club_exists ) {
-            return false;
-        }
-        
-        // Check if user is already associated with another club
-        $existing_club = self::get_user_club_id( $user_id );
-        if ( $existing_club && $existing_club !== $club_id ) {
-            // User already has a different club associated
-            return false;
-        }
-        
-        // Update club with user as responsible
-        $result = $wpdb->update(
-            $clubs_table,
-            array( 'responsable_id' => $user_id ),
-            array( 'id' => $club_id ),
-            array( '%d' ),
-            array( '%d' )
-        );
-        
-        if ( $result !== false ) {
-            // Log the association
-            ufsc_audit_log( 'user_club_associated', array(
-                'user_id' => $user_id,
-                'club_id' => $club_id,
-                'admin_user_id' => get_current_user_id()
-            ) );
-            
-            return true;
-        }
-        
-        return false;
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) { return false; }
+        $clubs_table = ufsc_get_clubs_table();
+        $user = get_user_by( 'id', (int) $user_id );
+        if ( ! $user ) { return false; }
+        $exists = $wpdb->get_var( $wpdb->prepare("SELECT id FROM `{$clubs_table}` WHERE id = %d", $club_id) );
+        if ( ! $exists ) { return false; }
+        $existing = self::get_user_club_id( $user_id );
+        if ( $existing && (int) $existing !== (int) $club_id ) { return false; }
+        $res = $wpdb->update( $clubs_table, array( 'responsable_id' => (int) $user_id ), array( 'id' => (int) $club_id ), array( '%d' ), array( '%d' ) );
+        return $res !== false;
     }
 
     /**
