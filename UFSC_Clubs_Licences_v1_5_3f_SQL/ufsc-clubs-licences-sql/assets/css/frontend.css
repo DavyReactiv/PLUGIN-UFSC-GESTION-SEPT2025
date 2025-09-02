@@ -1,0 +1,6 @@
+/* minimal front styles */
+.ufsc-form .ufsc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.ufsc-form .ufsc-field label{display:block;margin-bottom:6px;font-weight:600}
+.ufsc-form .ufsc-field input[type=text], .ufsc-form .ufsc-field input[type=number], .ufsc-form .ufsc-field textarea, .ufsc-form .ufsc-field select{width:100%}
+.ufsc-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:16px;margin:10px 0}
+.ufsc-alert{background:#f0f6ff;border:1px solid #cfe1ff;padding:10px;border-radius:6px;margin:10px 0}

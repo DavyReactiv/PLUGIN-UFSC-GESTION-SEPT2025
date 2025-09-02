@@ -1,0 +1,13 @@
+/* minimal admin styles */
+.ufsc-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;line-height:1.6;font-weight:600}
+.ufsc-badge-info{background:#e6f1ff;color:#1257a0}
+.ufsc-badge-success{background:#e7f7ed;color:#137d3b}
+.ufsc-badge-wait{background:#fff7e6;color:#8a5a00}
+.ufsc-badge-off{background:#f6e6e6;color:#7d0013}
+.ufsc-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0}
+.ufsc-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:16px}
+.ufsc-card-kpi{font-size:22px;font-weight:700}
+.ufsc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.ufsc-field label{display:block;margin-bottom:6px;font-weight:600}
+.ufsc-field input[type=text], .ufsc-field input[type=number], .ufsc-field textarea, .ufsc-field select{width:100%}
+.ufsc-alert{background:#f0f6ff;border:1px solid #cfe1ff;padding:10px;border-radius:6px;margin:10px 0}
