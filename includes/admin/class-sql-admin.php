@@ -54,6 +54,10 @@ class UFSC_SQL_Admin {
             $id = (int) $_GET['id'];
             self::render_club_form($id);
             return;
+        } elseif ( isset($_GET['action']) && $_GET['action']==='view' ){
+            $id = (int) $_GET['id'];
+            self::render_club_form($id, true); // true = readonly mode
+            return;
         } elseif ( isset($_GET['action']) && $_GET['action']==='new' ){
             self::render_club_form(0);
             return;
@@ -94,7 +98,7 @@ class UFSC_SQL_Admin {
         fclose($out);
     }
 
-    private static function render_club_form( $id ){
+    private static function render_club_form( $id, $readonly = false ){
         global $wpdb;
         $s = UFSC_SQL::get_settings();
         $t = $s['table_clubs'];
@@ -102,7 +106,11 @@ class UFSC_SQL_Admin {
         $fields = UFSC_SQL::get_club_fields();
         $row = $id ? $wpdb->get_row( $wpdb->prepare("SELECT * FROM `$t` WHERE `$pk`=%d", $id) ) : null;
 
-        echo '<h2>'.( $id ? esc_html__('Éditer le club','ufsc-clubs') : esc_html__('Nouveau club','ufsc-clubs') ).'</h2>';
+        if ( $readonly ) {
+            echo '<h2>'.( $id ? esc_html__('Consulter le club','ufsc-clubs') : esc_html__('Nouveau club','ufsc-clubs') ).'</h2>';
+        } else {
+            echo '<h2>'.( $id ? esc_html__('Éditer le club','ufsc-clubs') : esc_html__('Nouveau club','ufsc-clubs') ).'</h2>';
+        }
         
         // Affichage des messages
         if ( isset($_GET['updated']) && $_GET['updated'] == '1' ) {
@@ -112,45 +120,59 @@ class UFSC_SQL_Admin {
             echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
         }
         
-        echo '<form method="post">';
-        wp_nonce_field('ufsc_sql_save_club');
-        echo '<input type="hidden" name="action" value="ufsc_sql_save_club" />';
-        echo '<input type="hidden" name="id" value="'.(int)$id.'" />';
-        echo '<input type="hidden" name="page" value="ufsc-clubs"/>';
+        if ( !$readonly ) {
+            echo '<form method="post">';
+            wp_nonce_field('ufsc_sql_save_club');
+            echo '<input type="hidden" name="action" value="ufsc_sql_save_club" />';
+            echo '<input type="hidden" name="id" value="'.(int)$id.'" />';
+            echo '<input type="hidden" name="page" value="ufsc-clubs"/>';
+        }
 
         echo '<div class="ufsc-grid">';
         foreach ( $fields as $k=>$conf ){
             $val = $row ? ( isset($row->$k) ? $row->$k : '' ) : '';
-            self::render_field_club($k,$conf,$val);
+            self::render_field_club($k,$conf,$val, $readonly);
         }
         echo '</div>';
-        echo '<p><button class="button button-primary">'.esc_html__('Enregistrer','ufsc-clubs').'</button> <a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-clubs') ).'">'.esc_html__('Annuler','ufsc-clubs').'</a></p>';
-        echo '</form>';
+        
+        if ( !$readonly ) {
+            echo '<p><button class="button button-primary">'.esc_html__('Enregistrer','ufsc-clubs').'</button> <a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-clubs') ).'">'.esc_html__('Annuler','ufsc-clubs').'</a></p>';
+            echo '</form>';
+        } else {
+            echo '<p><a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-clubs') ).'">'.esc_html__('Retour à la liste','ufsc-clubs').'</a>';
+            if ( current_user_can('manage_options') ) {
+                echo ' <a class="button button-primary" href="'.esc_url( admin_url('admin.php?page=ufsc-clubs&action=edit&id='.$id) ).'">'.esc_html__('Modifier','ufsc-clubs').'</a>';
+            }
+            echo '</p>';
+        }
     }
 
-    private static function render_field_club($k,$conf,$val){
+    private static function render_field_club($k,$conf,$val, $readonly = false){
         $label = $conf[0];
         $type  = $conf[1];
+        $readonly_attr = $readonly ? 'readonly disabled' : '';
+        $disabled_attr = $readonly ? 'disabled' : '';
+        
         echo '<div class="ufsc-field"><label>'.esc_html($label).'</label>';
         if ( $type === 'textarea' ){
-            echo '<textarea name="'.esc_attr($k).'" rows="3">'.esc_textarea($val).'</textarea>';
+            echo '<textarea name="'.esc_attr($k).'" rows="3" '.$readonly_attr.'>'.esc_textarea($val).'</textarea>';
         } elseif ( $type === 'number' ){
-            echo '<input type="number" step="1" name="'.esc_attr($k).'" value="'.esc_attr($val).'" />';
+            echo '<input type="number" step="1" name="'.esc_attr($k).'" value="'.esc_attr($val).'" '.$readonly_attr.' />';
         } elseif ( $type === 'region' ){
-            echo '<select name="'.esc_attr($k).'">';
+            echo '<select name="'.esc_attr($k).'" '.$disabled_attr.'>';
             foreach( UFSC_CL_Utils::regions() as $r ){
                 echo '<option value="'.esc_attr($r).'" '.selected($val,$r,false).'>'.esc_html($r).'</option>';
             }
             echo '</select>';
         } elseif ( $type === 'licence_status' ){
             $st = UFSC_SQL::statuses();
-            echo '<select name="'.esc_attr($k).'">';
+            echo '<select name="'.esc_attr($k).'" '.$disabled_attr.'>';
             foreach( $st as $sv=>$sl ){
                 echo '<option value="'.esc_attr($sv).'" '.selected($val,$sv,false).'>'.esc_html($sl).'</option>';
             }
             echo '</select>';
         } else {
-            echo '<input type="text" name="'.esc_attr($k).'" value="'.esc_attr($val).'" />';
+            echo '<input type="text" name="'.esc_attr($k).'" value="'.esc_attr($val).'" '.$readonly_attr.' />';
         }
         echo '</div>';
     }
@@ -297,6 +319,11 @@ class UFSC_SQL_Admin {
         if ( isset($_GET['action']) && $_GET['action']==='edit' ){
             $id = (int) $_GET['id'];
             self::render_licence_form($id);
+            echo '</div>';
+            return;
+        } elseif ( isset($_GET['action']) && $_GET['action']==='view' ){
+            $id = (int) $_GET['id'];
+            self::render_licence_form($id, true); // true = readonly mode
             echo '</div>';
             return;
         } elseif ( isset($_GET['action']) && $_GET['action']==='new' ){
@@ -497,7 +524,7 @@ class UFSC_SQL_Admin {
         fclose($out);
     }
 
-    private static function render_licence_form( $id ){
+    private static function render_licence_form( $id, $readonly = false ){
         global $wpdb;
         $s = UFSC_SQL::get_settings();
         $t = $s['table_licences'];
@@ -505,7 +532,11 @@ class UFSC_SQL_Admin {
         $fields = UFSC_SQL::get_licence_fields();
         $row = $id ? $wpdb->get_row( $wpdb->prepare("SELECT * FROM `$t` WHERE `$pk`=%d", $id) ) : null;
 
-        echo '<h2>'.( $id ? esc_html__('Éditer la licence','ufsc-clubs') : esc_html__('Nouvelle licence','ufsc-clubs') ).'</h2>';
+        if ( $readonly ) {
+            echo '<h2>'.( $id ? esc_html__('Consulter la licence','ufsc-clubs') : esc_html__('Nouvelle licence','ufsc-clubs') ).'</h2>';
+        } else {
+            echo '<h2>'.( $id ? esc_html__('Éditer la licence','ufsc-clubs') : esc_html__('Nouvelle licence','ufsc-clubs') ).'</h2>';
+        }
         
         // Affichage des messages
         if ( isset($_GET['updated']) && $_GET['updated'] == '1' ) {
@@ -515,25 +546,39 @@ class UFSC_SQL_Admin {
             echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
         }
         
-        echo '<form method="post" enctype="multipart/form-data">';
-        wp_nonce_field('ufsc_sql_save_licence');
-        echo '<input type="hidden" name="action" value="ufsc_sql_save_licence" />';
-        echo '<input type="hidden" name="id" value="'.(int)$id.'" />';
-        echo '<input type="hidden" name="page" value="ufsc-licences"/>';
+        if ( !$readonly ) {
+            echo '<form method="post" enctype="multipart/form-data">';
+            wp_nonce_field('ufsc_sql_save_licence');
+            echo '<input type="hidden" name="action" value="ufsc_sql_save_licence" />';
+            echo '<input type="hidden" name="id" value="'.(int)$id.'" />';
+            echo '<input type="hidden" name="page" value="ufsc-licences"/>';
+        }
 
         echo '<div class="ufsc-grid">';
         foreach ( $fields as $k=>$conf ){
             $val = $row ? ( isset($row->$k) ? $row->$k : '' ) : '';
-            self::render_field_licence($k,$conf,$val);
+            self::render_field_licence($k,$conf,$val, $readonly);
         }
         echo '</div>';
-        echo '<p><button class="button button-primary">'.esc_html__('Enregistrer','ufsc-clubs').'</button> <a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-licences') ).'">'.esc_html__('Annuler','ufsc-clubs').'</a></p>';
-        echo '</form>';
+        
+        if ( !$readonly ) {
+            echo '<p><button class="button button-primary">'.esc_html__('Enregistrer','ufsc-clubs').'</button> <a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-licences') ).'">'.esc_html__('Annuler','ufsc-clubs').'</a></p>';
+            echo '</form>';
+        } else {
+            echo '<p><a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-licences') ).'">'.esc_html__('Retour à la liste','ufsc-clubs').'</a>';
+            if ( current_user_can('manage_options') ) {
+                echo ' <a class="button button-primary" href="'.esc_url( admin_url('admin.php?page=ufsc-licences&action=edit&id='.$id) ).'">'.esc_html__('Modifier','ufsc-clubs').'</a>';
+            }
+            echo '</p>';
+        }
     }
 
-    private static function render_field_licence($k,$conf,$val){
+    private static function render_field_licence($k,$conf,$val, $readonly = false){
         $label = $conf[0];
         $type  = $conf[1];
+        $readonly_attr = $readonly ? 'readonly disabled' : '';
+        $disabled_attr = $readonly ? 'disabled' : '';
+        
         echo '<div class="ufsc-field"><label>'.esc_html($label).'</label>';
         
         if ( $k === 'club_id' ){
@@ -552,7 +597,7 @@ class UFSC_SQL_Admin {
                 }
             }
             
-            echo '<select name="'.esc_attr($k).'" id="ufsc-club-selector" class="ufsc-club-selector" data-current-region="'.esc_attr($selected_region).'">';
+            echo '<select name="'.esc_attr($k).'" id="ufsc-club-selector" class="ufsc-club-selector" data-current-region="'.esc_attr($selected_region).'" '.$disabled_attr.'>';
             echo '<option value="">'.esc_html__('Sélectionner un club...', 'ufsc-clubs').'</option>';
             
             // Get all clubs for the dropdown
@@ -563,38 +608,51 @@ class UFSC_SQL_Admin {
             echo '</select>';
             
             // Auto-populated region field (read-only)
-            echo '<p class="description">'.esc_html__('La région sera automatiquement remplie selon le club sélectionné.', 'ufsc-clubs').'</p>';
+            if ( !$readonly ) {
+                echo '<p class="description">'.esc_html__('La région sera automatiquement remplie selon le club sélectionné.', 'ufsc-clubs').'</p>';
+            }
             
         } elseif ( $k === 'region' ){
             // Make region read-only when displayed after club_id
-            echo '<input type="text" name="'.esc_attr($k).'" id="ufsc-auto-region" value="'.esc_attr($val).'" readonly class="ufsc-readonly-field" />';
-            echo '<p class="description">'.esc_html__('Ce champ est automatiquement rempli selon le club sélectionné.', 'ufsc-clubs').'</p>';
+            echo '<input type="text" name="'.esc_attr($k).'" id="ufsc-auto-region" value="'.esc_attr($val).'" readonly class="ufsc-readonly-field" '.$disabled_attr.' />';
+            if ( !$readonly ) {
+                echo '<p class="description">'.esc_html__('Ce champ est automatiquement rempli selon le club sélectionné.', 'ufsc-clubs').'</p>';
+            }
             
         } elseif ( $type === 'textarea' ){
-            echo '<textarea name="'.esc_attr($k).'" rows="3">'.esc_textarea($val).'</textarea>';
+            echo '<textarea name="'.esc_attr($k).'" rows="3" '.$readonly_attr.'>'.esc_textarea($val).'</textarea>';
         } elseif ( $type === 'number' ){
-            echo '<input type="number" step="1" name="'.esc_attr($k).'" value="'.esc_attr($val).'" />';
+            echo '<input type="number" step="1" name="'.esc_attr($k).'" value="'.esc_attr($val).'" '.$readonly_attr.' />';
         } elseif ( $type === 'region' ){
-            echo '<select name="'.esc_attr($k).'">';
+            echo '<select name="'.esc_attr($k).'" '.$disabled_attr.'>';
             foreach( UFSC_CL_Utils::regions() as $r ){
                 echo '<option value="'.esc_attr($r).'" '.selected($val,$r,false).'>'.esc_html($r).'</option>';
             }
             echo '</select>';
         } elseif ( $type === 'bool' ){
-            echo '<select name="'.esc_attr($k).'"><option value="0" '.selected($val,'0',false).'>Non</option><option value="1" '.selected($val,'1',false).'>Oui</option></select>';
+            echo '<select name="'.esc_attr($k).'" '.$disabled_attr.'><option value="0" '.selected($val,'0',false).'>Non</option><option value="1" '.selected($val,'1',false).'>Oui</option></select>';
         } elseif ( $type === 'sex' ){
-            echo '<label><input type="radio" name="'.esc_attr($k).'" value="M" '.checked($val,'M',false).'/> M</label> <label style="margin-left:10px"><input type="radio" name="'.esc_attr($k).'" value="F" '.checked($val,'F',false).'/> F</label>';
+            if ( $readonly ) {
+                echo '<span>'.esc_html($val === 'M' ? 'M' : ($val === 'F' ? 'F' : '')).'</span>';
+            } else {
+                echo '<label><input type="radio" name="'.esc_attr($k).'" value="M" '.checked($val,'M',false).'/> M</label> <label style="margin-left:10px"><input type="radio" name="'.esc_attr($k).'" value="F" '.checked($val,'F',false).'/> F</label>';
+            }
         } elseif ( $type === 'licence_status' ){
             $st = UFSC_SQL::statuses();
-            echo '<select name="'.esc_attr($k).'">';
+            echo '<select name="'.esc_attr($k).'" '.$disabled_attr.'>';
             foreach( $st as $sv=>$sl ){
                 echo '<option value="'.esc_attr($sv).'" '.selected($val,$sv,false).'>'.esc_html($sl).'</option>';
             }
             echo '</select>';
         } elseif ( $k === 'certificat_url' ){
-            echo '<input type="text" name="certificat_url" value="'.esc_attr($val).'" placeholder="https://..."/><p class="description">Uploader un fichier ci-dessous alimentera ce champ.</p><input type="file" name="certificat_upload" />';
+            echo '<input type="text" name="certificat_url" value="'.esc_attr($val).'" placeholder="https://..." '.$readonly_attr.'/>';
+            if ( !$readonly ) {
+                echo '<p class="description">Uploader un fichier ci-dessous alimentera ce champ.</p><input type="file" name="certificat_upload" />';
+            } else if ( $val ) {
+                echo '<p class="description"><a href="'.esc_url($val).'" target="_blank">'.esc_html__('Voir le certificat', 'ufsc-clubs').'</a></p>';
+            }
         } else {
-            echo '<input type="text" name="'.esc_attr($k).'" value="'.esc_attr($val).'" />';
+            echo '<input type="text" name="'.esc_attr($k).'" value="'.esc_attr($val).'" '.$readonly_attr.' />';
         }
         echo '</div>';
     }

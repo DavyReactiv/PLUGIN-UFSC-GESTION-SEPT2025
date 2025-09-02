@@ -355,11 +355,13 @@ class UFSC_Clubs_List_Table {
         
         // Actions
         echo '<td>';
+        $view_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=view&id=' . $club->id );
         $edit_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=edit&id=' . $club->id );
         $delete_url = wp_nonce_url( 
             admin_url( 'admin-post.php?action=ufsc_sql_delete_club&id=' . $club->id ), 
             'ufsc_sql_delete_club' 
         );
+        echo '<a href="' . esc_url( $view_url ) . '" class="button button-small">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a> ';
         echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a> ';
         echo '<a href="' . esc_url( $delete_url ) . '" class="button button-small button-link-delete" onclick="return confirm(\'' . esc_js( __( 'Êtes-vous sûr de vouloir supprimer ce club ?', 'ufsc-clubs' ) ) . '\')">' . esc_html__( 'Supprimer', 'ufsc-clubs' ) . '</a>';
         echo '</td>';
@@ -470,18 +472,7 @@ class UFSC_Clubs_List_Table {
     }
 
     private static function render_status_badge( $status ) {
-        $statuses = UFSC_SQL::statuses();
-        $label = isset( $statuses[ $status ] ) ? $statuses[ $status ] : $status;
-        
-        $badge_classes = array(
-            'valide' => 'badge-success',
-            'a_regler' => 'badge-warning',
-            'en_attente' => 'badge-info',
-            'desactive' => 'badge-danger'
-        );
-
-        $class = isset( $badge_classes[ $status ] ) ? $badge_classes[ $status ] : 'badge-secondary';
-        return '<span class="ufsc-badge ' . esc_attr( $class ) . '">' . esc_html( $label ) . '</span>';
+        return UFSC_Badges::render_club_badge( $status );
     }
 
     private static function render_documents_badge( $club ) {

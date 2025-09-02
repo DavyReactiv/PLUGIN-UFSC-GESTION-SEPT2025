@@ -108,8 +108,26 @@ class UFSC_CL_Admin_Menu {
             if ($club_table_exists && $licence_table_exists) {
                 $clubs_total = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_clubs`");
                 $lics_total = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics`");
-                $clubs_actifs = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_clubs` WHERE statut = 'valide'");
-                $lics_actives = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics` WHERE statut = 'valide'");
+                
+                // Fix KPI query to use proper active statuses
+                $active_club_statuses = UFSC_Badges::get_active_club_statuses();
+                $active_licence_statuses = UFSC_Badges::get_active_licence_statuses();
+                
+                if ( !empty($active_club_statuses) ) {
+                    $placeholders = implode(',', array_fill(0, count($active_club_statuses), '%s'));
+                    $clubs_actifs = (int) $wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(*) FROM `$t_clubs` WHERE statut IN ($placeholders)",
+                        ...$active_club_statuses
+                    ));
+                }
+                
+                if ( !empty($active_licence_statuses) ) {
+                    $placeholders = implode(',', array_fill(0, count($active_licence_statuses), '%s'));
+                    $lics_actives = (int) $wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(*) FROM `$t_lics` WHERE statut IN ($placeholders)",
+                        ...$active_licence_statuses
+                    ));
+                }
             } else {
                 $tables_exist = false;
             }
