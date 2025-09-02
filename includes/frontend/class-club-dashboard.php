@@ -172,8 +172,7 @@ class UFSC_Club_Dashboard {
      * @return string|false URL to attestation file or false
      */
     private static function get_attestation_affiliation( $club_id ) {
-        // Placeholder - will be implemented with PDF scaffolding
-        return false;
+        return UFSC_PDF_Attestations::get_attestation_for_club( $club_id, 'affiliation' );
     }
 
     /**

@@ -22,6 +22,7 @@ require_once UFSC_CL_DIR.'includes/frontend/class-club-form-handler.php';
 require_once UFSC_CL_DIR.'includes/core/class-uploads.php';
 require_once UFSC_CL_DIR.'includes/core/class-permissions.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-badges.php';
+require_once UFSC_CL_DIR.'includes/core/class-ufsc-pdf-attestations.php';
 
 // New UFSC Gestion enhancement classes
 require_once UFSC_CL_DIR.'includes/common/class-ufsc-utils.php';
