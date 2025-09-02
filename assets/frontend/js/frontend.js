@@ -1,1 +1,595 @@
-/* placeholder front */
+/* UFSC Frontend JavaScript */
+
+jQuery(document).ready(function($) {
+    
+    // Dashboard navigation
+    initDashboardNavigation();
+    
+    // Logo upload functionality
+    initLogoUpload();
+    
+    // Form enhancements
+    initFormEnhancements();
+    
+    // Import/Export functionality
+    initImportExport();
+    
+    // Accessibility improvements
+    initAccessibility();
+    
+    /**
+     * Initialize dashboard navigation
+     */
+    function initDashboardNavigation() {
+        $('.ufsc-nav-btn').on('click', function(e) {
+            e.preventDefault();
+            
+            var section = $(this).data('section');
+            
+            // Update nav buttons
+            $('.ufsc-nav-btn').removeClass('active');
+            $(this).addClass('active');
+            
+            // Show corresponding section
+            $('.ufsc-dashboard-section').removeClass('active');
+            $('#ufsc-section-' + section).addClass('active');
+            
+            // Update URL hash for bookmarking
+            if (history.pushState) {
+                history.pushState(null, null, '#' + section);
+            }
+            
+            // Focus management for accessibility
+            $('#ufsc-section-' + section).focus();
+        });
+        
+        // Handle URL hash on page load
+        var hash = window.location.hash.substring(1);
+        if (hash && $('.ufsc-nav-btn[data-section="' + hash + '"]').length) {
+            $('.ufsc-nav-btn[data-section="' + hash + '"]').click();
+        }
+    }
+    
+    /**
+     * Initialize logo upload functionality
+     */
+    function initLogoUpload() {
+        // File input change handler
+        $('input[name="club_logo"]').on('change', function() {
+            var file = this.files[0];
+            
+            if (file) {
+                // Validate file type
+                var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
+                if (allowedTypes.indexOf(file.type) === -1) {
+                    alert(ufsc_frontend_vars.strings.invalid_file_type);
+                    $(this).val('');
+                    return;
+                }
+                
+                // Validate file size (2MB max)
+                var maxSize = 2 * 1024 * 1024; // 2MB in bytes
+                if (file.size > maxSize) {
+                    alert(ufsc_frontend_vars.strings.file_too_large);
+                    $(this).val('');
+                    return;
+                }
+                
+                // Show preview
+                showImagePreview(file, $(this).closest('.ufsc-logo-upload'));
+            }
+        });
+        
+        // Logo remove handler
+        $('.ufsc-logo-remove').on('click', function(e) {
+            e.preventDefault();
+            
+            if (confirm(ufsc_frontend_vars.strings.confirm_remove_logo)) {
+                var clubId = $(this).data('club-id');
+                removeLogo(clubId, $(this).closest('.ufsc-logo-preview'));
+            }
+        });
+    }
+    
+    /**
+     * Show image preview
+     */
+    function showImagePreview(file, container) {
+        var reader = new FileReader();
+        
+        reader.onload = function(e) {
+            var preview = '<div class="ufsc-logo-preview-temp">' +
+                         '<img src="' + e.target.result + '" alt="' + ufsc_frontend_vars.strings.logo_preview + '">' +
+                         '<p class="ufsc-help-text">' + ufsc_frontend_vars.strings.logo_preview_text + '</p>' +
+                         '</div>';
+            
+            container.after(preview);
+            container.hide();
+        };
+        
+        reader.readAsDataURL(file);
+    }
+    
+    /**
+     * Remove logo via AJAX
+     */
+    function removeLogo(clubId, container) {
+        $.ajax({
+            url: ufsc_frontend_vars.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'ufsc_remove_logo',
+                club_id: clubId,
+                nonce: ufsc_frontend_vars.nonce
+            },
+            beforeSend: function() {
+                container.addClass('ufsc-loading');
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Replace with upload form
+                    var uploadForm = '<div class="ufsc-logo-upload">' +
+                                   '<input type="file" id="club_logo" name="club_logo" accept="image/*">' +
+                                   '<label for="club_logo" class="ufsc-upload-label">' + ufsc_frontend_vars.strings.choose_logo + '</label>' +
+                                   '<p class="ufsc-help-text">' + ufsc_frontend_vars.strings.logo_help + '</p>' +
+                                   '</div>';
+                    
+                    container.replaceWith(uploadForm);
+                    
+                    // Reinitialize file input
+                    initLogoUpload();
+                    
+                    showMessage(response.data.message, 'success');
+                } else {
+                    showMessage(response.data.message, 'error');
+                }
+            },
+            error: function() {
+                showMessage(ufsc_frontend_vars.strings.ajax_error, 'error');
+            },
+            complete: function() {
+                container.removeClass('ufsc-loading');
+            }
+        });
+    }
+    
+    /**
+     * Initialize form enhancements
+     */
+    function initFormEnhancements() {
+        // Real-time validation
+        $('input[type="email"]').on('blur', validateEmail);
+        $('input[type="tel"]').on('blur', validatePhone);
+        $('input[name="code_postal"]').on('blur', validatePostalCode);
+        
+        // Form submission with loading states
+        $('form').on('submit', function() {
+            var $form = $(this);
+            var $submitBtn = $form.find('button[type="submit"], input[type="submit"]');
+            
+            // Add loading state
+            $submitBtn.prop('disabled', true);
+            $form.addClass('ufsc-loading');
+            
+            // Store original text
+            var originalText = $submitBtn.text();
+            $submitBtn.data('original-text', originalText);
+            $submitBtn.text(ufsc_frontend_vars.strings.saving);
+        });
+        
+        // Auto-hide success messages
+        $('.ufsc-message.ufsc-success').delay(5000).fadeOut();
+        
+        // Character count for textareas
+        $('textarea[maxlength]').each(function() {
+            addCharacterCounter($(this));
+        });
+    }
+    
+    /**
+     * Email validation
+     */
+    function validateEmail() {
+        var email = $(this).val();
+        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        
+        if (email && !emailRegex.test(email)) {
+            showFieldError($(this), ufsc_frontend_vars.strings.invalid_email);
+        } else {
+            clearFieldError($(this));
+        }
+    }
+    
+    /**
+     * Phone validation
+     */
+    function validatePhone() {
+        var phone = $(this).val();
+        var phoneRegex = /^[\d\s\-\+\(\)\.]{10,}$/;
+        
+        if (phone && !phoneRegex.test(phone)) {
+            showFieldError($(this), ufsc_frontend_vars.strings.invalid_phone);
+        } else {
+            clearFieldError($(this));
+        }
+    }
+    
+    /**
+     * Postal code validation
+     */
+    function validatePostalCode() {
+        var postalCode = $(this).val();
+        var postalRegex = /^\d{5}$/;
+        
+        if (postalCode && !postalRegex.test(postalCode)) {
+            showFieldError($(this), ufsc_frontend_vars.strings.invalid_postal_code);
+        } else {
+            clearFieldError($(this));
+        }
+    }
+    
+    /**
+     * Show field error
+     */
+    function showFieldError($field, message) {
+        $field.addClass('ufsc-field-error');
+        
+        var $errorMsg = $field.siblings('.ufsc-field-error-msg');
+        if ($errorMsg.length === 0) {
+            $errorMsg = $('<div class="ufsc-field-error-msg" role="alert"></div>');
+            $field.after($errorMsg);
+        }
+        
+        $errorMsg.text(message);
+    }
+    
+    /**
+     * Clear field error
+     */
+    function clearFieldError($field) {
+        $field.removeClass('ufsc-field-error');
+        $field.siblings('.ufsc-field-error-msg').remove();
+    }
+    
+    /**
+     * Add character counter to textarea
+     */
+    function addCharacterCounter($textarea) {
+        var maxLength = $textarea.attr('maxlength');
+        var $counter = $('<div class="ufsc-char-counter"></div>');
+        
+        $textarea.after($counter);
+        
+        function updateCounter() {
+            var remaining = maxLength - $textarea.val().length;
+            $counter.text(remaining + ' ' + ufsc_frontend_vars.strings.characters_remaining);
+            
+            if (remaining < 20) {
+                $counter.addClass('ufsc-warning');
+            } else {
+                $counter.removeClass('ufsc-warning');
+            }
+        }
+        
+        $textarea.on('input', updateCounter);
+        updateCounter();
+    }
+    
+    /**
+     * Initialize import/export functionality
+     */
+    function initImportExport() {
+        // Export buttons
+        $('a[href*="ufsc_export"]').on('click', function(e) {
+            var $btn = $(this);
+            
+            $btn.addClass('ufsc-loading');
+            $btn.text(ufsc_frontend_vars.strings.exporting);
+            
+            // Let the default action proceed, then reset button after delay
+            setTimeout(function() {
+                $btn.removeClass('ufsc-loading');
+                $btn.text($btn.data('original-text') || ufsc_frontend_vars.strings.export);
+            }, 3000);
+        });
+        
+        // CSV import preview
+        $('form').on('submit', function(e) {
+            if ($(this).find('input[name="ufsc_import_preview"]').length) {
+                e.preventDefault();
+                handleImportPreview($(this));
+            }
+        });
+    }
+    
+    /**
+     * Handle CSV import preview
+     */
+    function handleImportPreview($form) {
+        var formData = new FormData($form[0]);
+        
+        $.ajax({
+            url: ufsc_frontend_vars.ajax_url,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            beforeSend: function() {
+                $form.addClass('ufsc-loading');
+            },
+            success: function(response) {
+                if (response.success) {
+                    showImportPreview(response.data);
+                } else {
+                    showMessage(response.data.message, 'error');
+                }
+            },
+            error: function() {
+                showMessage(ufsc_frontend_vars.strings.ajax_error, 'error');
+            },
+            complete: function() {
+                $form.removeClass('ufsc-loading');
+            }
+        });
+    }
+    
+    /**
+     * Show import preview
+     */
+    function showImportPreview(data) {
+        var $modal = $('#ufsc-import-modal');
+        var $content = $modal.find('.ufsc-modal-content');
+        
+        // Replace modal content with preview
+        var previewHtml = '<h3>' + ufsc_frontend_vars.strings.import_preview + '</h3>';
+        
+        if (data.errors && data.errors.length > 0) {
+            previewHtml += '<div class="ufsc-message ufsc-error">';
+            previewHtml += '<h4>' + ufsc_frontend_vars.strings.import_errors + '</h4>';
+            previewHtml += '<ul>';
+            data.errors.forEach(function(error) {
+                previewHtml += '<li>' + error + '</li>';
+            });
+            previewHtml += '</ul></div>';
+        }
+        
+        if (data.preview && data.preview.length > 0) {
+            previewHtml += '<div class="ufsc-import-preview">';
+            previewHtml += '<h4>' + ufsc_frontend_vars.strings.preview_data + '</h4>';
+            previewHtml += '<table class="ufsc-table">';
+            previewHtml += '<thead><tr>';
+            previewHtml += '<th>' + ufsc_frontend_vars.strings.name + '</th>';
+            previewHtml += '<th>' + ufsc_frontend_vars.strings.first_name + '</th>';
+            previewHtml += '<th>' + ufsc_frontend_vars.strings.email + '</th>';
+            previewHtml += '<th>' + ufsc_frontend_vars.strings.status + '</th>';
+            previewHtml += '</tr></thead><tbody>';
+            
+            data.preview.forEach(function(row) {
+                previewHtml += '<tr>';
+                previewHtml += '<td>' + (row.nom || '') + '</td>';
+                previewHtml += '<td>' + (row.prenom || '') + '</td>';
+                previewHtml += '<td>' + (row.email || '') + '</td>';
+                previewHtml += '<td>' + (row.status || '') + '</td>';
+                previewHtml += '</tr>';
+            });
+            
+            previewHtml += '</tbody></table></div>';
+            
+            // Add import button if no errors
+            if (!data.errors || data.errors.length === 0) {
+                previewHtml += '<div class="ufsc-form-actions">';
+                previewHtml += '<button type="button" class="ufsc-btn ufsc-btn-primary" onclick="confirmImport()">';
+                previewHtml += ufsc_frontend_vars.strings.confirm_import;
+                previewHtml += '</button>';
+                previewHtml += '</div>';
+            }
+        }
+        
+        $content.html(previewHtml);
+    }
+    
+    /**
+     * Initialize accessibility improvements
+     */
+    function initAccessibility() {
+        // Add ARIA labels to buttons without text
+        $('button:empty, a:empty').each(function() {
+            if (!$(this).attr('aria-label') && !$(this).attr('title')) {
+                var $icon = $(this).find('i, svg');
+                if ($icon.length) {
+                    $(this).attr('aria-label', ufsc_frontend_vars.strings.button_action);
+                }
+            }
+        });
+        
+        // Ensure form labels are properly associated
+        $('input, select, textarea').each(function() {
+            var $input = $(this);
+            var id = $input.attr('id');
+            
+            if (id) {
+                var $label = $('label[for="' + id + '"]');
+                if ($label.length === 0) {
+                    // Find label by proximity
+                    $label = $input.closest('.ufsc-form-field').find('label');
+                    if ($label.length) {
+                        $label.attr('for', id);
+                    }
+                }
+            }
+        });
+        
+        // Add skip links for keyboard navigation
+        if ($('.ufsc-club-dashboard').length && !$('.ufsc-skip-links').length) {
+            var skipLinks = '<div class="ufsc-skip-links">';
+            skipLinks += '<a href="#ufsc-dashboard-nav" class="ufsc-skip-link">' + ufsc_frontend_vars.strings.skip_to_nav + '</a>';
+            skipLinks += '<a href="#ufsc-dashboard-content" class="ufsc-skip-link">' + ufsc_frontend_vars.strings.skip_to_content + '</a>';
+            skipLinks += '</div>';
+            
+            $('.ufsc-club-dashboard').prepend(skipLinks);
+        }
+        
+        // Manage focus for dynamic content
+        $(document).on('click', '.ufsc-nav-btn', function() {
+            var targetSection = $(this).data('section');
+            setTimeout(function() {
+                $('#ufsc-section-' + targetSection).attr('tabindex', '-1').focus();
+            }, 100);
+        });
+    }
+    
+    /**
+     * Show message to user
+     */
+    function showMessage(message, type) {
+        var $message = $('<div class="ufsc-message ufsc-' + type + '" role="alert">' + message + '</div>');
+        
+        // Find container or create one
+        var $container = $('.ufsc-dashboard-section.active, .ufsc-club-dashboard, .ufsc-content').first();
+        if ($container.length === 0) {
+            $container = $('body');
+        }
+        
+        $container.prepend($message);
+        
+        // Auto-hide success messages
+        if (type === 'success') {
+            setTimeout(function() {
+                $message.fadeOut();
+            }, 5000);
+        }
+        
+        // Scroll to message
+        $('html, body').animate({
+            scrollTop: $message.offset().top - 100
+        }, 300);
+    }
+    
+    /**
+     * Debounce function for performance
+     */
+    function debounce(func, wait, immediate) {
+        var timeout;
+        return function() {
+            var context = this, args = arguments;
+            var later = function() {
+                timeout = null;
+                if (!immediate) func.apply(context, args);
+            };
+            var callNow = immediate && !timeout;
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+            if (callNow) func.apply(context, args);
+        };
+    }
+    
+    // Apply debouncing to search inputs
+    $('.ufsc-filter-group input[name="ufsc_search"]').on('input', debounce(function() {
+        // Auto-submit search after typing stops
+        if ($(this).val().length >= 3 || $(this).val().length === 0) {
+            $(this).closest('form').submit();
+        }
+    }, 500));
+    
+});
+
+/**
+ * Global functions for inline handlers
+ */
+window.confirmImport = function() {
+    if (confirm(ufsc_frontend_vars.strings.confirm_import_action)) {
+        // Submit import form
+        jQuery.ajax({
+            url: ufsc_frontend_vars.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'ufsc_import_commit',
+                nonce: ufsc_frontend_vars.nonce
+            },
+            success: function(response) {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert(response.data.message);
+                }
+            },
+            error: function() {
+                alert(ufsc_frontend_vars.strings.ajax_error);
+            }
+        });
+    }
+};
+
+// CSS for field errors and other dynamic styles
+jQuery(document).ready(function($) {
+    var dynamicCSS = `
+        .ufsc-field-error {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2) !important;
+        }
+        
+        .ufsc-field-error-msg {
+            color: #dc3545;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+        
+        .ufsc-char-counter {
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-align: right;
+            margin-top: 0.25rem;
+        }
+        
+        .ufsc-char-counter.ufsc-warning {
+            color: #856404;
+            font-weight: 500;
+        }
+        
+        .ufsc-skip-links {
+            position: absolute;
+            top: -40px;
+            left: 6px;
+            z-index: 1000;
+        }
+        
+        .ufsc-skip-link {
+            position: absolute;
+            top: -40px;
+            left: 6px;
+            background: #3498db;
+            color: white;
+            padding: 8px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 1001;
+        }
+        
+        .ufsc-skip-link:focus {
+            top: 6px;
+        }
+        
+        .ufsc-import-preview {
+            margin: 1rem 0;
+        }
+        
+        .ufsc-import-preview .ufsc-table {
+            max-height: 300px;
+            overflow-y: auto;
+            display: block;
+        }
+        
+        .ufsc-import-preview .ufsc-table thead {
+            display: table-header-group;
+        }
+        
+        .ufsc-import-preview .ufsc-table tbody {
+            display: table-row-group;
+        }
+    `;
+    
+    $('<style>').prop('type', 'text/css').html(dynamicCSS).appendTo('head');
+});
