@@ -43,16 +43,53 @@ class UFSC_CL_Utils {
     
     /**
      * Validation des données de club
+     * 
+     * @param array $data Club data to validate
+     * @param bool $is_affiliation Whether this is for affiliation (stricter validation)
+     * @return array Array of validation errors
      */
-    public static function validate_club_data( $data ) {
+    public static function validate_club_data( $data, $is_affiliation = false ) {
         $errors = array();
         
-        // Validation du nom (requis)
-        if ( empty($data['nom']) ) {
-            $errors['nom'] = __('Le nom du club est requis', 'ufsc-clubs');
+        // Required fields
+        $required_fields = array('nom', 'region', 'adresse', 'code_postal', 'ville', 'email', 'telephone', 'num_declaration', 'date_declaration');
+        
+        foreach ( $required_fields as $field ) {
+            if ( empty( $data[$field] ) ) {
+                $field_labels = array(
+                    'nom' => __('Le nom du club', 'ufsc-clubs'),
+                    'region' => __('La région', 'ufsc-clubs'),
+                    'adresse' => __('L\'adresse', 'ufsc-clubs'),
+                    'code_postal' => __('Le code postal', 'ufsc-clubs'),
+                    'ville' => __('La ville', 'ufsc-clubs'),
+                    'email' => __('L\'email', 'ufsc-clubs'),
+                    'telephone' => __('Le téléphone', 'ufsc-clubs'),
+                    'num_declaration' => __('Le numéro de déclaration', 'ufsc-clubs'),
+                    'date_declaration' => __('La date de déclaration', 'ufsc-clubs')
+                );
+                $errors[$field] = sprintf( __('%s est requis', 'ufsc-clubs'), $field_labels[$field] ?? $field );
+            }
         }
         
-        // Validation de l'email (format)
+        // Validation dirigeants (required)
+        $dirigeants = array('president', 'secretaire', 'tresorier');
+        foreach ( $dirigeants as $dirigeant ) {
+            $required_dirigeant_fields = array('prenom', 'nom', 'email', 'tel');
+            foreach ( $required_dirigeant_fields as $field ) {
+                $key = $dirigeant . '_' . $field;
+                if ( empty( $data[$key] ) ) {
+                    $errors[$key] = sprintf( __('%s du %s est requis', 'ufsc-clubs'), ucfirst($field), $dirigeant );
+                }
+            }
+            
+            // Validate dirigeant email
+            $email_key = $dirigeant . '_email';
+            if ( !empty( $data[$email_key] ) && !is_email( $data[$email_key] ) ) {
+                $errors[$email_key] = sprintf( __('Format d\'email invalide pour %s', 'ufsc-clubs'), $dirigeant );
+            }
+        }
+        
+        // Validation de l'email principal (format)
         if ( !empty($data['email']) && !is_email($data['email']) ) {
             $errors['email'] = __('Format d\'email invalide', 'ufsc-clubs');
         }
@@ -62,12 +99,56 @@ class UFSC_CL_Utils {
             $errors['region'] = __('Région non valide', 'ufsc-clubs');
         }
         
+        // Validation du code postal (pattern)
+        if ( !empty($data['code_postal']) && !preg_match('/^\d{5}$/', $data['code_postal']) ) {
+            $errors['code_postal'] = __('Le code postal doit contenir 5 chiffres', 'ufsc-clubs');
+        }
+        
+        // Validation de la date de déclaration
+        if ( !empty($data['date_declaration']) && !self::validate_date($data['date_declaration']) ) {
+            $errors['date_declaration'] = __('Format de date invalide (AAAA-MM-JJ)', 'ufsc-clubs');
+        }
+        
+        // Basic IBAN validation (optional)
+        if ( !empty($data['iban']) && !self::validate_iban($data['iban']) ) {
+            $errors['iban'] = __('Format IBAN invalide', 'ufsc-clubs');
+        }
+        
         // Validation du quota de licences (nombre positif)
         if ( !empty($data['quota_licences']) && (!is_numeric($data['quota_licences']) || $data['quota_licences'] < 0) ) {
             $errors['quota_licences'] = __('Le quota doit être un nombre positif', 'ufsc-clubs');
         }
         
+        // Additional validation for affiliation mode
+        if ( $is_affiliation ) {
+            $required_docs = array('doc_statuts', 'doc_recepisse', 'doc_cer');
+            foreach ( $required_docs as $doc ) {
+                if ( empty( $data[$doc] ) ) {
+                    $doc_labels = array(
+                        'doc_statuts' => __('Les statuts', 'ufsc-clubs'),
+                        'doc_recepisse' => __('Le récépissé', 'ufsc-clubs'),
+                        'doc_cer' => __('Le CER', 'ufsc-clubs')
+                    );
+                    $errors[$doc] = sprintf( __('%s sont requis pour l\'affiliation', 'ufsc-clubs'), $doc_labels[$doc] ?? $doc );
+                }
+            }
+        }
+        
         return $errors;
+    }
+    
+    /**
+     * Basic IBAN validation
+     * 
+     * @param string $iban IBAN to validate
+     * @return bool True if valid format
+     */
+    public static function validate_iban( $iban ) {
+        // Remove spaces and convert to uppercase
+        $iban = strtoupper( preg_replace('/\s+/', '', $iban) );
+        
+        // Basic format check (starts with 2 letters, followed by 2 digits, then alphanumeric)
+        return preg_match('/^[A-Z]{2}\d{2}[A-Z0-9]+$/', $iban) && strlen($iban) >= 15 && strlen($iban) <= 34;
     }
     
     /**

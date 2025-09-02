@@ -1,0 +1,308 @@
+/**
+ * UFSC Club Form Styles
+ * Frontend styling for the club form
+ */
+
+.ufsc-club-form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.ufsc-club-form h2 {
+    margin-top: 0;
+    margin-bottom: 30px;
+    color: #333;
+    border-bottom: 2px solid #0073aa;
+    padding-bottom: 10px;
+}
+
+/* Form Sections */
+.ufsc-form-section {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 25px;
+    background: #f9f9f9;
+}
+
+.ufsc-form-section legend {
+    font-weight: bold;
+    color: #0073aa;
+    padding: 0 10px;
+    font-size: 16px;
+}
+
+/* Form Rows */
+.ufsc-form-row {
+    margin-bottom: 20px;
+}
+
+.ufsc-form-row-inline {
+    display: flex;
+    gap: 20px;
+}
+
+.ufsc-form-col {
+    flex: 1;
+}
+
+/* Labels and Inputs */
+.ufsc-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #333;
+}
+
+.ufsc-label.required::after {
+    content: " *";
+    color: #d63384;
+}
+
+.ufsc-club-form input[type="text"],
+.ufsc-club-form input[type="email"],
+.ufsc-club-form input[type="tel"],
+.ufsc-club-form input[type="url"],
+.ufsc-club-form input[type="date"],
+.ufsc-club-form input[type="number"],
+.ufsc-club-form select,
+.ufsc-club-form textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+.ufsc-club-form input:focus,
+.ufsc-club-form select:focus,
+.ufsc-club-form textarea:focus {
+    outline: none;
+    border-color: #0073aa;
+    box-shadow: 0 0 0 1px #0073aa;
+}
+
+/* File Inputs */
+.ufsc-club-form input[type="file"] {
+    width: 100%;
+    padding: 6px;
+    border: 1px dashed #ddd;
+    border-radius: 4px;
+    background: #fafafa;
+}
+
+.ufsc-club-form input[type="file"]:focus {
+    border-color: #0073aa;
+    background: #f0f8ff;
+}
+
+/* Descriptions */
+.ufsc-description {
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+
+.ufsc-current-file {
+    font-size: 12px;
+    color: #0073aa;
+    margin-top: 4px;
+}
+
+.ufsc-current-file a {
+    color: #0073aa;
+    text-decoration: none;
+}
+
+.ufsc-current-file a:hover {
+    text-decoration: underline;
+}
+
+/* Dirigeants Sections */
+.ufsc-dirigeant-section {
+    margin-bottom: 30px;
+    padding: 15px;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+}
+
+.ufsc-dirigeant-section h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.ufsc-dirigeant-section .required {
+    color: #d63384;
+}
+
+/* Radio Groups */
+.ufsc-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ufsc-radio-label {
+    display: flex;
+    align-items: center;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.ufsc-radio-label input[type="radio"] {
+    width: auto;
+    margin-right: 8px;
+}
+
+/* Conditional Sections */
+.ufsc-conditional-section {
+    margin-top: 20px;
+    padding: 15px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Alerts */
+.ufsc-alert {
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.ufsc-alert.success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    border: 1px solid #badbcc;
+}
+
+.ufsc-alert.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c2c7;
+}
+
+/* Form Status (for accessibility) */
+.ufsc-form-status {
+    margin-bottom: 20px;
+}
+
+/* Field Validation */
+.ufsc-field-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 1px #dc3545 !important;
+}
+
+.ufsc-field-error {
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+/* Character Counter */
+.ufsc-char-counter {
+    font-size: 11px;
+    color: #666;
+    text-align: right;
+    margin-top: 4px;
+}
+
+.ufsc-char-counter-warning {
+    color: #dc3545;
+}
+
+/* Form Actions */
+.ufsc-form-actions {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+}
+
+.ufsc-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.ufsc-btn-primary {
+    background-color: #0073aa;
+    color: white;
+}
+
+.ufsc-btn-primary:hover {
+    background-color: #005a87;
+}
+
+.ufsc-btn-primary:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.ufsc-btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.ufsc-btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .ufsc-club-form-container {
+        margin: 10px;
+        padding: 15px;
+    }
+    
+    .ufsc-form-row-inline {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .ufsc-form-actions {
+        flex-direction: column;
+    }
+    
+    .ufsc-btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .ufsc-radio-group {
+        gap: 15px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .ufsc-form-actions,
+    .ufsc-btn {
+        display: none;
+    }
+    
+    .ufsc-club-form-container {
+        box-shadow: none;
+        border: 1px solid #000;
+    }
+}
