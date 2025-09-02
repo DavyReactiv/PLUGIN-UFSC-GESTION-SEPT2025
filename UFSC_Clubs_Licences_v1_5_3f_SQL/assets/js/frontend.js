@@ -2,7 +2,7 @@
 jQuery(document).ready(function($) {
     
     // Form validation for licence form
-    $('#ufsc-licence-form').on('submit', function(e) {
+    $('.ufsc-public-form form').on('submit', function(e) {
         var form = $(this);
         var errors = [];
         

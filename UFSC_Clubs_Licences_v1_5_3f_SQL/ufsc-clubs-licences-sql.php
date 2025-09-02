@@ -43,6 +43,7 @@ add_action('init', function(){
 });
 
 // Menus Admin
+add_action('admin_menu', array('UFSC_CL_Admin_Menu','register'));
 add_action('admin_menu', array('UFSC_SQL_Admin','register_menus'));
 
 // Enqueues Admin (CSS/JS)
