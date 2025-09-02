@@ -39,7 +39,7 @@ require_once UFSC_CL_DIR.'inc/woocommerce/settings-woocommerce.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/hooks.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/admin-actions.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/cart-integration.php';
-require_once UFSC_CL_DIR.'inc/admin/menu.php';
+// require_once UFSC_CL_DIR.'inc/admin/menu.php'; // Removed - using unified menu system in includes/admin/class-admin-menu.php
 
 final class UFSC_CL_Bootstrap {
     private static $instance = null;
@@ -58,6 +58,11 @@ final class UFSC_CL_Bootstrap {
         add_action( 'admin_post_ufsc_sql_delete_club', array( 'UFSC_SQL_Admin', 'handle_delete_club' ) );
         add_action( 'admin_post_ufsc_sql_save_licence', array( 'UFSC_SQL_Admin', 'handle_save_licence' ) );
         add_action( 'admin_post_ufsc_sql_delete_licence', array( 'UFSC_SQL_Admin', 'handle_delete_licence' ) );
+        add_action( 'admin_post_ufsc_export_data', array( 'UFSC_SQL_Admin', 'handle_export_data' ) );
+
+        // AJAX handlers
+        add_action( 'wp_ajax_ufsc_update_licence_status', array( 'UFSC_SQL_Admin', 'handle_ajax_update_licence_status' ) );
+        add_action( 'wp_ajax_ufsc_send_to_payment', array( 'UFSC_SQL_Admin', 'handle_ajax_send_to_payment' ) );
 
         // Shortcodes front
         add_action( 'init', array( 'UFSC_SQL_Shortcodes', 'register_shortcodes' ) );

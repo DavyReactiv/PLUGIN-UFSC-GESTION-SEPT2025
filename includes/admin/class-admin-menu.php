@@ -44,6 +44,15 @@ class UFSC_CL_Admin_Menu {
         
         add_submenu_page( 
             'ufsc-dashboard', 
+            __('Exports','ufsc-clubs'), 
+            __('Exports','ufsc-clubs'), 
+            'manage_options', 
+            'ufsc-exports', 
+            array( 'UFSC_SQL_Admin', 'render_exports' ) 
+        );
+        
+        add_submenu_page( 
+            'ufsc-dashboard', 
             __('Paramètres','ufsc-clubs'), 
             __('Paramètres','ufsc-clubs'), 
             'manage_options', 
