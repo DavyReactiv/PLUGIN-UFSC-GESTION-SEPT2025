@@ -22,6 +22,17 @@ require_once UFSC_CL_DIR.'includes/frontend/class-club-form-handler.php';
 require_once UFSC_CL_DIR.'includes/core/class-uploads.php';
 require_once UFSC_CL_DIR.'includes/core/class-permissions.php';
 
+// New UFSC Gestion modules
+require_once UFSC_CL_DIR.'inc/common/regions.php';
+require_once UFSC_CL_DIR.'inc/common/tables.php';
+require_once UFSC_CL_DIR.'inc/settings.php';
+require_once UFSC_CL_DIR.'inc/form-license-sanitizer.php';
+require_once UFSC_CL_DIR.'inc/woocommerce/settings-woocommerce.php';
+require_once UFSC_CL_DIR.'inc/woocommerce/hooks.php';
+require_once UFSC_CL_DIR.'inc/woocommerce/admin-actions.php';
+require_once UFSC_CL_DIR.'inc/woocommerce/cart-integration.php';
+require_once UFSC_CL_DIR.'inc/admin/menu.php';
+
 final class UFSC_CL_Bootstrap {
     private static $instance = null;
     public static function instance(){ if ( null === self::$instance ) self::$instance = new self(); return self::$instance; }
@@ -42,6 +53,9 @@ final class UFSC_CL_Bootstrap {
 
         // Shortcodes front
         add_action( 'init', array( 'UFSC_SQL_Shortcodes', 'register_shortcodes' ) );
+        
+        // Initialize UFSC Gestion WooCommerce hooks
+        add_action( 'plugins_loaded', 'ufsc_init_woocommerce_hooks' );
     }
     public function on_activate(){ flush_rewrite_rules(); }
     public function on_deactivate(){ flush_rewrite_rules(); }
