@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UFSC Plugin - Aperçu des améliorations</title>
+    <link rel="stylesheet" href="assets/admin/css/admin.css">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; background: #f0f0f1; }
+        .demo-section { background: white; margin: 20px 0; padding: 20px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        h2 { color: #1d2327; border-bottom: 2px solid #2271b1; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>UFSC Plugin - Améliorations implémentées</h1>
+    
+    <div class="demo-section">
+        <h2>Badges de statut avec points colorés</h2>
+        <p>Les badges suivants sont maintenant disponibles dans les listes de licences :</p>
+        
+        <span class="ufsc-status-badge ufsc-status-valid">
+            <span class="ufsc-status-dot"></span>
+            Validée
+        </span>
+        
+        <span class="ufsc-status-badge ufsc-status-pending">
+            <span class="ufsc-status-dot"></span>
+            En attente
+        </span>
+        
+        <span class="ufsc-status-badge ufsc-status-rejected">
+            <span class="ufsc-status-dot"></span>
+            Refusée
+        </span>
+        
+        <span class="ufsc-status-badge ufsc-status-inactive">
+            <span class="ufsc-status-dot"></span>
+            Inactive
+        </span>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Tableau amélioré avec actions</h2>
+        <table class="wp-list-table widefat fixed striped ufsc-enhanced">
+            <thead>
+                <tr>
+                    <th class="column-id">ID</th>
+                    <th>Licencié</th>
+                    <th class="column-statut">Statut</th>
+                    <th class="column-actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="column-id">1</td>
+                    <td><strong>Jean Dupont</strong></td>
+                    <td>
+                        <span class="ufsc-status-badge ufsc-status-valid">
+                            <span class="ufsc-status-dot"></span>
+                            Validée
+                        </span>
+                    </td>
+                    <td class="column-actions">
+                        <div class="ufsc-button-group">
+                            <a class="button button-small" href="#">Consulter</a>
+                            <a class="button button-small" href="#">Éditer</a>
+                            <a class="button button-small" href="#" style="background: #00a32a; border-color: #00a32a; color: white;">Paiement</a>
+                            <a class="button button-small button-link-delete" href="#">Supprimer</a>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="column-id">2</td>
+                    <td><strong>Marie Martin</strong></td>
+                    <td>
+                        <span class="ufsc-status-badge ufsc-status-pending">
+                            <span class="ufsc-status-dot"></span>
+                            En attente
+                        </span>
+                    </td>
+                    <td class="column-actions">
+                        <div class="ufsc-button-group">
+                            <a class="button button-small" href="#">Consulter</a>
+                            <a class="button button-small" href="#">Éditer</a>
+                            <a class="button button-small button-link-delete" href="#">Supprimer</a>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Cartes KPI du tableau de bord</h2>
+        <div class="ufsc-dashboard-cards">
+            <div class="ufsc-dashboard-card">
+                <div class="card-label">Clubs Total</div>
+                <div class="card-value">42</div>
+                <div class="card-description">8 actifs</div>
+            </div>
+            
+            <div class="ufsc-dashboard-card">
+                <div class="card-label">Licences Validées</div>
+                <div class="card-value" style="color: #00a32a;">156</div>
+                <div class="card-description">sur 203 total</div>
+            </div>
+            
+            <div class="ufsc-dashboard-card">
+                <div class="card-label">En Attente</div>
+                <div class="card-value" style="color: #f0b000;">23</div>
+                <div class="card-description">paiement requis</div>
+            </div>
+            
+            <div class="ufsc-dashboard-card">
+                <div class="card-label">Licences Refusées</div>
+                <div class="card-value" style="color: #d63638;">5</div>
+                <div class="card-description">révision nécessaire</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Formulaire amélioré</h2>
+        <div class="ufsc-form-section">
+            <h3>Informations personnelles</h3>
+            <div class="ufsc-form-grid">
+                <div class="ufsc-form-field required">
+                    <label>Prénom</label>
+                    <input type="text" placeholder="Prénom" required>
+                </div>
+                <div class="ufsc-form-field required">
+                    <label>Nom</label>
+                    <input type="text" placeholder="Nom de famille" required>
+                </div>
+                <div class="ufsc-form-field">
+                    <label>Email</label>
+                    <input type="email" placeholder="exemple@email.com">
+                </div>
+                <div class="ufsc-form-field">
+                    <label>Téléphone</label>
+                    <input type="tel" placeholder="01 23 45 67 89">
+                </div>
+            </div>
+        </div>
+        
+        <div class="ufsc-form-actions">
+            <div class="ufsc-button-group">
+                <button type="submit" class="button button-primary">Enregistrer</button>
+                <button type="submit" class="button button-secondary" style="background: #00a32a; border-color: #00a32a; color: white;">Enregistrer et envoyer pour paiement</button>
+                <a class="button" href="#">Annuler</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="demo-section">
+        <h2>Messages et notices</h2>
+        <div class="ufsc-admin-notice notice-success">
+            <p>✅ La licence #123 a été enregistrée et envoyée pour paiement. Commande #4567 créée.</p>
+        </div>
+        
+        <div class="ufsc-admin-notice notice-error">
+            <p>❌ Erreur : L'adresse email est requise pour créer une commande de paiement.</p>
+        </div>
+        
+        <div class="ufsc-admin-notice notice-warning">
+            <p>⚠️ Le club #123 a été supprimé avec succès.</p>
+        </div>
+    </div>
+    
+</body>
+</html>

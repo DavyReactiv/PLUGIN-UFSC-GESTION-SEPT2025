@@ -52,6 +52,18 @@ class UFSC_Clubs_List_Table {
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__( 'Clubs (SQL)', 'ufsc-clubs' ) . '</h1>';
 
+        // Affichage des notices
+        if ( isset($_GET['updated']) && $_GET['updated'] == '1' ) {
+            echo UFSC_CL_Utils::show_success(__('Club enregistré avec succès', 'ufsc-clubs'));
+        }
+        if ( isset($_GET['deleted']) && $_GET['deleted'] == '1' ) {
+            $deleted_id = isset($_GET['deleted_id']) ? (int) $_GET['deleted_id'] : '';
+            echo UFSC_CL_Utils::show_success(__('Le club #'.$deleted_id.' a été supprimé.', 'ufsc-clubs'));
+        }
+        if ( isset($_GET['error']) ) {
+            echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
+        }
+
         // Action buttons
         self::render_action_buttons();
 
