@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<ruleset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" name="UFSC Clubs" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/squizlabs/PHP_CodeSniffer/master/phpcs.xsd">
+    <description>UFSC Clubs & Licences plugin coding standards</description>
+
+    <!-- Scan all files in directory -->
+    <file>.</file>
+
+    <!-- Exclude vendor directory and build files -->
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/languages/*</exclude-pattern>
+
+    <!-- Include WordPress coding standards -->
+    <rule ref="WordPress-Core">
+        <!-- Allow non-strict array searches -->
+        <exclude name="WordPress.PHP.StrictInArray"/>
+        <!-- Allow dynamic hooks -->
+        <exclude name="WordPress.NamingConventions.ValidHookName.UseUnderscores"/>
+    </rule>
+
+    <rule ref="WordPress-Docs"/>
+
+    <!-- Check for cross-site scripting -->
+    <rule ref="WordPress.Security.EscapeOutput"/>
+
+    <!-- Check for SQL injection -->
+    <rule ref="WordPress.DB.PreparedSQL"/>
+
+    <!-- Set minimum PHP version -->
+    <config name="testVersion" value="7.4-"/>
+    <rule ref="PHPCompatibilityWP"/>
+
+    <!-- Arguments -->
+    <arg value="sp"/> <!-- Show sniff and progress -->
+    <arg name="basepath" value="./"/> <!-- Strip the file paths down to the relevant bit -->
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+    <arg name="parallel" value="8"/>
+
+    <!-- Check function parameter alignment -->
+    <rule ref="PEAR.Functions.FunctionCallSignature">
+        <properties>
+            <property name="allowMultipleArguments" value="false"/>
+        </properties>
+    </rule>
+
+    <!-- Enforce space around concatenation operator -->
+    <rule ref="Squiz.Strings.ConcatenationSpacing">
+        <properties>
+            <property name="spacing" value="1"/>
+            <property name="ignoreNewlines" value="true"/>
+        </properties>
+    </rule>
+</ruleset>
