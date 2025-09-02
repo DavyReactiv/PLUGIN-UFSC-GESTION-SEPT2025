@@ -376,3 +376,98 @@
     margin: 15px 0;
     font-size: 14px;
 }
+
+/* Dashboard enhancements */
+.ufsc-chart-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.ufsc-chart-container {
+    position: relative;
+    height: 300px;
+    margin-top: 15px;
+}
+
+.ufsc-recent-activity {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.ufsc-activity-list {
+    margin-top: 15px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 15px;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-date {
+    color: #666;
+    font-size: 12px;
+    min-width: 80px;
+}
+
+.activity-desc {
+    flex: 1;
+    font-size: 14px;
+}
+
+.activity-status {
+    font-size: 11px;
+    padding: 2px 6px;
+}
+
+/* Dashboard header styling */
+.ufsc-header {
+    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.ufsc-header h1 {
+    color: white;
+    margin: 0 0 10px 0;
+}
+
+.ufsc-header p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+/* Alert styling */
+.ufsc-alert {
+    padding: 15px;
+    border-radius: 4px;
+    margin: 15px 0;
+}
+
+.ufsc-alert.error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+/* Quick actions styling */
+.ufsc-quick-actions {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+}
