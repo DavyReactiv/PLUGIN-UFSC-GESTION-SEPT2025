@@ -355,11 +355,13 @@ class UFSC_Clubs_List_Table {
         
         // Actions
         echo '<td>';
+        $view_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=view&id=' . $club->id );
         $edit_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=edit&id=' . $club->id );
         $delete_url = wp_nonce_url( 
             admin_url( 'admin-post.php?action=ufsc_sql_delete_club&id=' . $club->id ), 
             'ufsc_sql_delete_club' 
         );
+        echo '<a href="' . esc_url( $view_url ) . '" class="button button-small">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a> ';
         echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a> ';
         echo '<a href="' . esc_url( $delete_url ) . '" class="button button-small button-link-delete" onclick="return confirm(\'' . esc_js( __( 'Êtes-vous sûr de vouloir supprimer ce club ?', 'ufsc-clubs' ) ) . '\')">' . esc_html__( 'Supprimer', 'ufsc-clubs' ) . '</a>';
         echo '</td>';
