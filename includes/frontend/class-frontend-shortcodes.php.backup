@@ -1176,6 +1176,69 @@ class UFSC_Frontend_Shortcodes {
                     'validated_licences' => $validated_licences,
                     'quota_remaining' => max( 0, 50 - $total_licences ) // Default quota of 50
                 );
+
+            
+            if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+                $stats = array(
+                    'total_licences' => 0,
+                    'paid_licences' => 0,
+                    'validated_licences' => 0,
+                    'quota_remaining' => 0
+                );
+            } else {
+                $table = ufsc_get_licences_table();
+                $club_id_col = ufsc_lic_col( 'club_id' );
+                
+                if ( ! $club_id_col ) {
+                    $stats = array(
+                        'total_licences' => 0,
+                        'paid_licences' => 0,
+                        'validated_licences' => 0,
+                        'quota_remaining' => 0
+                    );
+                } else {
+                    // Total licences
+                    $total = (int) $wpdb->get_var( $wpdb->prepare(
+                        "SELECT COUNT(*) FROM `{$table}` WHERE `{$club_id_col}` = %d",
+                        $club_id
+                    ) );
+                    
+                    // Paid licences - check multiple possible payment columns
+                    $paid = 0;
+                    $paid_season_col = ufsc_get_mapped_column_if_exists( $table, 'paid_season', 'licences' );
+                    if ( $paid_season_col && $season ) {
+                        $paid = (int) $wpdb->get_var( $wpdb->prepare(
+                            "SELECT COUNT(*) FROM `{$table}` WHERE `{$club_id_col}` = %d AND `{$paid_season_col}` = %s",
+                            $club_id, $season
+                        ) );
+                    } else {
+                        $paid_flag_col = ufsc_get_mapped_column_if_exists( $table, 'paid_flag', 'licences' );
+                        if ( $paid_flag_col ) {
+                            $paid = (int) $wpdb->get_var( $wpdb->prepare(
+                                "SELECT COUNT(*) FROM `{$table}` WHERE `{$club_id_col}` = %d AND `{$paid_flag_col}` = 1",
+                                $club_id
+                            ) );
+                        }
+                    }
+                    
+                    // Validated licences
+                    $validated = 0;
+                    $status_col = ufsc_get_mapped_column_if_exists( $table, 'status', 'licences' );
+                    if ( $status_col ) {
+                        $validated = (int) $wpdb->get_var( $wpdb->prepare(
+                            "SELECT COUNT(*) FROM `{$table}` WHERE `{$club_id_col}` = %d AND `{$status_col}` IN ('valide','validée','validé','validated')",
+                            $club_id
+                        ) );
+                    }
+                    
+                    $stats = array(
+                        'total_licences' => $total,
+                        'paid_licences' => $paid,
+                        'validated_licences' => $validated,
+                        'quota_remaining' => 0 // This could be calculated based on club quota if available
+                    );
+                }
+
             }
             
             // Cache for 1 hour
