@@ -226,13 +226,4 @@ class UFSC_Club_Dashboard {
         return $club ? $club->id : false;
     }
 
-    /**
-     * Render status badge
-     * 
-     * @param string $status Status value
-     * @return string Badge HTML
-     */
-    private static function render_status_badge( $status ) {
-        return UFSC_Badges::render_club_badge( $status );
-    }
 }
