@@ -124,14 +124,24 @@ class UFSC_SQL_Admin {
         $s = UFSC_SQL::get_settings();
         $t = $s['table_clubs'];
         $pk = $s['pk_club'];
-        $fields = $s['club_fields'];
+        $fields = UFSC_SQL::get_club_fields();
         $row = $id ? $wpdb->get_row( $wpdb->prepare("SELECT * FROM `$t` WHERE `$pk`=%d", $id) ) : null;
 
         echo '<h2>'.( $id ? esc_html__('Éditer le club','ufsc-clubs') : esc_html__('Nouveau club','ufsc-clubs') ).'</h2>';
+        
+        // Affichage des messages
+        if ( isset($_GET['updated']) && $_GET['updated'] == '1' ) {
+            echo UFSC_CL_Utils::show_success(__('Club enregistré avec succès', 'ufsc-clubs'));
+        }
+        if ( isset($_GET['error']) ) {
+            echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
+        }
+        
         echo '<form method="post">';
         wp_nonce_field('ufsc_sql_save_club');
         echo '<input type="hidden" name="action" value="ufsc_sql_save_club" />';
         echo '<input type="hidden" name="id" value="'.(int)$id.'" />';
+        echo '<input type="hidden" name="page" value="ufsc-clubs"/>';
 
         echo '<div class="ufsc-grid">';
         foreach ( $fields as $k=>$conf ){
@@ -178,7 +188,7 @@ class UFSC_SQL_Admin {
         $s = UFSC_SQL::get_settings();
         $t = $s['table_clubs'];
         $pk = $s['pk_club'];
-        $fields = $s['club_fields'];
+        $fields = UFSC_SQL::get_club_fields();
         $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
 
         $data = array();
@@ -189,15 +199,38 @@ class UFSC_SQL_Admin {
             $data['statut'] = 'en_attente';
         }
 
-        if ( $id ){
-            $wpdb->update( $t, $data, array( $pk=>$id ) );
-        } else {
-            $wpdb->insert( $t, $data );
-            $id = (int) $wpdb->insert_id;
+        // Validation des données
+        $validation_errors = UFSC_CL_Utils::validate_club_data($data);
+        if ( !empty($validation_errors) ) {
+            UFSC_CL_Utils::log('Erreurs de validation club: ' . implode(', ', $validation_errors), 'warning');
+            $error_message = implode(', ', $validation_errors);
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-clubs&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($error_message)) );
+            exit;
         }
 
-        wp_safe_redirect( admin_url('admin.php?page=ufsc-clubs&action=edit&id='.$id.'&updated=1') );
-        exit;
+        try {
+            if ( $id ){
+                $result = $wpdb->update( $t, $data, array( $pk=>$id ) );
+                if ( $result === false ) {
+                    throw new Exception('Erreur lors de la mise à jour du club');
+                }
+                UFSC_CL_Utils::log('Club mis à jour: ID ' . $id, 'info');
+            } else {
+                $result = $wpdb->insert( $t, $data );
+                if ( $result === false ) {
+                    throw new Exception('Erreur lors de la création du club');
+                }
+                $id = (int) $wpdb->insert_id;
+                UFSC_CL_Utils::log('Nouveau club créé: ID ' . $id, 'info');
+            }
+
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-clubs&action=edit&id='.$id.'&updated=1') );
+            exit;
+        } catch (Exception $e) {
+            UFSC_CL_Utils::log('Erreur sauvegarde club: ' . $e->getMessage(), 'error');
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-clubs&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($e->getMessage())) );
+            exit;
+        }
     }
 
     public static function handle_delete_club(){
@@ -282,10 +315,19 @@ class UFSC_SQL_Admin {
         $s = UFSC_SQL::get_settings();
         $t = $s['table_licences'];
         $pk = $s['pk_licence'];
-        $fields = $s['licence_fields'];
+        $fields = UFSC_SQL::get_licence_fields();
         $row = $id ? $wpdb->get_row( $wpdb->prepare("SELECT * FROM `$t` WHERE `$pk`=%d", $id) ) : null;
 
         echo '<h2>'.( $id ? esc_html__('Éditer la licence','ufsc-clubs') : esc_html__('Nouvelle licence','ufsc-clubs') ).'</h2>';
+        
+        // Affichage des messages
+        if ( isset($_GET['updated']) && $_GET['updated'] == '1' ) {
+            echo UFSC_CL_Utils::show_success(__('Licence enregistrée avec succès', 'ufsc-clubs'));
+        }
+        if ( isset($_GET['error']) ) {
+            echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
+        }
+        
         echo '<form method="post" enctype="multipart/form-data">';
         wp_nonce_field('ufsc_sql_save_licence');
         echo '<input type="hidden" name="action" value="ufsc_sql_save_licence" />';
@@ -343,7 +385,7 @@ class UFSC_SQL_Admin {
         $s = UFSC_SQL::get_settings();
         $t = $s['table_licences'];
         $pk = $s['pk_licence'];
-        $fields = $s['licence_fields'];
+        $fields = UFSC_SQL::get_licence_fields();
         $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
 
         $data = array();
@@ -362,25 +404,53 @@ class UFSC_SQL_Admin {
             $data['statut'] = 'en_attente';
         }
 
+        // Validation des données
+        $validation_errors = UFSC_CL_Utils::validate_licence_data($data);
+        if ( !empty($validation_errors) ) {
+            UFSC_CL_Utils::log('Erreurs de validation licence: ' . implode(', ', $validation_errors), 'warning');
+            $error_message = implode(', ', $validation_errors);
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($error_message)) );
+            exit;
+        }
+
+        // Gestion upload certificat
         if ( ! empty($_FILES['certificat_upload']['name']) ){
             require_once ABSPATH.'wp-admin/includes/file.php';
             $upload = wp_handle_upload( $_FILES['certificat_upload'], array('test_form'=>false) );
             if ( ! empty($upload['url']) ){
                 $data['certificat_url'] = esc_url_raw( $upload['url'] );
+            } elseif ( ! empty($upload['error']) ) {
+                UFSC_CL_Utils::log('Erreur upload certificat: ' . $upload['error'], 'warning');
+                wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode('Erreur upload fichier: '.$upload['error'])) );
+                exit;
             }
         } else {
             $data['certificat_url'] = isset($_POST['certificat_url']) ? esc_url_raw($_POST['certificat_url']) : '';
         }
 
-        if ( $id ){
-            $wpdb->update( $t, $data, array( $pk=>$id ) );
-        } else {
-            $wpdb->insert( $t, $data );
-            $id = (int) $wpdb->insert_id;
-        }
+        try {
+            if ( $id ){
+                $result = $wpdb->update( $t, $data, array( $pk=>$id ) );
+                if ( $result === false ) {
+                    throw new Exception('Erreur lors de la mise à jour de la licence');
+                }
+                UFSC_CL_Utils::log('Licence mise à jour: ID ' . $id, 'info');
+            } else {
+                $result = $wpdb->insert( $t, $data );
+                if ( $result === false ) {
+                    throw new Exception('Erreur lors de la création de la licence');
+                }
+                $id = (int) $wpdb->insert_id;
+                UFSC_CL_Utils::log('Nouvelle licence créée: ID ' . $id, 'info');
+            }
 
-        wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&action=edit&id='.$id.'&updated=1') );
-        exit;
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&action=edit&id='.$id.'&updated=1') );
+            exit;
+        } catch (Exception $e) {
+            UFSC_CL_Utils::log('Erreur sauvegarde licence: ' . $e->getMessage(), 'error');
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($e->getMessage())) );
+            exit;
+        }
     }
 
     public static function handle_delete_licence(){

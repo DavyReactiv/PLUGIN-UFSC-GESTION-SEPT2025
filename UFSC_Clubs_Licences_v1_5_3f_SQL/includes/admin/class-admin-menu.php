@@ -67,11 +67,6 @@ class UFSC_CL_Admin_Menu {
         $t_clubs = isset($opts['table_clubs']) ? $opts['table_clubs'] : 'clubs';
         $t_lics  = isset($opts['table_licences']) ? $opts['table_licences'] : 'licences';
         
-        $clubs_total = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_clubs`");
-        $lics_total  = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics`");
-        $clubs_actifs = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_clubs` WHERE statut = 'valide'");
-        $lics_actives = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics` WHERE statut = 'valide'");
-        
         echo '<div class="wrap">';
         
         // Header moderne
@@ -79,6 +74,38 @@ class UFSC_CL_Admin_Menu {
         echo '<h1>'.esc_html__('UFSC – Gestion des Clubs et Licences','ufsc-clubs').'</h1>';
         echo '<p>'.esc_html__('Tableau de bord de gestion des clubs et licences sportives UFSC','ufsc-clubs').'</p>';
         echo '</div>';
+        
+        // Vérification des tables avant d'afficher les KPI
+        $tables_exist = true;
+        $clubs_total = 0;
+        $lics_total = 0;
+        $clubs_actifs = 0;
+        $lics_actives = 0;
+        
+        try {
+            // Vérifier si les tables existent
+            $club_table_exists = $wpdb->get_var("SHOW TABLES LIKE '$t_clubs'") === $t_clubs;
+            $licence_table_exists = $wpdb->get_var("SHOW TABLES LIKE '$t_lics'") === $t_lics;
+            
+            if ($club_table_exists && $licence_table_exists) {
+                $clubs_total = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_clubs`");
+                $lics_total = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics`");
+                $clubs_actifs = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_clubs` WHERE statut = 'valide'");
+                $lics_actives = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics` WHERE statut = 'valide'");
+            } else {
+                $tables_exist = false;
+            }
+        } catch (Exception $e) {
+            $tables_exist = false;
+        }
+        
+        if (!$tables_exist) {
+            echo '<div class="ufsc-alert error">';
+            echo '<strong>'.esc_html__('Configuration requise','ufsc-clubs').'</strong><br>';
+            echo esc_html__('Les tables de données ne sont pas encore configurées.','ufsc-clubs').' ';
+            echo '<a href="'.admin_url('admin.php?page=ufsc-settings').'">'.esc_html__('Configurer maintenant','ufsc-clubs').'</a>';
+            echo '</div>';
+        }
         
         // Cartes KPI améliorées
         echo UFSC_CL_Utils::kpi_cards(array(
