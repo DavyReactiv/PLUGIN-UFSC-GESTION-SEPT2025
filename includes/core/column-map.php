@@ -141,7 +141,7 @@ class UFSC_Column_Map {
     }
 }
 
-/**
+/*
  * Column mapping helpers for flexible database column names.
  * These functions return the actual column name for a logical key.
  */
