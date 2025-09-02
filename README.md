@@ -185,21 +185,45 @@ update_user_meta( $user_id, 'ufsc_club_id', 123 );
 
 ### Shortcodes Frontend
 
-#### Dashboard Club
+#### Dashboard et Gestion Club
 ```php
 [ufsc_club_dashboard]
 // Affiche le tableau de bord complet du club
+// Attributs: show_sections="header,kpi,actions"
 
-[ufsc_club_dashboard show_sections="header,kpi,actions"]
-// Affiche seulement certaines sections
+[ufsc_affiliation_form]
+// Formulaire d'affiliation pour créer un nouveau club
+// Attributs: redirect_to="url", show_title="1"
+
+[ufsc_club_form]
+// Formulaire de création/édition de club
+// Attributs: affiliation="0", club_id="0"
 ```
 
 #### Composants individuels
 ```php
 [ufsc_club_profile]      // Profil du club
-[ufsc_club_licences]     // Liste des licences
-[ufsc_club_stats]        // Statistiques visuelles
+[ufsc_club_licences]     // Liste des licences du club
+[ufsc_club_stats]        // Statistiques visuelles du club
 [ufsc_add_licence]       // Formulaire nouvelle licence
+```
+
+#### Shortcodes SQL et Formulaires
+```php
+[ufsc_sql_licence_form]  // Formulaire licence avec base SQL
+[ufsc_sql_my_club]       // Informations du club via SQL
+```
+
+#### Authentification et Utilisateur
+```php
+[ufsc_login_form]        // Formulaire de connexion
+// Attributs: redirect_admin, redirect_club, redirect_default, show_register
+
+[ufsc_logout_button]     // Bouton de déconnexion
+// Attributs: redirect_to, text, class
+
+[ufsc_user_status]       // Statut utilisateur et informations
+// Attributs: show_links="true", show_club="true"
 ```
 
 ### Endpoints REST API
@@ -341,6 +365,12 @@ Captures d'écran de référence disponibles :
 - **[Image 3](image3)** : Dashboard administrateur avec KPI corrigés
 
 ## 📝 Changelog
+
+### Version 1.5.4 - 2025
+- 🐛 **Fix critique** : Résolution de l'erreur fatale due à la redéclaration de `ufsc_get_user_club_id()`
+- ✅ **Shortcodes** : Assurance de l'enregistrement de tous les shortcodes frontend
+- ✅ **Documentation** : Mise à jour complète des shortcodes disponibles
+- 🔧 **Technique** : Ajout de gardes `function_exists()` pour éviter les conflits
 
 ### Version 1.5.3ff - 2025
 - ✅ **Nouvelle interface** dashboard club avec KPI et graphiques

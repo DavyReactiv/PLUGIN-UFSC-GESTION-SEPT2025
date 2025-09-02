@@ -140,25 +140,16 @@ function ufsc_handle_additional_license_payment( $order, $item, $quantity ) {
  * @param int $user_id User ID
  * @return int|false Club ID or false if not found
  */
-function ufsc_get_user_club_id( $user_id ) {
-    // STUB: This should query the existing database to find which club this user manages
-    // Implementation depends on how the relationship between users and clubs is stored
-    
-    // Example implementation (to be adjusted):
-    /*
-    global $wpdb;
-    $clubs_table = ufsc_get_clubs_table();
-    
-    $club_id = $wpdb->get_var( $wpdb->prepare(
-        "SELECT id FROM {$clubs_table} WHERE responsable_id = %d",
-        $user_id
-    ) );
-    
-    return $club_id ? (int) $club_id : false;
-    */
-    
-    // Temporary fallback for testing
-    return false;
+if ( ! function_exists( 'ufsc_get_user_club_id' ) ) {
+    function ufsc_get_user_club_id( $user_id ) {
+        // Delegate to the proper implementation if available
+        if ( class_exists( 'UFSC_User_Club_Mapping' ) ) {
+            return UFSC_User_Club_Mapping::get_user_club_id( $user_id );
+        }
+        
+        // Fallback implementation
+        return false;
+    }
 }
 
 /**
@@ -168,23 +159,25 @@ function ufsc_get_user_club_id( $user_id ) {
  * @param int $club_id Club ID
  * @param string $season Season identifier
  */
-function ufsc_mark_affiliation_paid( $club_id, $season ) {
-    // STUB: This should update the club record to mark affiliation as paid for the season
-    // Implementation depends on how affiliation payment status is stored
-    
-    // Example implementation (to be adjusted):
-    /*
-    global $wpdb;
-    $clubs_table = ufsc_get_clubs_table();
-    
-    $wpdb->update(
-        $clubs_table,
-        array( 'affiliation_paid_' . str_replace( '-', '_', $season ) => 1 ),
-        array( 'id' => $club_id ),
-        array( '%d' ),
-        array( '%d' )
-    );
-    */
+if ( ! function_exists( 'ufsc_mark_affiliation_paid' ) ) {
+    function ufsc_mark_affiliation_paid( $club_id, $season ) {
+        // STUB: This should update the club record to mark affiliation as paid for the season
+        // Implementation depends on how affiliation payment status is stored
+        
+        // Example implementation (to be adjusted):
+        /*
+        global $wpdb;
+        $clubs_table = ufsc_get_clubs_table();
+        
+        $wpdb->update(
+            $clubs_table,
+            array( 'affiliation_paid_' . str_replace( '-', '_', $season ) => 1 ),
+            array( 'id' => $club_id ),
+            array( '%d' ),
+            array( '%d' )
+        );
+        */
+    }
 }
 
 /**
@@ -194,23 +187,25 @@ function ufsc_mark_affiliation_paid( $club_id, $season ) {
  * @param int $license_id License ID
  * @param string $season Season identifier
  */
-function ufsc_mark_licence_paid( $license_id, $season ) {
-    // STUB: This should update the license record to mark it as paid for the season
-    // Implementation depends on how license payment status is stored
-    
-    // Example implementation (to be adjusted):
-    /*
-    global $wpdb;
-    $licences_table = ufsc_get_licences_table();
-    
-    $wpdb->update(
-        $licences_table,
-        array( 'paid_season' => $season, 'is_included' => 0 ),
-        array( 'id' => $license_id ),
-        array( '%s', '%d' ),
-        array( '%d' )
-    );
-    */
+if ( ! function_exists( 'ufsc_mark_licence_paid' ) ) {
+    function ufsc_mark_licence_paid( $license_id, $season ) {
+        // STUB: This should update the license record to mark it as paid for the season
+        // Implementation depends on how license payment status is stored
+        
+        // Example implementation (to be adjusted):
+        /*
+        global $wpdb;
+        $licences_table = ufsc_get_licences_table();
+        
+        $wpdb->update(
+            $licences_table,
+            array( 'paid_season' => $season, 'is_included' => 0 ),
+            array( 'id' => $license_id ),
+            array( '%s', '%d' ),
+            array( '%d' )
+        );
+        */
+    }
 }
 
 /**
