@@ -163,7 +163,7 @@ class UFSC_SQL_Admin {
         }
         
         if ( !$readonly ) {
-            echo '<form method="post">';
+            echo '<form method="post" enctype="multipart/form-data">';
             wp_nonce_field('ufsc_sql_save_club');
             echo '<input type="hidden" name="action" value="ufsc_sql_save_club" />';
             echo '<input type="hidden" name="id" value="'.(int)$id.'" />';
@@ -176,6 +176,59 @@ class UFSC_SQL_Admin {
             self::render_field_club($k,$conf,$val, $readonly);
         }
         echo '</div>';
+        
+
+        // Add Documents section for non-readonly mode
+        if ( !$readonly ) {
+            echo '<h3>' . esc_html__('Documents du club', 'ufsc-clubs') . '</h3>';
+            echo '<div class="ufsc-documents-section">';
+            
+            // Logo du club
+            echo '<div class="ufsc-document-upload">';
+            echo '<h4>' . esc_html__('Logo du club', 'ufsc-clubs') . '</h4>';
+            $logo_id = get_option( 'ufsc_club_logo_' . $id );
+            if ( $logo_id ) {
+                $logo_url = wp_get_attachment_url( $logo_id );
+                $logo_title = get_the_title( $logo_id );
+                echo '<div class="ufsc-current-file">';
+                echo '<p><strong>' . esc_html__('Fichier actuel:', 'ufsc-clubs') . '</strong></p>';
+                echo '<img src="' . esc_url( $logo_url ) . '" alt="' . esc_attr( $logo_title ) . '" style="max-width: 200px; max-height: 150px;">';
+                echo '<p>';
+                echo '<a href="' . esc_url( $logo_url ) . '" target="_blank" rel="noopener">' . esc_html__('Voir', 'ufsc-clubs') . '</a> | ';
+                echo '<a href="' . esc_url( $logo_url ) . '" download>' . esc_html__('Télécharger', 'ufsc-clubs') . '</a>';
+                echo '</p>';
+                echo '</div>';
+            }
+            echo '<input type="file" name="club_logo_upload" accept="image/*">';
+            echo '<p class="description">' . esc_html__('Formats acceptés: JPG, PNG, SVG. Taille max: 2MB', 'ufsc-clubs') . '</p>';
+            echo '</div>';
+            
+            // Attestation UFSC
+            echo '<div class="ufsc-document-upload">';
+            echo '<h4>' . esc_html__('Attestation UFSC', 'ufsc-clubs') . '</h4>';
+            $attestation_id = get_option( 'ufsc_club_doc_attestation_affiliation_' . $id );
+            if ( $attestation_id ) {
+                $attestation_url = wp_get_attachment_url( $attestation_id );
+                $attestation_title = get_the_title( $attestation_id );
+                echo '<div class="ufsc-current-file">';
+                echo '<p><strong>' . esc_html__('Fichier actuel:', 'ufsc-clubs') . '</strong> ' . esc_html( $attestation_title ) . '</p>';
+                echo '<p>';
+                echo '<a href="' . esc_url( $attestation_url ) . '" target="_blank" rel="noopener">' . esc_html__('Voir', 'ufsc-clubs') . '</a> | ';
+                echo '<a href="' . esc_url( $attestation_url ) . '" download>' . esc_html__('Télécharger', 'ufsc-clubs') . '</a>';
+                echo '</p>';
+                echo '</div>';
+            }
+            echo '<input type="file" name="attestation_ufsc_upload" accept=".pdf,.jpg,.jpeg,.png">';
+            echo '<p class="description">' . esc_html__('Formats acceptés: PDF, JPG, PNG. Taille max: 5MB', 'ufsc-clubs') . '</p>';
+            echo '</div>';
+            
+            echo '</div>';
+
+        // Add Documents panel for club editing
+        if ( $id && ! $readonly ) {
+            self::render_club_documents_panel( $id );
+
+        }
         
         if ( !$readonly ) {
             echo '<p><button class="button button-primary">'.esc_html__('Enregistrer','ufsc-clubs').'</button> <a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-sql-clubs') ).'">'.esc_html__('Annuler','ufsc-clubs').'</a></p>';
@@ -219,6 +272,67 @@ class UFSC_SQL_Admin {
         echo '</div>';
     }
 
+    /**
+     * Render club documents panel for logo and attestation uploads
+     */
+    private static function render_club_documents_panel( $club_id ) {
+        echo '<div class="ufsc-documents-panel" style="margin-top: 20px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd;">';
+        echo '<h3>' . esc_html__( 'Documents du club', 'ufsc-clubs' ) . '</h3>';
+        
+        // Logo section
+        echo '<div style="margin-bottom: 20px;">';
+        echo '<h4>' . esc_html__( 'Logo du club', 'ufsc-clubs' ) . '</h4>';
+        
+        $logo_id = get_option( 'ufsc_club_logo_' . $club_id );
+        if ( $logo_id ) {
+            $logo_url = wp_get_attachment_url( $logo_id );
+            if ( $logo_url ) {
+                echo '<div style="margin-bottom: 10px;">';
+                echo '<img src="' . esc_url( $logo_url ) . '" style="max-width: 200px; max-height: 150px;" alt="Logo actuel">';
+                echo '</div>';
+                echo '<p>';
+                echo '<a href="' . esc_url( $logo_url ) . '" target="_blank" class="button">' . esc_html__( 'Voir', 'ufsc-clubs' ) . '</a> ';
+                echo '<a href="' . esc_url( $logo_url ) . '" download class="button">' . esc_html__( 'Télécharger', 'ufsc-clubs' ) . '</a> ';
+                echo '<label><input type="checkbox" name="remove_logo" value="1"> ' . esc_html__( 'Supprimer le logo actuel', 'ufsc-clubs' ) . '</label>';
+                echo '</p>';
+            }
+        }
+        
+        echo '<p>';
+        echo '<label for="club_logo_upload">' . esc_html__( 'Nouveau logo (JPG, PNG, GIF, max 2MB):', 'ufsc-clubs' ) . '</label><br>';
+        echo '<input type="file" id="club_logo_upload" name="club_logo_upload" accept=".jpg,.jpeg,.png,.gif">';
+        echo '</p>';
+        echo '</div>';
+        
+        // Attestation UFSC section
+        echo '<div style="margin-bottom: 20px;">';
+        echo '<h4>' . esc_html__( 'Attestation UFSC', 'ufsc-clubs' ) . '</h4>';
+        
+        $attestation_id = get_option( 'ufsc_club_doc_attestation_ufsc_' . $club_id );
+        if ( $attestation_id ) {
+            $attestation_url = wp_get_attachment_url( $attestation_id );
+            if ( $attestation_url ) {
+                $file_name = basename( get_attached_file( $attestation_id ) );
+                echo '<div style="margin-bottom: 10px;">';
+                echo '<strong>' . esc_html__( 'Fichier actuel:', 'ufsc-clubs' ) . '</strong> ' . esc_html( $file_name );
+                echo '</div>';
+                echo '<p>';
+                echo '<a href="' . esc_url( $attestation_url ) . '" target="_blank" class="button">' . esc_html__( 'Voir', 'ufsc-clubs' ) . '</a> ';
+                echo '<a href="' . esc_url( $attestation_url ) . '" download class="button">' . esc_html__( 'Télécharger', 'ufsc-clubs' ) . '</a> ';
+                echo '<label><input type="checkbox" name="remove_attestation_ufsc" value="1"> ' . esc_html__( 'Supprimer l\'attestation actuelle', 'ufsc-clubs' ) . '</label>';
+                echo '</p>';
+            }
+        }
+        
+        echo '<p>';
+        echo '<label for="attestation_ufsc_upload">' . esc_html__( 'Nouvelle attestation (PDF, JPG, PNG, max 5MB):', 'ufsc-clubs' ) . '</label><br>';
+        echo '<input type="file" id="attestation_ufsc_upload" name="attestation_ufsc_upload" accept=".pdf,.jpg,.jpeg,.png">';
+        echo '</p>';
+        echo '</div>';
+        
+        echo '</div>';
+    }
+
     public static function handle_save_club(){
         if ( ! current_user_can('manage_options') ) wp_die('Accès refusé');
         check_admin_referer('ufsc_sql_save_club');
@@ -238,6 +352,38 @@ class UFSC_SQL_Admin {
             $data['statut'] = 'en_attente';
         }
 
+        // Handle file uploads before validation
+        $upload_errors = array();
+        
+        // Handle logo upload
+        if ( !empty($_FILES['club_logo_upload']['name']) ) {
+            $upload_result = self::handle_document_upload( $_FILES['club_logo_upload'], array('image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'), 2 * 1024 * 1024 ); // 2MB max
+            if ( is_wp_error( $upload_result ) ) {
+                $upload_errors[] = __('Logo: ', 'ufsc-clubs') . $upload_result->get_error_message();
+            } else {
+                // Save logo attachment ID
+                update_option( 'ufsc_club_logo_' . ($id ?: 'new'), $upload_result );
+            }
+        }
+        
+        // Handle Attestation UFSC upload
+        if ( !empty($_FILES['attestation_ufsc_upload']['name']) ) {
+            $upload_result = self::handle_document_upload( $_FILES['attestation_ufsc_upload'], array('application/pdf', 'image/jpeg', 'image/jpg', 'image/png'), 5 * 1024 * 1024 ); // 5MB max
+            if ( is_wp_error( $upload_result ) ) {
+                $upload_errors[] = __('Attestation UFSC: ', 'ufsc-clubs') . $upload_result->get_error_message();
+            } else {
+                // Save attachment ID
+                update_option( 'ufsc_club_doc_attestation_affiliation_' . ($id ?: 'new'), $upload_result );
+            }
+        }
+
+        // Check for upload errors
+        if ( !empty($upload_errors) ) {
+            $error_message = implode(', ', $upload_errors);
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($error_message)) );
+            exit;
+        }
+
         // Validation des données
         $validation_errors = UFSC_CL_Utils::validate_club_data($data, false);
         if ( !empty($validation_errors) ) {
@@ -254,6 +400,18 @@ class UFSC_SQL_Admin {
                     throw new Exception('Erreur lors de la mise à jour du club');
                 }
                 UFSC_CL_Utils::log('Club mis à jour: ID ' . $id, 'info');
+                
+                // Update option keys with real ID if we had uploads
+                if ( get_option( 'ufsc_club_logo_new' ) ) {
+                    $logo_id = get_option( 'ufsc_club_logo_new' );
+                    update_option( 'ufsc_club_logo_' . $id, $logo_id );
+                    delete_option( 'ufsc_club_logo_new' );
+                }
+                if ( get_option( 'ufsc_club_doc_attestation_affiliation_new' ) ) {
+                    $doc_id = get_option( 'ufsc_club_doc_attestation_affiliation_new' );
+                    update_option( 'ufsc_club_doc_attestation_affiliation_' . $id, $doc_id );
+                    delete_option( 'ufsc_club_doc_attestation_affiliation_new' );
+                }
             } else {
                 $result = $wpdb->insert( $t, $data );
                 if ( $result === false ) {
@@ -261,6 +419,23 @@ class UFSC_SQL_Admin {
                 }
                 $id = (int) $wpdb->insert_id;
                 UFSC_CL_Utils::log('Nouveau club créé: ID ' . $id, 'info');
+                
+                // Update option keys with real ID
+                if ( get_option( 'ufsc_club_logo_new' ) ) {
+                    $logo_id = get_option( 'ufsc_club_logo_new' );
+                    update_option( 'ufsc_club_logo_' . $id, $logo_id );
+                    delete_option( 'ufsc_club_logo_new' );
+                }
+                if ( get_option( 'ufsc_club_doc_attestation_affiliation_new' ) ) {
+                    $doc_id = get_option( 'ufsc_club_doc_attestation_affiliation_new' );
+                    update_option( 'ufsc_club_doc_attestation_affiliation_' . $id, $doc_id );
+                    delete_option( 'ufsc_club_doc_attestation_affiliation_new' );
+                }
+            }
+            
+            // Handle file uploads after club is saved/updated
+            if ( $id ) {
+                self::handle_club_document_uploads( $id );
             }
 
             wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&action=edit&id='.$id.'&updated=1') );
@@ -270,6 +445,179 @@ class UFSC_SQL_Admin {
             wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($e->getMessage())) );
             exit;
         }
+    }
+
+    /**
+
+     * Handle document upload with validation
+     * 
+     * @param array $file $_FILES array element
+     * @param array $allowed_mime_types Allowed MIME types
+     * @param int $max_size Maximum file size in bytes
+     * @return int|WP_Error Attachment ID on success, WP_Error on failure
+     */
+    private static function handle_document_upload( $file, $allowed_mime_types, $max_size ) {
+        // Check for upload errors
+        if ( $file['error'] !== UPLOAD_ERR_OK ) {
+            return new WP_Error( 'upload_error', __( 'Erreur lors du téléchargement du fichier.', 'ufsc-clubs' ) );
+        }
+        
+        // Check file size
+        if ( $file['size'] > $max_size ) {
+            return new WP_Error( 'file_too_large', __( 'Le fichier est trop volumineux.', 'ufsc-clubs' ) );
+        }
+        
+        // Check MIME type
+        $file_type = wp_check_filetype( $file['name'] );
+        if ( ! in_array( $file_type['type'], $allowed_mime_types ) ) {
+            return new WP_Error( 'invalid_file_type', __( 'Type de fichier non autorisé.', 'ufsc-clubs' ) );
+        }
+        
+        // Handle the upload
+        require_once( ABSPATH . 'wp-admin/includes/file.php' );
+        
+        $upload = wp_handle_upload( $file, array( 'test_form' => false ) );
+        
+        if ( isset( $upload['error'] ) ) {
+            return new WP_Error( 'upload_failed', $upload['error'] );
+        }
+        
+        // Create attachment
+        $attachment = array(
+            'post_mime_type' => $upload['type'],
+            'post_title'     => sanitize_file_name( pathinfo( $file['name'], PATHINFO_FILENAME ) ),
+            'post_content'   => '',
+            'post_status'    => 'inherit'
+        );
+        
+        $attachment_id = wp_insert_attachment( $attachment, $upload['file'] );
+        
+        if ( is_wp_error( $attachment_id ) ) {
+            return $attachment_id;
+        }
+        
+        // Generate attachment metadata
+        require_once( ABSPATH . 'wp-admin/includes/image.php' );
+        $attachment_data = wp_generate_attachment_metadata( $attachment_id, $upload['file'] );
+        wp_update_attachment_metadata( $attachment_id, $attachment_data );
+        
+        return $attachment_id;
+
+     * Handle club document uploads (logo and attestation)
+     */
+    private static function handle_club_document_uploads( $club_id ) {
+        // Load required WordPress upload functions
+        if ( ! function_exists( 'wp_handle_upload' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+        }
+        if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
+            require_once ABSPATH . 'wp-admin/includes/image.php';
+        }
+        
+        // Handle logo upload
+        if ( ! empty( $_FILES['club_logo_upload']['name'] ) ) {
+            $logo_mimes = array(
+                'jpg|jpeg|jpe' => 'image/jpeg',
+                'gif' => 'image/gif',
+                'png' => 'image/png'
+            );
+            
+            $logo_upload = wp_handle_upload( $_FILES['club_logo_upload'], array(
+                'test_form' => false,
+                'mimes' => $logo_mimes
+            ) );
+            
+            if ( ! isset( $logo_upload['error'] ) ) {
+                // Create attachment
+                $logo_attachment = array(
+                    'post_mime_type' => $logo_upload['type'],
+                    'post_title' => sanitize_file_name( $_FILES['club_logo_upload']['name'] ),
+                    'post_content' => '',
+                    'post_status' => 'inherit'
+                );
+                
+                $logo_attachment_id = wp_insert_attachment( $logo_attachment, $logo_upload['file'] );
+                
+                if ( $logo_attachment_id ) {
+                    // Generate metadata
+                    $logo_metadata = wp_generate_attachment_metadata( $logo_attachment_id, $logo_upload['file'] );
+                    wp_update_attachment_metadata( $logo_attachment_id, $logo_metadata );
+                    
+                    // Remove old logo if exists
+                    $old_logo_id = get_option( 'ufsc_club_logo_' . $club_id );
+                    if ( $old_logo_id ) {
+                        wp_delete_attachment( $old_logo_id, true );
+                    }
+                    
+                    // Save new logo
+                    update_option( 'ufsc_club_logo_' . $club_id, $logo_attachment_id );
+                    UFSC_CL_Utils::log('Logo uploaded for club ID ' . $club_id, 'info');
+                }
+            } else {
+                UFSC_CL_Utils::log('Logo upload error: ' . $logo_upload['error'], 'warning');
+            }
+        }
+        
+        // Handle logo removal
+        if ( isset( $_POST['remove_logo'] ) && $_POST['remove_logo'] == '1' ) {
+            $old_logo_id = get_option( 'ufsc_club_logo_' . $club_id );
+            if ( $old_logo_id ) {
+                wp_delete_attachment( $old_logo_id, true );
+                delete_option( 'ufsc_club_logo_' . $club_id );
+                UFSC_CL_Utils::log('Logo removed for club ID ' . $club_id, 'info');
+            }
+        }
+        
+        // Handle attestation UFSC upload
+        if ( ! empty( $_FILES['attestation_ufsc_upload']['name'] ) ) {
+            $doc_mimes = array(
+                'pdf' => 'application/pdf',
+                'jpg|jpeg|jpe' => 'image/jpeg',
+                'png' => 'image/png'
+            );
+            
+            $doc_upload = wp_handle_upload( $_FILES['attestation_ufsc_upload'], array(
+                'test_form' => false,
+                'mimes' => $doc_mimes
+            ) );
+            
+            if ( ! isset( $doc_upload['error'] ) ) {
+                // Create attachment
+                $doc_attachment = array(
+                    'post_mime_type' => $doc_upload['type'],
+                    'post_title' => sanitize_file_name( $_FILES['attestation_ufsc_upload']['name'] ),
+                    'post_content' => '',
+                    'post_status' => 'inherit'
+                );
+                
+                $doc_attachment_id = wp_insert_attachment( $doc_attachment, $doc_upload['file'] );
+                
+                if ( $doc_attachment_id ) {
+                    // Remove old attestation if exists
+                    $old_doc_id = get_option( 'ufsc_club_doc_attestation_ufsc_' . $club_id );
+                    if ( $old_doc_id ) {
+                        wp_delete_attachment( $old_doc_id, true );
+                    }
+                    
+                    // Save new attestation
+                    update_option( 'ufsc_club_doc_attestation_ufsc_' . $club_id, $doc_attachment_id );
+                    UFSC_CL_Utils::log('Attestation UFSC uploaded for club ID ' . $club_id, 'info');
+                }
+            } else {
+                UFSC_CL_Utils::log('Attestation upload error: ' . $doc_upload['error'], 'warning');
+            }
+        }
+        
+        // Handle attestation removal
+        if ( isset( $_POST['remove_attestation_ufsc'] ) && $_POST['remove_attestation_ufsc'] == '1' ) {
+            $old_doc_id = get_option( 'ufsc_club_doc_attestation_ufsc_' . $club_id );
+            if ( $old_doc_id ) {
+                wp_delete_attachment( $old_doc_id, true );
+                delete_option( 'ufsc_club_doc_attestation_ufsc_' . $club_id );
+                UFSC_CL_Utils::log('Attestation UFSC removed for club ID ' . $club_id, 'info');
+            }
+        }
+
     }
 
     public static function handle_delete_club(){

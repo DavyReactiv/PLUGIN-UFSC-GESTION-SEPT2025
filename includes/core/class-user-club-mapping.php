@@ -15,10 +15,21 @@ class UFSC_User_Club_Mapping {
      */
     public static function get_user_club_id( $user_id ) {
         global $wpdb;
+
         if ( ! function_exists( 'ufsc_get_clubs_table' ) ) { return false; }
         $clubs_table = ufsc_get_clubs_table();
         $club_id = $wpdb->get_var( $wpdb->prepare(
             "SELECT id FROM `{$clubs_table}` WHERE responsable_id = %d LIMIT 1",
+
+        
+        $settings = UFSC_SQL::get_settings();
+        $clubs_table = $settings['table_clubs'];
+        $pk_col = ufsc_club_col( 'id' );
+        $responsable_col = ufsc_club_col( 'responsable_id' );
+        
+        $club_id = $wpdb->get_var( $wpdb->prepare(
+            "SELECT `{$pk_col}` FROM `{$clubs_table}` WHERE `{$responsable_col}` = %d LIMIT 1",
+
             $user_id
         ) );
         return $club_id ? (int) $club_id : false;
@@ -32,10 +43,20 @@ class UFSC_User_Club_Mapping {
      */
     public static function get_user_club( $user_id ) {
         global $wpdb;
+
         if ( ! function_exists( 'ufsc_get_clubs_table' ) ) { return false; }
         $clubs_table = ufsc_get_clubs_table();
         $club = $wpdb->get_row( $wpdb->prepare(
             "SELECT * FROM `{$clubs_table}` WHERE responsable_id = %d LIMIT 1",
+
+        
+        $settings = UFSC_SQL::get_settings();
+        $clubs_table = $settings['table_clubs'];
+        $responsable_col = ufsc_club_col( 'responsable_id' );
+        
+        $club = $wpdb->get_row( $wpdb->prepare(
+            "SELECT * FROM `{$clubs_table}` WHERE `{$responsable_col}` = %d LIMIT 1",
+
             $user_id
         ) );
         return $club ?: false;

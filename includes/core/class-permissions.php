@@ -27,10 +27,11 @@ class UFSC_CL_Permissions {
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
         $table = $settings['table_clubs'];
-        $pk = $settings['pk_club'];
+        $pk = ufsc_club_col( 'id' );
+        $responsable_col = ufsc_club_col( 'responsable_id' );
         
         $club = $wpdb->get_row( $wpdb->prepare(
-            "SELECT responsable_id FROM `{$table}` WHERE `{$pk}` = %d",
+            "SELECT `{$responsable_col}` FROM `{$table}` WHERE `{$pk}` = %d",
             $club_id
         ) );
         
@@ -39,7 +40,8 @@ class UFSC_CL_Permissions {
         }
         
         // User can edit if they are the responsable of the club
-        return get_current_user_id() === (int) $club->responsable_id;
+        $responsable_id_field = ufsc_club_col( 'responsable_id' );
+        return get_current_user_id() === (int) $club->{$responsable_id_field};
     }
     
     /**
