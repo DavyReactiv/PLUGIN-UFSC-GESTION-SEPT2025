@@ -12,11 +12,11 @@ define( 'UFSC_CL_VERSION', '1.5.3ff' );
 define( 'UFSC_CL_DIR', plugin_dir_path( __FILE__ ) );
 define( 'UFSC_CL_URL', plugin_dir_url( __FILE__ ) );
 
-require_once UFSC_CL_DIR.'includes/class-utils.php';
-require_once UFSC_CL_DIR.'includes/class-admin-menu.php';
-require_once UFSC_CL_DIR.'includes/class-sql.php';
-require_once UFSC_CL_DIR.'includes/class-sql-admin.php';
-require_once UFSC_CL_DIR.'includes/class-sql-shortcodes.php';
+require_once UFSC_CL_DIR.'includes/core/class-utils.php';
+require_once UFSC_CL_DIR.'includes/admin/class-admin-menu.php';
+require_once UFSC_CL_DIR.'includes/core/class-sql.php';
+require_once UFSC_CL_DIR.'includes/admin/class-sql-admin.php';
+require_once UFSC_CL_DIR.'includes/frontend/class-sql-shortcodes.php';
 
 final class UFSC_CL_Bootstrap {
     private static $instance = null;
@@ -29,8 +29,8 @@ final class UFSC_CL_Bootstrap {
         add_action( 'admin_enqueue_scripts', array( 'UFSC_CL_Admin_Menu', 'enqueue_admin' ) );
         add_action( 'wp_enqueue_scripts', array( 'UFSC_CL_Admin_Menu', 'register_front' ) );
 
-        // SQL Admin CRUD
-        add_action( 'admin_menu', array( 'UFSC_SQL_Admin', 'register_menus' ) );
+        // SQL Admin CRUD actions (pas de menu séparé - intégré dans le menu principal)
+        // add_action( 'admin_menu', array( 'UFSC_SQL_Admin', 'register_menus' ) ); // Désactivé - menu unifié maintenant
         add_action( 'admin_post_ufsc_sql_save_club', array( 'UFSC_SQL_Admin', 'handle_save_club' ) );
         add_action( 'admin_post_ufsc_sql_delete_club', array( 'UFSC_SQL_Admin', 'handle_delete_club' ) );
         add_action( 'admin_post_ufsc_sql_save_licence', array( 'UFSC_SQL_Admin', 'handle_save_licence' ) );

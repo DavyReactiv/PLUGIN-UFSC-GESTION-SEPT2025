@@ -98,7 +98,28 @@ class UFSC_SQL {
     }
     public static function get_settings(){
         $opts = get_option( 'ufsc_sql_settings', array() );
-        return wp_parse_args( $opts, self::default_settings() );
+        $settings = wp_parse_args( $opts, self::default_settings() );
+        return apply_filters( 'ufsc_sql_settings', $settings );
     }
-    public static function statuses(){ $s = self::get_settings(); return $s['status_values']; }
+    
+    public static function statuses(){ 
+        $s = self::get_settings(); 
+        return apply_filters( 'ufsc_status_values', $s['status_values'] );
+    }
+    
+    /**
+     * Hook pour personnaliser les champs de club
+     */
+    public static function get_club_fields() {
+        $s = self::get_settings();
+        return apply_filters( 'ufsc_club_fields', $s['club_fields'] );
+    }
+    
+    /**
+     * Hook pour personnaliser les champs de licence
+     */
+    public static function get_licence_fields() {
+        $s = self::get_settings();
+        return apply_filters( 'ufsc_licence_fields', $s['licence_fields'] );
+    }
 }
