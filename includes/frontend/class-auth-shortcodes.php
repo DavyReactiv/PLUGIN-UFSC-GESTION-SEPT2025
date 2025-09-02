@@ -369,6 +369,3 @@ class UFSC_Auth_Shortcodes {
         return home_url();
     }
 }
-
-// Register shortcodes
-add_action( 'init', array( 'UFSC_Auth_Shortcodes', 'register' ) );

@@ -2,13 +2,13 @@
 /**
  * Plugin Name: UFSC – Clubs & Licences (SQL)
  * Description: Gestion Clubs/Licences connectée aux tables SQL existantes (mapping complet), formulaires complets (admin & front), documents PDF/JPG/PNG, exports CSV, badges colorés, mini-dashboard, shortcodes.
- * Version: 1.5.3ff
+ * Version: 1.5.4
  * Author: Davy – Studio REACTIV (pour l'UFSC)
  * Text Domain: ufsc-clubs
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'UFSC_CL_VERSION', '1.5.3ff' );
+define( 'UFSC_CL_VERSION', '1.5.4' );
 define( 'UFSC_CL_DIR', plugin_dir_path( __FILE__ ) );
 define( 'UFSC_CL_URL', plugin_dir_url( __FILE__ ) );
 
@@ -82,10 +82,12 @@ final class UFSC_CL_Bootstrap {
         // Shortcodes front
         add_action( 'init', array( 'UFSC_SQL_Shortcodes', 'register_shortcodes' ) );
         add_action( 'init', array( 'UFSC_Frontend_Shortcodes', 'register' ) );
+        add_action( 'init', array( 'UFSC_Auth_Shortcodes', 'register' ) );
         
         // Initialize new UFSC Gestion enhancement components
         add_action( 'init', array( 'UFSC_Club_Dashboard', 'init' ) );
         add_action( 'init', array( 'UFSC_Affiliation_Form', 'init' ) );
+        add_action( 'init', array( 'UFSC_CL_Club_Form', 'init' ) );
         add_action( 'plugins_loaded', array( 'UFSC_DB_Migrations', 'run_migrations' ) );
         
         // Initialize UFSC Gestion WooCommerce hooks
