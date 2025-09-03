@@ -683,6 +683,19 @@ class UFSC_Frontend_Shortcodes {
         }
 
         // Check quota
+
+        $quota_info  = self::get_club_quota_info( $atts['club_id'] );
+        $form_data   = array();
+        $form_errors = array();
+
+        if ( is_user_logged_in() ) {
+            $form_key   = 'ufsc_licence_form_' . get_current_user_id();
+            $stored     = get_transient( $form_key );
+            if ( $stored ) {
+                $form_data   = $stored['data'] ?? array();
+                $form_errors = $stored['errors'] ?? array();
+                delete_transient( $form_key );
+
         $quota_info = self::get_club_quota_info( $atts['club_id'] );
         
         // Handle form submission
@@ -700,6 +713,7 @@ class UFSC_Frontend_Shortcodes {
                 }
             } else {
                 echo '<div class="ufsc-message ufsc-error">' . esc_html( $result['message'] ) . '</div>';
+
             }
         }
 
@@ -719,9 +733,22 @@ class UFSC_Frontend_Shortcodes {
                 </div>
             </div>
 
+            <?php if ( ! empty( $form_errors ) ) : ?>
+                <div class="ufsc-message ufsc-error">
+                    <?php foreach ( $form_errors as $error ) : ?>
+                        <p><?php echo esc_html( $error ); ?></p>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-form">
+
+                <input type="hidden" name="action" value="ufsc_add_licence">
+                <input type="hidden" name="ufsc_submit_action" id="ufsc_submit_action" value="save">
+
                 <div class="ufsc-notices" aria-live="polite"></div>
                 <input type="hidden" name="action" value="ufsc_save_licence">
+
                 <?php wp_nonce_field( 'ufsc_save_licence', '_wpnonce' ); ?>
                 
                 <!-- // UFSC: Enhanced form structure with conditional fields -->
@@ -731,36 +758,36 @@ class UFSC_Frontend_Shortcodes {
                         
                         <div class="ufsc-field">
                             <label for="nom"><?php esc_html_e( 'Nom *', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="nom" name="nom" required>
+                            <input type="text" id="nom" name="nom" value="<?php echo esc_attr( $form_data['nom'] ?? '' ); ?>" required>
                         </div>
                         
                         <div class="ufsc-field">
                             <label for="prenom"><?php esc_html_e( 'Prénom *', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="prenom" name="prenom" required>
+                            <input type="text" id="prenom" name="prenom" value="<?php echo esc_attr( $form_data['prenom'] ?? '' ); ?>" required>
                         </div>
 
                         <div class="ufsc-field">
                             <label for="email"><?php esc_html_e( 'Email *', 'ufsc-clubs' ); ?></label>
-                            <input type="email" id="email" name="email" required>
+                            <input type="email" id="email" name="email" value="<?php echo esc_attr( $form_data['email'] ?? '' ); ?>" required>
                         </div>
                         
                         <div class="ufsc-field">
                             <label for="telephone"><?php esc_html_e( 'Téléphone', 'ufsc-clubs' ); ?></label>
-                            <input type="tel" id="telephone" name="telephone">
+                            <input type="tel" id="telephone" name="telephone" value="<?php echo esc_attr( $form_data['telephone'] ?? '' ); ?>">
                         </div>
 
                         <div class="ufsc-field">
                             <label for="date_naissance"><?php esc_html_e( 'Date de naissance *', 'ufsc-clubs' ); ?></label>
-                            <input type="date" id="date_naissance" name="date_naissance" required>
+                            <input type="date" id="date_naissance" name="date_naissance" value="<?php echo esc_attr( $form_data['date_naissance'] ?? '' ); ?>" required>
                         </div>
                         
                         <div class="ufsc-field">
                             <label for="sexe"><?php esc_html_e( 'Sexe *', 'ufsc-clubs' ); ?></label>
                             <select id="sexe" name="sexe" required>
                                 <option value=""><?php esc_html_e( 'Sélectionner', 'ufsc-clubs' ); ?></option>
-                                <option value="M"><?php esc_html_e( 'Homme', 'ufsc-clubs' ); ?></option>
-                                <option value="F"><?php esc_html_e( 'Femme', 'ufsc-clubs' ); ?></option>
-                                <option value="Autre"><?php esc_html_e( 'Autre', 'ufsc-clubs' ); ?></option>
+                                <option value="M" <?php selected( $form_data['sexe'] ?? '', 'M' ); ?>><?php esc_html_e( 'Homme', 'ufsc-clubs' ); ?></option>
+                                <option value="F" <?php selected( $form_data['sexe'] ?? '', 'F' ); ?>><?php esc_html_e( 'Femme', 'ufsc-clubs' ); ?></option>
+                                <option value="Autre" <?php selected( $form_data['sexe'] ?? '', 'Autre' ); ?>><?php esc_html_e( 'Autre', 'ufsc-clubs' ); ?></option>
                             </select>
                         </div>
                     </div>
@@ -770,17 +797,17 @@ class UFSC_Frontend_Shortcodes {
                         
                         <div class="ufsc-field">
                             <label for="adresse"><?php esc_html_e( 'Adresse complète', 'ufsc-clubs' ); ?></label>
-                            <textarea id="adresse" name="adresse" rows="3"></textarea>
+                            <textarea id="adresse" name="adresse" rows="3"><?php echo esc_textarea( $form_data['adresse'] ?? '' ); ?></textarea>
                         </div>
 
                         <div class="ufsc-field">
                             <label for="ville"><?php esc_html_e( 'Ville', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="ville" name="ville">
+                            <input type="text" id="ville" name="ville" value="<?php echo esc_attr( $form_data['ville'] ?? '' ); ?>">
                         </div>
                         
                         <div class="ufsc-field">
                             <label for="code_postal"><?php esc_html_e( 'Code postal', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="code_postal" name="code_postal" pattern="[0-9]{5}" maxlength="5">
+                            <input type="text" id="code_postal" name="code_postal" value="<?php echo esc_attr( $form_data['code_postal'] ?? '' ); ?>" pattern="[0-9]{5}" maxlength="5">
                         </div>
                     </div>
                 </div>
@@ -793,19 +820,19 @@ class UFSC_Frontend_Shortcodes {
                             <label for="role"><?php esc_html_e( 'Rôle dans le club', 'ufsc-clubs' ); ?></label>
                             <select id="role" name="role">
                                 <option value=""><?php esc_html_e( 'Sélectionner', 'ufsc-clubs' ); ?></option>
-                                <option value="president"><?php esc_html_e( 'Président', 'ufsc-clubs' ); ?></option>
-                                <option value="secretaire"><?php esc_html_e( 'Secrétaire', 'ufsc-clubs' ); ?></option>
-                                <option value="tresorier"><?php esc_html_e( 'Trésorier', 'ufsc-clubs' ); ?></option>
-                                <option value="entraineur"><?php esc_html_e( 'Entraîneur', 'ufsc-clubs' ); ?></option>
-                                <option value="adherent"><?php esc_html_e( 'Adhérent', 'ufsc-clubs' ); ?></option>
+                                <option value="president" <?php selected( $form_data['role'] ?? '', 'president' ); ?>><?php esc_html_e( 'Président', 'ufsc-clubs' ); ?></option>
+                                <option value="secretaire" <?php selected( $form_data['role'] ?? '', 'secretaire' ); ?>><?php esc_html_e( 'Secrétaire', 'ufsc-clubs' ); ?></option>
+                                <option value="tresorier" <?php selected( $form_data['role'] ?? '', 'tresorier' ); ?>><?php esc_html_e( 'Trésorier', 'ufsc-clubs' ); ?></option>
+                                <option value="entraineur" <?php selected( $form_data['role'] ?? '', 'entraineur' ); ?>><?php esc_html_e( 'Entraîneur', 'ufsc-clubs' ); ?></option>
+                                <option value="adherent" <?php selected( $form_data['role'] ?? '', 'adherent' ); ?>><?php esc_html_e( 'Adhérent', 'ufsc-clubs' ); ?></option>
                             </select>
                         </div>
                         
                         <div class="ufsc-field">
                             <label for="competition"><?php esc_html_e( 'Type de pratique', 'ufsc-clubs' ); ?></label>
                             <select id="competition" name="competition">
-                                <option value="0"><?php esc_html_e( 'Loisir', 'ufsc-clubs' ); ?></option>
-                                <option value="1"><?php esc_html_e( 'Compétition', 'ufsc-clubs' ); ?></option>
+                                <option value="0" <?php selected( $form_data['competition'] ?? '', 0 ); ?>><?php esc_html_e( 'Loisir', 'ufsc-clubs' ); ?></option>
+                                <option value="1" <?php selected( $form_data['competition'] ?? '', 1 ); ?>><?php esc_html_e( 'Compétition', 'ufsc-clubs' ); ?></option>
                             </select>
                         </div>
                     </div>
@@ -817,14 +844,14 @@ class UFSC_Frontend_Shortcodes {
                         <!-- // UFSC: Conditional field with toggle -->
                         <div class="ufsc-field">
                             <label class="ufsc-checkbox-label">
-                                <input type="checkbox" id="has_license_number" name="has_license_number" value="1" class="ufsc-toggle">
+                                <input type="checkbox" id="has_license_number" name="has_license_number" value="1" class="ufsc-toggle" <?php checked( ! empty( $form_data['has_license_number'] ) ); ?> >
                                 <?php esc_html_e( 'Possède un numéro de licence antérieur', 'ufsc-clubs' ); ?>
                             </label>
                         </div>
                         
                         <div class="ufsc-field ufsc-conditional-field" data-depends="has_license_number">
                             <label for="numero_licence"><?php esc_html_e( 'Numéro de licence', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="numero_licence" name="numero_licence">
+                            <input type="text" id="numero_licence" name="numero_licence" value="<?php echo esc_attr( $form_data['numero_licence'] ?? '' ); ?>">
                         </div>
                     </div>
                 </div>
@@ -952,12 +979,11 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <div class="ufsc-form-actions">
-                    <button type="submit" name="ufsc_add_licence" class="ufsc-btn ufsc-btn-primary">
-                        <?php if ( $quota_info['remaining'] > 0 ): ?>
-                            <?php esc_html_e( 'Créer la licence', 'ufsc-clubs' ); ?>
-                        <?php else: ?>
-                            <?php esc_html_e( 'Créer et procéder au paiement', 'ufsc-clubs' ); ?>
-                        <?php endif; ?>
+                    <button type="submit" class="ufsc-btn ufsc-btn-primary" onclick="document.getElementById('ufsc_submit_action').value='save';">
+                        <?php esc_html_e( 'Enregistrer', 'ufsc-clubs' ); ?>
+                    </button>
+                    <button type="submit" class="ufsc-btn ufsc-btn-secondary" onclick="document.getElementById('ufsc_submit_action').value='add_to_cart';">
+                        <?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?>
                     </button>
                 </div>
             </form>

@@ -14,6 +14,10 @@ class UFSC_Unified_Handlers {
         // License handlers
         add_action( 'admin_post_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
         add_action( 'admin_post_nopriv_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
+        add_action( 'admin_post_ufsc_add_licence', array( __CLASS__, 'handle_add_licence' ) );
+        add_action( 'admin_post_nopriv_ufsc_add_licence', array( __CLASS__, 'handle_add_licence' ) );
+        add_action( 'admin_post_ufsc_update_licence', array( __CLASS__, 'handle_update_licence' ) );
+        add_action( 'admin_post_nopriv_ufsc_update_licence', array( __CLASS__, 'handle_update_licence' ) );
         
         // Club handlers  
         add_action( 'admin_post_ufsc_save_club', array( __CLASS__, 'handle_save_club' ) );
@@ -30,6 +34,21 @@ class UFSC_Unified_Handlers {
         add_action( 'admin_post_nopriv_ufsc_export_stats', array( __CLASS__, 'handle_export_stats' ) );
         add_action( 'wp_ajax_ufsc_export_stats', array( __CLASS__, 'ajax_export_stats' ) );
         add_action( 'wp_ajax_nopriv_ufsc_export_stats', array( __CLASS__, 'ajax_export_stats' ) );
+    }
+
+    /**
+     * Handle add licence form submission
+     */
+    public static function handle_add_licence() {
+        self::process_licence_request( 0 );
+    }
+
+    /**
+     * Handle update licence form submission
+     */
+    public static function handle_update_licence() {
+        $licence_id = isset( $_POST['licence_id'] ) ? intval( $_POST['licence_id'] ) : 0;
+        self::process_licence_request( $licence_id );
     }
 
     /**
@@ -167,6 +186,98 @@ class UFSC_Unified_Handlers {
         wp_redirect( $redirect_url );
         exit;
     }
+
+    /**
+     * Process licence add/update request
+     */
+    private static function process_licence_request( $licence_id ) {
+        if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'ufsc_save_licence' ) ) {
+            wp_die( __( 'Nonce verification failed', 'ufsc-clubs' ) );
+        }
+
+        if ( ! is_user_logged_in() ) {
+            self::store_form_and_redirect( $_POST, array( __( 'Vous devez être connecté', 'ufsc-clubs' ) ), $licence_id );
+        }
+
+        $user_id = get_current_user_id();
+        $club_id = ufsc_get_user_club_id( $user_id );
+        if ( ! $club_id ) {
+            self::store_form_and_redirect( $_POST, array( __( 'Aucun club associé à votre compte', 'ufsc-clubs' ) ), $licence_id );
+        }
+
+        if ( $licence_id > 0 ) {
+            $licence_status = self::get_licence_status( $licence_id, $club_id );
+            if ( ! $licence_status ) {
+                self::store_form_and_redirect( $_POST, array( __( 'Licence non trouvée', 'ufsc-clubs' ) ), $licence_id );
+            }
+
+            $non_editable_statuses = array( 'payee', 'validee' );
+            if ( in_array( $licence_status, $non_editable_statuses, true ) ) {
+                self::store_form_and_redirect( $_POST, array( __( 'Modification non autorisée', 'ufsc-clubs' ) ), $licence_id );
+            }
+        }
+
+        $data = self::validate_licence_data( $_POST );
+        if ( is_wp_error( $data ) ) {
+            self::store_form_and_redirect( $_POST, array( $data->get_error_message() ), $licence_id );
+        }
+
+        $result = self::save_licence_data( $licence_id, $club_id, $data );
+        if ( is_wp_error( $result ) ) {
+            self::store_form_and_redirect( $_POST, array( $result->get_error_message() ), $licence_id );
+        }
+
+        $new_id = $result;
+        if ( isset( $_POST['ufsc_submit_action'] ) && 'add_to_cart' === $_POST['ufsc_submit_action'] ) {
+            if ( function_exists( 'WC' ) && defined( 'PRODUCT_ID_LICENCE' ) ) {
+                WC()->cart->add_to_cart( PRODUCT_ID_LICENCE, 1, 0, array(), array( 'licence_id' => $new_id, 'club_id' => $club_id ) );
+            }
+            self::update_licence_status_db( $new_id, 'pending' );
+            if ( function_exists( 'wc_get_checkout_url' ) ) {
+                wp_safe_redirect( wc_get_checkout_url() );
+                exit;
+            }
+        }
+
+        $redirect_url = add_query_arg(
+            array(
+                'updated'    => 1,
+                'licence_id' => $new_id,
+            ),
+            wp_get_referer()
+        );
+        wp_redirect( $redirect_url );
+        exit;
+    }
+
+    /**
+     * Store form data and errors then redirect back
+     */
+    private static function store_form_and_redirect( $data, $errors, $licence_id = 0 ) {
+        $key = 'ufsc_licence_form_' . get_current_user_id();
+        set_transient( $key, array(
+            'data'   => wp_unslash( $data ),
+            'errors' => (array) $errors,
+        ), MINUTE_IN_SECONDS );
+
+        $redirect = wp_get_referer() ?: home_url();
+        if ( $licence_id ) {
+            $redirect = add_query_arg( 'licence_id', $licence_id, $redirect );
+        }
+        wp_safe_redirect( $redirect );
+        exit;
+    }
+
+    /**
+     * Update licence status directly in database
+     */
+    private static function update_licence_status_db( $licence_id, $status ) {
+        global $wpdb;
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+        $wpdb->update( $licences_table, array( 'statut' => $status ), array( 'id' => $licence_id ), array( '%s' ), array( '%d' ) );
+    }
+
 
     /**
      * // UFSC: Handle CSV export
