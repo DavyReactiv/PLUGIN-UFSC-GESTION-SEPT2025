@@ -34,6 +34,7 @@ if (!function_exists('wp_upload_dir')) { function wp_upload_dir(){ return ['path
 if (!function_exists('sanitize_file_name')) { function sanitize_file_name($n){ return $n; } }
 if (!function_exists('is_user_logged_in')) { function is_user_logged_in(){ return $GLOBALS['ufsc_is_logged_in'] ?? false; } }
 if (!function_exists('get_current_user_id')) { function get_current_user_id(){ return $GLOBALS['ufsc_current_user_id'] ?? 0; } }
+
 if (!function_exists('ufsc_get_clubs_table')) { function ufsc_get_clubs_table(){ return 'wp_ufsc_clubs'; } }
 if (!function_exists('ufsc_get_licences_table')) { function ufsc_get_licences_table(){ return 'wp_ufsc_licences'; } }
 
@@ -103,6 +104,19 @@ $GLOBALS['wpdb'] = new WPDB_Stub();
 require_once __DIR__ . '/../inc/woocommerce/admin-actions.php';
 require_once __DIR__ . '/../inc/woocommerce/cart-integration.php';
 require_once __DIR__ . '/../inc/woocommerce/hooks.php';
+=======
+if (!function_exists('ufsc_get_user_club_id')) { function ufsc_get_user_club_id($u){ return $GLOBALS['ufsc_user_club_id'] ?? null; } }
+if (!function_exists('wc_get_product')) {
+    function wc_get_product($id) {
+        $exists = $GLOBALS['ufsc_product_exists'] ?? true;
+        return new class($exists) {
+            private $exists;
+            public function __construct($exists){ $this->exists = $exists; }
+            public function exists(){ return $this->exists; }
+        };
+    }
+}
+
 
 // --- Testable subclasses for Import/Export ---
 class UFSC_Import_Export_Success extends UFSC_Import_Export {
@@ -185,21 +199,37 @@ class ApiPermissionsTest extends TestCase {
         $result = UFSC_REST_API::check_club_permissions( new WP_REST_Request() );
         $this->assertTrue( $result );
     }
+
+    public function test_check_club_permissions_no_club() {
+        $GLOBALS['ufsc_is_logged_in'] = true;
+        $GLOBALS['ufsc_current_user_id'] = 1;
+        unset($GLOBALS['ufsc_user_club_id']);
+        $result = UFSC_REST_API::check_club_permissions(new WP_REST_Request());
+        $this->assertInstanceOf(WP_Error::class, $result);
+    }
 }
 
 class WooCommerceFunctionsTest extends TestCase {
     public function test_woocommerce_active_and_validation() {
         // Failure: WooCommerce not active
         $this->assertFalse(ufsc_is_woocommerce_active());
+        $GLOBALS['ufsc_product_exists'] = false;
         $this->assertFalse(ufsc_validate_woocommerce_product(123));
 
-        // Success scenario
+        // Success scenario with valid product
         eval('class WooCommerce {}');
-        if (!function_exists('wc_get_product')) {
-            function wc_get_product($id) { return new class { public function exists(){ return true; } }; }
-        }
+        $GLOBALS['ufsc_product_exists'] = true;
         $this->assertTrue(ufsc_is_woocommerce_active());
         $this->assertTrue(ufsc_validate_woocommerce_product(123));
+    }
+
+    public function test_woocommerce_product_not_found() {
+        if (!class_exists('WooCommerce')) {
+            eval('class WooCommerce {}');
+        }
+        $GLOBALS['ufsc_product_exists'] = false;
+        $this->assertTrue(ufsc_is_woocommerce_active());
+        $this->assertFalse(ufsc_validate_woocommerce_product(999));
     }
 }
 

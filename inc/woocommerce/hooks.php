@@ -174,16 +174,22 @@ if ( ! function_exists( 'ufsc_mark_affiliation_paid' ) ) {
     function ufsc_mark_affiliation_paid( $club_id, $season ) {
         global $wpdb;
 
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+            return false;
+        }
+
         $clubs_table = ufsc_get_clubs_table();
 
         // Update affiliation date to mark payment
-        $wpdb->update(
+        $updated = $wpdb->update(
             $clubs_table,
             array( 'date_affiliation' => current_time( 'mysql' ) ),
             array( 'id' => $club_id ),
             array( '%s' ),
             array( '%d' )
         );
+
+        return false !== $updated;
     }
 }
 
@@ -197,8 +203,12 @@ if ( ! function_exists( 'ufsc_mark_licence_paid' ) ) {
     function ufsc_mark_licence_paid( $license_id, $season ) {
         global $wpdb;
 
+        if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+            return false;
+        }
+
         $licences_table = ufsc_get_licences_table();
-        $wpdb->update(
+        $updated        = $wpdb->update(
             $licences_table,
             array(
                 'statut'      => 'en_attente',
@@ -210,6 +220,8 @@ if ( ! function_exists( 'ufsc_mark_licence_paid' ) ) {
             array( '%s', '%d', '%s', '%s' ),
             array( '%d' )
         );
+
+        return false !== $updated;
     }
 }
 
@@ -223,14 +235,20 @@ if ( ! function_exists( 'ufsc_mark_licence_paid' ) ) {
 function ufsc_quota_add_included( $club_id, $quantity, $season ) {
     global $wpdb;
 
+    if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+        return false;
+    }
+
     $clubs_table = ufsc_get_clubs_table();
-    $wpdb->query(
+    $updated     = $wpdb->query(
         $wpdb->prepare(
             "UPDATE {$clubs_table} SET quota_licences = COALESCE(quota_licences,0) + %d WHERE id = %d",
             $quantity,
             $club_id
         )
     );
+
+    return false !== $updated;
 }
 
 /**
@@ -243,12 +261,18 @@ function ufsc_quota_add_included( $club_id, $quantity, $season ) {
 function ufsc_quota_add_paid( $club_id, $quantity, $season ) {
     global $wpdb;
 
+    if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+        return false;
+    }
+
     $clubs_table = ufsc_get_clubs_table();
-    $wpdb->query(
+    $updated     = $wpdb->query(
         $wpdb->prepare(
             "UPDATE {$clubs_table} SET quota_licences = COALESCE(quota_licences,0) + %d WHERE id = %d",
             $quantity,
             $club_id
         )
     );
+
+    return false !== $updated;
 }

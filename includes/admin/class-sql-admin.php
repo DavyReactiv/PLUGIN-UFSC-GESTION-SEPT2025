@@ -1314,7 +1314,7 @@ class UFSC_SQL_Admin {
         }
 
         try {
-            // Calculate license price (stub implementation)
+            // Calculate license price using configurable rules
             $price = self::calculate_license_price($license);
             
             // Find or create user by email
@@ -1407,8 +1407,9 @@ class UFSC_SQL_Admin {
         );
 
         // Allow configuration through options or filters
-        $rules = get_option( 'ufsc_license_pricing_rules', $default_rules );
+        $rules = get_option( 'ufsc_license_pricing_rules', array() );
         $rules = apply_filters( 'ufsc_license_pricing_rules', $rules, $license );
+        $rules = wp_parse_args( $rules, $default_rules );
 
         // Determine license type
         $type = 'standard';
