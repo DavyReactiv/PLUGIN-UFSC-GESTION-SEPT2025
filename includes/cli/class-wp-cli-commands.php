@@ -183,6 +183,19 @@ class UFSC_CLI_Commands {
 
     // Helper methods - STUBS to be implemented
 
+    /**
+     * Retrieve statistics for a single club.
+     *
+     * Uses the UFSC licences table to count the number of total, paid and
+     * validated licences for the provided club and season. Results are cached
+     * for an hour using the WordPress transient API so that repeated CLI calls
+     * remain fast.
+     *
+     * @param int    $club_id Club identifier.
+     * @param string $season  Season identifier (e.g. "2025-2026").
+     *
+     * @return array Array of counts: total, paid, validated and remaining quota.
+     */
     private function get_club_stats( $club_id, $season ) {
         $cache_key = "ufsc_stats_{$club_id}_{$season}";
         $stats = get_transient( $cache_key );
@@ -280,6 +293,17 @@ class UFSC_CLI_Commands {
         return $stats;
     }
 
+    /**
+     * Retrieve statistics for every club.
+     *
+     * Queries the UFSC clubs table to obtain all club identifiers then delegates
+     * to {@see get_club_stats()} for each club. This ensures consistent cache
+     * usage and counter calculation across the CLI commands.
+     *
+     * @param string $season Season identifier.
+     *
+     * @return array[] List of statistics indexed by club.
+     */
     private function get_all_clubs_stats( $season ) {
         if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
             return array();
@@ -317,6 +341,14 @@ class UFSC_CLI_Commands {
         }
     }
 
+    /**
+     * Display debugging information about the cache layer.
+     *
+     * The command reports whether an external object cache is in use and, when
+     * available, leverages the UFSC cache manager to list details about cached
+     * transients. This is primarily useful for troubleshooting during
+     * development or when running the CLI tools in production.
+     */
     private function cache_info() {
         WP_CLI::log( 'Cache information:' );
         WP_CLI::log( '  Object cache enabled: ' . ( wp_using_ext_object_cache() ? 'Yes' : 'No' ) );
