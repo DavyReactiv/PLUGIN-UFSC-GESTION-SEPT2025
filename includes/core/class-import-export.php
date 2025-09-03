@@ -457,6 +457,7 @@ class UFSC_Import_Export {
         );
     }
 
+
     // Database helper methods
 
     /**
@@ -467,6 +468,21 @@ class UFSC_Import_Export {
      * @return array[] Array of licence rows
      */
     protected static function get_club_licences_for_export( $club_id, $filters ) {
+
+
+    /**
+     * Retrieve club licences for export.
+     *
+     * @param int   $club_id Club identifier.
+     * @param array $filters Optional filters (status, season).
+     *
+     * @return array List of licences.
+     */
+    protected static function get_club_licences_for_export( $club_id, $filters ) {
+
+    private static function get_club_licences_for_export( $club_id, $filters ) {
+
+
         global $wpdb;
 
         $settings       = UFSC_SQL::get_settings();
@@ -498,10 +514,18 @@ class UFSC_Import_Export {
     }
 
     /**
+
      * Get the display name of a club.
      *
      * @param int $club_id Club ID
      * @return string
+
+     * Retrieve club name.
+     *
+     * @param int $club_id Club identifier.
+     *
+     * @return string Club name or default string.
+
      */
     protected static function get_club_name( $club_id ) {
         global $wpdb;
@@ -509,7 +533,11 @@ class UFSC_Import_Export {
         $settings    = UFSC_SQL::get_settings();
         $clubs_table = $settings['table_clubs'];
 
+
         $name_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'name' ) : 'nom';
+
+        $name_col    = ufsc_club_col( 'name' );
+
 
         $name = $wpdb->get_var( $wpdb->prepare(
             "SELECT {$name_col} FROM {$clubs_table} WHERE id = %d",
@@ -520,10 +548,18 @@ class UFSC_Import_Export {
     }
 
     /**
+
      * Get quota information for a club.
      *
      * @param int $club_id Club ID
      * @return array{total:int,used:int,remaining:int}
+
+     * Retrieve club licence quota information.
+     *
+     * @param int $club_id Club identifier.
+     *
+     * @return array Quota information (total, used, remaining).
+
      */
     protected static function get_club_quota_info( $club_id ) {
         global $wpdb;
@@ -550,11 +586,20 @@ class UFSC_Import_Export {
     }
 
     /**
+
      * Insert a licence record into the UFSC licences table.
      *
      * @param int   $club_id Club ID
      * @param array $data    Licence data
      * @return int           New licence ID or 0 on failure
+
+     * Create a licence record in database.
+     *
+     * @param int   $club_id Club identifier.
+     * @param array $data    Licence data.
+     *
+     * @return int Inserted licence ID or 0 on failure.
+
      */
     protected static function create_licence_record( $club_id, $data ) {
         global $wpdb;
@@ -562,10 +607,20 @@ class UFSC_Import_Export {
         $settings       = UFSC_SQL::get_settings();
         $licences_table = $settings['table_licences'];
 
+
         $insert_data = array_merge( $data, array(
             'club_id'       => $club_id,
             'date_creation' => current_time( 'mysql' ),
         ) );
+
+        $insert_data = array_merge(
+            $data,
+            array(
+                'club_id'       => $club_id,
+                'date_creation' => current_time( 'mysql' ),
+            )
+        );
+
 
         $result = $wpdb->insert( $licences_table, $insert_data );
 
@@ -577,12 +632,23 @@ class UFSC_Import_Export {
         return (int) $wpdb->insert_id;
     }
 
+
     /**
      * Create a WooCommerce order for licences exceeding the quota.
      *
      * @param int   $club_id     Club ID
      * @param array $licence_ids Licence IDs
      * @return int|false Order ID or false on failure
+
+
+    /**
+     * Create a WooCommerce order for additional licences.
+     *
+     * @param int   $club_id     Club identifier.
+     * @param array $licence_ids Licence IDs exceeding the quota.
+     *
+     * @return int|false Order ID on success, false otherwise.
+
      */
     protected static function create_payment_order( $club_id, $licence_ids ) {
         if ( ! function_exists( 'ufsc_create_additional_license_order' ) ) {
@@ -590,6 +656,56 @@ class UFSC_Import_Export {
         }
 
         return ufsc_create_additional_license_order( $club_id, $licence_ids, get_current_user_id() );
+
+
+    protected static function create_payment_order( $club_id, $licence_ids ) {
+        if ( ! function_exists( 'ufsc_is_woocommerce_active' ) || ! ufsc_is_woocommerce_active() ) {
+            return false;
+        }
+
+        $wc_settings       = ufsc_get_woocommerce_settings();
+        $license_product_id = $wc_settings['product_license_id'];
+        $product            = wc_get_product( $license_product_id );
+
+        if ( ! $product || ! $product->exists() ) {
+            return false;
+        }
+
+        $quantity = max( 1, count( $licence_ids ) );
+
+        try {
+            $order = wc_create_order();
+            if ( ! $order ) {
+                return false;
+            }
+
+            $user_id = get_current_user_id();
+            if ( $user_id > 0 ) {
+                $order->set_customer_id( $user_id );
+            }
+
+            $item_id = $order->add_product( $product, $quantity );
+            if ( ! $item_id ) {
+                $order->delete( true );
+                return false;
+            }
+
+            if ( ! empty( $licence_ids ) ) {
+                wc_add_order_item_meta( $item_id, '_ufsc_licence_ids', $licence_ids );
+            }
+            wc_add_order_item_meta( $item_id, '_ufsc_club_id', $club_id );
+
+            $order->calculate_totals();
+            $order->update_status( 'pending', __( 'Commande créée pour licences UFSC additionnelles', 'ufsc-clubs' ) );
+            $order->add_order_note( sprintf( __( 'Commande créée automatiquement pour %d licence(s) additionnelle(s) - Club ID: %d', 'ufsc-clubs' ), $quantity, $club_id ) );
+
+            return $order->get_id();
+        } catch ( Exception $e ) {
+            error_log( 'UFSC: Error creating additional license order: ' . $e->getMessage() );
+            return false;
+        }
+
+
     }
 }
 
