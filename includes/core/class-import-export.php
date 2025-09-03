@@ -516,9 +516,6 @@ class UFSC_Import_Export {
 
         $name_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'name' ) : 'nom';
 
-        $name_col    = ufsc_club_col( 'name' );
-
-
         $name = $wpdb->get_var( $wpdb->prepare(
             "SELECT {$name_col} FROM {$clubs_table} WHERE id = %d",
             $club_id
