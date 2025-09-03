@@ -23,6 +23,8 @@ class UFSC_Auth_Shortcodes {
      * @return string HTML output
      */
     public static function render_login_form( $atts = array() ) {
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+
         $atts = shortcode_atts( array(
             'redirect_admin' => admin_url( 'admin.php?page=ufsc-gestion' ),
             'redirect_club' => home_url( '/club-dashboard/' ),
@@ -37,6 +39,20 @@ class UFSC_Auth_Shortcodes {
             return self::render_already_logged_in();
         }
 
+        $username_error = '';
+        $password_error = '';
+        if ( isset( $_GET['login_error'] ) ) {
+            $error = sanitize_text_field( wp_unslash( $_GET['login_error'] ) );
+            if ( 'empty_username' === $error ) {
+                $username_error = __( 'Veuillez saisir votre identifiant.', 'ufsc-clubs' );
+            } elseif ( 'empty_password' === $error ) {
+                $password_error = __( 'Veuillez saisir votre mot de passe.', 'ufsc-clubs' );
+            } elseif ( 'invalid' === $error ) {
+                $username_error = __( 'Identifiants invalides.', 'ufsc-clubs' );
+                $password_error = __( 'Identifiants invalides.', 'ufsc-clubs' );
+            }
+        }
+
         ob_start();
         ?>
         <div class="<?php echo esc_attr( $atts['class'] ); ?>">
@@ -47,49 +63,51 @@ class UFSC_Auth_Shortcodes {
 
             <form method="post" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" class="ufsc-login-form-inner">
                 <?php wp_nonce_field( 'ufsc_login', 'ufsc_login_nonce' ); ?>
-                
+
                 <input type="hidden" name="redirect_to" value="<?php echo esc_url( self::get_dynamic_redirect_url( $atts ) ); ?>" />
-                
-                <div class="ufsc-form-group">
-                    <label for="user_login"><?php echo esc_html__( 'Nom d\'utilisateur ou email', 'ufsc-clubs' ); ?></label>
-                    <input type="text" name="log" id="user_login" class="ufsc-form-control" required autocomplete="username" />
-                </div>
 
-                <div class="ufsc-form-group">
-                    <label for="user_pass"><?php echo esc_html__( 'Mot de passe', 'ufsc-clubs' ); ?></label>
-                    <input type="password" name="pwd" id="user_pass" class="ufsc-form-control" required autocomplete="current-password" />
-                </div>
-
-                <div class="ufsc-form-group ufsc-form-checkbox">
-                    <label>
-                        <input type="checkbox" name="rememberme" value="forever" />
-                        <?php echo esc_html__( 'Se souvenir de moi', 'ufsc-clubs' ); ?>
-                    </label>
-                </div>
-
-                <div class="ufsc-form-group ufsc-form-submit">
-                    <button type="submit" class="ufsc-btn ufsc-btn-primary">
-                        <?php echo esc_html__( 'Se connecter', 'ufsc-clubs' ); ?>
-                    </button>
-                </div>
-
-                <?php if ( $atts['show_lost_password'] === 'true' ): ?>
-                    <div class="ufsc-form-links">
-                        <a href="<?php echo esc_url( wp_lostpassword_url() ); ?>" class="ufsc-link-lost-password">
-                            <?php echo esc_html__( 'Mot de passe oublié ?', 'ufsc-clubs' ); ?>
-                        </a>
+                <div class="ufsc-grid">
+                    <div class="ufsc-form-group">
+                        <label for="user_login"><?php echo esc_html__( 'Nom d\'utilisateur ou email', 'ufsc-clubs' ); ?></label>
+                        <input type="text" name="log" id="user_login" class="ufsc-form-control" required autocomplete="username" aria-describedby="user_login_error" />
+                        <p id="user_login_error" class="ufsc-error-message" role="alert"><?php echo esc_html( $username_error ); ?></p>
                     </div>
-                <?php endif; ?>
 
-                <?php if ( $atts['show_register'] === 'true' && get_option( 'users_can_register' ) ): ?>
-                    <div class="ufsc-form-links">
-                        <a href="<?php echo esc_url( wp_registration_url() ); ?>" class="ufsc-link-register">
-                            <?php echo esc_html__( 'Créer un compte', 'ufsc-clubs' ); ?>
-                        </a>
+                    <div class="ufsc-form-group">
+                        <label for="user_pass"><?php echo esc_html__( 'Mot de passe', 'ufsc-clubs' ); ?></label>
+                        <input type="password" name="pwd" id="user_pass" class="ufsc-form-control" required autocomplete="current-password" aria-describedby="user_pass_error" />
+                        <p id="user_pass_error" class="ufsc-error-message" role="alert"><?php echo esc_html( $password_error ); ?></p>
                     </div>
-                <?php endif; ?>
+
+                    <div class="ufsc-form-group ufsc-form-checkbox ufsc-grid-full">
+                        <label>
+                            <input type="checkbox" name="rememberme" value="forever" />
+                            <?php echo esc_html__( 'Se souvenir de moi', 'ufsc-clubs' ); ?>
+                        </label>
+                    </div>
+
+                    <div class="ufsc-form-group ufsc-form-submit ufsc-grid-full">
+                        <button type="submit" class="ufsc-btn ufsc-btn-primary">
+                            <?php echo esc_html__( 'Se connecter', 'ufsc-clubs' ); ?>
+                        </button>
+                    </div>
+
+                    <div class="ufsc-form-links ufsc-grid-full">
+                        <?php if ( $atts['show_lost_password'] === 'true' ): ?>
+                            <a href="<?php echo esc_url( wp_lostpassword_url() ); ?>" class="ufsc-link-lost-password">
+                                <?php echo esc_html__( 'Mot de passe oublié', 'ufsc-clubs' ); ?>
+                            </a>
+                        <?php endif; ?>
+                        <?php if ( $atts['show_register'] === 'true' && get_option( 'users_can_register' ) ): ?>
+                            <a href="<?php echo esc_url( wp_registration_url() ); ?>" class="ufsc-link-register">
+                                <?php echo esc_html__( 'Créer un compte', 'ufsc-clubs' ); ?>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </form>
         </div>
+
 
         <style>
         .ufsc-login-form {
@@ -105,8 +123,17 @@ class UFSC_Auth_Shortcodes {
             margin-bottom: 20px;
             color: #333;
         }
-        .ufsc-form-group {
-            margin-bottom: 15px;
+        .ufsc-grid {
+            display: grid;
+            gap: 15px;
+        }
+        @media (min-width: 1024px) {
+            .ufsc-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        .ufsc-grid-full {
+            grid-column: 1 / -1;
         }
         .ufsc-form-group label {
             display: block;
@@ -149,8 +176,14 @@ class UFSC_Auth_Shortcodes {
         .ufsc-btn-primary:hover {
             background-color: #005a87;
         }
+        .ufsc-error-message {
+            color: #d63638;
+            font-size: 12px;
+            margin-top: 4px;
+        }
         .ufsc-form-links {
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
             margin-top: 10px;
         }
         .ufsc-form-links a {
@@ -161,7 +194,12 @@ class UFSC_Auth_Shortcodes {
         .ufsc-form-links a:hover {
             text-decoration: underline;
         }
+        .ufsc-form-links a:focus {
+            outline: 2px solid #005a87;
+            outline-offset: 2px;
+        }
         </style>
+
         <?php
         return ob_get_clean();
     }
@@ -205,6 +243,8 @@ class UFSC_Auth_Shortcodes {
      * @return string HTML output
      */
     public static function render_user_status( $atts = array() ) {
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+
         $atts = shortcode_atts( array(
             'show_avatar' => 'true',
             'show_role' => 'true',
@@ -256,47 +296,6 @@ class UFSC_Auth_Shortcodes {
                 <?php endif; ?>
             </div>
         </div>
-
-        <style>
-        .ufsc-user-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 4px;
-            border: 1px solid #e9ecef;
-        }
-        .ufsc-user-status.ufsc-not-logged-in {
-            text-align: center;
-            color: #6c757d;
-        }
-        .ufsc-user-avatar img {
-            border-radius: 50%;
-        }
-        .ufsc-user-info {
-            flex: 1;
-        }
-        .ufsc-user-name {
-            margin-bottom: 2px;
-        }
-        .ufsc-user-role, .ufsc-user-club {
-            font-size: 12px;
-            color: #6c757d;
-            margin-bottom: 2px;
-        }
-        .ufsc-user-actions {
-            margin-top: 5px;
-        }
-        .ufsc-logout-button {
-            font-size: 12px;
-            color: #dc3545;
-            text-decoration: none;
-        }
-        .ufsc-logout-button:hover {
-            text-decoration: underline;
-        }
-        </style>
         <?php
         return ob_get_clean();
     }
@@ -361,12 +360,23 @@ class UFSC_Auth_Shortcodes {
         if ( user_can( $user, 'manage_options' ) ) {
             return admin_url( 'admin.php?page=ufsc-gestion' );
         }
-        
+
         $club_id = ufsc_get_user_club_id( $user->ID );
         if ( $club_id ) {
             return home_url( '/club-dashboard/' );
         }
-        
+
         return home_url();
     }
 }
+
+/**
+ * Redirect newly registered users to the club creation page.
+ *
+ * @param string $redirect_to Default redirect URL.
+ * @return string Modified redirect URL.
+ */
+function ufsc_handle_registration_form( $redirect_to ) {
+    return home_url( '/creation-du-club/' );
+}
+add_filter( 'registration_redirect', 'ufsc_handle_registration_form' );
