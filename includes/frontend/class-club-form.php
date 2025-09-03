@@ -284,9 +284,9 @@ class UFSC_CL_Club_Form {
                 <!-- Legal Documents Section -->
                 <fieldset class="ufsc-form-section ufsc-grid">
                     <legend><?php esc_html_e( 'Documents légaux', 'ufsc-clubs' ); ?></legend>
-                    
-                    <?php 
 
+                    <?php
+                    ?>
                 <!-- Documents Section -->
                 <fieldset class="ufsc-form-section">
                     <legend><?php esc_html_e( 'Mes documents', 'ufsc-clubs' ); ?></legend>
@@ -327,6 +327,7 @@ class UFSC_CL_Club_Form {
                                     <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?>
                                     <a href="<?php echo esc_url( $club_data[$doc_key] ); ?>" target="_blank"><?php esc_html_e( 'Voir le document', 'ufsc-clubs' ); ?></a>
                                 </p>
+                            <?php endif; ?>
                             <?php endif; ?>
                         <div class="ufsc-field-error" aria-live="polite"></div></div>
                     <?php endforeach; ?>
