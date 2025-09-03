@@ -229,6 +229,11 @@ class UFSC_Frontend_Shortcodes {
             $atts['sort'] = sanitize_text_field( $_GET['ufsc_sort'] );
         }
 
+        if ( isset( $_GET['view_licence'] ) ) {
+            $licence_id = intval( $_GET['view_licence'] );
+            return self::render_single_licence( $licence_id );
+        }
+
         $licences = self::get_club_licences( $atts['club_id'], $atts );
         $total_count = self::get_club_licences_count( $atts['club_id'], $atts );
         $total_pages = ceil( $total_count / $atts['per_page'] );
@@ -423,6 +428,65 @@ class UFSC_Frontend_Shortcodes {
 
         <!-- Import Modal -->
         <?php echo self::render_import_modal( $atts['club_id'] ); ?>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Display a single licence details
+     *
+     * @param int $licence_id Licence ID
+     * @return string
+     */
+    public static function render_single_licence( $licence_id ) {
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+
+        $club_id = self::get_user_club_id( get_current_user_id() );
+        if ( ! $club_id ) {
+            return '<div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) .
+                   '</div>';
+        }
+
+        $licence = self::get_licence( $club_id, $licence_id );
+        if ( ! $licence ) {
+            return '<div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Licence non trouvée.', 'ufsc-clubs' ) .
+                   '</div>';
+        }
+
+        ob_start();
+        ?>
+        <div class="ufsc-licence-detail">
+            <div class="ufsc-section-header">
+                <h3><?php esc_html_e( 'Détails de la licence', 'ufsc-clubs' ); ?></h3>
+            </div>
+            <table class="ufsc-table ufsc-licence-info">
+                <tbody>
+                    <tr>
+                        <th><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo esc_html( $licence->nom ?? '' ); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo esc_html( $licence->prenom ?? '' ); ?></td>
+                    </tr>
+                    <tr>
+                        <th>Email</th>
+                        <td><?php echo esc_html( $licence->email ?? '' ); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo esc_html( self::get_licence_status_label( $licence->statut ?? 'brouillon' ) ); ?></td>
+                    </tr>
+                </tbody>
+            </table>
+            <p>
+                <a href="<?php echo esc_url( remove_query_arg( 'view_licence' ) ); ?>" class="ufsc-btn ufsc-btn-secondary">
+                    <?php esc_html_e( 'Retour aux licences', 'ufsc-clubs' ); ?>
+                </a>
+            </p>
+        </div>
         <?php
         return ob_get_clean();
     }
