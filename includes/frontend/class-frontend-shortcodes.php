@@ -232,7 +232,11 @@ class UFSC_Frontend_Shortcodes {
         $licences = self::get_club_licences( $atts['club_id'], $atts );
         $total_count = self::get_club_licences_count( $atts['club_id'], $atts );
         $total_pages = ceil( $total_count / $atts['per_page'] );
+
+        $club_name = self::get_club_name( $atts['club_id'] );
+
         $wc_settings = ufsc_get_woocommerce_settings();
+
 
         ob_start();
         ?>
@@ -245,7 +249,7 @@ class UFSC_Frontend_Shortcodes {
                 <?php endif; ?>
             </div>
             <div class="ufsc-section-header">
-                <h3><?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?></h3>
+                <h3><?php printf( 'Mes Licences – %s', esc_html( $club_name ) ); ?></h3>
                 <div class="ufsc-section-actions">
                     <a href="<?php echo esc_url( add_query_arg( 'ufsc_export', 'csv' ) ); ?>"
                        class="ufsc-btn ufsc-btn-secondary">
