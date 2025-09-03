@@ -43,6 +43,7 @@ class UFSC_Unified_Handlers {
         add_action( 'wp_ajax_nopriv_ufsc_export_stats', array( __CLASS__, 'ajax_export_stats' ) );
     }
 
+
     /**
      * // UFSC: Handle license save (create/update)
 
