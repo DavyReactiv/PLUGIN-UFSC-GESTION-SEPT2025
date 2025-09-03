@@ -541,7 +541,7 @@ class UFSC_Frontend_Shortcodes {
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-club-form ufsc-club-profile">
                 <div class="ufsc-notices" aria-live="polite"></div>
                 <input type="hidden" name="action" value="ufsc_save_club">
-                <?php wp_nonce_field( 'ufsc_save_club', '_wpnonce' ); ?>
+                <?php wp_nonce_field( 'ufsc_save_club', 'ufsc_club_nonce' ); ?>
                 
                 <div class="ufsc-grid">
                     <!-- // UFSC: Identité du club -->
