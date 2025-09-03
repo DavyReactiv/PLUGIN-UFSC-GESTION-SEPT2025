@@ -1,5 +1,91 @@
 /* UFSC Frontend Styles */
 
+/* // UFSC: Premium Grid System */
+.ufsc-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+    .ufsc-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .ufsc-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.ufsc-grid.-wide {
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+    .ufsc-grid.-wide {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* // UFSC: Premium Card System */
+.ufsc-card {
+    background: #ffffff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.ufsc-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.ufsc-card h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* // UFSC: Button System */
+.ufsc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.ufsc-btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.ufsc-btn-primary:hover {
+    background: #2980b9;
+    color: white;
+}
+
+.ufsc-btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.ufsc-btn-secondary:hover {
+    background: #7f8c8d;
+    color: white;
+}
+
 /* Dashboard Layout */
 .ufsc-club-dashboard {
     max-width: 1200px;
@@ -27,6 +113,161 @@
     font-size: 1rem;
 }
 
+/* // UFSC: KPI Cards Enhancement */
+.ufsc-kpi-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.ufsc-kpi-card {
+    text-align: center;
+    position: relative;
+    border-left: 4px solid #bdc3c7;
+}
+
+.ufsc-kpi-card.-validees {
+    border-left-color: #27ae60;
+}
+
+.ufsc-kpi-card.-payees {
+    border-left-color: #f39c12;
+}
+
+.ufsc-kpi-card.-attente {
+    border-left-color: #e74c3c;
+}
+
+.ufsc-kpi-card.-refusees {
+    border-left-color: #95a5a6;
+}
+
+.ufsc-kpi-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.ufsc-kpi-label {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+/* // UFSC: Filters Bar */
+.ufsc-filters-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.ufsc-filters {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.ufsc-filter {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+/* // UFSC: Recent Licenses Table */
+.ufsc-recent-licences table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ufsc-recent-licences th,
+.ufsc-recent-licences td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.ufsc-recent-licences th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* // UFSC: Badge System */
+.ufsc-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ufsc-badge.-draft {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.ufsc-badge.-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.ufsc-badge.-ok {
+    background: #d4edda;
+    color: #155724;
+}
+
+.ufsc-badge.-rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* // UFSC: Row Actions for Mobile */
+.ufsc-row-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+@media (max-width: 767px) {
+    .ufsc-row-actions {
+        flex-direction: column;
+    }
+}
+
+/* // UFSC: Documents Status */
+.ufsc-document-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ufsc-document-item:last-child {
+    border-bottom: none;
+}
+
+.ufsc-document-icon {
+    font-size: 1.2rem;
+}
+
+.ufsc-document-name {
+    flex: 1;
+    font-weight: 500;
+}
+
+.ufsc-document-status {
+    font-size: 1.1rem;
+}
+
 /* Constrain club logo */
 .ufsc-club-profile .ufsc-logo img,
 .ufsc-logo-preview img,
@@ -40,6 +281,315 @@
 .ufsc-docs-list { list-style:none; padding:0; margin:8px 0 0; }
 .ufsc-docs-list li { margin:6px 0; display:flex; gap:10px; align-items:center; }
 .ufsc-docs-list a { text-decoration:underline; }
+
+/* Navigation */
+.ufsc-dashboard-nav {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+}
+
+.ufsc-nav-btn {
+    background: transparent;
+    border: none;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #495057;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.ufsc-nav-btn:hover {
+    background: #e9ecef;
+    color: #2c3e50;
+}
+
+.ufsc-nav-btn.active {
+    color: #2c3e50;
+    border-bottom-color: #3498db;
+    background: white;
+}
+
+/* Content Sections */
+.ufsc-dashboard-content {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+}
+
+.ufsc-dashboard-section {
+    padding: 2rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ufsc-dashboard-section:last-child {
+    border-bottom: none;
+}
+
+/* Section Headers */
+.ufsc-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+/* // UFSC: Statistics Cards */
+.ufsc-stats-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.ufsc-stat-card {
+    min-height: 200px;
+}
+
+.ufsc-stat-card.-wide {
+    grid-column: 1 / -1;
+}
+
+.ufsc-stat-content {
+    min-height: 100px;
+}
+
+.ufsc-stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ufsc-stat-item:last-child {
+    border-bottom: none;
+}
+
+.ufsc-stat-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.ufsc-stat-value {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* // UFSC: Evolution Stats */
+.ufsc-evolution-stats {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.ufsc-evolution-item {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.ufsc-evolution-label {
+    display: block;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.ufsc-evolution-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* // UFSC: Alerts */
+.ufsc-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 6px;
+    border-left: 4px solid;
+}
+
+.ufsc-alert:last-child {
+    margin-bottom: 0;
+}
+
+.ufsc-alert-warning {
+    background: #fff3cd;
+    border-left-color: #ffc107;
+    color: #856404;
+}
+
+.ufsc-alert-info {
+    background: #d1ecf1;
+    border-left-color: #17a2b8;
+    color: #0c5460;
+}
+
+.ufsc-alert-error {
+    background: #f8d7da;
+    border-left-color: #dc3545;
+    color: #721c24;
+}
+
+.ufsc-alert-icon {
+    font-size: 1.2rem;
+}
+
+.ufsc-alert-message {
+    flex: 1;
+    font-weight: 500;
+}
+
+/* // UFSC: Loading States */
+.ufsc-loading {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.ufsc-loading::before {
+    content: "⏳ ";
+    margin-right: 0.5rem;
+}
+
+/* // UFSC: Tables */
+.ufsc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.ufsc-table th,
+.ufsc-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+    vertical-align: top;
+}
+
+.ufsc-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+}
+
+.ufsc-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* // UFSC: Small buttons */
+.ufsc-btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    text-decoration: none;
+    border: 1px solid;
+    display: inline-block;
+    margin: 0 0.25rem 0.25rem 0;
+    transition: all 0.3s ease;
+}
+
+.ufsc-btn-small {
+    background: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+.ufsc-btn-small:hover {
+    background: #5a6268;
+    color: white;
+    border-color: #545b62;
+}
+
+.ufsc-btn-small.-danger {
+    background: #dc3545;
+    border-color: #dc3545;
+}
+
+.ufsc-btn-small.-danger:hover {
+    background: #c82333;
+    border-color: #bd2130;
+    color: white;
+}
+
+/* // UFSC: Charts */
+.ufsc-charts-grid {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.ufsc-chart-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e1e5e9;
+}
+
+.ufsc-chart-container h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.ufsc-chart-wide {
+    grid-column: 1 / -1;
+}
+
+/* // UFSC: Responsive Design */
+@media (max-width: 768px) {
+    .ufsc-dashboard-section {
+        padding: 1rem;
+    }
+    
+    .ufsc-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .ufsc-filter {
+        margin-bottom: 0.5rem;
+    }
+    
+    .ufsc-filters-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .ufsc-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ufsc-evolution-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .ufsc-charts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ufsc-table {
+        font-size: 0.9rem;
+    }
+    
+    .ufsc-table th,
+    .ufsc-table td {
+        padding: 0.5rem;
+    }
+}
 
 /* Navigation */
 .ufsc-dashboard-nav {
