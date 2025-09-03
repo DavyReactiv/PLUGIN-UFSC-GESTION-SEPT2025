@@ -266,6 +266,10 @@
     gap: 0.5rem;
 }
 
+.ufsc-row-actions-row .ufsc-row-actions {
+    justify-content: flex-start;
+}
+
 @media (max-width: 767px) {
     .ufsc-row-actions {
         flex-direction: column;
