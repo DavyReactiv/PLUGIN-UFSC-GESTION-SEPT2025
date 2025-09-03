@@ -196,39 +196,6 @@ class UFSC_CL_Club_Form {
                     </div>
                 </fieldset>
                 
-                <!-- Logo & Web Section -->
-                <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Logo & Web', 'ufsc-clubs' ); ?></legend>
-                    
-                    <div class="ufsc-form-row">
-                        <label for="logo_upload" class="ufsc-label"><?php esc_html_e( 'Logo du club', 'ufsc-clubs' ); ?></label>
-                        <input type="file" id="logo_upload" name="logo_upload" accept=".jpg,.jpeg,.png,.gif" />
-                        <p class="ufsc-description"><?php esc_html_e( 'Formats acceptés : JPG, PNG, GIF. Taille max : 2 MB', 'ufsc-clubs' ); ?></p>
-                        <?php if ( ! empty( $club_data['logo_url'] ) ): ?>
-                            <p class="ufsc-current-file">
-                                <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?> 
-                                <a href="<?php echo esc_url( $club_data['logo_url'] ); ?>" target="_blank"><?php esc_html_e( 'Voir le logo', 'ufsc-clubs' ); ?></a>
-                            </p>
-                        <?php endif; ?>
-                    </div>
-                    
-                    <div class="ufsc-form-row">
-                        <label for="url_site" class="ufsc-label"><?php esc_html_e( 'Site web', 'ufsc-clubs' ); ?></label>
-                        <input type="url" id="url_site" name="url_site" value="<?php echo esc_attr( $club_data['url_site'] ?? '' ); ?>" />
-                    </div>
-                    
-                    <div class="ufsc-form-row ufsc-form-row-inline">
-                        <div class="ufsc-form-col">
-                            <label for="url_facebook" class="ufsc-label"><?php esc_html_e( 'Facebook', 'ufsc-clubs' ); ?></label>
-                            <input type="url" id="url_facebook" name="url_facebook" value="<?php echo esc_attr( $club_data['url_facebook'] ?? '' ); ?>" />
-                        </div>
-                        <div class="ufsc-form-col">
-                            <label for="url_instagram" class="ufsc-label"><?php esc_html_e( 'Instagram', 'ufsc-clubs' ); ?></label>
-                            <input type="url" id="url_instagram" name="url_instagram" value="<?php echo esc_attr( $club_data['url_instagram'] ?? '' ); ?>" />
-                        </div>
-                    </div>
-                </fieldset>
-                
                 <!-- Legal & Financial Section -->
                 <fieldset class="ufsc-form-section">
                     <legend><?php esc_html_e( 'Informations légales et financières', 'ufsc-clubs' ); ?></legend>
@@ -277,11 +244,11 @@ class UFSC_CL_Club_Form {
                     </div>
                 </fieldset>
                 
-                <!-- Legal Documents Section -->
+                <!-- Documents Section -->
                 <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Documents légaux', 'ufsc-clubs' ); ?></legend>
-                    
-                    <?php 
+                    <legend><?php esc_html_e( 'Mes documents', 'ufsc-clubs' ); ?></legend>
+
+                    <?php
                     $documents = array(
                         'doc_statuts' => array( 'label' => __( 'Statuts', 'ufsc-clubs' ), 'required' => $affiliation ),
                         'doc_recepisse' => array( 'label' => __( 'Récépissé', 'ufsc-clubs' ), 'required' => $affiliation ),
@@ -290,19 +257,24 @@ class UFSC_CL_Club_Form {
                         'doc_cer' => array( 'label' => __( 'CER', 'ufsc-clubs' ), 'required' => $affiliation ),
                         'doc_attestation_cer' => array( 'label' => __( 'Attestation CER', 'ufsc-clubs' ), 'required' => false )
                     );
-                    
+
                     foreach ( $documents as $doc_key => $doc_info ):
                         $upload_key = str_replace( 'doc_', '', $doc_key ) . '_upload';
                     ?>
-                        <div class="ufsc-form-row">
+                        <div class="ufsc-field">
                             <label for="<?php echo esc_attr( $upload_key ); ?>" class="ufsc-label <?php echo $doc_info['required'] ? 'required' : ''; ?>">
                                 <?php echo esc_html( $doc_info['label'] ); ?>
                             </label>
-                            <input type="file" id="<?php echo esc_attr( $upload_key ); ?>" name="<?php echo esc_attr( $upload_key ); ?>" accept=".pdf,.jpg,.jpeg,.png" <?php echo $doc_info['required'] ? 'required' : ''; ?> />
-                            <p class="ufsc-description"><?php esc_html_e( 'Formats acceptés : PDF, JPG, PNG. Taille max : 5 MB', 'ufsc-clubs' ); ?></p>
+                            <input type="file"
+                                   id="<?php echo esc_attr( $upload_key ); ?>"
+                                   name="<?php echo esc_attr( $upload_key ); ?>"
+                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   data-max-size="5242880"
+                                   <?php echo $doc_info['required'] ? 'required' : ''; ?> />
+                            <div class="ufsc-field-error" aria-live="polite"></div>
                             <?php if ( ! empty( $club_data[$doc_key] ) ): ?>
                                 <p class="ufsc-current-file">
-                                    <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?> 
+                                    <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?>
                                     <a href="<?php echo esc_url( $club_data[$doc_key] ); ?>" target="_blank"><?php esc_html_e( 'Voir le document', 'ufsc-clubs' ); ?></a>
                                 </p>
                             <?php endif; ?>
