@@ -204,6 +204,7 @@ class UFSC_Frontend_Shortcodes {
             <!-- Filters -->
             <div class="ufsc-licences-filters">
                 <form method="get" class="ufsc-filters-form">
+                    <div class="ufsc-notices" aria-live="polite"></div>
                     <div class="ufsc-filter-group">
                         <label for="ufsc_search"><?php esc_html_e( 'Recherche:', 'ufsc-clubs' ); ?></label>
                         <input type="text" id="ufsc_search" name="ufsc_search" 
@@ -467,6 +468,7 @@ class UFSC_Frontend_Shortcodes {
             </div>
 
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-club-form ufsc-club-profile">
+                <div class="ufsc-notices" aria-live="polite"></div>
                 <input type="hidden" name="action" value="ufsc_save_club">
                 <?php wp_nonce_field( 'ufsc_save_club', '_wpnonce' ); ?>
                 
@@ -710,6 +712,7 @@ class UFSC_Frontend_Shortcodes {
             </div>
 
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-form">
+                <div class="ufsc-notices" aria-live="polite"></div>
                 <input type="hidden" name="action" value="ufsc_save_licence">
                 <?php wp_nonce_field( 'ufsc_save_licence', '_wpnonce' ); ?>
                 
@@ -1551,6 +1554,7 @@ class UFSC_Frontend_Shortcodes {
                 <span class="ufsc-modal-close" onclick="document.getElementById('ufsc-import-modal').style.display='none'">&times;</span>
                 <h3><?php esc_html_e( 'Importer des licences CSV', 'ufsc-clubs' ); ?></h3>
                 <form method="post" enctype="multipart/form-data" class="ufsc-import-form">
+                    <div class="ufsc-notices" aria-live="polite"></div>
                     <?php wp_nonce_field( 'ufsc_import_csv', 'ufsc_nonce' ); ?>
                     <input type="hidden" name="club_id" value="<?php echo esc_attr( $club_id ); ?>">
                     

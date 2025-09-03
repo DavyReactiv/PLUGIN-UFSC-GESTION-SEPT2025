@@ -3,6 +3,25 @@
  * Styles for frontend shortcodes and forms
  */
 
+/* Accessibility focus styles for interactive elements */
+a:focus,
+button:focus,
+input:focus,
+select:focus,
+textarea:focus,
+[tabindex]:focus {
+    outline: 2px solid var(--ufsc-primary);
+    outline-offset: 2px;
+}
+
+/* Smooth transitions on interactive elements */
+a,
+button,
+.ufsc-btn,
+table tr {
+    transition: 150ms ease;
+}
+
 /* Frontend form styling */
 .ufsc-frontend-form {
     max-width: 600px;
@@ -46,9 +65,10 @@
 .ufsc-form-row input:focus,
 .ufsc-form-row select:focus,
 .ufsc-form-row textarea:focus {
-    outline: none;
-    border-color: #3498db;
-    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    border-color: var(--ufsc-primary);
+    outline: 2px solid var(--ufsc-primary);
+    outline-offset: 2px;
+    box-shadow: none;
 }
 
 .ufsc-form-actions {
@@ -68,7 +88,7 @@
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: 150ms ease;
 }
 
 .ufsc-btn:hover {
