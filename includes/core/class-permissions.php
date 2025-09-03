@@ -46,11 +46,29 @@ class UFSC_CL_Permissions {
     
     /**
      * Check if current user can create clubs
-     * 
+     *
+     * Users may create only one club. If the current user already
+     * manages a club, additional creation is blocked.
+     *
      * @return bool True if user can create clubs
      */
     public static function ufsc_user_can_create_club() {
         // Must be logged in to create clubs
-        return is_user_logged_in();
+        if ( ! is_user_logged_in() ) {
+            return false;
+        }
+
+        // Check if user already manages a club
+        $club_id = UFSC_User_Club_Mapping::get_user_club_id( get_current_user_id() );
+
+        $can_create = ! $club_id;
+
+        /**
+         * Filter the ability for a user to create a new club.
+         *
+         * @param bool      $can_create Whether the user can create a club.
+         * @param int|false $club_id    Existing club ID if found.
+         */
+        return apply_filters( 'ufsc_user_can_create_club', $can_create, $club_id );
     }
 }
