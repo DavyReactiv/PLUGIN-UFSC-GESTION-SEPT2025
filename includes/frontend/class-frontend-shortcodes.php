@@ -270,37 +270,40 @@ class UFSC_Frontend_Shortcodes {
                     <table class="ufsc-table">
                         <thead>
                             <tr>
-                                <th><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
-                                <th><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></th>
-                                <th><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></th>
-                                <th><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></th>
-                                <th><?php esc_html_e( 'Date création', 'ufsc-clubs' ); ?></th>
-                                <th><?php esc_html_e( 'Actions', 'ufsc-clubs' ); ?></th>
+                                <th scope="col"><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
+                                <th scope="col"><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></th>
+                                <th scope="col" class="ufsc-hide-mobile"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></th>
+                                <th scope="col"><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></th>
+                                <th scope="col" class="ufsc-hide-mobile"><?php esc_html_e( 'Date création', 'ufsc-clubs' ); ?></th>
+                                <th scope="col"><?php esc_html_e( 'Actions', 'ufsc-clubs' ); ?></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ( $licences as $licence ): ?>
                                 <tr>
-                                    <td><?php echo esc_html( $licence->nom ?? '' ); ?></td>
+                                    <th scope="row"><?php echo esc_html( $licence->nom ?? '' ); ?></th>
                                     <td><?php echo esc_html( $licence->prenom ?? '' ); ?></td>
-                                    <td><?php echo esc_html( $licence->email ?? '' ); ?></td>
+                                    <td class="ufsc-hide-mobile"><?php echo esc_html( $licence->email ?? '' ); ?></td>
                                     <td>
-                                        <span class="ufsc-status ufsc-status-<?php echo esc_attr( $licence->statut ?? 'brouillon' ); ?>">
+                                        <span class="ufsc-badge <?php echo esc_attr( self::get_licence_status_badge_class( $licence->statut ?? 'brouillon' ) ); ?>">
                                             <?php echo esc_html( self::get_licence_status_label( $licence->statut ?? 'brouillon' ) ); ?>
                                         </span>
                                     </td>
-                                    <td><?php echo esc_html( $licence->date_creation ?? '' ); ?></td>
-                                    <td class="ufsc-actions">
-                                        <?php if ( ! self::is_validated_licence( $licence->id ?? 0 ) ): ?>
-                                            <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>" 
-                                               class="ufsc-btn ufsc-btn-small">
-                                                <?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?>
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="ufsc-text-muted">
-                                                <?php esc_html_e( 'Validée - Non modifiable', 'ufsc-clubs' ); ?>
-                                            </span>
-                                        <?php endif; ?>
+                                    <td class="ufsc-hide-mobile"><?php echo esc_html( $licence->date_creation ?? '' ); ?></td>
+                                    <td class="ufsc-actions" aria-label="<?php esc_attr_e( 'Actions', 'ufsc-clubs' ); ?>">
+                                        <div class="ufsc-row-actions">
+                                            <?php if ( ! self::is_validated_licence( $licence->id ?? 0 ) ): ?>
+                                                <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"
+                                                   class="ufsc-btn ufsc-btn-small"
+                                                   aria-label="<?php esc_attr_e( 'Modifier la licence', 'ufsc-clubs' ); ?>">
+                                                    <?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?>
+                                                </a>
+                                            <?php else: ?>
+                                                <span class="ufsc-text-muted">
+                                                    <?php esc_html_e( 'Validée - Non modifiable', 'ufsc-clubs' ); ?>
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1197,10 +1200,26 @@ class UFSC_Frontend_Shortcodes {
             'brouillon' => __( 'Brouillon', 'ufsc-clubs' ),
             'paid' => __( 'Payée', 'ufsc-clubs' ),
             'validated' => __( 'Validée', 'ufsc-clubs' ),
-            'applied' => __( 'Appliquée', 'ufsc-clubs' )
+            'applied' => __( 'Appliquée', 'ufsc-clubs' ),
+            'rejected' => __( 'Refusée', 'ufsc-clubs' )
         );
-        
+
         return $labels[ $status ] ?? $status;
+    }
+
+    /**
+     * Map licence status to badge class
+     */
+    private static function get_licence_status_badge_class( $status ) {
+        $classes = array(
+            'brouillon' => '-draft',
+            'paid' => '-pending',
+            'validated' => '-ok',
+            'applied' => '-ok',
+            'rejected' => '-rejected'
+        );
+
+        return $classes[ $status ] ?? '-draft';
     }
 
     /**

@@ -13,27 +13,19 @@ class UFSC_Badge_Helper {
     private static $status_badges = array(
         'valide' => array(
             'label' => 'Validé',
-            'class' => 'ufsc-badge-success',
-            'color' => '#28a745',
-            'text_color' => '#fff'
+            'class' => 'ufsc-badge-success'
         ),
         'a_regler' => array(
             'label' => 'À régler',
-            'class' => 'ufsc-badge-warning',
-            'color' => '#ffc107',
-            'text_color' => '#212529'
+            'class' => 'ufsc-badge-warning'
         ),
         'en_attente' => array(
             'label' => 'En attente',
-            'class' => 'ufsc-badge-info',
-            'color' => '#17a2b8',
-            'text_color' => '#fff'
+            'class' => 'ufsc-badge-info'
         ),
         'desactive' => array(
             'label' => 'Désactivé',
-            'class' => 'ufsc-badge-danger',
-            'color' => '#dc3545',
-            'text_color' => '#fff'
+            'class' => 'ufsc-badge-danger'
         )
     );
 
@@ -42,9 +34,7 @@ class UFSC_Badge_Helper {
      */
     private static $region_badges = array(
         'default' => array(
-            'class' => 'ufsc-badge-region',
-            'color' => '#0073aa',
-            'text_color' => '#fff'
+            'class' => 'ufsc-badge-region'
         )
     );
 
@@ -54,21 +44,15 @@ class UFSC_Badge_Helper {
     private static $document_badges = array(
         'complete' => array(
             'label' => 'Complet',
-            'class' => 'ufsc-badge-doc-complete',
-            'color' => '#28a745',
-            'text_color' => '#fff'
+            'class' => 'ufsc-badge-doc-complete'
         ),
         'partial' => array(
             'label' => 'Partiel',
-            'class' => 'ufsc-badge-doc-partial',
-            'color' => '#ffc107',
-            'text_color' => '#212529'
+            'class' => 'ufsc-badge-doc-partial'
         ),
         'missing' => array(
             'label' => 'Manquant',
-            'class' => 'ufsc-badge-doc-missing',
-            'color' => '#dc3545',
-            'text_color' => '#fff'
+            'class' => 'ufsc-badge-doc-missing'
         )
     );
 
@@ -137,6 +121,7 @@ class UFSC_Badge_Helper {
         );
     }
 
+
     /**
      * Enqueue badge styles
      */
@@ -149,7 +134,5 @@ class UFSC_Badge_Helper {
             wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
         } );
     }
-}
 
-// Initialize badge styles
-add_action( 'init', array( 'UFSC_Badge_Helper', 'enqueue_styles' ) );
+}
