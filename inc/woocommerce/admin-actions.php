@@ -20,15 +20,24 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 function ufsc_should_charge_license( $club_id, $season ) {
     global $wpdb;
 
+    if ( ! function_exists( 'ufsc_get_clubs_table' ) || ! function_exists( 'ufsc_get_licences_table' ) ) {
+        return false;
+    }
+
     $clubs_table    = ufsc_get_clubs_table();
     $licences_table = ufsc_get_licences_table();
 
-    $quota_total = (int) $wpdb->get_var(
+    $quota_total = $wpdb->get_var(
         $wpdb->prepare(
             "SELECT quota_licences FROM {$clubs_table} WHERE id = %d",
             $club_id
         )
     );
+
+    // Unlimited quota or club not found
+    if ( null === $quota_total || $quota_total < 0 ) {
+        return false;
+    }
 
     $used = (int) $wpdb->get_var(
         $wpdb->prepare(
@@ -37,7 +46,7 @@ function ufsc_should_charge_license( $club_id, $season ) {
         )
     );
 
-    return $used >= $quota_total && $quota_total >= 0;
+    return $used >= (int) $quota_total;
 }
 
 /**
@@ -230,6 +239,10 @@ function ufsc_handle_admin_send_to_payment() {
  */
 function ufsc_get_club_responsible_user_id( $club_id ) {
     global $wpdb;
+
+    if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+        return false;
+    }
 
     $clubs_table = ufsc_get_clubs_table();
     $user_id     = $wpdb->get_var(

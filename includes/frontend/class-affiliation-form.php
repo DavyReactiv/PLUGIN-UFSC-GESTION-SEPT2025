@@ -505,6 +505,7 @@ class UFSC_Affiliation_Form {
      */
     private static function get_dashboard_url() {
         $dashboard_page = get_option( 'ufsc_dashboard_page' );
+
         if ( $dashboard_page ) {
             $url = get_permalink( $dashboard_page );
             if ( $url ) {
@@ -517,5 +518,10 @@ class UFSC_Affiliation_Form {
         }
 
         return home_url( '/tableau-de-bord/' );
+
+
+        return $dashboard_page ? get_permalink( $dashboard_page ) : home_url( '/club-dashboard/' );
+
+
     }
 }
