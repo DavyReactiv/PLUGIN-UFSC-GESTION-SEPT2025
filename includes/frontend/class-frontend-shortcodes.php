@@ -232,6 +232,7 @@ class UFSC_Frontend_Shortcodes {
         $licences = self::get_club_licences( $atts['club_id'], $atts );
         $total_count = self::get_club_licences_count( $atts['club_id'], $atts );
         $total_pages = ceil( $total_count / $atts['per_page'] );
+        $wc_settings = ufsc_get_woocommerce_settings();
 
         ob_start();
         ?>
@@ -362,7 +363,21 @@ class UFSC_Frontend_Shortcodes {
                                                aria-label="<?php esc_attr_e( 'Consulter la licence', 'ufsc-clubs' ); ?>">
                                                 <?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?>
                                             </a>
+
+                                            <?php if ( 'brouillon' === ( $licence->statut ?? '' ) ) : ?>
+                                                <a href="<?php echo esc_url( add_query_arg( array(
+                                                    'ufsc_add_to_cart' => $wc_settings['product_license_id'],
+                                                    'ufsc_license_ids' => $licence->id ?? 0,
+                                                ), '' ) ); ?>"
+                                                   class="ufsc-btn ufsc-btn-small"
+                                                   aria-label="<?php esc_attr_e( 'Envoyer la licence au panier', 'ufsc-clubs' ); ?>">
+                                                    <?php esc_html_e( 'Envoyer au panier', 'ufsc-clubs' ); ?>
+                                                </a>
+                                            <?php endif; ?>
+                                            <?php if ( in_array( $licence->statut ?? '', array( 'brouillon', 'non_payee', 'refusee' ), true ) ) : ?>
+
                                             <?php if ( in_array( $licence->statut ?? '', array( 'brouillon' ), true ) ) : ?>
+
                                                 <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"
                                                    class="ufsc-btn ufsc-btn-small"
                                                    aria-label="<?php esc_attr_e( 'Modifier la licence', 'ufsc-clubs' ); ?>">
