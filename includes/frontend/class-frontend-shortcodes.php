@@ -515,7 +515,12 @@ class UFSC_Frontend_Shortcodes {
 
         
         // Handle form submission
-        if ( isset( $_POST['ufsc_update_club'] ) && wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_update_club' ) ) {
+        if (
+            isset( $_POST['action'] ) &&
+            'ufsc_save_club' === $_POST['action'] &&
+            isset( $_POST['ufsc_club_nonce'] ) &&
+            wp_verify_nonce( $_POST['ufsc_club_nonce'], 'ufsc_save_club' )
+        ) {
             $result = self::handle_club_update( $atts['club_id'], $_POST );
             if ( $result['success'] ) {
                 echo '<div class="ufsc-message ufsc-success">' . esc_html( $result['message'] ) . '</div>';
