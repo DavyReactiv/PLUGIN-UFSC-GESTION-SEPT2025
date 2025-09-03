@@ -15,6 +15,11 @@ class UFSC_Club_Dashboard {
         
         // WooCommerce integration
         if ( self::is_woocommerce_active() ) {
+            add_rewrite_endpoint( 'ufsc-tableau-de-bord', EP_ROOT | EP_PAGES );
+            add_filter( 'woocommerce_get_query_vars', function( $vars ) {
+                $vars['ufsc-tableau-de-bord'] = 'ufsc-tableau-de-bord';
+                return $vars;
+            } );
             add_action( 'woocommerce_account_ufsc-tableau-de-bord_endpoint', array( __CLASS__, 'render_woocommerce_dashboard' ) );
             add_filter( 'woocommerce_account_menu_items', array( __CLASS__, 'add_woocommerce_menu_item' ) );
         }
