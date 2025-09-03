@@ -518,7 +518,16 @@ class UFSC_REST_API {
             sprintf( __( 'Généré le: %s', 'ufsc-clubs' ), current_time( 'mysql' ) ),
         );
 
-        UFSC_Simple_PDF::generate( $file_path, $lines, __( 'Attestation UFSC', 'ufsc-clubs' ) );
+        // Generate PDF using FPDF library
+        require_once UFSC_CL_DIR . 'includes/lib/fpdf.php';
+        $pdf = new FPDF();
+        $pdf->SetTitle( __( 'Attestation UFSC', 'ufsc-clubs' ) );
+        $pdf->AddPage();
+        $pdf->SetFont( 'Arial', '', 12 );
+        foreach ( $lines as $line ) {
+            $pdf->Cell( 0, 10, $line, 0, 1 );
+        }
+        $pdf->Output( 'F', $file_path );
 
         return $file_path;
     }
