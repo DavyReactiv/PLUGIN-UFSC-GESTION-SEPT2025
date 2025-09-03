@@ -16,6 +16,7 @@ class UFSC_Frontend_Shortcodes {
         add_shortcode( 'ufsc_club_stats', array( __CLASS__, 'render_club_stats' ) );
         add_shortcode( 'ufsc_club_profile', array( __CLASS__, 'render_club_profile' ) );
         add_shortcode( 'ufsc_add_licence', array( __CLASS__, 'render_add_licence' ) );
+        add_shortcode( 'ufsc_licences', array( __CLASS__, 'render_licences' ) );
     }
 
     /**
@@ -963,6 +964,55 @@ class UFSC_Frontend_Shortcodes {
         </div>
         <?php
         return ob_get_clean();
+    }
+
+    /**
+     * Render licences list or form based on action
+     */
+    public static function render_licences( $atts = array() ) {
+        $atts = shortcode_atts( array(
+            'club_id' => 0,
+        ), $atts );
+
+        if ( ! $atts['club_id'] && is_user_logged_in() ) {
+            $atts['club_id'] = self::get_user_club_id( get_current_user_id() );
+        }
+
+        if ( ! $atts['club_id'] ) {
+            return '<div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Club non trouv\u00e9.', 'ufsc-clubs' ) .
+                   '</div>';
+        }
+
+        $action     = isset( $_GET['ufsc_action'] ) ? sanitize_key( $_GET['ufsc_action'] ) : '';
+        $licence_id = isset( $_GET['licence_id'] ) ? intval( $_GET['licence_id'] ) : 0;
+
+        wp_enqueue_script( 'ufsc-licences', UFSC_CL_URL . 'assets/js/ufsc-licences.js', array( 'jquery' ), UFSC_CL_VERSION, true );
+
+        ob_start();
+        if ( in_array( $action, array( 'edit', 'new' ), true ) ) {
+            $licence = null;
+            if ( 'edit' === $action && $licence_id ) {
+                $licence = self::get_licence( $atts['club_id'], $licence_id );
+            }
+            include UFSC_CL_DIR . 'templates/frontend/licence-form.php';
+        } else {
+            $licences = self::get_club_licences( $atts['club_id'], array( 'per_page' => 100 ) );
+            include UFSC_CL_DIR . 'templates/frontend/licences-list.php';
+        }
+        return ob_get_clean();
+    }
+
+    /**
+     * Get single licence
+     */
+    private static function get_licence( $club_id, $licence_id ) {
+        global $wpdb;
+        if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+            return null;
+        }
+        $table = ufsc_get_licences_table();
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d AND club_id = %d", $licence_id, $club_id ) );
     }
 
     // Helper methods - STUBS to be implemented
