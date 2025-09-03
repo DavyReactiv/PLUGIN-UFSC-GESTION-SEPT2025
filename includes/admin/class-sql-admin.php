@@ -308,7 +308,7 @@ class UFSC_SQL_Admin {
         // Attestation UFSC section
         echo '<div style="margin-bottom: 20px;">';
         echo '<h4>' . esc_html__( 'Attestation UFSC', 'ufsc-clubs' ) . '</h4>';
-        
+
         $attestation_id = get_option( 'ufsc_club_doc_attestation_ufsc_' . $club_id );
         if ( $attestation_id ) {
             $attestation_url = wp_get_attachment_url( $attestation_id );
@@ -324,26 +324,68 @@ class UFSC_SQL_Admin {
                 echo '</p>';
             }
         }
-        
+
         echo '<p>';
         echo '<label for="attestation_ufsc_upload">' . esc_html__( 'Nouvelle attestation (PDF, JPG, PNG, max 5MB):', 'ufsc-clubs' ) . '</label><br>';
         echo '<input type="file" id="attestation_ufsc_upload" name="attestation_ufsc_upload" accept=".pdf,.jpg,.jpeg,.png">';
         echo '</p>';
         echo '</div>';
-        
+
+        // Other club documents
+        $documents = array(
+            'doc_statuts' => __( 'Statuts', 'ufsc-clubs' ),
+            'doc_recepisse' => __( 'Récépissé', 'ufsc-clubs' ),
+            'doc_jo' => __( 'Journal Officiel', 'ufsc-clubs' ),
+            'doc_pv_ag' => __( 'PV AG', 'ufsc-clubs' ),
+            'doc_cer' => __( 'CER', 'ufsc-clubs' ),
+            'doc_attestation_cer' => __( 'Attestation CER', 'ufsc-clubs' ),
+        );
+
+        $status_options = array(
+            'pending' => __( 'En attente', 'ufsc-clubs' ),
+            'approved' => __( 'Approuvé', 'ufsc-clubs' ),
+            'rejected' => __( 'Rejeté', 'ufsc-clubs' ),
+        );
+
+        foreach ( $documents as $doc_key => $label ) {
+            $url = get_post_meta( $club_id, $doc_key, true );
+            $status = get_post_meta( $club_id, $doc_key . '_status', true );
+            echo '<div style="margin-bottom: 20px;">';
+            echo '<h4>' . esc_html( $label ) . '</h4>';
+            if ( $url ) {
+                echo '<p><a href="' . esc_url( $url ) . '" target="_blank" class="button">' . esc_html__( 'Télécharger', 'ufsc-clubs' ) . '</a></p>';
+            } else {
+                echo '<p>' . esc_html__( 'Aucun fichier.', 'ufsc-clubs' ) . '</p>';
+            }
+            echo '<p><label>' . esc_html__( 'Statut:', 'ufsc-clubs' ) . ' <select name="' . esc_attr( $doc_key . '_status' ) . '">';
+            foreach ( $status_options as $value => $label_option ) {
+                echo '<option value="' . esc_attr( $value ) . '" ' . selected( $status, $value, false ) . '>' . esc_html( $label_option ) . '</option>';
+            }
+            echo '</select></label></p>';
+            echo '</div>';
+        }
+
         echo '</div>';
     }
 
     public static function handle_save_club(){
-        if ( ! current_user_can('manage_options') ) wp_die('Accès refusé');
         check_admin_referer('ufsc_sql_save_club');
 
+        $user_id = get_current_user_id();
+        $id      = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+
+        // Permission check to ensure user can manage this club
+        if ( ! current_user_can( 'manage_options' ) && ufsc_get_user_club_id( $user_id ) !== $id ) {
+            set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
+            wp_safe_redirect( wp_get_referer() );
+            exit; // Abort processing if user lacks rights
+        }
+
         global $wpdb;
-        $s = UFSC_SQL::get_settings();
-        $t = $s['table_clubs'];
-        $pk = $s['pk_club'];
+        $s      = UFSC_SQL::get_settings();
+        $t      = $s['table_clubs'];
+        $pk     = $s['pk_club'];
         $fields = UFSC_SQL::get_club_fields();
-        $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
 
         $data = array();
         foreach( $fields as $k=>$conf ){
@@ -437,6 +479,15 @@ class UFSC_SQL_Admin {
             // Handle file uploads after club is saved/updated
             if ( $id ) {
                 self::handle_club_document_uploads( $id );
+
+                // Update document statuses
+                $documents = array( 'doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer' );
+                foreach ( $documents as $doc_key ) {
+                    if ( isset( $_POST[ $doc_key . '_status' ] ) ) {
+                        $status = sanitize_text_field( $_POST[ $doc_key . '_status' ] );
+                        update_post_meta( $id, $doc_key . '_status', $status );
+                    }
+                }
             }
 
             wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&action=edit&id='.$id.'&updated=1') );
@@ -1123,15 +1174,24 @@ class UFSC_SQL_Admin {
     }
 
     public static function handle_save_licence(){
-        if ( ! current_user_can('manage_options') ) wp_die('Accès refusé');
         check_admin_referer('ufsc_sql_save_licence');
 
+        $user_id   = get_current_user_id();
+        $club_id   = isset( $_POST['club_id'] ) ? (int) $_POST['club_id'] : 0;
+
+        // Ensure the current user has rights to manage the targeted club
+        if ( ! current_user_can( 'manage_options' ) && ufsc_get_user_club_id( $user_id ) !== $club_id ) {
+            set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
+            wp_safe_redirect( wp_get_referer() );
+            exit; // Abort processing on permission failure
+        }
+
         global $wpdb;
-        $s = UFSC_SQL::get_settings();
-        $t = $s['table_licences'];
-        $pk = $s['pk_licence'];
+        $s      = UFSC_SQL::get_settings();
+        $t      = $s['table_licences'];
+        $pk     = $s['pk_licence'];
         $fields = UFSC_SQL::get_licence_fields();
-        $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+        $id     = isset($_POST['id']) ? (int) $_POST['id'] : 0;
 
         $data = array();
         foreach( $fields as $k=>$conf ){
@@ -1382,14 +1442,24 @@ class UFSC_SQL_Admin {
     }
 
     public static function handle_delete_licence(){
-        if ( ! current_user_can('manage_options') ) wp_die('Accès refusé');
         check_admin_referer('ufsc_sql_delete_licence');
 
         global $wpdb;
-        $s = UFSC_SQL::get_settings();
-        $t = $s['table_licences'];
+        $s  = UFSC_SQL::get_settings();
+        $t  = $s['table_licences'];
         $pk = $s['pk_licence'];
         $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+        // Fetch the club ID for the licence to validate permissions
+        $club_id = $id ? (int) $wpdb->get_var( $wpdb->prepare( "SELECT club_id FROM {$t} WHERE {$pk} = %d", $id ) ) : 0;
+        $user_id = get_current_user_id();
+
+        // Verify capability and club ownership before proceeding
+        if ( ! current_user_can( 'manage_options' ) && ufsc_get_user_club_id( $user_id ) !== $club_id ) {
+            set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
+            wp_safe_redirect( wp_get_referer() );
+            exit; // Abort if user lacks rights on this club
+        }
 
         if ( $id ){
             $result = $wpdb->delete( $t, array( $pk=>$id ) );
