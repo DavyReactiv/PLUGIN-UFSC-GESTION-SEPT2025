@@ -106,7 +106,13 @@ class UFSC_Affiliation_Form {
                 <?php echo $error_message; ?>
             </div>
 
+
+            <div class="ufsc-notices" aria-live="polite"></div>
+
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-form">
+
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-form ufsc-grid" enctype="multipart/form-data">
+
                 <?php wp_nonce_field( 'ufsc_create_club', 'ufsc_nonce' ); ?>
                 <input type="hidden" name="action" value="ufsc_create_club">
                 <input type="hidden" name="redirect_to" value="<?php echo esc_attr( $atts['redirect_to'] ); ?>">

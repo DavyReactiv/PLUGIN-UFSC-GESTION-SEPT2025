@@ -59,6 +59,7 @@ class UFSC_Auth_Shortcodes {
             <?php if ( ! empty( $atts['title'] ) ): ?>
                 <h3 class="ufsc-login-title"><?php echo esc_html( $atts['title'] ); ?></h3>
             <?php endif; ?>
+            <div class="ufsc-notices" aria-live="polite"></div>
 
             <form method="post" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" class="ufsc-login-form-inner">
                 <?php wp_nonce_field( 'ufsc_login', 'ufsc_login_nonce' ); ?>

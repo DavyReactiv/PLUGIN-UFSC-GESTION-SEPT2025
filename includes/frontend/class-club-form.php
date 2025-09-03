@@ -126,8 +126,9 @@ class UFSC_CL_Club_Form {
         // Display messages
         self::display_messages();
         ?>
-        
+
         <div class="ufsc-club-form-container">
+            <div class="ufsc-notices" aria-live="polite"></div>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-club-form">
                 <?php wp_nonce_field( 'ufsc_save_club', 'ufsc_club_nonce' ); ?>
                 <input type="hidden" name="action" value="ufsc_save_club" />
