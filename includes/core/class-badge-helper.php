@@ -121,4 +121,18 @@ class UFSC_Badge_Helper {
         );
     }
 
+
+    /**
+     * Enqueue badge styles
+     */
+    public static function enqueue_styles() {
+        add_action( 'wp_enqueue_scripts', function() {
+            wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+        } );
+
+        add_action( 'admin_enqueue_scripts', function() {
+            wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+        } );
+    }
+
 }

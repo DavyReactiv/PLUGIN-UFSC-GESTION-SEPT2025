@@ -23,6 +23,8 @@ class UFSC_Auth_Shortcodes {
      * @return string HTML output
      */
     public static function render_login_form( $atts = array() ) {
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+
         $atts = shortcode_atts( array(
             'redirect_admin' => admin_url( 'admin.php?page=ufsc-gestion' ),
             'redirect_club' => home_url( '/club-dashboard/' ),
@@ -104,6 +106,7 @@ class UFSC_Auth_Shortcodes {
                 </div>
             </form>
         </div>
+
 
         <style>
         .ufsc-login-form {
@@ -195,6 +198,7 @@ class UFSC_Auth_Shortcodes {
             outline-offset: 2px;
         }
         </style>
+
         <?php
         return ob_get_clean();
     }
@@ -238,6 +242,8 @@ class UFSC_Auth_Shortcodes {
      * @return string HTML output
      */
     public static function render_user_status( $atts = array() ) {
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+
         $atts = shortcode_atts( array(
             'show_avatar' => 'true',
             'show_role' => 'true',
@@ -289,47 +295,6 @@ class UFSC_Auth_Shortcodes {
                 <?php endif; ?>
             </div>
         </div>
-
-        <style>
-        .ufsc-user-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 4px;
-            border: 1px solid #e9ecef;
-        }
-        .ufsc-user-status.ufsc-not-logged-in {
-            text-align: center;
-            color: #6c757d;
-        }
-        .ufsc-user-avatar img {
-            border-radius: 50%;
-        }
-        .ufsc-user-info {
-            flex: 1;
-        }
-        .ufsc-user-name {
-            margin-bottom: 2px;
-        }
-        .ufsc-user-role, .ufsc-user-club {
-            font-size: 12px;
-            color: #6c757d;
-            margin-bottom: 2px;
-        }
-        .ufsc-user-actions {
-            margin-top: 5px;
-        }
-        .ufsc-logout-button {
-            font-size: 12px;
-            color: #dc3545;
-            text-decoration: none;
-        }
-        .ufsc-logout-button:hover {
-            text-decoration: underline;
-        }
-        </style>
         <?php
         return ob_get_clean();
     }

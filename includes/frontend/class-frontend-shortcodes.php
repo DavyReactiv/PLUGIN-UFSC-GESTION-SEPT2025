@@ -25,6 +25,7 @@ class UFSC_Frontend_Shortcodes {
      * @return string HTML output
      */
     public static function render_club_dashboard( $atts = array() ) {
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
         $atts = shortcode_atts( array(
             'show_sections' => 'licences,stats,profile,add_licence'
         ), $atts );
@@ -144,6 +145,7 @@ class UFSC_Frontend_Shortcodes {
      * @return string HTML output
      */
     public static function render_club_licences( $atts = array() ) {
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
         $atts = shortcode_atts( array(
             'club_id' => 0,
             'per_page' => 20,
@@ -410,6 +412,7 @@ class UFSC_Frontend_Shortcodes {
      * @return string HTML output
      */
     public static function render_club_profile( $atts = array() ) {
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
         $atts = shortcode_atts( array(
             'club_id' => 0
         ), $atts );
