@@ -42,16 +42,10 @@ class UFSC_Auth_Shortcodes {
         }
 
 
-        wp_enqueue_style(
-            'ufsc-front',
-            UFSC_CL_URL . 'assets/frontend/css/ufsc-front.css',
-            array(),
-            UFSC_CL_VERSION
-        );
-
         $error_message = '';
         if ( isset( $_GET['login'] ) && $_GET['login'] === 'failed' ) {
             $error_message = __( 'Identifiant ou mot de passe incorrect.', 'ufsc-clubs' );
+        }
 
         $username_error = '';
         $password_error = '';
@@ -132,57 +126,6 @@ class UFSC_Auth_Shortcodes {
             </div>
         </div>
 
-            <?php if ( ! empty( $atts['title'] ) ): ?>
-                <h3 class="ufsc-login-title"><?php echo esc_html( $atts['title'] ); ?></h3>
-            <?php endif; ?>
-            <div class="ufsc-notices" aria-live="polite"></div>
-
-            <form method="post" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" class="ufsc-login-form-inner">
-                <?php wp_nonce_field( 'ufsc_login', 'ufsc_login_nonce' ); ?>
-
-                <input type="hidden" name="redirect_to" value="<?php echo esc_url( self::get_dynamic_redirect_url( $atts ) ); ?>" />
-
-                <div class="ufsc-grid">
-                    <div class="ufsc-form-group">
-                        <label for="user_login"><?php echo esc_html__( 'Nom d\'utilisateur ou email', 'ufsc-clubs' ); ?></label>
-                        <input type="text" name="log" id="user_login" class="ufsc-form-control" required autocomplete="username" aria-describedby="user_login_error" />
-                        <p id="user_login_error" class="ufsc-error-message" role="alert"><?php echo esc_html( $username_error ); ?></p>
-                    </div>
-
-                    <div class="ufsc-form-group">
-                        <label for="user_pass"><?php echo esc_html__( 'Mot de passe', 'ufsc-clubs' ); ?></label>
-                        <input type="password" name="pwd" id="user_pass" class="ufsc-form-control" required autocomplete="current-password" aria-describedby="user_pass_error" />
-                        <p id="user_pass_error" class="ufsc-error-message" role="alert"><?php echo esc_html( $password_error ); ?></p>
-                    </div>
-
-                    <div class="ufsc-form-group ufsc-form-checkbox ufsc-grid-full">
-                        <label>
-                            <input type="checkbox" name="rememberme" value="forever" />
-                            <?php echo esc_html__( 'Se souvenir de moi', 'ufsc-clubs' ); ?>
-                        </label>
-                    </div>
-
-                    <div class="ufsc-form-group ufsc-form-submit ufsc-grid-full">
-                        <button type="submit" class="ufsc-btn ufsc-btn-primary">
-                            <?php echo esc_html__( 'Se connecter', 'ufsc-clubs' ); ?>
-                        </button>
-                    </div>
-
-                    <div class="ufsc-form-links ufsc-grid-full">
-                        <?php if ( $atts['show_lost_password'] === 'true' ): ?>
-                            <a href="<?php echo esc_url( wp_lostpassword_url() ); ?>" class="ufsc-link-lost-password">
-                                <?php echo esc_html__( 'Mot de passe oublié', 'ufsc-clubs' ); ?>
-                            </a>
-                        <?php endif; ?>
-                        <?php if ( $atts['show_register'] === 'true' && get_option( 'users_can_register' ) ): ?>
-                            <a href="<?php echo esc_url( wp_registration_url() ); ?>" class="ufsc-link-register">
-                                <?php echo esc_html__( 'Créer un compte', 'ufsc-clubs' ); ?>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </form>
-        </div>
 
 
         <style>
@@ -340,13 +283,6 @@ class UFSC_Auth_Shortcodes {
             'show_logout' => 'true',
             'avatar_size' => '32'
         ), $atts, 'ufsc_user_status' );
-
-        wp_enqueue_style(
-            'ufsc-front',
-            UFSC_CL_URL . 'assets/frontend/css/ufsc-front.css',
-            array(),
-            UFSC_CL_VERSION
-        );
 
         if ( ! is_user_logged_in() ) {
             return '<div class="ufsc-user-status ufsc-not-logged-in">' .
