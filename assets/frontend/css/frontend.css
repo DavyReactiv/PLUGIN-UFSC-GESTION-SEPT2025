@@ -1567,3 +1567,121 @@ textarea:focus {
     padding-top: 2rem;
     border-top: 1px solid #e1e5e9;
 }
+
+/* // UFSC: Conditional Fields */
+.ufsc-conditional-field {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 2px dashed #ddd;
+    border-radius: 6px;
+    background: #f9f9f9;
+}
+
+.ufsc-conditional-field.active {
+    display: block;
+}
+
+.ufsc-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.ufsc-checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+/* // UFSC: Enhanced License Form */
+.ufsc-licence-form .ufsc-grid {
+    margin-bottom: 2rem;
+}
+
+.ufsc-licence-form .ufsc-section h4 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.5rem;
+}
+
+.ufsc-quota-info {
+    padding: 1rem;
+    background: #e8f4f8;
+    border: 1px solid #bee5eb;
+    border-radius: 6px;
+    color: #0c5460;
+}
+
+.ufsc-quota-info p {
+    margin: 0;
+    font-weight: 600;
+}
+
+/* // UFSC: Form validation states */
+.ufsc-form-field.has-error input,
+.ufsc-form-field.has-error textarea,
+.ufsc-form-field.has-error select {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.ufsc-field-error {
+    color: #dc3545;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.ufsc-form-field.has-success input,
+.ufsc-form-field.has-success textarea,
+.ufsc-form-field.has-success select {
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+/* // UFSC: Help text styling */
+.ufsc-help-text {
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* // UFSC: Loading and disabled states */
+.ufsc-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.ufsc-form-loading {
+    position: relative;
+}
+
+.ufsc-form-loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 10;
+}
+
+.ufsc-form-loading::after {
+    content: '⏳ Traitement en cours...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 11;
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}

@@ -10,9 +10,59 @@
      */
     $(document).ready(function() {
         initConditionalFields();
+        initLicenseConditionalFields();
         initFormValidation();
         initFormEnhancements();
     });
+    
+    /**
+     * // UFSC: Initialize license-specific conditional fields
+     */
+    function initLicenseConditionalFields() {
+        // Handle license number toggle
+        const $licenseToggle = $('#has_license_number');
+        const $licenseNumberField = $('.ufsc-conditional-field[data-depends="has_license_number"]');
+        
+        if ($licenseToggle.length && $licenseNumberField.length) {
+            // Initial state
+            toggleConditionalField($licenseToggle, $licenseNumberField);
+            
+            // Handle changes
+            $licenseToggle.on('change', function() {
+                toggleConditionalField($(this), $licenseNumberField);
+            });
+        }
+        
+        // Handle any other conditional fields
+        $('.ufsc-toggle').each(function() {
+            const $toggle = $(this);
+            const dependsOn = $toggle.attr('name');
+            const $dependentFields = $('.ufsc-conditional-field[data-depends="' + dependsOn + '"]');
+            
+            if ($dependentFields.length) {
+                // Initial state
+                toggleConditionalField($toggle, $dependentFields);
+                
+                // Handle changes
+                $toggle.on('change', function() {
+                    toggleConditionalField($(this), $dependentFields);
+                });
+            }
+        });
+    }
+    
+    /**
+     * // UFSC: Toggle conditional field visibility
+     */
+    function toggleConditionalField($toggle, $dependentFields) {
+        if ($toggle.is(':checked')) {
+            $dependentFields.show();
+            $dependentFields.find('input, select, textarea').prop('required', true);
+        } else {
+            $dependentFields.hide();
+            $dependentFields.find('input, select, textarea').prop('required', false).val('');
+        }
+    }
     
     /**
      * Initialize conditional field visibility based on user association type
