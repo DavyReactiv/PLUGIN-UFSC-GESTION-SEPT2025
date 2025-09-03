@@ -15,7 +15,7 @@ class UFSC_Import_Export {
      * @return array Result with success status and file info
      */
     public static function export_licences_csv( $club_id, $filters = array() ) {
-        $licences = self::get_club_licences_for_export( $club_id, $filters );
+        $licences = static::get_club_licences_for_export( $club_id, $filters );
         
         if ( empty( $licences ) ) {
             return array(
@@ -66,7 +66,7 @@ class UFSC_Import_Export {
         }
 
         // Generate filename
-        $club_name = self::get_club_name( $club_id );
+        $club_name = static::get_club_name( $club_id );
         $date = date( 'Y-m-d_H-i-s' );
         $filename = sanitize_file_name( "licences_{$club_name}_{$date}.csv" );
 
@@ -120,7 +120,7 @@ class UFSC_Import_Export {
         // Check if PhpSpreadsheet is available
         if ( ! class_exists( 'PhpOffice\PhpSpreadsheet\Spreadsheet' ) ) {
             // Fall back to CSV
-            $csv_result = self::export_licences_csv( $club_id, $filters );
+            $csv_result = static::export_licences_csv( $club_id, $filters );
             
             if ( $csv_result['success'] ) {
                 $csv_result['message'] = __( 'PhpSpreadsheet non disponible. Export CSV généré à la place.', 'ufsc-clubs' );
@@ -129,7 +129,7 @@ class UFSC_Import_Export {
             return $csv_result;
         }
 
-        $licences = self::get_club_licences_for_export( $club_id, $filters );
+        $licences = static::get_club_licences_for_export( $club_id, $filters );
         
         if ( empty( $licences ) ) {
             return array(
@@ -200,7 +200,7 @@ class UFSC_Import_Export {
             }
 
             // Generate filename
-            $club_name = self::get_club_name( $club_id );
+            $club_name = static::get_club_name( $club_id );
             $date = date( 'Y-m-d_H-i-s' );
             $filename = sanitize_file_name( "licences_{$club_name}_{$date}.xlsx" );
 
@@ -378,7 +378,7 @@ class UFSC_Import_Export {
         $created_licence_ids = array();
 
         // Check quota
-        $quota_info = self::get_club_quota_info( $club_id );
+        $quota_info = static::get_club_quota_info( $club_id );
         $needs_payment = false;
 
         foreach ( $data as $row ) {
@@ -405,7 +405,7 @@ class UFSC_Import_Export {
                 'statut' => 'brouillon'
             );
 
-            $licence_id = self::create_licence_record( $club_id, $licence_data );
+            $licence_id = static::create_licence_record( $club_id, $licence_data );
 
             if ( $licence_id ) {
                 $imported++;
@@ -431,7 +431,7 @@ class UFSC_Import_Export {
         if ( $needs_payment && ! empty( $created_licence_ids ) ) {
             $over_quota_licences = array_slice( $created_licence_ids, $quota_info['remaining'] );
             if ( ! empty( $over_quota_licences ) ) {
-                $order_id = self::create_payment_order( $club_id, $over_quota_licences );
+                $order_id = static::create_payment_order( $club_id, $over_quota_licences );
                 if ( $order_id ) {
                     $order = wc_get_order( $order_id );
                     $payment_url = $order->get_checkout_payment_url();
@@ -458,6 +458,30 @@ class UFSC_Import_Export {
     }
 
     // STUB METHODS - To be implemented according to database schema
+
+
+    protected static function get_club_licences_for_export( $club_id, $filters ) {
+        // TODO: Implement actual licence retrieval for export
+        return array();
+    }
+
+    protected static function get_club_name( $club_id ) {
+        // TODO: Implement club name retrieval
+        return "Club_{$club_id}";
+    }
+
+    protected static function get_club_quota_info( $club_id ) {
+        // TODO: Implement quota info retrieval
+        return array( 'total' => 10, 'used' => 3, 'remaining' => 7 );
+    }
+
+    protected static function create_licence_record( $club_id, $data ) {
+        // TODO: Implement licence creation
+        return 0;
+    }
+
+    protected static function create_payment_order( $club_id, $licence_ids ) {
+        // TODO: Implement payment order creation
 
     private static function get_club_licences_for_export( $club_id, $filters ) {
         global $wpdb;
@@ -555,6 +579,7 @@ class UFSC_Import_Export {
         if ( ! function_exists( 'ufsc_create_additional_license_order' ) ) {
             return false;
         }
+
 
         return ufsc_create_additional_license_order( $club_id, $licence_ids, get_current_user_id() );
     }
