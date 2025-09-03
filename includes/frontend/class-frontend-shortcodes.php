@@ -1509,14 +1509,14 @@ class UFSC_Frontend_Shortcodes {
      */
     private static function get_licence_status_badge_class( $status ) {
         $classes = array(
-            'brouillon' => 'ufsc-badge-info',
-            'paid'      => 'ufsc-badge-warning',
-            'validated' => 'ufsc-badge-success',
-            'applied'   => 'ufsc-badge-success',
-            'rejected'  => 'ufsc-badge-danger',
+            'brouillon' => '-draft',
+            'paid'      => '-pending',
+            'validated' => '-ok',
+            'applied'   => '-ok',
+            'rejected'  => '-rejected',
         );
 
-        return $classes[ $status ] ?? 'ufsc-badge-info';
+        return $classes[ $status ] ?? '-draft';
     }
 
     /**
