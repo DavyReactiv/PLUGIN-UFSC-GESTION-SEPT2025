@@ -4,7 +4,7 @@
  */
 
 .ufsc-club-form-container {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
     background: #fff;
@@ -26,9 +26,17 @@
     gap: 20px;
 }
 
+@media (min-width: 768px) {
+    .ufsc-club-profile .ufsc-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+}
+
 .ufsc-field {
     display: flex;
     flex-direction: column;
+    width: 100%;
 }
 
 .ufsc-badge {
