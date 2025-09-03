@@ -38,6 +38,8 @@ Une fois validés par l'admin:
 - **Licences**: Non modifiables (lecture seule)
 - **Clubs**: Seuls email et téléphone éditables
 
+Seules les licences en statut `brouillon` peuvent être modifiées depuis le tableau de bord.
+
 **Fonctions de contrôle:**
 ```php
 ufsc_is_validated_club($club_id)      // Vérifie si club validé
