@@ -13,8 +13,6 @@ class UFSC_Unified_Handlers {
     public static function init() {
         // License handlers
 
-        add_action( 'admin_post_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
-        add_action( 'admin_post_nopriv_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
 
         add_action( 'admin_post_ufsc_add_licence', array( __CLASS__, 'handle_add_licence' ) );
         add_action( 'admin_post_nopriv_ufsc_add_licence', array( __CLASS__, 'handle_add_licence' ) );
