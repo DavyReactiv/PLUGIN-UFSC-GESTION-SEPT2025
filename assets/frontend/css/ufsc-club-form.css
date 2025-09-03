@@ -19,6 +19,27 @@
     border-bottom: 2px solid #0073aa;
     padding-bottom: 10px;
 }
+/* Grid Layout */
+.ufsc-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.ufsc-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.ufsc-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 12px;
+    border-radius: 12px;
+    background: #0073aa;
+    color: #fff;
+}
+
 
 /* Form Sections */
 .ufsc-form-section {
@@ -244,6 +265,10 @@
     text-decoration: none;
     display: inline-block;
 }
+.ufsc-btn:focus {
+    outline: 2px solid #005a87;
+    outline-offset: 2px;
+}
 
 .ufsc-btn-primary {
     background-color: #0073aa;
@@ -266,6 +291,12 @@
 
 .ufsc-btn-secondary:hover {
     background-color: #5a6268;
+}
+
+@media (min-width: 1024px) {
+    .ufsc-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* Responsive Design */

@@ -36,7 +36,7 @@
     border-radius: 8px;
     padding: 1.5rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .ufsc-card:hover {
@@ -63,7 +63,7 @@
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .ufsc-btn-primary {
@@ -196,6 +196,35 @@
     background: #f8f9fa;
     font-weight: 600;
     color: #2c3e50;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.ufsc-documents-status th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 1;
+}
+
+.ufsc-card,
+.ufsc-btn,
+.ufsc-badge,
+.ufsc-row-actions a {
+    transition: all 0.2s ease;
+}
+
+.ufsc-card:focus-within,
+.ufsc-btn:focus,
+.ufsc-btn:focus-visible,
+.ufsc-badge:focus,
+.ufsc-badge:focus-visible,
+.ufsc-row-actions a:focus,
+.ufsc-row-actions a:focus-visible {
+    outline: 2px solid #3498db;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.4);
 }
 
 /* // UFSC: Badge System */
@@ -239,6 +268,9 @@
 @media (max-width: 767px) {
     .ufsc-row-actions {
         flex-direction: column;
+    }
+    .ufsc-hide-mobile {
+        display: none;
     }
 }
 
@@ -484,6 +516,13 @@
     background: #f8f9fa;
     font-weight: 600;
     color: #495057;
+}
+
+.ufsc-table thead {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 1;
 }
 
 .ufsc-table tbody tr:hover {

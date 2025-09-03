@@ -14,6 +14,37 @@ class UFSC_Affiliation_Form {
         add_shortcode( 'ufsc_affiliation_form', array( __CLASS__, 'render_shortcode' ) );
         add_action( 'admin_post_ufsc_create_club', array( __CLASS__, 'handle_form_submission' ) );
         add_action( 'admin_post_nopriv_ufsc_create_club', array( __CLASS__, 'handle_form_submission' ) );
+        add_action( 'wp_ajax_ufsc_affiliation_pay', array( __CLASS__, 'ajax_affiliation_pay' ) );
+        add_action( 'wp_ajax_nopriv_ufsc_affiliation_pay', array( __CLASS__, 'ajax_affiliation_pay' ) );
+        add_action( 'admin_post_ufsc_affiliation_pay', array( __CLASS__, 'handle_affiliation_pay' ) );
+        add_action( 'admin_post_nopriv_ufsc_affiliation_pay', array( __CLASS__, 'handle_affiliation_pay' ) );
+    }
+
+    /**
+     * Enqueue affiliation payment script
+     */
+    private static function enqueue_scripts() {
+        if ( ! function_exists( 'ufsc_is_woocommerce_active' ) || ! ufsc_is_woocommerce_active() ) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'ufsc-affiliation',
+            UFSC_CL_URL . 'assets/js/ufsc-affiliation.js',
+            array( 'jquery' ),
+            UFSC_CL_VERSION,
+            true
+        );
+
+        wp_localize_script(
+            'ufsc-affiliation',
+            'ufscAffiliation',
+            array(
+                'ajax_url'     => admin_url( 'admin-ajax.php' ),
+                'checkout_url' => function_exists( 'wc_get_checkout_url' ) ? wc_get_checkout_url() : '',
+                'nonce'        => wp_create_nonce( 'ufsc_affiliation_pay' ),
+            )
+        );
     }
 
     /**
@@ -56,10 +87,12 @@ class UFSC_Affiliation_Form {
         // Handle error message
         $error_message = '';
         if ( isset( $_GET['error'] ) ) {
-            $error_message = '<div class="ufsc-message ufsc-error">' . 
-                            esc_html( sanitize_text_field( $_GET['error'] ) ) . 
+            $error_message = '<div class="ufsc-message ufsc-error">' .
+                            esc_html( sanitize_text_field( $_GET['error'] ) ) .
                             '</div>';
         }
+
+        self::enqueue_scripts();
 
         ob_start();
         ?>
@@ -68,12 +101,20 @@ class UFSC_Affiliation_Form {
             <h2><?php echo esc_html__( 'Créer un club', 'ufsc-clubs' ); ?></h2>
             <?php endif; ?>
 
-            <?php echo $success_message; ?>
-            <?php echo $error_message; ?>
+            <div id="ufsc-form-status" aria-live="polite">
+                <?php echo $success_message; ?>
+                <?php echo $error_message; ?>
+            </div>
+
+
+            <div class="ufsc-notices" aria-live="polite"></div>
 
             <div class="ufsc-notices" aria-live="polite"></div>
 
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-form">
+
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-form ufsc-grid" enctype="multipart/form-data">
+
                 <?php wp_nonce_field( 'ufsc_create_club', 'ufsc_nonce' ); ?>
                 <input type="hidden" name="action" value="ufsc_create_club">
                 <input type="hidden" name="redirect_to" value="<?php echo esc_attr( $atts['redirect_to'] ); ?>">
@@ -81,21 +122,23 @@ class UFSC_Affiliation_Form {
                 <div class="ufsc-form-section">
                     <h3><?php echo esc_html__( 'Informations du club', 'ufsc-clubs' ); ?></h3>
 
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="club_nom" class="required"><?php echo esc_html__( 'Nom du club', 'ufsc-clubs' ); ?> *</label>
-                        <input type="text" id="club_nom" name="club_nom" required maxlength="255" 
+                        <input type="text" id="club_nom" name="club_nom" required maxlength="255" aria-describedby="club_nom_error"
                                value="<?php echo esc_attr( self::get_form_value( 'club_nom' ) ); ?>">
+                        <p id="club_nom_error" class="ufsc-error-message"></p>
                     </div>
 
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="club_email" class="required"><?php echo esc_html__( 'Email du club', 'ufsc-clubs' ); ?> *</label>
-                        <input type="email" id="club_email" name="club_email" required 
+                        <input type="email" id="club_email" name="club_email" required aria-describedby="club_email_error"
                                value="<?php echo esc_attr( self::get_form_value( 'club_email' ) ); ?>">
+                        <p id="club_email_error" class="ufsc-error-message"></p>
                     </div>
 
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="club_region" class="required"><?php echo esc_html__( 'Région', 'ufsc-clubs' ); ?> *</label>
-                        <select id="club_region" name="club_region" required>
+                        <select id="club_region" name="club_region" required aria-describedby="club_region_error">
                             <option value=""><?php echo esc_html__( '-- Sélectionnez une région --', 'ufsc-clubs' ); ?></option>
                             <?php foreach ( self::get_regions() as $region ) : ?>
                             <option value="<?php echo esc_attr( $region ); ?>" <?php selected( self::get_form_value( 'club_region' ), $region ); ?>>
@@ -103,28 +146,46 @@ class UFSC_Affiliation_Form {
                             </option>
                             <?php endforeach; ?>
                         </select>
+                        <p id="club_region_error" class="ufsc-error-message"></p>
+                    </div>
+
+                    <div class="ufsc-field">
+                        <label for="club_statuts"><?php echo esc_html__( 'Statuts du club', 'ufsc-clubs' ); ?></label>
+                        <input type="file" id="club_statuts" name="club_statuts" aria-describedby="club_statuts_help club_statuts_error">
+                        <p id="club_statuts_help" class="ufsc-help"><?php echo esc_html__( 'Format PDF, 2 Mo max.', 'ufsc-clubs' ); ?></p>
+                        <p id="club_statuts_error" class="ufsc-error-message"></p>
+                    </div>
+
+                    <div class="ufsc-field">
+                        <label for="responsable_id_doc"><?php echo esc_html__( 'Pièce d\'identité du responsable', 'ufsc-clubs' ); ?></label>
+                        <input type="file" id="responsable_id_doc" name="responsable_id_doc" aria-describedby="responsable_id_doc_help responsable_id_doc_error">
+                        <p id="responsable_id_doc_help" class="ufsc-help"><?php echo esc_html__( 'PDF ou image, 2 Mo max.', 'ufsc-clubs' ); ?></p>
+                        <p id="responsable_id_doc_error" class="ufsc-error-message"></p>
                     </div>
                 </div>
 
                 <div class="ufsc-form-section">
                     <h3><?php echo esc_html__( 'Adresse', 'ufsc-clubs' ); ?></h3>
 
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="club_adresse"><?php echo esc_html__( 'Adresse', 'ufsc-clubs' ); ?></label>
-                        <input type="text" id="club_adresse" name="club_adresse" 
+                        <input type="text" id="club_adresse" name="club_adresse" aria-describedby="club_adresse_error"
                                value="<?php echo esc_attr( self::get_form_value( 'club_adresse' ) ); ?>">
+                        <p id="club_adresse_error" class="ufsc-error-message"></p>
                     </div>
 
-                    <div class="ufsc-form-row-group">
-                        <div class="ufsc-form-row">
+                    <div class="ufsc-field-group">
+                        <div class="ufsc-field">
                             <label for="club_code_postal"><?php echo esc_html__( 'Code postal', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="club_code_postal" name="club_code_postal" maxlength="10"
+                            <input type="text" id="club_code_postal" name="club_code_postal" maxlength="10" aria-describedby="club_code_postal_error"
                                    value="<?php echo esc_attr( self::get_form_value( 'club_code_postal' ) ); ?>">
+                            <p id="club_code_postal_error" class="ufsc-error-message"></p>
                         </div>
-                        <div class="ufsc-form-row">
+                        <div class="ufsc-field">
                             <label for="club_ville"><?php echo esc_html__( 'Ville', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="club_ville" name="club_ville" 
+                            <input type="text" id="club_ville" name="club_ville" aria-describedby="club_ville_error"
                                    value="<?php echo esc_attr( self::get_form_value( 'club_ville' ) ); ?>">
+                            <p id="club_ville_error" class="ufsc-error-message"></p>
                         </div>
                     </div>
                 </div>
@@ -132,20 +193,22 @@ class UFSC_Affiliation_Form {
                 <div class="ufsc-form-section">
                     <h3><?php echo esc_html__( 'Contact', 'ufsc-clubs' ); ?></h3>
 
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="club_telephone"><?php echo esc_html__( 'Téléphone', 'ufsc-clubs' ); ?></label>
-                        <input type="tel" id="club_telephone" name="club_telephone" 
+                        <input type="tel" id="club_telephone" name="club_telephone" aria-describedby="club_telephone_error"
                                value="<?php echo esc_attr( self::get_form_value( 'club_telephone' ) ); ?>">
+                        <p id="club_telephone_error" class="ufsc-error-message"></p>
                     </div>
                 </div>
 
                 <div class="ufsc-form-section">
-                    <div class="ufsc-form-row ufsc-checkbox-row">
-                        <label>
-                            <input type="checkbox" name="accept_cgu" value="1" required 
+                    <div class="ufsc-field ufsc-checkbox-row">
+                        <label for="accept_cgu">
+                            <input type="checkbox" id="accept_cgu" name="accept_cgu" value="1" required aria-describedby="accept_cgu_error"
                                    <?php checked( self::get_form_value( 'accept_cgu' ), '1' ); ?>>
                             <?php echo esc_html__( 'J\'accepte les conditions générales d\'utilisation', 'ufsc-clubs' ); ?> *
                         </label>
+                        <p id="accept_cgu_error" class="ufsc-error-message"></p>
                     </div>
                 </div>
 
@@ -155,91 +218,62 @@ class UFSC_Affiliation_Form {
                     </button>
                 </div>
             </form>
+            <?php if ( function_exists( 'ufsc_is_woocommerce_active' ) && ufsc_is_woocommerce_active() ) : ?>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-affiliation-pay-form">
+                <?php wp_nonce_field( 'ufsc_affiliation_pay', 'ufsc_affiliation_nonce' ); ?>
+                <input type="hidden" name="action" value="ufsc_affiliation_pay">
+                <button type="submit" id="ufsc-pay-affiliation" class="button button-secondary">
+                    <?php echo esc_html__( 'Payer mon affiliation', 'ufsc-clubs' ); ?>
+                </button>
+            </form>
+            <?php endif; ?>
         </div>
 
-        <style>
-        .ufsc-affiliation-form {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .ufsc-form-section {
-            background: #f9f9f9;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 5px;
-        }
-        .ufsc-form-section h3 {
-            margin-top: 0;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 10px;
-        }
-        .ufsc-form-row {
-            margin-bottom: 15px;
-        }
-        .ufsc-form-row-group {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 15px;
-        }
-        .ufsc-form-row label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        .ufsc-form-row label.required::after {
-            content: " *";
-            color: #e74c3c;
-        }
-        .ufsc-form-row input,
-        .ufsc-form-row select {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            font-size: 14px;
-        }
-        .ufsc-checkbox-row label {
-            display: flex;
-            align-items: center;
-            font-weight: normal;
-        }
-        .ufsc-checkbox-row input[type="checkbox"] {
-            width: auto;
-            margin-right: 8px;
-        }
-        .ufsc-form-actions {
-            text-align: center;
-            margin-top: 30px;
-        }
-        .ufsc-message {
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-        }
-        .ufsc-message.ufsc-success {
-            background: #d4edda;
-            border-left: 4px solid #28a745;
-            color: #155724;
-        }
-        .ufsc-message.ufsc-error {
-            background: #f8d7da;
-            border-left: 4px solid #dc3545;
-            color: #721c24;
-        }
-        .ufsc-message.ufsc-info {
-            background: #d1ecf1;
-            border-left: 4px solid #17a2b8;
-            color: #0c5460;
-        }
-        @media (max-width: 768px) {
-            .ufsc-form-row-group {
-                grid-template-columns: 1fr;
-            }
-        }
-        </style>
         <?php
 
         return ob_get_clean();
+    }
+
+    /**
+     * AJAX handler to add affiliation product to cart
+     */
+    public static function ajax_affiliation_pay() {
+        check_ajax_referer( 'ufsc_affiliation_pay', 'nonce' );
+
+        if ( ! function_exists( 'ufsc_is_woocommerce_active' ) || ! ufsc_is_woocommerce_active() ) {
+            wp_send_json_error();
+        }
+
+        $settings   = ufsc_get_woocommerce_settings();
+        $product_id = absint( $settings['product_affiliation_id'] );
+        $added      = $product_id ? WC()->cart->add_to_cart( $product_id ) : false;
+
+        if ( $added ) {
+            wp_send_json_success( array( 'redirect' => wc_get_checkout_url() ) );
+        }
+
+        wp_send_json_error();
+    }
+
+    /**
+     * Handle non-AJAX affiliation payment form
+     */
+    public static function handle_affiliation_pay() {
+        if ( ! isset( $_POST['ufsc_affiliation_nonce'] ) || ! wp_verify_nonce( $_POST['ufsc_affiliation_nonce'], 'ufsc_affiliation_pay' ) ) {
+            wp_die( esc_html__( 'Erreur de sécurité. Veuillez réessayer.', 'ufsc-clubs' ) );
+        }
+
+        if ( function_exists( 'ufsc_is_woocommerce_active' ) && ufsc_is_woocommerce_active() ) {
+            $settings   = ufsc_get_woocommerce_settings();
+            $product_id = absint( $settings['product_affiliation_id'] );
+
+            if ( $product_id ) {
+                WC()->cart->add_to_cart( $product_id );
+            }
+        }
+
+        wp_safe_redirect( function_exists( 'wc_get_checkout_url' ) ? wc_get_checkout_url() : home_url() );
+        exit;
     }
 
     /**

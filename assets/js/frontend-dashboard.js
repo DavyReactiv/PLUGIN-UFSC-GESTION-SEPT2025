@@ -73,12 +73,11 @@
                 self.handleExportCSV();
             });
 
-            // // UFSC: License actions
-            $(document).on('click', '.ufsc-licence-action', function(e) {
-                e.preventDefault();
-                var action = $(this).data('action');
-                var licenceId = $(this).data('licence-id');
-                self.handleLicenceAction(action, licenceId);
+            // Confirm deletion before submitting
+            $(document).on('submit', '.ufsc-delete-licence-form', function(e) {
+                if (!confirm('Êtes-vous sûr de vouloir supprimer cette licence ?')) {
+                    e.preventDefault();
+                }
             });
 
             $('#btn-importer-csv').on('click', function(e) {
@@ -254,20 +253,28 @@
             var actions = [];
             var editableStatuses = ['brouillon', 'non_payee', 'refusee'];
             var deletableStatuses = ['brouillon', 'non_payee'];
-            
+            var adminPostUrl = this.config.ajax_url ? this.config.ajax_url.replace('admin-ajax.php', 'admin-post.php') : 'admin-post.php';
+
             // View action (always available)
-            actions.push('<a href="?view_licence=' + licence.id + '" class="ufsc-btn-small">Consulter</a>');
-            
+            actions.push('<a href="?view_licence=' + licence.id + '" class="ufsc-btn ufsc-btn-small">Consulter</a>');
+
             // Edit action (conditionally available)
             if (editableStatuses.includes(licence.statut)) {
-                actions.push('<a href="?edit_licence=' + licence.id + '" class="ufsc-btn-small">Modifier</a>');
+                actions.push('<a href="?edit_licence=' + licence.id + '" class="ufsc-btn ufsc-btn-small">Modifier</a>');
             }
-            
+
             // Delete action (conditionally available)
             if (deletableStatuses.includes(licence.statut)) {
-                actions.push('<button class="ufsc-licence-action ufsc-btn-small -danger" data-action="delete" data-licence-id="' + licence.id + '">Supprimer</button>');
+                actions.push(
+                    '<form method="post" action="' + adminPostUrl + '" class="ufsc-delete-licence-form" style="display:inline">' +
+                    '<input type="hidden" name="action" value="ufsc_delete_licence">' +
+                    '<input type="hidden" name="licence_id" value="' + licence.id + '">' +
+                    '<input type="hidden" name="_wpnonce" value="' + this.config.nonce + '">' +
+                    '<button type="submit" class="ufsc-btn ufsc-btn-small ufsc-btn-danger">Supprimer</button>' +
+                    '</form>'
+                );
             }
-            
+
             return '<div class="ufsc-row-actions">' + actions.join(' ') + '</div>';
         },
 
@@ -601,25 +608,6 @@
             $('body').append(form);
             form.submit();
             form.remove();
-        },
-
-        // // UFSC: Handle license actions
-        handleLicenceAction: function(action, licenceId) {
-            var self = this;
-            
-            if (action === 'delete') {
-                if (!confirm('Êtes-vous sûr de vouloir supprimer cette licence ?')) {
-                    return;
-                }
-                
-                this.restDelete('licences/' + licenceId, function(data) {
-                    self.showToast('Licence supprimée avec succès', 'success');
-                    self.loadRecentLicences(); // Refresh list
-                    self.loadKPIs(); // Refresh counters
-                }, function(error) {
-                    self.showToast('Erreur lors de la suppression: ' + error, 'error');
-                });
-            }
         },
 
         // // UFSC: Load statistics for detailed view
