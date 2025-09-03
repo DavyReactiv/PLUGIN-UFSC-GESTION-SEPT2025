@@ -181,9 +181,10 @@ class UFSC_CLI_Commands {
         }
     }
 
-    // Helper methods - STUBS to be implemented
+    // Helper methods -----------------------------------------------------
 
     /**
+
      * Retrieve statistics for a single club.
      *
      * Uses the UFSC licences table to count the number of total, paid and
@@ -195,14 +196,23 @@ class UFSC_CLI_Commands {
      * @param string $season  Season identifier (e.g. "2025-2026").
      *
      * @return array Array of counts: total, paid, validated and remaining quota.
+
+     * Compute and cache statistics for a single club.
+     *
+     * Stats are cached in a transient for one hour so repeated calls are
+     * inexpensive when running a batch command across all clubs.
+
      */
     private function get_club_stats( $club_id, $season ) {
         $cache_key = "ufsc_stats_{$club_id}_{$season}";
-        $stats = get_transient( $cache_key );
+        $stats     = get_transient( $cache_key );
 
         if ( false === $stats ) {
             global $wpdb;
 
+            // If the helper functions are not available we safely return
+            // default counters so the CLI command still works in a minimal
+            // environment.
             if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
                 $stats = array(
                     'total_licences'     => 0,
@@ -214,7 +224,7 @@ class UFSC_CLI_Commands {
                 $licences_table = ufsc_get_licences_table();
                 $columns        = $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
 
-                // Base WHERE clause for club and season if available
+                // Base WHERE clause for club and optional season
                 $where        = array( 'club_id = %d' );
                 $where_values = array( (int) $club_id );
 
@@ -233,7 +243,7 @@ class UFSC_CLI_Commands {
 
                 $where_sql = implode( ' AND ', $where );
 
-                // Total licences
+                // --- Total licences ------------------------------------
                 $total_licences = (int) $wpdb->get_var(
                     $wpdb->prepare(
                         "SELECT COUNT(*) FROM `{$licences_table}` WHERE {$where_sql}",
@@ -241,7 +251,7 @@ class UFSC_CLI_Commands {
                     )
                 );
 
-                // Paid licences
+                // --- Paid licences -------------------------------------
                 $paid_conditions = array();
                 $paid_values     = array();
 
@@ -260,7 +270,7 @@ class UFSC_CLI_Commands {
                     $paid_licences = (int) $wpdb->get_var( $wpdb->prepare( $paid_query, $paid_values ) );
                 }
 
-                // Validated licences
+                // --- Validated licences --------------------------------
                 $validated_licences = 0;
                 $status_column      = null;
                 foreach ( array( 'status', 'statut' ) as $col ) {
@@ -271,11 +281,11 @@ class UFSC_CLI_Commands {
                 }
 
                 if ( $status_column ) {
-                    $validated_statuses  = array( 'valide', 'validée', 'validé', 'validated', 'approved' );
-                    $placeholders        = implode( ',', array_fill( 0, count( $validated_statuses ), '%s' ) );
-                    $validated_query     = "SELECT COUNT(*) FROM `{$licences_table}` WHERE {$where_sql} AND `{$status_column}` IN ({$placeholders})";
-                    $validated_values    = array_merge( $where_values, $validated_statuses );
-                    $validated_licences  = (int) $wpdb->get_var( $wpdb->prepare( $validated_query, $validated_values ) );
+                    $validated_statuses = array( 'valide', 'validée', 'validé', 'validated', 'approved' );
+                    $placeholders       = implode( ',', array_fill( 0, count( $validated_statuses ), '%s' ) );
+                    $validated_query    = "SELECT COUNT(*) FROM `{$licences_table}` WHERE {$where_sql} AND `{$status_column}` IN ({$placeholders})";
+                    $validated_values   = array_merge( $where_values, $validated_statuses );
+                    $validated_licences = (int) $wpdb->get_var( $wpdb->prepare( $validated_query, $validated_values ) );
                 }
 
                 $stats = array(
@@ -286,7 +296,7 @@ class UFSC_CLI_Commands {
                 );
             }
 
-            // Cache for one hour
+            // Cache for one hour so repeated requests are fast.
             set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
         }
 
@@ -294,6 +304,7 @@ class UFSC_CLI_Commands {
     }
 
     /**
+
      * Retrieve statistics for every club.
      *
      * Queries the UFSC clubs table to obtain all club identifiers then delegates
@@ -303,6 +314,9 @@ class UFSC_CLI_Commands {
      * @param string $season Season identifier.
      *
      * @return array[] List of statistics indexed by club.
+
+     * Get statistics for all clubs.
+
      */
     private function get_all_clubs_stats( $season ) {
         if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
@@ -342,12 +356,16 @@ class UFSC_CLI_Commands {
     }
 
     /**
+
      * Display debugging information about the cache layer.
      *
      * The command reports whether an external object cache is in use and, when
      * available, leverages the UFSC cache manager to list details about cached
      * transients. This is primarily useful for troubleshooting during
      * development or when running the CLI tools in production.
+
+     * Display information about the WordPress and UFSC caches.
+
      */
     private function cache_info() {
         WP_CLI::log( 'Cache information:' );

@@ -131,31 +131,42 @@ function ufsc_handle_additional_license_payment( $order, $item, $quantity ) {
     }
 }
 
-// STUB FUNCTIONS - TO BE IMPLEMENTED ACCORDING TO EXISTING DATABASE SCHEMA
+// Database helper functions
 
 /**
- * Get club ID for a user
- * TODO: Implement according to existing database schema
- * 
+ * Get club ID for a user.
+ *
+ * Tries to resolve the club via the optional UFSC_User_Club_Mapping class
+ * if available. If not, the function falls back to a direct lookup on the
+ * configured clubs table using the `responsable_id` column.
+ *
  * @param int $user_id User ID
  * @return int|false Club ID or false if not found
  */
 if ( ! function_exists( 'ufsc_get_user_club_id' ) ) {
     function ufsc_get_user_club_id( $user_id ) {
-        // Delegate to the proper implementation if available
+        // Delegate to the mapping class when present
         if ( class_exists( 'UFSC_User_Club_Mapping' ) ) {
             return UFSC_User_Club_Mapping::get_user_club_id( $user_id );
         }
-        
-        // Fallback implementation
-        return false;
+
+        global $wpdb;
+        $clubs_table = ufsc_get_clubs_table();
+
+        $club_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT id FROM {$clubs_table} WHERE responsable_id = %d",
+                $user_id
+            )
+        );
+
+        return $club_id ? (int) $club_id : false;
     }
 }
 
 /**
  * Mark affiliation as paid for a season
- * TODO: Implement according to existing database schema
- * 
+ *
  * @param int $club_id Club ID
  * @param string $season Season identifier
  */
@@ -163,16 +174,22 @@ if ( ! function_exists( 'ufsc_mark_affiliation_paid' ) ) {
     function ufsc_mark_affiliation_paid( $club_id, $season ) {
         global $wpdb;
 
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+            return false;
+        }
+
         $clubs_table = ufsc_get_clubs_table();
 
         // Update affiliation date to mark payment
-        $wpdb->update(
+        $updated = $wpdb->update(
             $clubs_table,
             array( 'date_affiliation' => current_time( 'mysql' ) ),
             array( 'id' => $club_id ),
             array( '%s' ),
             array( '%d' )
         );
+
+        return false !== $updated;
     }
 }
 
@@ -186,14 +203,25 @@ if ( ! function_exists( 'ufsc_mark_licence_paid' ) ) {
     function ufsc_mark_licence_paid( $license_id, $season ) {
         global $wpdb;
 
+        if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+            return false;
+        }
+
         $licences_table = ufsc_get_licences_table();
-        $wpdb->update(
+        $updated        = $wpdb->update(
             $licences_table,
-            array( 'statut' => 'en_attente', 'is_included' => 0 ),
+            array(
+                'statut'      => 'en_attente',
+                'is_included' => 0,
+                'paid_season' => $season,
+                'paid_date'   => current_time( 'mysql' ),
+            ),
             array( 'id' => $license_id ),
-            array( '%s', '%d' ),
+            array( '%s', '%d', '%s', '%s' ),
             array( '%d' )
         );
+
+        return false !== $updated;
     }
 }
 
@@ -207,14 +235,20 @@ if ( ! function_exists( 'ufsc_mark_licence_paid' ) ) {
 function ufsc_quota_add_included( $club_id, $quantity, $season ) {
     global $wpdb;
 
+    if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+        return false;
+    }
+
     $clubs_table = ufsc_get_clubs_table();
-    $wpdb->query(
+    $updated     = $wpdb->query(
         $wpdb->prepare(
             "UPDATE {$clubs_table} SET quota_licences = COALESCE(quota_licences,0) + %d WHERE id = %d",
             $quantity,
             $club_id
         )
     );
+
+    return false !== $updated;
 }
 
 /**
@@ -227,12 +261,18 @@ function ufsc_quota_add_included( $club_id, $quantity, $season ) {
 function ufsc_quota_add_paid( $club_id, $quantity, $season ) {
     global $wpdb;
 
+    if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+        return false;
+    }
+
     $clubs_table = ufsc_get_clubs_table();
-    $wpdb->query(
+    $updated     = $wpdb->query(
         $wpdb->prepare(
             "UPDATE {$clubs_table} SET quota_licences = COALESCE(quota_licences,0) + %d WHERE id = %d",
             $quantity,
             $club_id
         )
     );
+
+    return false !== $updated;
 }
