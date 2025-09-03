@@ -154,9 +154,33 @@
         // // UFSC: Update KPI displays according to new status structure
         updateKPIs: function(data) {
             $('#kpi-licences-validees').text(data.licences_validees || '-');
-            $('#kpi-licences-payees').text(data.licences_payees || '-');  
+            $('#kpi-licences-payees').text(data.licences_payees || '-');
             $('#kpi-licences-attente').text(data.licences_attente || '-');
             $('#kpi-licences-refusees').text(data.licences_refusees || '-');
+
+            var kpiGrid = $('#ufsc-kpi-grid');
+            // Remove previously generated KPI cards for sex and age
+            kpiGrid.find('.ufsc-kpi-card.-sexe, .ufsc-kpi-card.-age').remove();
+
+            // Add KPI cards by sex
+            if (data.sexe) {
+                Object.keys(data.sexe).forEach(function(sex) {
+                    var card = $('<div/>', { 'class': 'ufsc-card ufsc-kpi-card -sexe' });
+                    card.append($('<div/>', { 'class': 'ufsc-kpi-value', text: data.sexe[sex] }));
+                    card.append($('<div/>', { 'class': 'ufsc-kpi-label', text: sex }));
+                    kpiGrid.append(card);
+                });
+            }
+
+            // Add KPI cards by age range
+            if (data.age) {
+                Object.keys(data.age).forEach(function(range) {
+                    var card = $('<div/>', { 'class': 'ufsc-card ufsc-kpi-card -age' });
+                    card.append($('<div/>', { 'class': 'ufsc-kpi-value', text: data.age[range] }));
+                    card.append($('<div/>', { 'class': 'ufsc-kpi-label', text: range }));
+                    kpiGrid.append(card);
+                });
+            }
         },
 
         // // UFSC: Get current filter values
