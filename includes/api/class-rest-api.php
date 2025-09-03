@@ -799,6 +799,10 @@ class UFSC_REST_API {
             $where_conditions[] = "role = %s";
             $where_values[] = sanitize_text_field( $filters['role'] );
         }
+
+        if ( ! empty( $filters['drafts_only'] ) ) {
+            $where_conditions[] = "statut = 'brouillon'";
+        }
         
         if ( isset( $filters['competition'] ) && $filters['competition'] !== '' ) {
             $where_conditions[] = "competition = %d";
