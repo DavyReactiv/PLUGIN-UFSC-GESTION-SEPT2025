@@ -469,10 +469,12 @@ class UFSC_Import_Export {
     // Database helper methods
 
 
+
     /**
      * Retrieve club licences for export.
      *
      * @param int   $club_id Club identifier.
+
      * @param array $filters Optional filters (status, season).
      * @return array List of licences.
      */
@@ -480,6 +482,12 @@ class UFSC_Import_Export {
 
 
 
+
+
+     * @param array $filters  Optional filters: 'status' and/or 'season'.
+     * @return array List of licence rows.
+     */
+    protected static function get_club_licences_for_export( $club_id, $filters ) {
 
         global $wpdb;
 
@@ -502,12 +510,15 @@ class UFSC_Import_Export {
             }
         }
 
-        $sql = "SELECT id, nom, prenom, email, telephone, date_naissance, sexe, adresse, ville, code_postal, statut, date_creation, date_validation\n                FROM {$licences_table}\n                WHERE " . implode( ' AND ', $where );
+        $sql = "SELECT id, nom, prenom, email, telephone, date_naissance, sexe, adresse, ville, code_postal, statut, date_creation, date_validation
+                    FROM {$licences_table}
+                    WHERE " . implode( ' AND ', $where );
 
         $results = $wpdb->get_results( $wpdb->prepare( $sql, $values ), ARRAY_A );
 
         return is_array( $results ) ? $results : array();
     }
+
 
     /**
 
@@ -522,6 +533,7 @@ class UFSC_Import_Export {
      * @param int $club_id Club identifier.
      * @return string Club name or default string.
      */
+
     protected static function get_club_name( $club_id ) {
         global $wpdb;
 
