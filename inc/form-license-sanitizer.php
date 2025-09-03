@@ -34,7 +34,8 @@ function ufsc_sanitize_licence_post( $post_data, $submitted_club_id = 0 ) {
     // Basic text fields
     $text_fields = array(
         'nom', 'prenom', 'adresse', 'suite_adresse', 'ville', 'profession',
-        'identifiant_laposte', 'numero_licence_delegataire', 'note'
+        'identifiant_laposte', 'numero_licence_delegataire', 'note',
+        'reduction_benevole_num', 'reduction_postier_num'
     );
     
     foreach ( $text_fields as $field ) {
@@ -73,7 +74,7 @@ function ufsc_sanitize_licence_post( $post_data, $submitted_club_id = 0 ) {
     
     // Boolean fields - convert to 1/0
     $boolean_fields = array(
-        'reduction_benevole', 'reduction_postier', 'fonction_publique', 'competition',
+        'reduction_benevole', 'reduction_postier', 'identifiant_laposte_flag', 'fonction_publique', 'competition',
         'licence_delegataire', 'diffusion_image', 'infos_fsasptt', 'infos_asptt',
         'infos_cr', 'infos_partenaires', 'honorabilite', 'assurance_dommage_corporel',
         'assurance_assistance'
@@ -81,6 +82,20 @@ function ufsc_sanitize_licence_post( $post_data, $submitted_club_id = 0 ) {
     
     foreach ( $boolean_fields as $field ) {
         $data[ $field ] = ! empty( $post_data[ $field ] ) ? 1 : 0;
+    }
+
+    // Clear associated numbers when flags are not set
+    if ( $data['reduction_benevole'] !== 1 ) {
+        $data['reduction_benevole_num'] = '';
+    }
+    if ( $data['reduction_postier'] !== 1 ) {
+        $data['reduction_postier_num'] = '';
+    }
+    if ( $data['identifiant_laposte_flag'] !== 1 ) {
+        $data['identifiant_laposte'] = '';
+    }
+    if ( $data['licence_delegataire'] !== 1 ) {
+        $data['numero_licence_delegataire'] = '';
     }
     
     // Phone fields - keep only digits and +

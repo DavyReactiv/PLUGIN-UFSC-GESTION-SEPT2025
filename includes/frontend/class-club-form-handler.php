@@ -163,7 +163,11 @@ class UFSC_CL_Club_Form_Handler {
     }
     
     /**
+
      * Handle file uploads for documents and logo
+
+     * Handle file uploads for club documents with validation.
+
      *
      * @param array $data Current form data
      * @param int $club_id Club ID for meta updates
@@ -172,6 +176,7 @@ class UFSC_CL_Club_Form_Handler {
     private static function handle_file_uploads( $data, $club_id = 0 ) {
         $upload_results = array();
         
+
         // Handle logo upload
         if ( ! empty( $_FILES['logo_upload']['name'] ) ) {
             $logo_result = UFSC_CL_Uploads::ufsc_safe_handle_upload(
@@ -191,35 +196,45 @@ class UFSC_CL_Club_Form_Handler {
         }
         
         // Handle document uploads
+
+        $allowed_mimes = UFSC_CL_Uploads::get_document_mime_types();
+        $max_size      = UFSC_CL_Uploads::get_document_max_size();
+
+
         $documents = array(
-            'statuts_upload' => 'doc_statuts',
-            'recepisse_upload' => 'doc_recepisse',
-            'jo_upload' => 'doc_jo',
-            'pv_ag_upload' => 'doc_pv_ag',
-            'cer_upload' => 'doc_cer',
-            'attestation_cer_upload' => 'doc_attestation_cer'
+            'statuts_upload'      => 'doc_statuts',
+            'recepisse_upload'    => 'doc_recepisse',
+            'jo_upload'           => 'doc_jo',
+            'pv_ag_upload'        => 'doc_pv_ag',
+            'cer_upload'          => 'doc_cer',
+            'attestation_cer_upload' => 'doc_attestation_cer',
         );
-        
+
         foreach ( $documents as $upload_key => $db_field ) {
-            if ( ! empty( $_FILES[$upload_key]['name'] ) ) {
+            if ( ! empty( $_FILES[ $upload_key ]['name'] ) ) {
                 $doc_result = UFSC_CL_Uploads::ufsc_safe_handle_upload(
-                    $_FILES[$upload_key],
-                    UFSC_CL_Uploads::get_document_mime_types(),
-                    UFSC_CL_Uploads::get_document_max_size()
+                    $_FILES[ $upload_key ],
+                    $allowed_mimes,
+                    $max_size
                 );
-                
+
                 if ( is_wp_error( $doc_result ) ) {
                     return $doc_result;
                 }
+
                 
                 $upload_results[$db_field] = $doc_result['url'];
                 if ( $club_id ) {
                     update_post_meta( $club_id, $db_field, $doc_result['url'] );
                     update_post_meta( $club_id, $db_field . '_status', 'pending' );
                 }
+
+
+                $upload_results[ $db_field ] = $doc_result['url'];
+
             }
         }
-        
+
         return $upload_results;
     }
     
