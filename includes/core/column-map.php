@@ -59,6 +59,7 @@ class UFSC_Column_Map {
             'statut'                     => 'statut',
             'date_creation'              => 'date_creation',
             'responsable_id'             => 'responsable_id',
+            'manager_user_id'            => 'responsable_id',
             'doc_statuts'                => 'doc_statuts',
             'doc_recepisse'              => 'doc_recepisse',
             'doc_jo'                     => 'doc_jo',
