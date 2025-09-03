@@ -105,16 +105,10 @@ class UFSC_CL_Club_Form_Handler {
 
             // Post-save actions
             self::handle_post_save_actions( $result_club_id, $affiliation, $is_edit );
-            
-            // Add club to WooCommerce cart when in affiliation mode
-            if ( $affiliation && function_exists( 'ufsc_add_affiliation_to_cart' ) ) {
-                ufsc_add_affiliation_to_cart( $result_club_id );
-            }
 
-            // Redirect to WooCommerce checkout if in affiliation mode
-            if ( $affiliation && function_exists( 'wc_get_checkout_url' ) ) {
-                wp_safe_redirect( wc_get_checkout_url() );
-                exit;
+            // Handle WooCommerce cart redirection when in affiliation mode
+            if ( $affiliation ) {
+                self::handle_affiliation_redirect( $result_club_id, $affiliation );
             }
 
             // Build success message
@@ -129,16 +123,44 @@ class UFSC_CL_Club_Form_Handler {
             }
 
             self::redirect_with_success( $success_message, $result_club_id, $affiliation );
-            
+
         } catch ( Exception $e ) {
             UFSC_CL_Utils::log( 'Erreur lors de la sauvegarde du club: ' . $e->getMessage(), 'error' );
             self::redirect_with_error( __( 'Une erreur est survenue lors de la sauvegarde.', 'ufsc-clubs' ), $club_id, $affiliation );
         }
     }
-    
+
+    /**
+     * Add affiliation product to cart and redirect user to the configured URL.
+     *
+     * @param int  $club_id     Saved club ID.
+     * @param bool $affiliation Whether affiliation mode is active.
+     */
+    private static function handle_affiliation_redirect( $club_id, $affiliation ) {
+        if ( function_exists( 'ufsc_add_affiliation_to_cart' ) ) {
+            ufsc_add_affiliation_to_cart( $club_id );
+        }
+
+        $redirect_url = function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : '';
+
+        /**
+         * Filter the redirect URL after a club is saved in affiliation mode.
+         *
+         * @param string $redirect_url Default redirect URL.
+         * @param int    $club_id      Saved club ID.
+         * @param bool   $affiliation  Whether affiliation mode is active.
+         */
+        $redirect_url = apply_filters( 'ufsc_club_affiliation_redirect_url', $redirect_url, $club_id, $affiliation );
+
+        if ( $redirect_url ) {
+            wp_safe_redirect( $redirect_url );
+            exit;
+        }
+    }
+
     /**
      * Collect and sanitize form data
-     * 
+     *
      * @return array Sanitized form data
      */
     private static function collect_and_sanitize_data() {
