@@ -52,7 +52,7 @@ class UFSC_CL_Club_Form_Handler {
         
         try {
             // Handle file uploads
-            $upload_result = self::handle_file_uploads( $data );
+            $upload_result = self::handle_file_uploads( $data, $club_id );
             if ( is_wp_error( $upload_result ) ) {
                 self::redirect_with_error( $upload_result->get_error_message(), $club_id, $affiliation );
                 return;
@@ -84,12 +84,25 @@ class UFSC_CL_Club_Form_Handler {
             
             // Save to database
             $result_club_id = self::save_club_data( $data, $club_id );
-            
+
             if ( is_wp_error( $result_club_id ) ) {
                 self::redirect_with_error( $result_club_id->get_error_message(), $club_id, $affiliation );
                 return;
             }
-            
+
+            // Update document meta for new clubs
+            if ( $result_club_id && ! empty( $upload_result ) ) {
+                foreach ( $upload_result as $doc_key => $url ) {
+                    if ( empty( $url ) ) {
+                        continue;
+                    }
+                    update_post_meta( $result_club_id, $doc_key, $url );
+                    if ( strpos( $doc_key, 'doc_' ) === 0 ) {
+                        update_post_meta( $result_club_id, $doc_key . '_status', 'pending' );
+                    }
+                }
+            }
+
             // Post-save actions
             self::handle_post_save_actions( $result_club_id, $affiliation, $is_edit );
             
@@ -151,11 +164,12 @@ class UFSC_CL_Club_Form_Handler {
     
     /**
      * Handle file uploads for documents and logo
-     * 
+     *
      * @param array $data Current form data
+     * @param int $club_id Club ID for meta updates
      * @return array|WP_Error Upload results or error
      */
-    private static function handle_file_uploads( $data ) {
+    private static function handle_file_uploads( $data, $club_id = 0 ) {
         $upload_results = array();
         
         // Handle logo upload
@@ -171,6 +185,9 @@ class UFSC_CL_Club_Form_Handler {
             }
             
             $upload_results['logo_url'] = $logo_result['url'];
+            if ( $club_id ) {
+                update_post_meta( $club_id, 'logo_url', $logo_result['url'] );
+            }
         }
         
         // Handle document uploads
@@ -196,6 +213,10 @@ class UFSC_CL_Club_Form_Handler {
                 }
                 
                 $upload_results[$db_field] = $doc_result['url'];
+                if ( $club_id ) {
+                    update_post_meta( $club_id, $db_field, $doc_result['url'] );
+                    update_post_meta( $club_id, $db_field . '_status', 'pending' );
+                }
             }
         }
         

@@ -204,9 +204,9 @@ class UFSC_CL_Club_Form {
                         <label for="logo_upload" class="ufsc-label"><?php esc_html_e( 'Logo du club', 'ufsc-clubs' ); ?></label>
                         <input type="file" id="logo_upload" name="logo_upload" accept=".jpg,.jpeg,.png,.gif" />
                         <p class="ufsc-description"><?php esc_html_e( 'Formats acceptés : JPG, PNG, GIF. Taille max : 2 MB', 'ufsc-clubs' ); ?></p>
-                        <?php if ( ! empty( $club_data['logo_url'] ) ): ?>
+                        <?php if ( ! empty( $club_data['logo_url'] ) && UFSC_CL_Permissions::ufsc_user_can_edit_club( $club_id ) ): ?>
                             <p class="ufsc-current-file">
-                                <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?> 
+                                <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?>
                                 <a href="<?php echo esc_url( $club_data['logo_url'] ); ?>" target="_blank"><?php esc_html_e( 'Voir le logo', 'ufsc-clubs' ); ?></a>
                             </p>
                         <?php endif; ?>
@@ -300,9 +300,9 @@ class UFSC_CL_Club_Form {
                             </label>
                             <input type="file" id="<?php echo esc_attr( $upload_key ); ?>" name="<?php echo esc_attr( $upload_key ); ?>" accept=".pdf,.jpg,.jpeg,.png" <?php echo $doc_info['required'] ? 'required' : ''; ?> />
                             <p class="ufsc-description"><?php esc_html_e( 'Formats acceptés : PDF, JPG, PNG. Taille max : 5 MB', 'ufsc-clubs' ); ?></p>
-                            <?php if ( ! empty( $club_data[$doc_key] ) ): ?>
+                            <?php if ( ! empty( $club_data[$doc_key] ) && UFSC_CL_Permissions::ufsc_user_can_edit_club( $club_id ) ): ?>
                                 <p class="ufsc-current-file">
-                                    <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?> 
+                                    <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?>
                                     <a href="<?php echo esc_url( $club_data[$doc_key] ); ?>" target="_blank"><?php esc_html_e( 'Voir le document', 'ufsc-clubs' ); ?></a>
                                 </p>
                             <?php endif; ?>
