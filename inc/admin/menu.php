@@ -252,7 +252,7 @@ function ufsc_render_licences_page() {
 function ufsc_get_clubs_count() {
     global $wpdb;
     
-    $clubs_table = ufsc_get_clubs_table();
+    $clubs_table = ufsc_sanitize_table_name( ufsc_get_clubs_table() );
     
     if ( ! ufsc_table_exists( $clubs_table ) ) {
         return 0;
@@ -268,7 +268,7 @@ function ufsc_get_clubs_count() {
 function ufsc_get_licences_count() {
     global $wpdb;
     
-    $licences_table = ufsc_get_licences_table();
+    $licences_table = ufsc_sanitize_table_name( ufsc_get_licences_table() );
     
     if ( ! ufsc_table_exists( $licences_table ) ) {
         return 0;
