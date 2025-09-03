@@ -11,7 +11,7 @@ class UFSC_Import_Export {
      * Export licences to CSV
      *
      * @param int   $club_id Club ID
-     * @param array $filters Optional filters
+     * @param array $filters Optional filters (status, season, ids)
      * @return array Result with success status and file info
      */
     public static function export_licences_csv( $club_id, $filters = array() ) {
@@ -113,7 +113,7 @@ class UFSC_Import_Export {
      * Export licences to Excel (XLSX)
      *
      * @param int   $club_id Club ID
-     * @param array $filters Optional filters
+     * @param array $filters Optional filters (status, season, ids)
      * @return array Result with success status and file info
      */
     public static function export_licences_xlsx( $club_id, $filters = array() ) {
@@ -487,6 +487,15 @@ class UFSC_Import_Export {
             }
         }
 
+        if ( ! empty( $filters['ids'] ) && is_array( $filters['ids'] ) ) {
+            $ids = array_filter( array_map( 'intval', $filters['ids'] ) );
+            if ( ! empty( $ids ) ) {
+                $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+                $where[]      = "id IN ({$placeholders})";
+                $values       = array_merge( $values, $ids );
+            }
+        }
+
         $sql = "SELECT id, nom, prenom, email, telephone, date_naissance, sexe, adresse, ville, code_postal, statut, date_creation, date_validation
                 FROM {$licences_table}
                 WHERE " . implode( ' AND ', $where );
@@ -621,6 +630,7 @@ function ufsc_handle_export_request() {
     $filters = array(
         'season' => isset( $_GET['season'] ) ? sanitize_text_field( wp_unslash( $_GET['season'] ) ) : null,
         'status' => isset( $_GET['status'] ) ? sanitize_text_field( wp_unslash( $_GET['status'] ) ) : null,
+        'ids'    => isset( $_REQUEST['ids'] ) ? array_map( 'intval', (array) $_REQUEST['ids'] ) : array(),
     );
 
     switch ( $format ) {

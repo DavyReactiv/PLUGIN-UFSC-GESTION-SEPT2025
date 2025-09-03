@@ -90,6 +90,10 @@
                 self.handleExportSelection();
             });
 
+            $(document).on('change', '#ufsc-select-all', function() {
+                $('.ufsc-licence-select').prop('checked', $(this).is(':checked'));
+            });
+
             $('#btn-generer-attestation').on('click', function(e) {
                 e.preventDefault();
                 self.handleGenerateAttestation();
@@ -565,8 +569,26 @@
         },
 
         handleExportSelection: function() {
-            // Placeholder - integrate with export
-            this.showToast('Export - fonctionnalité à venir', 'info');
+            var selectedIds = [];
+            $('.ufsc-licence-select:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+
+            if (selectedIds.length === 0) {
+                this.showToast('Veuillez sélectionner au moins une licence.', 'warning');
+                return;
+            }
+
+            var actionUrl = window.location.href.split('?')[0];
+            var form = $('<form method="get" action="' + actionUrl + '">');
+            form.append('<input type="hidden" name="ufsc_export" value="csv">');
+            selectedIds.forEach(function(id) {
+                form.append('<input type="hidden" name="ids[]" value="' + id + '">');
+            });
+
+            $('body').append(form);
+            form.submit();
+            form.remove();
         },
 
         handleGenerateAttestation: function() {
