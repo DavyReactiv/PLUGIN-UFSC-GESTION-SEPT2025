@@ -136,26 +136,283 @@
     text-align: center;
 }
 
+
 /* Frontend button variants */
 .ufsc-btn-primary {
     background: var(--ufsc-primary);
+
+
+/* Interactive elements */
+a,
+button,
+.ufsc-btn {
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+a {
+    color: #177bbe;
+    text-decoration: underline;
+}
+
+a:hover,
+a:focus {
+    color: #125f96;
+}
+
+a:active {
+    color: #0f5180;
+}
+
+a:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+button:focus,
+.ufsc-btn:focus {
+    outline: 2px solid #000;
+    outline-offset: 2px;
+}
+
+
+/* Affiliation form grid structure */
+.ufsc-grid {
+    display: grid;
+    gap: var(--ufsc-spacing-sm, 16px);
+}
+
+.ufsc-field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: var(--ufsc-spacing-sm, 16px);
+}
+
+.ufsc-field-group {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--ufsc-spacing-sm, 16px);
+}
+
+.ufsc-field label {
+    font-weight: 600;
+    margin-bottom: var(--ufsc-spacing-xs, 8px);
+}
+
+.ufsc-field label.required::after {
+    content: " *";
+    color: var(--ufsc-danger, #ef4444);
+}
+
+.ufsc-field input,
+.ufsc-field select {
+    width: 100%;
+    padding: var(--ufsc-spacing-xs, 8px) var(--ufsc-spacing-sm, 16px);
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+.ufsc-field input:focus,
+.ufsc-field select:focus {
+    outline: 2px solid var(--ufsc-primary, #2271b1);
+    outline-offset: 2px;
+}
+
+.ufsc-field input[type="file"]:focus {
+    outline: 2px solid var(--ufsc-primary, #2271b1);
+    outline-offset: 2px;
+}
+
+.ufsc-checkbox-row label {
+    align-items: center;
+    font-weight: normal;
+    display: flex;
+}
+
+.ufsc-checkbox-row input[type="checkbox"] {
+    width: auto;
+    margin-right: var(--ufsc-spacing-xs, 8px);
+}
+
+.ufsc-error-message {
+    color: var(--ufsc-danger, #ef4444);
+    font-size: 0.875rem;
+    margin-top: 4px;
+}
+
+.ufsc-help {
+    font-size: 0.875rem;
+    color: var(--ufsc-neutral, #6b7280);
+    margin-top: 4px;
+}
+
+.ufsc-affiliation-form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.ufsc-form-section {
+    background: #f9f9f9;
+    padding: var(--ufsc-spacing-md, 24px);
+    margin-bottom: var(--ufsc-spacing-md, 24px);
+    border-radius: 5px;
+}
+
+.ufsc-form-section h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: var(--ufsc-spacing-xs, 8px);
+}
+
+.ufsc-message.ufsc-success {
+    background: #d4edda;
+    border-left: 4px solid var(--ufsc-success, #059669);
+    color: #155724;
+}
+
+.ufsc-message.ufsc-error {
+    background: #f8d7da;
+    border-left: 4px solid var(--ufsc-danger, #ef4444);
+    color: #721c24;
+}
+
+.ufsc-message.ufsc-info {
+    background: #d1ecf1;
+    border-left: 4px solid var(--ufsc-info, #3b82f6);
+    color: #0c5460;
+}
+
+@media (max-width: 768px) {
+    .ufsc-field-group {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* Frontend buttons */
+.ufsc-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    background: #177bbe;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 4px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.ufsc-btn:hover {
+    background: #156fae;
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.ufsc-btn:active {
+    background: #125f96;
+    transform: translateY(0);
+}
+
+.ufsc-btn-primary {
+    background: #177bbe;
+
 }
 
 .ufsc-btn-success {
-    background: #27ae60;
+    background: #02893b;
 }
 
 .ufsc-btn-success:hover {
-    background: #219a52;
+    background: #026c2f;
+}
+
+.ufsc-btn-success:active {
+    background: #025526;
 }
 
 .ufsc-btn-secondary {
-    background: #95a5a6;
-    color: white;
+    background: #69797a;
+    color: #fff;
 }
 
 .ufsc-btn-secondary:hover {
-    background: #7f8c8d;
+    background: #566364;
+}
+
+.ufsc-btn-secondary:active {
+    background: #495355;
+}
+
+/* Badge styling */
+.ufsc-badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 0.75em;
+    font-weight: 600;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    border: 1px solid transparent;
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ufsc-badge:hover {
+    opacity: 0.9;
+}
+
+.ufsc-badge-success {
+    background-color: #0a8927;
+    color: #fff;
+}
+
+.ufsc-badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.ufsc-badge-info {
+    background-color: #008298;
+    color: #fff;
+}
+
+.ufsc-badge-danger {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.ufsc-badge-region {
+    background-color: #0073aa;
+    color: #fff;
+}
+
+.ufsc-badge-doc-complete {
+    background-color: #0a8927;
+    color: #fff;
+}
+
+.ufsc-badge-doc-partial {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.ufsc-badge-doc-missing {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.ufsc-badge-sm {
+    padding: 0.2em 0.5em;
+    font-size: 0.65em;
+}
+
+.ufsc-badge-lg {
+    padding: 0.35em 0.8em;
+    font-size: 0.85em;
 }
 
 /* Club dashboard styling */

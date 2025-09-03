@@ -240,6 +240,9 @@
     .ufsc-row-actions {
         flex-direction: column;
     }
+    .ufsc-hide-mobile {
+        display: none;
+    }
 }
 
 /* // UFSC: Documents Status */
@@ -484,6 +487,13 @@
     background: #f8f9fa;
     font-weight: 600;
     color: #495057;
+}
+
+.ufsc-table thead {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 1;
 }
 
 .ufsc-table tbody tr:hover {
