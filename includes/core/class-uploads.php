@@ -57,8 +57,16 @@ class UFSC_CL_Uploads {
             require_once ABSPATH . 'wp-admin/includes/image.php';
         }
         
-        // Handle upload
-        $upload_overrides = array( 'test_form' => false );
+        // Handle upload with custom filename sanitization
+        $upload_overrides = array(
+            'test_form' => false,
+            'unique_filename_callback' => function( $dir, $name, $ext ) {
+                $name = remove_accents( $name );
+                $name = sanitize_file_name( $name );
+                $hash = substr( md5( uniqid( '', true ) ), 0, 8 );
+                return $name . '-' . $hash . $ext;
+            },
+        );
         $uploaded_file = wp_handle_upload( $file, $upload_overrides );
         
         if ( isset( $uploaded_file['error'] ) ) {

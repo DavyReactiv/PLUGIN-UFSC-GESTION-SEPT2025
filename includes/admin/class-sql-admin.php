@@ -308,7 +308,7 @@ class UFSC_SQL_Admin {
         // Attestation UFSC section
         echo '<div style="margin-bottom: 20px;">';
         echo '<h4>' . esc_html__( 'Attestation UFSC', 'ufsc-clubs' ) . '</h4>';
-        
+
         $attestation_id = get_option( 'ufsc_club_doc_attestation_ufsc_' . $club_id );
         if ( $attestation_id ) {
             $attestation_url = wp_get_attachment_url( $attestation_id );
@@ -324,13 +324,47 @@ class UFSC_SQL_Admin {
                 echo '</p>';
             }
         }
-        
+
         echo '<p>';
         echo '<label for="attestation_ufsc_upload">' . esc_html__( 'Nouvelle attestation (PDF, JPG, PNG, max 5MB):', 'ufsc-clubs' ) . '</label><br>';
         echo '<input type="file" id="attestation_ufsc_upload" name="attestation_ufsc_upload" accept=".pdf,.jpg,.jpeg,.png">';
         echo '</p>';
         echo '</div>';
-        
+
+        // Other club documents
+        $documents = array(
+            'doc_statuts' => __( 'Statuts', 'ufsc-clubs' ),
+            'doc_recepisse' => __( 'Récépissé', 'ufsc-clubs' ),
+            'doc_jo' => __( 'Journal Officiel', 'ufsc-clubs' ),
+            'doc_pv_ag' => __( 'PV AG', 'ufsc-clubs' ),
+            'doc_cer' => __( 'CER', 'ufsc-clubs' ),
+            'doc_attestation_cer' => __( 'Attestation CER', 'ufsc-clubs' ),
+        );
+
+        $status_options = array(
+            'pending' => __( 'En attente', 'ufsc-clubs' ),
+            'approved' => __( 'Approuvé', 'ufsc-clubs' ),
+            'rejected' => __( 'Rejeté', 'ufsc-clubs' ),
+        );
+
+        foreach ( $documents as $doc_key => $label ) {
+            $url = get_post_meta( $club_id, $doc_key, true );
+            $status = get_post_meta( $club_id, $doc_key . '_status', true );
+            echo '<div style="margin-bottom: 20px;">';
+            echo '<h4>' . esc_html( $label ) . '</h4>';
+            if ( $url ) {
+                echo '<p><a href="' . esc_url( $url ) . '" target="_blank" class="button">' . esc_html__( 'Télécharger', 'ufsc-clubs' ) . '</a></p>';
+            } else {
+                echo '<p>' . esc_html__( 'Aucun fichier.', 'ufsc-clubs' ) . '</p>';
+            }
+            echo '<p><label>' . esc_html__( 'Statut:', 'ufsc-clubs' ) . ' <select name="' . esc_attr( $doc_key . '_status' ) . '">';
+            foreach ( $status_options as $value => $label_option ) {
+                echo '<option value="' . esc_attr( $value ) . '" ' . selected( $status, $value, false ) . '>' . esc_html( $label_option ) . '</option>';
+            }
+            echo '</select></label></p>';
+            echo '</div>';
+        }
+
         echo '</div>';
     }
 
@@ -445,6 +479,15 @@ class UFSC_SQL_Admin {
             // Handle file uploads after club is saved/updated
             if ( $id ) {
                 self::handle_club_document_uploads( $id );
+
+                // Update document statuses
+                $documents = array( 'doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer' );
+                foreach ( $documents as $doc_key ) {
+                    if ( isset( $_POST[ $doc_key . '_status' ] ) ) {
+                        $status = sanitize_text_field( $_POST[ $doc_key . '_status' ] );
+                        update_post_meta( $id, $doc_key . '_status', $status );
+                    }
+                }
             }
 
             wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&action=edit&id='.$id.'&updated=1') );
