@@ -71,6 +71,8 @@ class UFSC_Affiliation_Form {
             <?php echo $success_message; ?>
             <?php echo $error_message; ?>
 
+            <div class="ufsc-notices" aria-live="polite"></div>
+
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-form">
                 <?php wp_nonce_field( 'ufsc_create_club', 'ufsc_nonce' ); ?>
                 <input type="hidden" name="action" value="ufsc_create_club">
