@@ -23,6 +23,8 @@ class UFSC_Auth_Shortcodes {
      * @return string HTML output
      */
     public static function render_login_form( $atts = array() ) {
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+
         $atts = shortcode_atts( array(
             'redirect_admin' => admin_url( 'admin.php?page=ufsc-gestion' ),
             'redirect_club' => home_url( '/club-dashboard/' ),
@@ -89,78 +91,6 @@ class UFSC_Auth_Shortcodes {
                 <?php endif; ?>
             </form>
         </div>
-
-        <style>
-        .ufsc-login-form {
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background: #fff;
-        }
-        .ufsc-login-title {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #333;
-        }
-        .ufsc-form-group {
-            margin-bottom: 15px;
-        }
-        .ufsc-form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-        .ufsc-form-control {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .ufsc-form-control:focus {
-            border-color: #0073aa;
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.2);
-        }
-        .ufsc-form-checkbox label {
-            display: inline;
-            font-weight: normal;
-            margin-left: 5px;
-        }
-        .ufsc-btn {
-            display: inline-block;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-        .ufsc-btn-primary {
-            background-color: #0073aa;
-            color: #fff;
-            width: 100%;
-        }
-        .ufsc-btn-primary:hover {
-            background-color: #005a87;
-        }
-        .ufsc-form-links {
-            text-align: center;
-            margin-top: 10px;
-        }
-        .ufsc-form-links a {
-            color: #0073aa;
-            text-decoration: none;
-            font-size: 13px;
-        }
-        .ufsc-form-links a:hover {
-            text-decoration: underline;
-        }
-        </style>
         <?php
         return ob_get_clean();
     }
@@ -204,6 +134,8 @@ class UFSC_Auth_Shortcodes {
      * @return string HTML output
      */
     public static function render_user_status( $atts = array() ) {
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+
         $atts = shortcode_atts( array(
             'show_avatar' => 'true',
             'show_role' => 'true',
@@ -255,47 +187,6 @@ class UFSC_Auth_Shortcodes {
                 <?php endif; ?>
             </div>
         </div>
-
-        <style>
-        .ufsc-user-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 4px;
-            border: 1px solid #e9ecef;
-        }
-        .ufsc-user-status.ufsc-not-logged-in {
-            text-align: center;
-            color: #6c757d;
-        }
-        .ufsc-user-avatar img {
-            border-radius: 50%;
-        }
-        .ufsc-user-info {
-            flex: 1;
-        }
-        .ufsc-user-name {
-            margin-bottom: 2px;
-        }
-        .ufsc-user-role, .ufsc-user-club {
-            font-size: 12px;
-            color: #6c757d;
-            margin-bottom: 2px;
-        }
-        .ufsc-user-actions {
-            margin-top: 5px;
-        }
-        .ufsc-logout-button {
-            font-size: 12px;
-            color: #dc3545;
-            text-decoration: none;
-        }
-        .ufsc-logout-button:hover {
-            text-decoration: underline;
-        }
-        </style>
         <?php
         return ob_get_clean();
     }
