@@ -184,10 +184,24 @@ class UFSC_CLI_Commands {
     // Helper methods -----------------------------------------------------
 
     /**
+
+     * Retrieve statistics for a single club.
+     *
+     * Uses the UFSC licences table to count the number of total, paid and
+     * validated licences for the provided club and season. Results are cached
+     * for an hour using the WordPress transient API so that repeated CLI calls
+     * remain fast.
+     *
+     * @param int    $club_id Club identifier.
+     * @param string $season  Season identifier (e.g. "2025-2026").
+     *
+     * @return array Array of counts: total, paid, validated and remaining quota.
+
      * Compute and cache statistics for a single club.
      *
      * Stats are cached in a transient for one hour so repeated calls are
      * inexpensive when running a batch command across all clubs.
+
      */
     private function get_club_stats( $club_id, $season ) {
         $cache_key = "ufsc_stats_{$club_id}_{$season}";
@@ -290,7 +304,19 @@ class UFSC_CLI_Commands {
     }
 
     /**
+
+     * Retrieve statistics for every club.
+     *
+     * Queries the UFSC clubs table to obtain all club identifiers then delegates
+     * to {@see get_club_stats()} for each club. This ensures consistent cache
+     * usage and counter calculation across the CLI commands.
+     *
+     * @param string $season Season identifier.
+     *
+     * @return array[] List of statistics indexed by club.
+
      * Get statistics for all clubs.
+
      */
     private function get_all_clubs_stats( $season ) {
         if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
@@ -330,7 +356,16 @@ class UFSC_CLI_Commands {
     }
 
     /**
+
+     * Display debugging information about the cache layer.
+     *
+     * The command reports whether an external object cache is in use and, when
+     * available, leverages the UFSC cache manager to list details about cached
+     * transients. This is primarily useful for troubleshooting during
+     * development or when running the CLI tools in production.
+
      * Display information about the WordPress and UFSC caches.
+
      */
     private function cache_info() {
         WP_CLI::log( 'Cache information:' );
