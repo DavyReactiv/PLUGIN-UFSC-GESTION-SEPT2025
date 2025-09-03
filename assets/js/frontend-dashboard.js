@@ -63,7 +63,7 @@
             });
 
             // // UFSC: Filters
-            $('.ufsc-filter').on('change', function() {
+            $('.ufsc-filter, .ufsc-filter-checkbox').on('change', function() {
                 self.applyFilters();
             });
 
@@ -217,6 +217,7 @@
         loadRecentLicences: function() {
             var self = this;
             var filters = this.getCurrentFilters();
+            filters.drafts_only = $('#filter-drafts').is(':checked') ? 1 : 0;
             var cacheKey = 'recent_licences_' + this.config.club_id + '_' + JSON.stringify(filters);
 
             if (this.isCacheValid(cacheKey)) {
@@ -259,8 +260,9 @@
                 html += '<td>' + self.renderLicenceActions(licence) + '</td>';
                 html += '</tr>';
             });
-            
+
             html += '</tbody></table>';
+            html += '<p class="ufsc-table-note">Utilisez le filtre « Afficher seulement les brouillons » pour ne voir que ces licences.</p>';
             container.html(html);
         },
 

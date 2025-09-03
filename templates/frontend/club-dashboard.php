@@ -69,6 +69,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                     <option value="1"><?php echo esc_html__( 'Compétition', 'ufsc-clubs' ); ?></option>
                     <option value="0"><?php echo esc_html__( 'Loisir', 'ufsc-clubs' ); ?></option>
                 </select>
+                <label class="ufsc-filter-checkbox-label">
+                    <input type="checkbox" id="filter-drafts" class="ufsc-filter-checkbox" />
+                    <?php echo esc_html__( 'Afficher seulement les brouillons', 'ufsc-clubs' ); ?>
+                </label>
                 <button id="btn-export-csv" class="ufsc-btn ufsc-btn-secondary">
                     <span class="dashicons dashicons-download" aria-hidden="true"></span>
                     <?php echo esc_html__( 'Export CSV', 'ufsc-clubs' ); ?>

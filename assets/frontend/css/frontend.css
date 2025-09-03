@@ -179,10 +179,26 @@
     font-size: 0.9rem;
 }
 
+.ufsc-filter-checkbox-label {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.ufsc-filter-checkbox-label input {
+    margin-right: 0.25rem;
+}
+
 /* // UFSC: Recent Licenses Table */
 .ufsc-recent-licences table {
     width: 100%;
     border-collapse: collapse;
+}
+
+.ufsc-table-note {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #6c757d;
 }
 
 .ufsc-recent-licences th,
@@ -240,8 +256,9 @@
 }
 
 .ufsc-badge.-draft {
-    background: #f8f9fa;
-    color: #6c757d;
+    background: #fff9c4;
+    color: #856404;
+    border: 1px dotted #d39e00;
 }
 
 .ufsc-badge.-pending {
