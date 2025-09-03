@@ -161,103 +161,78 @@ if ( ! function_exists( 'ufsc_get_user_club_id' ) ) {
  */
 if ( ! function_exists( 'ufsc_mark_affiliation_paid' ) ) {
     function ufsc_mark_affiliation_paid( $club_id, $season ) {
-        // STUB: This should update the club record to mark affiliation as paid for the season
-        // Implementation depends on how affiliation payment status is stored
-        
-        // Example implementation (to be adjusted):
-        /*
         global $wpdb;
+
         $clubs_table = ufsc_get_clubs_table();
-        
+
+        // Update affiliation date to mark payment
         $wpdb->update(
             $clubs_table,
-            array( 'affiliation_paid_' . str_replace( '-', '_', $season ) => 1 ),
+            array( 'date_affiliation' => current_time( 'mysql' ) ),
             array( 'id' => $club_id ),
-            array( '%d' ),
+            array( '%s' ),
             array( '%d' )
         );
-        */
     }
 }
 
 /**
  * Mark a specific license as paid
- * TODO: Implement according to existing database schema
- * 
+ *
  * @param int $license_id License ID
  * @param string $season Season identifier
  */
 if ( ! function_exists( 'ufsc_mark_licence_paid' ) ) {
     function ufsc_mark_licence_paid( $license_id, $season ) {
-        // STUB: This should update the license record to mark it as paid for the season
-        // Implementation depends on how license payment status is stored
-        
-        // Example implementation (to be adjusted):
-        /*
         global $wpdb;
+
         $licences_table = ufsc_get_licences_table();
-        
         $wpdb->update(
             $licences_table,
-            array( 'paid_season' => $season, 'is_included' => 0 ),
+            array( 'statut' => 'en_attente', 'is_included' => 0 ),
             array( 'id' => $license_id ),
             array( '%s', '%d' ),
             array( '%d' )
         );
-        */
     }
 }
 
 /**
  * Add included licenses to club quota
- * TODO: Implement according to existing database schema
- * 
+ *
  * @param int $club_id Club ID
  * @param int $quantity Number of licenses to add
  * @param string $season Season identifier
  */
 function ufsc_quota_add_included( $club_id, $quantity, $season ) {
-    // STUB: This should add included licenses to the club's quota for the season
-    // Implementation depends on how quota is tracked in the database
-    
-    // Example implementation (to be adjusted):
-    /*
     global $wpdb;
+
     $clubs_table = ufsc_get_clubs_table();
-    
-    $wpdb->query( $wpdb->prepare(
-        "UPDATE {$clubs_table} 
-         SET quota_included = quota_included + %d 
-         WHERE id = %d",
-        $quantity,
-        $club_id
-    ) );
-    */
+    $wpdb->query(
+        $wpdb->prepare(
+            "UPDATE {$clubs_table} SET quota_licences = COALESCE(quota_licences,0) + %d WHERE id = %d",
+            $quantity,
+            $club_id
+        )
+    );
 }
 
 /**
  * Add paid licenses to club quota
- * TODO: Implement according to existing database schema
- * 
+ *
  * @param int $club_id Club ID
  * @param int $quantity Number of licenses to add
  * @param string $season Season identifier
  */
 function ufsc_quota_add_paid( $club_id, $quantity, $season ) {
-    // STUB: This should add paid licenses to the club's available quota for the season
-    // Implementation depends on how quota is tracked in the database
-    
-    // Example implementation (to be adjusted):
-    /*
     global $wpdb;
+
     $clubs_table = ufsc_get_clubs_table();
-    
-    $wpdb->query( $wpdb->prepare(
-        "UPDATE {$clubs_table} 
-         SET quota_paid = quota_paid + %d 
-         WHERE id = %d",
-        $quantity,
-        $club_id
-    ) );
-    */
+    $wpdb->query(
+        $wpdb->prepare(
+            "UPDATE {$clubs_table} SET quota_licences = COALESCE(quota_licences,0) + %d WHERE id = %d",
+            $quantity,
+            $club_id
+        )
+    );
 }
