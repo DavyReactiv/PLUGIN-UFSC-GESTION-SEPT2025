@@ -145,9 +145,19 @@
     text-decoration: underline;
 }
 
+/* Dirigeants layout */
+.ufsc-dirigeants {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.ufsc-dirigeants .ufsc-field input {
+    width: 100%;
+}
+
 /* Dirigeants Sections */
 .ufsc-dirigeant-section {
-    margin-bottom: 30px;
     padding: 15px;
     background: #fff;
     border: 1px solid #e0e0e0;
