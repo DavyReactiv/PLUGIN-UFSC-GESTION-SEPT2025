@@ -151,24 +151,23 @@ function ufsc_display_cart_item_data( $item_data, $cart_item ) {
  * @return string|false Club name or false if not found
  */
 function ufsc_get_club_name( $club_id ) {
-    // STUB: This should query the existing database to get the club name
-    // Implementation depends on the actual database schema
-    
-    // Example implementation (to be adjusted):
-    /*
     global $wpdb;
+
+    // Retrieve club name from configured clubs table
     $clubs_table = ufsc_get_clubs_table();
-    
-    $club_name = $wpdb->get_var( $wpdb->prepare(
-        "SELECT nom FROM {$clubs_table} WHERE id = %d",
-        $club_id
-    ) );
-    
-    return $club_name ?: false;
-    */
-    
-    // Temporary fallback
-    return sprintf( __( 'Club #%d', 'ufsc-clubs' ), $club_id );
+    $club_name   = $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT nom FROM {$clubs_table} WHERE id = %d",
+            $club_id
+        )
+    );
+
+    // Return false if club not found
+    if ( null === $club_name ) {
+        return false;
+    }
+
+    return $club_name;
 }
 
 /**
