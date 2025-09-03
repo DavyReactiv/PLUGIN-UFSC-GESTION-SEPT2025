@@ -360,7 +360,7 @@ class UFSC_Frontend_Shortcodes {
                                                aria-label="<?php esc_attr_e( 'Consulter la licence', 'ufsc-clubs' ); ?>">
                                                 <?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?>
                                             </a>
-                                            <?php if ( in_array( $licence->statut ?? '', array( 'brouillon', 'non_payee', 'refusee' ), true ) ) : ?>
+                                            <?php if ( in_array( $licence->statut ?? '', array( 'brouillon' ), true ) ) : ?>
                                                 <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"
                                                    class="ufsc-btn ufsc-btn-small"
                                                    aria-label="<?php esc_attr_e( 'Modifier la licence', 'ufsc-clubs' ); ?>">
