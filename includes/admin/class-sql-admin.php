@@ -335,15 +335,23 @@ class UFSC_SQL_Admin {
     }
 
     public static function handle_save_club(){
-        if ( ! current_user_can('manage_options') ) wp_die('Accès refusé');
         check_admin_referer('ufsc_sql_save_club');
 
+        $user_id = get_current_user_id();
+        $id      = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+
+        // Permission check to ensure user can manage this club
+        if ( ! current_user_can( 'manage_options' ) && ufsc_get_user_club_id( $user_id ) !== $id ) {
+            set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
+            wp_safe_redirect( wp_get_referer() );
+            exit; // Abort processing if user lacks rights
+        }
+
         global $wpdb;
-        $s = UFSC_SQL::get_settings();
-        $t = $s['table_clubs'];
-        $pk = $s['pk_club'];
+        $s      = UFSC_SQL::get_settings();
+        $t      = $s['table_clubs'];
+        $pk     = $s['pk_club'];
         $fields = UFSC_SQL::get_club_fields();
-        $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
 
         $data = array();
         foreach( $fields as $k=>$conf ){
@@ -1123,15 +1131,24 @@ class UFSC_SQL_Admin {
     }
 
     public static function handle_save_licence(){
-        if ( ! current_user_can('manage_options') ) wp_die('Accès refusé');
         check_admin_referer('ufsc_sql_save_licence');
 
+        $user_id   = get_current_user_id();
+        $club_id   = isset( $_POST['club_id'] ) ? (int) $_POST['club_id'] : 0;
+
+        // Ensure the current user has rights to manage the targeted club
+        if ( ! current_user_can( 'manage_options' ) && ufsc_get_user_club_id( $user_id ) !== $club_id ) {
+            set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
+            wp_safe_redirect( wp_get_referer() );
+            exit; // Abort processing on permission failure
+        }
+
         global $wpdb;
-        $s = UFSC_SQL::get_settings();
-        $t = $s['table_licences'];
-        $pk = $s['pk_licence'];
+        $s      = UFSC_SQL::get_settings();
+        $t      = $s['table_licences'];
+        $pk     = $s['pk_licence'];
         $fields = UFSC_SQL::get_licence_fields();
-        $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+        $id     = isset($_POST['id']) ? (int) $_POST['id'] : 0;
 
         $data = array();
         foreach( $fields as $k=>$conf ){
@@ -1382,14 +1399,24 @@ class UFSC_SQL_Admin {
     }
 
     public static function handle_delete_licence(){
-        if ( ! current_user_can('manage_options') ) wp_die('Accès refusé');
         check_admin_referer('ufsc_sql_delete_licence');
 
         global $wpdb;
-        $s = UFSC_SQL::get_settings();
-        $t = $s['table_licences'];
+        $s  = UFSC_SQL::get_settings();
+        $t  = $s['table_licences'];
         $pk = $s['pk_licence'];
         $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+        // Fetch the club ID for the licence to validate permissions
+        $club_id = $id ? (int) $wpdb->get_var( $wpdb->prepare( "SELECT club_id FROM {$t} WHERE {$pk} = %d", $id ) ) : 0;
+        $user_id = get_current_user_id();
+
+        // Verify capability and club ownership before proceeding
+        if ( ! current_user_can( 'manage_options' ) && ufsc_get_user_club_id( $user_id ) !== $club_id ) {
+            set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
+            wp_safe_redirect( wp_get_referer() );
+            exit; // Abort if user lacks rights on this club
+        }
 
         if ( $id ){
             $result = $wpdb->delete( $t, array( $pk=>$id ) );

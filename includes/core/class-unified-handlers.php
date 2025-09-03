@@ -42,17 +42,27 @@ class UFSC_Unified_Handlers {
         }
 
         $licence_id = isset( $_POST['licence_id'] ) ? intval( $_POST['licence_id'] ) : 0;
-        $is_edit = $licence_id > 0;
-        
-        // Check permissions
+        $is_edit    = $licence_id > 0;
+
+        // Basic authentication check
         if ( ! is_user_logged_in() ) {
             self::redirect_with_error( 'Vous devez être connecté', $licence_id );
             return;
         }
-        
-        $user_id = get_current_user_id();
-        $club_id = ufsc_get_user_club_id( $user_id );
-        
+
+        $user_id        = get_current_user_id();
+        $managed_club   = ufsc_get_user_club_id( $user_id );
+        $target_club_id = isset( $_POST['club_id'] ) ? intval( $_POST['club_id'] ) : $managed_club;
+
+        // Ensure current user can manage the target club
+        if ( ! current_user_can( 'manage_options' ) && $managed_club !== $target_club_id ) {
+            set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
+            wp_safe_redirect( wp_get_referer() );
+            exit; // Abort processing when permission check fails
+        }
+
+        $club_id = $target_club_id;
+
         if ( ! $club_id ) {
             self::redirect_with_error( 'Aucun club associé à votre compte', $licence_id );
             return;
@@ -110,19 +120,24 @@ class UFSC_Unified_Handlers {
             wp_die( __( 'Nonce verification failed', 'ufsc-clubs' ) );
         }
 
-        // Check permissions
+        // Basic authentication check
         if ( ! is_user_logged_in() ) {
             self::redirect_with_error( 'Vous devez être connecté' );
             return;
         }
-        
-        $user_id = get_current_user_id();
-        $club_id = ufsc_get_user_club_id( $user_id );
-        
-        if ( ! $club_id || ! self::user_can_manage_club( $user_id, $club_id ) ) {
-            self::redirect_with_error( 'Permissions insuffisantes' );
-            return;
+
+        $user_id        = get_current_user_id();
+        $managed_club   = ufsc_get_user_club_id( $user_id );
+        $target_club_id = isset( $_POST['club_id'] ) ? intval( $_POST['club_id'] ) : $managed_club;
+
+        // Ensure the current user can manage the requested club
+        if ( ! current_user_can( 'manage_options' ) && $managed_club !== $target_club_id ) {
+            set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
+            wp_safe_redirect( wp_get_referer() );
+            exit; // Abort if user doesn't manage this club
         }
+
+        $club_id = $target_club_id;
         
         // Validate and sanitize data
         $data = self::validate_club_data( $_POST );
