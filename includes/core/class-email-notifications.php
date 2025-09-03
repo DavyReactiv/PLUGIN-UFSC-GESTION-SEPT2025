@@ -705,7 +705,9 @@ class UFSC_Email_Notifications {
 
         return home_url( '/tableau-de-bord/' );
 
+
         return $dashboard_page ? get_permalink( $dashboard_page ) : home_url( '/club-dashboard/' );
+
 
     }
 }
