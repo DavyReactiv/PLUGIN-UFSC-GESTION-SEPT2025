@@ -456,7 +456,67 @@ class UFSC_Import_Export {
             'licence_ids' => $created_licence_ids
         );
     }
+// Database interaction methods
 
+/* ---------------------------------------------------------------------
+ * Helper methods
+ * ------------------------------------------------------------------ */
+
+
+/**
+ * Retrieve club licences for export.
+ *
+ * @param int   $club_id Club identifier.
+ * @param array $filters Optional filters (status, season).
+ *
+ * @return array List of licences.
+ */
+protected static function get_club_licences_for_export( $club_id, $filters ) {
+    global $wpdb;
+
+    $settings       = UFSC_SQL::get_settings();
+    $licences_table = $settings['table_licences'];
+
+    $where  = array( 'club_id = %d' );
+    $values = array( $club_id );
+
+    if ( ! empty( $filters['status'] ) ) {
+        $where[]  = 'statut = %s';
+        $values[] = sanitize_text_field( $filters['status'] );
+    }
+
+    if ( ! empty( $filters['season'] ) ) {
+        $season_col = ufsc_get_mapped_column_if_exists( $licences_table, 'season', 'licences' );
+        if ( $season_col ) {
+            $where[]  = "`{$season_col}` = %s";
+            $values[] = sanitize_text_field( $filters['season'] );
+        }
+    }
+
+    $sql = "SELECT id, nom, prenom, email, telephone, date_naissance, sexe, adresse, ville, code_postal, statut, date_creation, date_validation\n                FROM {$licences_table}\n                WHERE " . implode( ' AND ', $where );
+
+    $results = $wpdb->get_results( $wpdb->prepare( $sql, $values ), ARRAY_A );
+
+    return is_array( $results ) ? $results : array();
+}
+
+/**
+ * Get the display name of a club.
+ *
+ * @param int $club_id Club ID.
+ * @return string Club name or default string.
+ */
+protected static function get_club_name( $club_id ) {
+    global $wpdb;
+
+    $settings    = UFSC_SQL::get_settings();
+    $clubs_table = $settings['table_clubs'];
+    $name_col    = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'name' ) : 'nom';
+
+    $name = $wpdb->get_var( $wpdb->prepare(
+        "SELECT {$name_col} FROM {$clubs_table} WHERE id = %d",
+        $club_id
+    ) );
 
     // Database interaction methods
 
@@ -590,29 +650,90 @@ class UFSC_Import_Export {
     protected static function create_licence_record( $club_id, $data ) {
         global $wpdb;
 
-        $settings       = UFSC_SQL::get_settings();
-        $licences_table = $settings['table_licences'];
+
+    return $name ? $name : "Club_{$club_id}";
+}
+
+/**
+ * Retrieve quota information for a club.
+ *
+ * @param int $club_id Club ID.
+ * @return array{total:int,used:int,remaining:int}
+ */
+protected static function get_club_quota_info( $club_id ) {
+    global $wpdb;
+
+    $settings       = UFSC_SQL::get_settings();
+    $clubs_table    = $settings['table_clubs'];
+    $licences_table = $settings['table_licences'];
+
+    $quota_total = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT quota_licences FROM {$clubs_table} WHERE id = %d",
+        $club_id
+    ) );
+
+    $used = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d",
+        $club_id
+    ) );
+
+    return array(
+        'total'     => $quota_total,
+        'used'      => $used,
+        'remaining' => max( 0, $quota_total - $used ),
+    );
+}
+
+/**
+ * Create a licence record.
+ *
+ * @param int   $club_id Club ID.
+ * @param array $data    Licence data.
+ * @return int Licence ID on success, 0 on failure.
+ */
+protected static function create_licence_record( $club_id, $data ) {
+    global $wpdb;
+
+    $settings       = UFSC_SQL::get_settings();
+    $licences_table = $settings['table_licences'];
 
 
-        $insert_data = array_merge(
-            $data,
-            array(
-                'club_id'       => $club_id,
-                'date_creation' => current_time( 'mysql' ),
-            )
-        );
+    $insert_data = array_merge(
+        $data,
+        array(
+            'club_id'       => $club_id,
+            'date_creation' => current_time( 'mysql' ),
+        )
+    );
 
+    $result = $wpdb->insert( $licences_table, $insert_data );
 
         $result = $wpdb->insert( $licences_table, $insert_data );
 
-        if ( false === $result ) {
-            error_log( 'UFSC: Failed to insert licence - ' . $wpdb->last_error );
-            return 0;
-        }
 
-        return (int) $wpdb->insert_id;
+    if ( false === $result ) {
+        error_log( 'UFSC: Failed to insert licence - ' . $wpdb->last_error );
+        return 0;
     }
 
+    return (int) $wpdb->insert_id;
+}
+
+
+/**
+ * Create a payment order for licences over quota.
+ *
+ * Delegates order creation to ufsc_create_additional_license_order for
+ * consistent WooCommerce handling.
+ *
+ * @param int   $club_id     Club ID.
+ * @param array $licence_ids Licence IDs to attach to the order.
+ * @return int|false Order ID on success, false otherwise.
+ */
+protected static function create_payment_order( $club_id, $licence_ids ) {
+    if ( ! function_exists( 'ufsc_create_additional_license_order' ) ) {
+        return false;
+    }
 
     /**
      * Create a payment order for licences over quota.
@@ -631,6 +752,10 @@ class UFSC_Import_Export {
 
 }
 
+
+    return ufsc_create_additional_license_order( $club_id, $licence_ids, get_current_user_id() );
+}
+}
 /**
  * Handle export requests
  */
