@@ -3,11 +3,91 @@
  * Styles for frontend shortcodes and forms
  */
 
+:root {
+    --ufsc-primary: #3498db;
+    --ufsc-bg: #fff;
+    --ufsc-text: #2c3e50;
+}
+
+/* Utility classes */
+.ufsc-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.ufsc-card {
+    background: var(--ufsc-bg);
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.ufsc-field {
+    margin-bottom: 20px;
+}
+
+.ufsc-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    background: var(--ufsc-primary);
+    color: var(--ufsc-bg);
+    text-decoration: none;
+    border-radius: 4px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.ufsc-btn:hover,
+.ufsc-btn:focus {
+    background: #2980b9;
+    color: var(--ufsc-bg);
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.ufsc-btn:active {
+    transform: translateY(0);
+}
+
+.ufsc-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: var(--ufsc-primary);
+    color: var(--ufsc-bg);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.ufsc-row-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.ufsc-row-actions a {
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.ufsc-row-actions a:hover,
+.ufsc-row-actions a:focus {
+    opacity: 0.8;
+}
+
+.ufsc-row-actions a:active {
+    opacity: 0.6;
+}
+
 /* Frontend form styling */
 .ufsc-frontend-form {
     max-width: 600px;
     margin: 20px 0;
-    background: #fff;
+    background: var(--ufsc-bg);
+    color: var(--ufsc-text);
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -16,8 +96,8 @@
 .ufsc-frontend-form h2 {
     margin-top: 0;
     margin-bottom: 20px;
-    color: #2c3e50;
-    border-bottom: 2px solid #3498db;
+    color: var(--ufsc-text);
+    border-bottom: 2px solid var(--ufsc-primary);
     padding-bottom: 10px;
 }
 
@@ -29,7 +109,7 @@
     display: block;
     font-weight: 600;
     margin-bottom: 5px;
-    color: #2c3e50;
+    color: var(--ufsc-text);
 }
 
 .ufsc-form-row input,
@@ -40,14 +120,14 @@
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
-    transition: border-color 0.3s ease;
+    transition: border-color 0.2s ease;
 }
 
 .ufsc-form-row input:focus,
 .ufsc-form-row select:focus,
 .ufsc-form-row textarea:focus {
     outline: none;
-    border-color: #3498db;
+    border-color: var(--ufsc-primary);
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -56,30 +136,9 @@
     text-align: center;
 }
 
-/* Frontend buttons */
-.ufsc-btn {
-    display: inline-block;
-    padding: 12px 24px;
-    background: #3498db;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
-    border: none;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.ufsc-btn:hover {
-    background: #2980b9;
-    color: white;
-    text-decoration: none;
-    transform: translateY(-1px);
-}
-
+/* Frontend button variants */
 .ufsc-btn-primary {
-    background: #3498db;
+    background: var(--ufsc-primary);
 }
 
 .ufsc-btn-success {
@@ -101,7 +160,7 @@
 
 /* Club dashboard styling */
 .ufsc-club-dashboard {
-    background: #fff;
+    background: var(--ufsc-bg);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     margin: 20px 0;
@@ -109,7 +168,7 @@
 }
 
 .ufsc-club-header {
-    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    background: linear-gradient(135deg, var(--ufsc-primary) 0%, #2980b9 100%);
     color: white;
     padding: 20px;
 }
@@ -141,7 +200,7 @@
 .ufsc-stat-value {
     font-size: 2.5em;
     font-weight: bold;
-    color: #3498db;
+    color: var(--ufsc-primary);
     margin: 10px 0;
 }
 
@@ -153,7 +212,7 @@
 
 /* License list styling */
 .ufsc-license-list {
-    background: #fff;
+    background: var(--ufsc-bg);
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     margin: 20px 0;
@@ -179,7 +238,7 @@
 
 .ufsc-license-name {
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--ufsc-text);
     margin-bottom: 4px;
 }
 
@@ -279,7 +338,7 @@
     width: 20px;
     height: 20px;
     border: 2px solid #f3f3f3;
-    border-top: 2px solid #3498db;
+    border-top: 2px solid var(--ufsc-primary);
     border-radius: 50%;
     animation: ufsc-spin-frontend 1s linear infinite;
     margin-right: 8px;
