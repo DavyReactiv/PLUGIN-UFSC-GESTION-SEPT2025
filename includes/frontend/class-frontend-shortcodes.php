@@ -27,6 +27,7 @@ class UFSC_Frontend_Shortcodes {
      */
     public static function render_club_dashboard( $atts = array() ) {
         wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+        wp_enqueue_script( 'chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', array(), '4.4.0', true );
         $atts = shortcode_atts( array(
             'show_sections' => 'licences,stats,profile,add_licence'
         ), $atts );
@@ -45,6 +46,10 @@ class UFSC_Frontend_Shortcodes {
                    esc_html__( 'Aucun club associé à votre compte.', 'ufsc-clubs' ) . 
                    '</div>';
         }
+
+        $wc_settings = ufsc_get_woocommerce_settings();
+        $season = $wc_settings['season'];
+        $stats = self::get_club_stats( $club_id, $season );
 
         $sections = explode( ',', $atts['show_sections'] );
         
@@ -124,15 +129,34 @@ class UFSC_Frontend_Shortcodes {
         jQuery(document).ready(function($) {
             $('.ufsc-nav-btn').on('click', function() {
                 var section = $(this).data('section');
-                
+
                 // Update nav
                 $('.ufsc-nav-btn').removeClass('active');
                 $(this).addClass('active');
-                
+
                 // Show section
                 $('.ufsc-dashboard-section').removeClass('active');
                 $('#ufsc-section-' + section).addClass('active');
             });
+
+            var ctx = document.getElementById('ufsc-licence-chart');
+            if (ctx) {
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Total', 'Payées', 'Validées', 'Quota restant'],
+                        datasets: [{
+                            label: 'Licences',
+                            data: [<?php echo (int) $stats['total_licences']; ?>, <?php echo (int) $stats['paid_licences']; ?>, <?php echo (int) $stats['validated_licences']; ?>, <?php echo (int) $stats['quota_remaining']; ?>],
+                            backgroundColor: ['#36a2eb', '#4caf50', '#ffce56', '#f44336']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
         });
         </script>
         <?php
@@ -415,10 +439,7 @@ class UFSC_Frontend_Shortcodes {
 
             <div class="ufsc-stats-chart">
                 <h4><?php esc_html_e( 'Évolution des licences', 'ufsc-clubs' ); ?></h4>
-                <div class="ufsc-chart-placeholder">
-                    <p><?php esc_html_e( 'Graphique à implémenter avec Chart.js ou équivalent', 'ufsc-clubs' ); ?></p>
-                    <!-- TODO: Add actual chart implementation -->
-                </div>
+                <canvas id="ufsc-licence-chart" height="200"></canvas>
             </div>
         </div>
         <?php
@@ -701,21 +722,20 @@ class UFSC_Frontend_Shortcodes {
         }
 
         // Check quota
-
         $quota_info  = self::get_club_quota_info( $atts['club_id'] );
         $form_data   = array();
         $form_errors = array();
 
         if ( is_user_logged_in() ) {
-            $form_key   = 'ufsc_licence_form_' . get_current_user_id();
-            $stored     = get_transient( $form_key );
+            $form_key = 'ufsc_licence_form_' . get_current_user_id();
+            $stored   = get_transient( $form_key );
             if ( $stored ) {
                 $form_data   = $stored['data'] ?? array();
                 $form_errors = $stored['errors'] ?? array();
                 delete_transient( $form_key );
+            }
+        }
 
-        $quota_info = self::get_club_quota_info( $atts['club_id'] );
-        
         // Handle form submission
         if ( isset( $_POST['ufsc_add_licence'] ) && wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_add_licence' ) ) {
             $result = self::handle_licence_creation( $atts['club_id'], $_POST );
