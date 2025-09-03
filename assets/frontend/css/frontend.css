@@ -1428,3 +1428,142 @@ textarea:focus {
     padding: 10px 14px;
     font-weight: 600;
 }
+
+/* // UFSC: Document Cards */
+.ufsc-documents-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.ufsc-document-card {
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.ufsc-document-header {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-bottom: 1px solid #e1e5e9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ufsc-document-header h5 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.ufsc-document-status .ufsc-status-transmitted {
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.ufsc-document-status .ufsc-status-pending {
+    color: #f39c12;
+    font-weight: 600;
+}
+
+.ufsc-document-content {
+    padding: 1rem;
+}
+
+.ufsc-document-current {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.ufsc-document-name {
+    font-weight: 500;
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+}
+
+.ufsc-document-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ufsc-document-upload .ufsc-file-input {
+    display: none;
+}
+
+.ufsc-upload-label {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #3498db;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.3s ease;
+}
+
+.ufsc-upload-label:hover {
+    background: #2980b9;
+}
+
+.ufsc-help-text {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* // UFSC: Club Profile Sections */
+.ufsc-club-profile .ufsc-section h4 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.2rem;
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.5rem;
+}
+
+.ufsc-form-field {
+    margin-bottom: 1rem;
+}
+
+.ufsc-form-field label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.ufsc-form-field input,
+.ufsc-form-field textarea,
+.ufsc-form-field select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ufsc-form-field input:focus,
+.ufsc-form-field textarea:focus,
+.ufsc-form-field select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.ufsc-form-field input[readonly] {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.ufsc-form-actions {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e1e5e9;
+}
