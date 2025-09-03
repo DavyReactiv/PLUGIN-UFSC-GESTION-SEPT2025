@@ -469,38 +469,15 @@ class UFSC_Import_Export {
     // Database helper methods
 
 
-    /**
-     * Retrieve licences for export.
-     *
-
-     * @param int   $club_id Club ID.
-     * @param array $filters Optional filters (status, season).
-     * @return array List of licences.
-     */
-    protected static function get_club_licences_for_export( $club_id, $filters ) {
-
-     * @param int   $club_id Club ID
-     * @param array $filters Optional filters (season, status)
-     * @return array[] Array of licence rows
-     */
-    protected static function get_club_licences_for_export( $club_id, $filters ) {
-
 
     /**
      * Retrieve club licences for export.
      *
      * @param int   $club_id Club identifier.
-     * @param array $filters Optional filters (status, season).
-     *
-     * @return array List of licences.
+     * @param array $filters  Optional filters: 'status' and/or 'season'.
+     * @return array List of licence rows.
      */
     protected static function get_club_licences_for_export( $club_id, $filters ) {
-
-    private static function get_club_licences_for_export( $club_id, $filters ) {
-
-
-
-
         global $wpdb;
 
         $settings       = UFSC_SQL::get_settings();
@@ -522,34 +499,14 @@ class UFSC_Import_Export {
             }
         }
 
-        $sql = "SELECT id, nom, prenom, email, telephone, date_naissance, sexe, adresse, ville, code_postal, statut, date_creation, date_validation\n                FROM {$licences_table}\n                WHERE " . implode( ' AND ', $where );
+        $sql = "SELECT id, nom, prenom, email, telephone, date_naissance, sexe, adresse, ville, code_postal, statut, date_creation, date_validation
+                    FROM {$licences_table}
+                    WHERE " . implode( ' AND ', $where );
 
         $results = $wpdb->get_results( $wpdb->prepare( $sql, $values ), ARRAY_A );
 
         return is_array( $results ) ? $results : array();
     }
-
-    /**
-
-     * Get club name from database.
-     *
-     * @param int $club_id Club ID.
-     * @return string Club name.
-
-
-     * Get the display name of a club.
-     *
-     * @param int $club_id Club ID
-     * @return string
-
-     * Retrieve club name.
-     *
-     * @param int $club_id Club identifier.
-     *
-     * @return string Club name or default string.
-
-
-     */
     protected static function get_club_name( $club_id ) {
         global $wpdb;
 
