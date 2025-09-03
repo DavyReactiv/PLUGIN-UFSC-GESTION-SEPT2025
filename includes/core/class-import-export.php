@@ -609,21 +609,6 @@ class UFSC_Import_Export {
         );
 
 
-        $insert_data = array_merge( $data, array(
-            'club_id'       => $club_id,
-            'date_creation' => current_time( 'mysql' ),
-        ) );
-
-
-        $insert_data = array_merge(
-            $data,
-            array(
-                'club_id'       => $club_id,
-                'date_creation' => current_time( 'mysql' ),
-            )
-        );
-
-
         $result = $wpdb->insert( $licences_table, $insert_data );
 
         if ( false === $result ) {
