@@ -1381,19 +1381,73 @@ class UFSC_SQL_Admin {
     }
 
     /**
-     * Calculate license price (stub implementation)
+     * Calculate license price based on type, region, quota and discounts.
+     *
+     * Rules can be customized via the `ufsc_license_pricing_rules` filter or
+     * by storing an array in the `ufsc_license_pricing_rules` option. The
+     * computed price can be further adjusted with the `ufsc_license_price`
+     * filter.
+     *
+     * @param object $license Licence data object.
+     * @return float Calculated licence price.
      */
-    private static function calculate_license_price($license) {
-        // Base price - this should be configurable
-        $base_price = 50.00;
-        
-        // TODO: Add pricing rules based on:
-        // - License type (bénévole, postier, compétition)
-        // - Region
-        // - Club quota status
-        // - Special discounts
-        
-        return apply_filters('ufsc_license_price', $base_price, $license);
+    private static function calculate_license_price( $license ) {
+        // Default pricing configuration
+        $default_rules = array(
+            'base_price'        => 50.00,
+            'type_prices'       => array(
+                'standard'    => 50.00,
+                'benevole'    => 40.00,
+                'postier'     => 45.00,
+                'competition' => 60.00,
+            ),
+            'region_adjustments' => array(),
+            'quota_surcharge'  => 0.00,
+            'discounts'        => array(),
+        );
+
+        // Allow configuration through options or filters
+        $rules = get_option( 'ufsc_license_pricing_rules', $default_rules );
+        $rules = apply_filters( 'ufsc_license_pricing_rules', $rules, $license );
+
+        // Determine license type
+        $type = 'standard';
+        if ( ! empty( $license->reduction_benevole ) ) {
+            $type = 'benevole';
+        } elseif ( ! empty( $license->reduction_postier ) ) {
+            $type = 'postier';
+        } elseif ( ! empty( $license->competition ) ) {
+            $type = 'competition';
+        }
+
+        // Base price according to type
+        $price = isset( $rules['type_prices'][ $type ] )
+            ? floatval( $rules['type_prices'][ $type ] )
+            : floatval( $rules['base_price'] );
+
+        // Regional adjustments
+        if ( ! empty( $license->region ) && ! empty( $rules['region_adjustments'][ $license->region ] ) ) {
+            $price += floatval( $rules['region_adjustments'][ $license->region ] );
+        }
+
+        // Quota surcharge when licence not included
+        if ( isset( $license->is_included ) && ! $license->is_included && ! empty( $rules['quota_surcharge'] ) ) {
+            $price += floatval( $rules['quota_surcharge'] );
+        }
+
+        // Additional discounts (percentage or flat amount)
+        if ( ! empty( $license->discount_code ) && ! empty( $rules['discounts'][ $license->discount_code ] ) ) {
+            $discount = floatval( $rules['discounts'][ $license->discount_code ] );
+            if ( $discount >= 1 ) {
+                $price -= $discount;
+            } else {
+                $price -= ( $price * $discount );
+            }
+        }
+
+        $price = max( 0, $price );
+
+        return apply_filters( 'ufsc_license_price', $price, $license, $rules );
     }
 
     /**
