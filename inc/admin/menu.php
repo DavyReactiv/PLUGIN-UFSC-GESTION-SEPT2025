@@ -254,6 +254,10 @@ function ufsc_get_clubs_count() {
     
     $clubs_table = ufsc_sanitize_table_name( ufsc_get_clubs_table() );
 
+
+
+    
+
     if ( ! ufsc_table_exists( $clubs_table ) ) {
         return 0;
     }
@@ -270,6 +274,9 @@ function ufsc_get_licences_count() {
     
     $licences_table = ufsc_sanitize_table_name( ufsc_get_licences_table() );
 
+
+
+    
     if ( ! ufsc_table_exists( $licences_table ) ) {
         return 0;
     }

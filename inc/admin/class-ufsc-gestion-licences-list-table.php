@@ -84,9 +84,27 @@ class UFSC_Gestion_Licences_List_Table extends WP_List_Table {
     public function prepare_items() {
         global $wpdb;
 
-        $licences_table = ufsc_get_licences_table();
-        $clubs_table    = ufsc_get_clubs_table();
+        $licences_table = ufsc_sanitize_table_name( ufsc_get_licences_table() );
+        $clubs_table    = ufsc_sanitize_table_name( ufsc_get_clubs_table() );
         $per_page       = 20;
+
+        if ( ! ufsc_table_exists( $licences_table ) || ! ufsc_table_exists( $clubs_table ) ) {
+            $this->items = array();
+            $this->set_pagination_args(
+                array(
+                    'total_items' => 0,
+                    'per_page'    => $per_page,
+                )
+            );
+
+            $columns  = $this->get_columns();
+            $hidden   = array();
+            $sortable = $this->get_sortable_columns();
+            $this->_column_headers = array( $columns, $hidden, $sortable );
+
+            return;
+        }
+
         $current_page   = $this->get_pagenum();
         $offset         = ( $current_page - 1 ) * $per_page;
 

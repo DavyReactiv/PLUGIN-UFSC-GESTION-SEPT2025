@@ -505,6 +505,6 @@ class UFSC_Affiliation_Form {
      */
     private static function get_dashboard_url() {
         $dashboard_page = get_option( 'ufsc_dashboard_page' );
-        return $dashboard_page ? get_permalink( $dashboard_page ) : null;
+        return $dashboard_page ? get_permalink( $dashboard_page ) : home_url( '/club-dashboard/' );
     }
 }
