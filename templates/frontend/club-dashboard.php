@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 ?>
 
 <div class="ufsc-club-dashboard" id="ufsc-club-dashboard">
+    <div class="ufsc-feedback" id="ufsc-feedback" aria-live="polite"></div>
     
     <!-- 1. En-tête Club -->
     <div class="ufsc-dashboard-header">
@@ -29,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
             <?php if ( isset( $attestation_affiliation ) && $attestation_affiliation ) : ?>
             <div class="ufsc-attestation-download">
                 <a href="<?php echo esc_url( $attestation_affiliation ); ?>" class="button button-primary" target="_blank">
-                    <span class="dashicons dashicons-download"></span>
+                    <span class="dashicons dashicons-download" aria-hidden="true"></span>
                     <?php echo esc_html__( 'Télécharger attestation d\'affiliation', 'ufsc-clubs' ); ?>
                 </a>
             </div>
@@ -69,7 +70,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                     <option value="0"><?php echo esc_html__( 'Loisir', 'ufsc-clubs' ); ?></option>
                 </select>
                 <button id="btn-export-csv" class="ufsc-btn ufsc-btn-secondary">
-                    <span class="dashicons dashicons-download"></span>
+                    <span class="dashicons dashicons-download" aria-hidden="true"></span>
                     <?php echo esc_html__( 'Export CSV', 'ufsc-clubs' ); ?>
                 </button>
             </div>
@@ -114,34 +115,34 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
             <div class="ufsc-documents-status" id="ufsc-documents-status">
                 <!-- // UFSC: Documents obligatoires avec statut visuel -->
                 <div class="ufsc-document-item" data-doc="statuts">
-                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Statuts', 'ufsc-clubs' ); ?></span>
-                    <span class="ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
                 </div>
                 <div class="ufsc-document-item" data-doc="recepisse">
-                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Récépissé', 'ufsc-clubs' ); ?></span>
-                    <span class="ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
                 </div>
                 <div class="ufsc-document-item" data-doc="jo">
-                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Journal Officiel', 'ufsc-clubs' ); ?></span>
-                    <span class="ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
                 </div>
                 <div class="ufsc-document-item" data-doc="pv_ag">
-                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'PV Assemblée Générale', 'ufsc-clubs' ); ?></span>
-                    <span class="ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
                 </div>
                 <div class="ufsc-document-item" data-doc="cer">
-                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'CER', 'ufsc-clubs' ); ?></span>
-                    <span class="ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
                 </div>
                 <div class="ufsc-document-item" data-doc="attestation_cer">
-                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Attestation CER', 'ufsc-clubs' ); ?></span>
-                    <span class="ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
                 </div>
             </div>
         </div>
@@ -150,19 +151,25 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
     <!-- 5. Actions Rapides -->
     <div class="ufsc-dashboard-section ufsc-actions-section">
         <h2><?php echo esc_html__( 'Actions rapides', 'ufsc-clubs' ); ?></h2>
-        <div class="ufsc-actions-grid">
-            <a href="#" class="ufsc-btn ufsc-btn-primary" id="btn-ajouter-licence">
-                <span class="dashicons dashicons-plus-alt2"></span>
-                <?php echo esc_html__( 'Ajouter une licence', 'ufsc-clubs' ); ?>
-            </a>
-            <a href="#" class="ufsc-btn ufsc-btn-secondary" id="btn-mettre-a-jour-club">
-                <span class="dashicons dashicons-admin-settings"></span>
-                <?php echo esc_html__( 'Mettre à jour infos club', 'ufsc-clubs' ); ?>
-            </a>
-            <a href="#" class="ufsc-btn ufsc-btn-secondary" id="btn-televerser-document">
-                <span class="dashicons dashicons-upload"></span>
-                <?php echo esc_html__( 'Téléverser un document', 'ufsc-clubs' ); ?>
-            </a>
+        <div class="ufsc-grid ufsc-actions-grid">
+            <div class="ufsc-card">
+                <a href="#" class="ufsc-btn ufsc-btn-primary" id="btn-ajouter-licence">
+                    <span class="dashicons dashicons-plus-alt2" aria-hidden="true"></span>
+                    <?php echo esc_html__( 'Ajouter une licence', 'ufsc-clubs' ); ?>
+                </a>
+            </div>
+            <div class="ufsc-card">
+                <a href="#" class="ufsc-btn ufsc-btn-secondary" id="btn-mettre-a-jour-club">
+                    <span class="dashicons dashicons-admin-settings" aria-hidden="true"></span>
+                    <?php echo esc_html__( 'Mettre à jour infos club', 'ufsc-clubs' ); ?>
+                </a>
+            </div>
+            <div class="ufsc-card">
+                <a href="#" class="ufsc-btn ufsc-btn-secondary" id="btn-televerser-document">
+                    <span class="dashicons dashicons-upload" aria-hidden="true"></span>
+                    <?php echo esc_html__( 'Téléverser un document', 'ufsc-clubs' ); ?>
+                </a>
+            </div>
         </div>
     </div>
 
