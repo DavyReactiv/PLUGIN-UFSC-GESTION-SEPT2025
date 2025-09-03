@@ -455,7 +455,8 @@ class UFSC_Frontend_Shortcodes {
 
         ob_start();
         ?>
-        <div class="ufsc-profile-section">
+        <div class="ufsc-club-profile">
+            <!-- // UFSC: Enhanced club profile with sections and cards -->
             <div class="ufsc-section-header">
                 <h3><?php esc_html_e( 'Profil du Club', 'ufsc-clubs' ); ?></h3>
                 <?php if ( ! $is_admin ): ?>
@@ -465,38 +466,32 @@ class UFSC_Frontend_Shortcodes {
                 <?php endif; ?>
             </div>
 
-            <form method="post" enctype="multipart/form-data" class="ufsc-club-form">
-                <?php wp_nonce_field( 'ufsc_update_club', 'ufsc_nonce' ); ?>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-club-form ufsc-club-profile">
+                <input type="hidden" name="action" value="ufsc_save_club">
+                <?php wp_nonce_field( 'ufsc_save_club', '_wpnonce' ); ?>
                 
-                <!-- Identity Section -->
-                <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Identité', 'ufsc-clubs' ); ?></legend>
-                    
-                    <?php self::render_field( 'id', $club, __( 'ID', 'ufsc-clubs' ), 'text', true, false ); ?>
-                    <?php self::render_field( 'nom', $club, __( 'Nom du club', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
-                    <?php self::render_field( 'region', $club, __( 'Région', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
-                    <?php self::render_field( 'type', $club, __( 'Type', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'statut', $club, __( 'Statut', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
-                </fieldset>
+                <div class="ufsc-grid">
+                    <!-- // UFSC: Identité du club -->
+                    <div class="ufsc-card ufsc-section">
+                        <h4><?php esc_html_e( 'Identité du club', 'ufsc-clubs' ); ?></h4>
+                        
+                        <?php self::render_field( 'nom', $club, __( 'Nom du club', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
+                        <?php self::render_field( 'region', $club, __( 'Région', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
+                        <?php self::render_field( 'num_affiliation', $club, __( 'N° d\'affiliation', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'statut', $club, __( 'Statut', 'ufsc-clubs' ), 'text', true, false ); ?>
+                    </div>
 
-                <!-- Address Section -->
-                <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Adresse', 'ufsc-clubs' ); ?></legend>
-                    
-                    <?php self::render_field( 'adresse', $club, __( 'Adresse', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'complement_adresse', $club, __( 'Complément d\'adresse', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'code_postal', $club, __( 'Code postal', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'ville', $club, __( 'Ville', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                </fieldset>
-
-                <!-- Contact Section -->
-                <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Contact', 'ufsc-clubs' ); ?></legend>
-                    
-                    <?php self::render_field( 'email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, true ); ?>
-                    <?php self::render_field( 'telephone', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, true ); ?>
-                    <?php self::render_field( 'contact', $club, __( 'Contact', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                </fieldset>
+                    <!-- // UFSC: Coordonnées -->
+                    <div class="ufsc-card ufsc-section">
+                        <h4><?php esc_html_e( 'Coordonnées', 'ufsc-clubs' ); ?></h4>
+                        
+                        <?php self::render_field( 'adresse', $club, __( 'Adresse', 'ufsc-clubs' ), 'textarea', false, $is_admin ); ?>
+                        <?php self::render_field( 'code_postal', $club, __( 'Code postal', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'ville', $club, __( 'Ville', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, true ); ?>
+                        <?php self::render_field( 'telephone', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, true ); ?>
+                    </div>
+                </div>
 
                 <!-- Legal Section -->
                 <fieldset class="ufsc-form-section">
@@ -567,176 +562,88 @@ class UFSC_Frontend_Shortcodes {
                     <?php self::render_field( 'precision_distribution', $club, __( 'Précision distribution', 'ufsc-clubs' ), 'textarea', false, $is_admin ); ?>
                 </fieldset>
 
-                <!-- Documents Section -->
+                <!-- // UFSC: Documents Section - 6 mandatory documents -->
                 <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Documents', 'ufsc-clubs' ); ?></legend>
+                    <legend><?php esc_html_e( 'Mes documents', 'ufsc-clubs' ); ?></legend>
                     
-                    <!-- Logo Preview (always visible) -->
-                    <div class="ufsc-document-item">
-                        <h5><?php esc_html_e( 'Logo du club', 'ufsc-clubs' ); ?></h5>
-                        <?php 
-                        $logo_id = get_option( 'ufsc_club_logo_' . $atts['club_id'] );
-                        if ( $logo_id ): 
-                            $logo_url = wp_get_attachment_image_url( $logo_id, 'medium' );
-                        ?>
-                            <div class="ufsc-logo-preview">
-
-                                <img src="<?php echo esc_url( $logo_url ); ?>" alt="<?php esc_attr_e( 'Logo du club', 'ufsc-clubs' ); ?>">
-
-                                <img src="<?php echo esc_url( $logo_url ); ?>" alt="<?php esc_attr_e( 'Logo du club', 'ufsc-clubs' ); ?>" style="max-width: 200px;">
-
-                                <?php if ( $is_admin ): ?>
-                                    <button type="button" class="ufsc-logo-remove" data-club-id="<?php echo esc_attr( $atts['club_id'] ); ?>">
-                                        <?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?>
-                                    </button>
-                                <?php endif; ?>
-                            </div>
-
-                        <?php elseif ( $is_admin ): ?>
-                            <div class="ufsc-logo-upload">
-                                <input type="file" id="club_logo" name="club_logo" accept="image/*">
-                                <label for="club_logo" class="ufsc-upload-label">
-                                    <?php esc_html_e( 'Choisir un logo', 'ufsc-clubs' ); ?>
-                                </label>
-                                <p class="ufsc-help-text">
-                                    <?php esc_html_e( 'Formats acceptés: JPG, PNG, SVG. Taille max: 2MB', 'ufsc-clubs' ); ?>
-                                </p>
-                            </div>
-                        <?php else: ?>
-                            <p class="ufsc-text-muted"><?php esc_html_e( 'Aucun logo configuré.', 'ufsc-clubs' ); ?></p>
-                        <?php endif; ?>
-                    </div>
-
-                    <!-- Other Documents -->
                     <?php
-                    $document_types = array(
+                    // // UFSC: 6 mandatory documents as per requirements
+                    $mandatory_documents = array(
                         'doc_statuts' => __( 'Statuts', 'ufsc-clubs' ),
                         'doc_recepisse' => __( 'Récépissé', 'ufsc-clubs' ),
                         'doc_jo' => __( 'Journal Officiel', 'ufsc-clubs' ),
-                        'doc_pv_ag' => __( 'PV AG', 'ufsc-clubs' ),
+                        'doc_pv_ag' => __( 'PV Assemblée Générale', 'ufsc-clubs' ),
                         'doc_cer' => __( 'CER', 'ufsc-clubs' ),
-                        'doc_attestation_cer' => __( 'Attestation CER', 'ufsc-clubs' ),
-                        'doc_attestation_affiliation' => __( 'Attestation UFSC', 'ufsc-clubs' )
+                        'doc_attestation_cer' => __( 'Attestation CER', 'ufsc-clubs' )
                     );
+                    ?>
                     
-                    foreach ( $document_types as $doc_type => $doc_label ):
-                        $attachment_id = (int) get_option( 'ufsc_club_' . $doc_type . '_' . $atts['club_id'] );
-                        if ( $attachment_id ) :
-                            $attachment_url   = wp_get_attachment_url( $attachment_id );
-                            $attachment_title = get_the_title( $attachment_id );
-                            if ( $attachment_url ) :
-                    ?>
-                        <div class="ufsc-document-item">
-                            <h5><?php echo esc_html( $doc_label ); ?></h5>
-                            <div class="ufsc-document-links">
-                                <a href="<?php echo esc_url( $attachment_url ); ?>" target="_blank" rel="noopener">
-                                    <?php esc_html_e( 'Voir', 'ufsc-clubs' ); ?>
-                                </a>
-                                <a href="<?php echo esc_url( $attachment_url ); ?>" download="<?php echo esc_attr( $attachment_title ); ?>">
-                                    <?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?>
-                                </a>
+                    <div class="ufsc-grid ufsc-documents-grid">
+                        <?php foreach ( $mandatory_documents as $doc_key => $doc_label ): ?>
+                            <div class="ufsc-card ufsc-document-card">
+                                <div class="ufsc-document-header">
+                                    <h5><?php echo esc_html( $doc_label ); ?></h5>
+                                    <span class="ufsc-document-status">
+                                        <?php 
+                                        $doc_value = isset( $club->$doc_key ) ? $club->$doc_key : '';
+                                        if ( ! empty( $doc_value ) ):
+                                        ?>
+                                            <span class="ufsc-status-transmitted">✅ <?php esc_html_e( 'Transmis', 'ufsc-clubs' ); ?></span>
+                                        <?php else: ?>
+                                            <span class="ufsc-status-pending">⏳ <?php esc_html_e( 'En cours de validation', 'ufsc-clubs' ); ?></span>
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+                                
+                                <div class="ufsc-document-content">
+                                    <?php if ( ! empty( $doc_value ) ): ?>
+                                        <div class="ufsc-document-current">
+                                            <p class="ufsc-document-name"><?php echo esc_html( basename( $doc_value ) ); ?></p>
+                                            <div class="ufsc-document-actions">
+                                                <a href="<?php echo esc_url( $doc_value ); ?>" target="_blank" class="ufsc-btn-small">
+                                                    <?php esc_html_e( 'Voir', 'ufsc-clubs' ); ?>
+                                                </a>
+                                                <a href="<?php echo esc_url( $doc_value ); ?>" download class="ufsc-btn-small">
+                                                    <?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if ( $can_edit ): ?>
+                                        <div class="ufsc-document-upload">
+                                            <input type="file" 
+                                                   id="<?php echo esc_attr( $doc_key ); ?>_upload" 
+                                                   name="<?php echo esc_attr( $doc_key ); ?>_upload" 
+                                                   accept=".pdf,.jpg,.jpeg,.png"
+                                                   class="ufsc-file-input">
+                                            <label for="<?php echo esc_attr( $doc_key ); ?>_upload" class="ufsc-upload-label">
+                                                <?php if ( ! empty( $doc_value ) ): ?>
+                                                    <?php esc_html_e( 'Remplacer le document', 'ufsc-clubs' ); ?>
+                                                <?php else: ?>
+                                                    <?php esc_html_e( 'Choisir un fichier', 'ufsc-clubs' ); ?>
+                                                <?php endif; ?>
+                                            </label>
+                                            <p class="ufsc-help-text">
+                                                <?php esc_html_e( 'Formats: PDF, JPG, PNG - Max 5MB', 'ufsc-clubs' ); ?>
+                                            </p>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                        </div>
-                    <?php
-                            endif;
-                        endif;
-                    endforeach;
-                    ?>
+                        <?php endforeach; ?>
+                    </div>
                 </fieldset>
 
-                <!-- Contact Section -->
-                <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Contact', 'ufsc-clubs' ); ?></legend>
-
-                    <div class="ufsc-form-row">
-                        <div class="ufsc-form-field">
-                            <label for="nom"><?php esc_html_e( 'Nom du club', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="nom" name="nom" 
-                                   value="<?php echo esc_attr( $club->nom ?? '' ); ?>"
-                                   <?php echo ( $is_validated || ! $is_admin ) ? 'readonly' : 'required'; ?>>
-                        </div>
-                        
-                        <div class="ufsc-form-field">
-                            <label for="sigle"><?php esc_html_e( 'Sigle', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="sigle" name="sigle" 
-                                   value="<?php echo esc_attr( $club->sigle ?? '' ); ?>"
-                                   <?php echo ( $is_validated || ! $is_admin ) ? 'readonly' : ''; ?>>
-                        </div>
-                    </div>
-
-                    <div class="ufsc-form-row">
-                        <div class="ufsc-form-field">
-                            <label for="email"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></label>
-                            <input type="email" id="email" name="email" 
-                                   value="<?php echo esc_attr( $club->email ?? '' ); ?>" 
-                                   required>
-                        </div>
-                        
-                        <div class="ufsc-form-field">
-                            <label for="telephone"><?php esc_html_e( 'Téléphone', 'ufsc-clubs' ); ?></label>
-                            <input type="tel" id="telephone" name="telephone" 
-                                   value="<?php echo esc_attr( $club->telephone ?? '' ); ?>">
-                        </div>
-                    </div>
-
-                    <?php if ( ! $is_validated && $is_admin ): ?>
-                        <div class="ufsc-form-row">
-                            <div class="ufsc-form-field">
-                                <label for="adresse"><?php esc_html_e( 'Adresse', 'ufsc-clubs' ); ?></label>
-                                <textarea id="adresse" name="adresse" rows="3"><?php echo esc_textarea( $club->adresse ?? '' ); ?></textarea>
-                            </div>
-                        </div>
-
-                        <div class="ufsc-form-row">
-                            <div class="ufsc-form-field">
-                                <label for="ville"><?php esc_html_e( 'Ville', 'ufsc-clubs' ); ?></label>
-                                <input type="text" id="ville" name="ville" 
-                                       value="<?php echo esc_attr( $club->ville ?? '' ); ?>">
-                            </div>
-                            
-                            <div class="ufsc-form-field">
-                                <label for="code_postal"><?php esc_html_e( 'Code postal', 'ufsc-clubs' ); ?></label>
-                                <input type="text" id="code_postal" name="code_postal" 
-                                       value="<?php echo esc_attr( $club->code_postal ?? '' ); ?>" 
-                                       pattern="[0-9]{5}" maxlength="5">
-                            </div>
-                        </div>
-
-                        <div class="ufsc-form-row">
-                            <div class="ufsc-form-field">
-                                <label for="region"><?php esc_html_e( 'Région', 'ufsc-clubs' ); ?></label>
-                                <select id="region" name="region">
-                                    <option value=""><?php esc_html_e( 'Sélectionner une région', 'ufsc-clubs' ); ?></option>
-                                    <?php 
-                                    $regions = ufsc_get_regions_labels();
-                                    foreach ( $regions as $region ): 
-                                    ?>
-                                        <option value="<?php echo esc_attr( $region ); ?>" 
-                                                <?php selected( $club->region ?? '', $region ); ?>>
-                                            <?php echo esc_html( $region ); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <!-- Read-only fields for validated clubs or non-admin users -->
-                        <div class="ufsc-readonly-fields">
-                            <p><strong><?php esc_html_e( 'Adresse:', 'ufsc-clubs' ); ?></strong> <?php echo esc_html( $club->adresse ?? '' ); ?></p>
-                            <p><strong><?php esc_html_e( 'Ville:', 'ufsc-clubs' ); ?></strong> <?php echo esc_html( $club->ville ?? '' ); ?></p>
-                            <p><strong><?php esc_html_e( 'Code postal:', 'ufsc-clubs' ); ?></strong> <?php echo esc_html( $club->code_postal ?? '' ); ?></p>
-                            <p><strong><?php esc_html_e( 'Région:', 'ufsc-clubs' ); ?></strong> <?php echo esc_html( $club->region ?? '' ); ?></p>
-                        </div>
+                
+                <!-- // UFSC: Submit section -->
+                <div class="ufsc-form-actions">
+                    <?php if ( $can_edit ): ?>
+                        <button type="submit" name="ufsc_save_club" class="ufsc-btn ufsc-btn-primary">
+                            <?php esc_html_e( 'Mettre à jour le club', 'ufsc-clubs' ); ?>
+                        </button>
                     <?php endif; ?>
-
-                    <?php if ( $is_admin || true ): // Allow all club managers to update email/telephone ?>
-                        <div class="ufsc-form-actions">
-                            <button type="submit" name="ufsc_update_club" class="ufsc-btn ufsc-btn-primary">
-                                <?php esc_html_e( 'Mettre à jour', 'ufsc-clubs' ); ?>
-                            </button>
-                        </div>
-                    <?php endif; ?>
-                </fieldset>
+                </div>
 
             </form>
         </div>
@@ -802,27 +709,27 @@ class UFSC_Frontend_Shortcodes {
                 </div>
             </div>
 
-            <form method="post" class="ufsc-licence-form">
-                <?php wp_nonce_field( 'ufsc_add_licence', 'ufsc_nonce' ); ?>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-form">
+                <input type="hidden" name="action" value="ufsc_save_licence">
+                <?php wp_nonce_field( 'ufsc_save_licence', '_wpnonce' ); ?>
                 
-                <div class="ufsc-form-section">
-                    <h4><?php esc_html_e( 'Informations du licencié', 'ufsc-clubs' ); ?></h4>
-                    
-                    <div class="ufsc-form-row">
+                <!-- // UFSC: Enhanced form structure with conditional fields -->
+                <div class="ufsc-grid">
+                    <div class="ufsc-card ufsc-form-section">
+                        <h4><?php esc_html_e( 'Informations personnelles', 'ufsc-clubs' ); ?></h4>
+                        
                         <div class="ufsc-form-field">
-                            <label for="nom"><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></label>
+                            <label for="nom"><?php esc_html_e( 'Nom *', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="nom" name="nom" required>
                         </div>
                         
                         <div class="ufsc-form-field">
-                            <label for="prenom"><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></label>
+                            <label for="prenom"><?php esc_html_e( 'Prénom *', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="prenom" name="prenom" required>
                         </div>
-                    </div>
 
-                    <div class="ufsc-form-row">
                         <div class="ufsc-form-field">
-                            <label for="email"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></label>
+                            <label for="email"><?php esc_html_e( 'Email *', 'ufsc-clubs' ); ?></label>
                             <input type="email" id="email" name="email" required>
                         </div>
                         
@@ -830,32 +737,31 @@ class UFSC_Frontend_Shortcodes {
                             <label for="telephone"><?php esc_html_e( 'Téléphone', 'ufsc-clubs' ); ?></label>
                             <input type="tel" id="telephone" name="telephone">
                         </div>
-                    </div>
 
-                    <div class="ufsc-form-row">
                         <div class="ufsc-form-field">
-                            <label for="date_naissance"><?php esc_html_e( 'Date de naissance', 'ufsc-clubs' ); ?></label>
+                            <label for="date_naissance"><?php esc_html_e( 'Date de naissance *', 'ufsc-clubs' ); ?></label>
                             <input type="date" id="date_naissance" name="date_naissance" required>
                         </div>
                         
                         <div class="ufsc-form-field">
-                            <label for="sexe"><?php esc_html_e( 'Sexe', 'ufsc-clubs' ); ?></label>
+                            <label for="sexe"><?php esc_html_e( 'Sexe *', 'ufsc-clubs' ); ?></label>
                             <select id="sexe" name="sexe" required>
                                 <option value=""><?php esc_html_e( 'Sélectionner', 'ufsc-clubs' ); ?></option>
-                                <option value="M"><?php esc_html_e( 'Masculin', 'ufsc-clubs' ); ?></option>
-                                <option value="F"><?php esc_html_e( 'Féminin', 'ufsc-clubs' ); ?></option>
+                                <option value="M"><?php esc_html_e( 'Homme', 'ufsc-clubs' ); ?></option>
+                                <option value="F"><?php esc_html_e( 'Femme', 'ufsc-clubs' ); ?></option>
+                                <option value="Autre"><?php esc_html_e( 'Autre', 'ufsc-clubs' ); ?></option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-card ufsc-form-section">
+                        <h4><?php esc_html_e( 'Adresse', 'ufsc-clubs' ); ?></h4>
+                        
                         <div class="ufsc-form-field">
-                            <label for="adresse"><?php esc_html_e( 'Adresse', 'ufsc-clubs' ); ?></label>
+                            <label for="adresse"><?php esc_html_e( 'Adresse complète', 'ufsc-clubs' ); ?></label>
                             <textarea id="adresse" name="adresse" rows="3"></textarea>
                         </div>
-                    </div>
 
-                    <div class="ufsc-form-row">
                         <div class="ufsc-form-field">
                             <label for="ville"><?php esc_html_e( 'Ville', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="ville" name="ville">
@@ -863,7 +769,51 @@ class UFSC_Frontend_Shortcodes {
                         
                         <div class="ufsc-form-field">
                             <label for="code_postal"><?php esc_html_e( 'Code postal', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="code_postal" name="code_postal">
+                            <input type="text" id="code_postal" name="code_postal" pattern="[0-9]{5}" maxlength="5">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ufsc-grid">
+                    <div class="ufsc-card ufsc-form-section">
+                        <h4><?php esc_html_e( 'Rôle et activité', 'ufsc-clubs' ); ?></h4>
+                        
+                        <div class="ufsc-form-field">
+                            <label for="role"><?php esc_html_e( 'Rôle dans le club', 'ufsc-clubs' ); ?></label>
+                            <select id="role" name="role">
+                                <option value=""><?php esc_html_e( 'Sélectionner', 'ufsc-clubs' ); ?></option>
+                                <option value="president"><?php esc_html_e( 'Président', 'ufsc-clubs' ); ?></option>
+                                <option value="secretaire"><?php esc_html_e( 'Secrétaire', 'ufsc-clubs' ); ?></option>
+                                <option value="tresorier"><?php esc_html_e( 'Trésorier', 'ufsc-clubs' ); ?></option>
+                                <option value="entraineur"><?php esc_html_e( 'Entraîneur', 'ufsc-clubs' ); ?></option>
+                                <option value="adherent"><?php esc_html_e( 'Adhérent', 'ufsc-clubs' ); ?></option>
+                            </select>
+                        </div>
+                        
+                        <div class="ufsc-form-field">
+                            <label for="competition"><?php esc_html_e( 'Type de pratique', 'ufsc-clubs' ); ?></label>
+                            <select id="competition" name="competition">
+                                <option value="0"><?php esc_html_e( 'Loisir', 'ufsc-clubs' ); ?></option>
+                                <option value="1"><?php esc_html_e( 'Compétition', 'ufsc-clubs' ); ?></option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="ufsc-card ufsc-form-section">
+                        <h4><?php esc_html_e( 'Licence antérieure', 'ufsc-clubs' ); ?></h4>
+                        <p class="ufsc-help-text"><?php esc_html_e( 'Si le licencié possède déjà un numéro de licence', 'ufsc-clubs' ); ?></p>
+                        
+                        <!-- // UFSC: Conditional field with toggle -->
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="has_license_number" name="has_license_number" value="1" class="ufsc-toggle">
+                                <?php esc_html_e( 'Possède un numéro de licence antérieur', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+                        
+                        <div class="ufsc-form-field ufsc-conditional-field" data-depends="has_license_number">
+                            <label for="numero_licence"><?php esc_html_e( 'Numéro de licence', 'ufsc-clubs' ); ?></label>
+                            <input type="text" id="numero_licence" name="numero_licence">
                         </div>
                     </div>
                 </div>

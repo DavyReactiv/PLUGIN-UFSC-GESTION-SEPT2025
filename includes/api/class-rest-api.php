@@ -79,6 +79,37 @@ class UFSC_REST_API {
             'callback' => array( __CLASS__, 'handle_attestation_download' ),
             'permission_callback' => '__return_true' // Public with nonce verification
         ));
+
+        // // UFSC: Enhanced dashboard endpoints
+        register_rest_route( 'ufsc/v1', '/dashboard/kpis', array(
+            'methods' => 'GET',
+            'callback' => array( __CLASS__, 'handle_dashboard_kpis' ),
+            'permission_callback' => array( __CLASS__, 'check_club_permissions' )
+        ));
+
+        register_rest_route( 'ufsc/v1', '/dashboard/recent-licences', array(
+            'methods' => 'GET',
+            'callback' => array( __CLASS__, 'handle_recent_licences' ),
+            'permission_callback' => array( __CLASS__, 'check_club_permissions' )
+        ));
+
+        register_rest_route( 'ufsc/v1', '/dashboard/documents', array(
+            'methods' => 'GET',
+            'callback' => array( __CLASS__, 'handle_club_documents' ),
+            'permission_callback' => array( __CLASS__, 'check_club_permissions' )
+        ));
+
+        register_rest_route( 'ufsc/v1', '/dashboard/detailed-stats', array(
+            'methods' => 'GET',
+            'callback' => array( __CLASS__, 'handle_detailed_stats' ),
+            'permission_callback' => array( __CLASS__, 'check_club_permissions' )
+        ));
+
+        register_rest_route( 'ufsc/v1', '/licences/(?P<id>\d+)', array(
+            'methods' => 'DELETE',
+            'callback' => array( __CLASS__, 'handle_licence_delete' ),
+            'permission_callback' => array( __CLASS__, 'check_licence_permissions' )
+        ));
     }
 
     /**
@@ -658,6 +689,368 @@ class UFSC_REST_API {
         }
 
         return $stats;
+    }
+
+    /**
+     * // UFSC: Handle dashboard KPIs request
+     */
+    public static function handle_dashboard_kpis( $request ) {
+        $user_id = get_current_user_id();
+        $club_id = ufsc_get_user_club_id( $user_id );
+        
+        $filters = $request->get_param( 'filters' ) ?: array();
+        $cache_key = "ufsc_dashboard_kpis_{$club_id}_" . md5( serialize( $filters ) );
+        
+        // Check cache first
+        $cached = get_transient( $cache_key );
+        if ( $cached !== false ) {
+            return new WP_REST_Response( $cached, 200 );
+        }
+        
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+        
+        // Build WHERE clause with filters
+        $where_conditions = array( "club_id = %d" );
+        $where_values = array( $club_id );
+        
+        // Apply filters
+        if ( ! empty( $filters['periode'] ) && is_numeric( $filters['periode'] ) ) {
+            $where_conditions[] = "date_creation >= DATE_SUB(NOW(), INTERVAL %d DAY)";
+            $where_values[] = intval( $filters['periode'] );
+        }
+        
+        if ( ! empty( $filters['genre'] ) ) {
+            $where_conditions[] = "sexe = %s";
+            $where_values[] = sanitize_text_field( $filters['genre'] );
+        }
+        
+        if ( ! empty( $filters['role'] ) ) {
+            $where_conditions[] = "role = %s";
+            $where_values[] = sanitize_text_field( $filters['role'] );
+        }
+        
+        if ( isset( $filters['competition'] ) && $filters['competition'] !== '' ) {
+            $where_conditions[] = "competition = %d";
+            $where_values[] = intval( $filters['competition'] );
+        }
+        
+        $where_clause = " WHERE " . implode( " AND ", $where_conditions );
+        
+        // Count by status
+        $sql = "SELECT 
+                    statut,
+                    COUNT(*) as count
+                FROM {$licences_table}
+                {$where_clause}
+                GROUP BY statut";
+        
+        $results = $wpdb->get_results( $wpdb->prepare( $sql, $where_values ) );
+        
+        // Initialize counts
+        $kpis = array(
+            'licences_validees' => 0,
+            'licences_payees' => 0,
+            'licences_attente' => 0,
+            'licences_refusees' => 0
+        );
+        
+        // Map results to KPIs
+        foreach ( $results as $result ) {
+            switch ( $result->statut ) {
+                case 'validee':
+                    $kpis['licences_validees'] = intval( $result->count );
+                    break;
+                case 'payee':
+                    $kpis['licences_payees'] = intval( $result->count );
+                    break;
+                case 'brouillon':
+                case 'non_payee':
+                    $kpis['licences_attente'] += intval( $result->count );
+                    break;
+                case 'refusee':
+                    $kpis['licences_refusees'] = intval( $result->count );
+                    break;
+            }
+        }
+        
+        // Cache for 10 minutes
+        set_transient( $cache_key, $kpis, 10 * MINUTE_IN_SECONDS );
+        
+        return new WP_REST_Response( $kpis, 200 );
+    }
+
+    /**
+     * // UFSC: Handle recent licences request
+     */
+    public static function handle_recent_licences( $request ) {
+        $user_id = get_current_user_id();
+        $club_id = ufsc_get_user_club_id( $user_id );
+        
+        $limit = intval( $request->get_param( 'limit' ) ) ?: 5;
+        $filters = $request->get_param( 'filters' ) ?: array();
+        
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+        
+        // Build WHERE clause
+        $where_conditions = array( "club_id = %d" );
+        $where_values = array( $club_id );
+        
+        // Apply filters (same logic as KPIs)
+        if ( ! empty( $filters['periode'] ) && is_numeric( $filters['periode'] ) ) {
+            $where_conditions[] = "date_creation >= DATE_SUB(NOW(), INTERVAL %d DAY)";
+            $where_values[] = intval( $filters['periode'] );
+        }
+        
+        if ( ! empty( $filters['genre'] ) ) {
+            $where_conditions[] = "sexe = %s";
+            $where_values[] = sanitize_text_field( $filters['genre'] );
+        }
+        
+        if ( ! empty( $filters['role'] ) ) {
+            $where_conditions[] = "role = %s";
+            $where_values[] = sanitize_text_field( $filters['role'] );
+        }
+        
+        $where_clause = " WHERE " . implode( " AND ", $where_conditions );
+        
+        $sql = "SELECT id, prenom, nom, statut, role, date_creation
+                FROM {$licences_table}
+                {$where_clause}
+                ORDER BY date_creation DESC
+                LIMIT %d";
+        
+        $where_values[] = $limit;
+        $licences = $wpdb->get_results( $wpdb->prepare( $sql, $where_values ) );
+        
+        return new WP_REST_Response( $licences, 200 );
+    }
+
+    /**
+     * // UFSC: Handle club documents status request
+     */
+    public static function handle_club_documents( $request ) {
+        $user_id = get_current_user_id();
+        $club_id = ufsc_get_user_club_id( $user_id );
+        
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $clubs_table = $settings['table_clubs'];
+        
+        $sql = "SELECT doc_statuts, doc_recepisse, doc_jo, doc_pv_ag, doc_cer, doc_attestation_cer
+                FROM {$clubs_table}
+                WHERE id = %d";
+        
+        $documents = $wpdb->get_row( $wpdb->prepare( $sql, $club_id ), ARRAY_A );
+        
+        return new WP_REST_Response( $documents ?: array(), 200 );
+    }
+
+    /**
+     * // UFSC: Handle detailed statistics request
+     */
+    public static function handle_detailed_stats( $request ) {
+        $user_id = get_current_user_id();
+        $club_id = ufsc_get_user_club_id( $user_id );
+        
+        $filters = $request->get_param( 'filters' ) ?: array();
+        $cache_key = "ufsc_detailed_stats_{$club_id}_" . md5( serialize( $filters ) );
+        
+        // Check cache first
+        $cached = get_transient( $cache_key );
+        if ( $cached !== false ) {
+            return new WP_REST_Response( $cached, 200 );
+        }
+        
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+        
+        // Build base WHERE clause
+        $where_conditions = array( "club_id = %d" );
+        $where_values = array( $club_id );
+        
+        // Apply filters
+        if ( ! empty( $filters['periode'] ) && is_numeric( $filters['periode'] ) ) {
+            $where_conditions[] = "date_creation >= DATE_SUB(NOW(), INTERVAL %d DAY)";
+            $where_values[] = intval( $filters['periode'] );
+        }
+        
+        $where_clause = " WHERE " . implode( " AND ", $where_conditions );
+        
+        $stats = array();
+        
+        // Sex distribution
+        $sql = "SELECT sexe, COUNT(*) as count, 
+                       (COUNT(*) * 100.0 / (SELECT COUNT(*) FROM {$licences_table} {$where_clause})) as percentage
+                FROM {$licences_table} 
+                {$where_clause} AND sexe IS NOT NULL
+                GROUP BY sexe";
+        
+        $sexe_stats = $wpdb->get_results( $wpdb->prepare( $sql, array_merge( $where_values, $where_values ) ) );
+        $stats['sexe'] = array();
+        foreach ( $sexe_stats as $stat ) {
+            $stats['sexe'][$stat->sexe] = array(
+                'count' => intval( $stat->count ),
+                'percentage' => floatval( $stat->percentage )
+            );
+        }
+        
+        // Age distribution
+        $sql = "SELECT 
+                    CASE 
+                        WHEN TIMESTAMPDIFF(YEAR, date_naissance, CURDATE()) <= 12 THEN '≤12'
+                        WHEN TIMESTAMPDIFF(YEAR, date_naissance, CURDATE()) BETWEEN 13 AND 17 THEN '13-17'
+                        WHEN TIMESTAMPDIFF(YEAR, date_naissance, CURDATE()) BETWEEN 18 AND 25 THEN '18-25'
+                        WHEN TIMESTAMPDIFF(YEAR, date_naissance, CURDATE()) BETWEEN 26 AND 39 THEN '26-39'
+                        WHEN TIMESTAMPDIFF(YEAR, date_naissance, CURDATE()) BETWEEN 40 AND 54 THEN '40-54'
+                        WHEN TIMESTAMPDIFF(YEAR, date_naissance, CURDATE()) >= 55 THEN '≥55'
+                        ELSE 'Non défini'
+                    END as tranche_age,
+                    COUNT(*) as count
+                FROM {$licences_table}
+                {$where_clause} AND date_naissance IS NOT NULL
+                GROUP BY tranche_age";
+        
+        $age_stats = $wpdb->get_results( $wpdb->prepare( $sql, $where_values ) );
+        $stats['age'] = array();
+        foreach ( $age_stats as $stat ) {
+            $stats['age'][$stat->tranche_age] = intval( $stat->count );
+        }
+        
+        // Competition vs Leisure
+        $sql = "SELECT competition, COUNT(*) as count
+                FROM {$licences_table}
+                {$where_clause}
+                GROUP BY competition";
+        
+        $comp_stats = $wpdb->get_results( $wpdb->prepare( $sql, $where_values ) );
+        $stats['competition'] = array( 'competition' => 0, 'loisir' => 0 );
+        foreach ( $comp_stats as $stat ) {
+            if ( $stat->competition == 1 ) {
+                $stats['competition']['competition'] = intval( $stat->count );
+            } else {
+                $stats['competition']['loisir'] = intval( $stat->count );
+            }
+        }
+        
+        // Roles distribution
+        $sql = "SELECT role, COUNT(*) as count
+                FROM {$licences_table}
+                {$where_clause} AND role IS NOT NULL
+                GROUP BY role";
+        
+        $role_stats = $wpdb->get_results( $wpdb->prepare( $sql, $where_values ) );
+        $stats['roles'] = array();
+        foreach ( $role_stats as $stat ) {
+            $stats['roles'][$stat->role] = intval( $stat->count );
+        }
+        
+        // Evolution 30 days
+        $sql_30days = str_replace( $where_clause, $where_clause . " AND date_creation >= DATE_SUB(NOW(), INTERVAL 30 DAY)", $sql );
+        $sql = "SELECT 
+                    SUM(CASE WHEN statut = 'brouillon' THEN 1 ELSE 0 END) as nouveaux_brouillons,
+                    SUM(CASE WHEN statut = 'payee' THEN 1 ELSE 0 END) as nouveaux_payes,
+                    SUM(CASE WHEN statut = 'validee' THEN 1 ELSE 0 END) as nouveaux_valides
+                FROM {$licences_table}
+                {$where_clause} AND date_creation >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+        
+        $evolution = $wpdb->get_row( $wpdb->prepare( $sql, $where_values ), ARRAY_A );
+        $stats['evolution'] = $evolution;
+        
+        // Alerts
+        $alerts = array();
+        
+        // Check for licenses pending > X days
+        $sql = "SELECT COUNT(*) as count
+                FROM {$licences_table}
+                WHERE club_id = %d AND statut IN ('brouillon', 'non_payee') 
+                AND date_creation <= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+        
+        $pending_count = $wpdb->get_var( $wpdb->prepare( $sql, $club_id ) );
+        if ( $pending_count > 0 ) {
+            $alerts[] = array(
+                'type' => 'warning',
+                'message' => sprintf( 'Vous avez %d licence(s) en attente depuis plus de 7 jours', $pending_count )
+            );
+        }
+        
+        // Check for missing documents
+        $sql = "SELECT 
+                    CASE WHEN doc_statuts IS NULL OR doc_statuts = '' THEN 1 ELSE 0 END +
+                    CASE WHEN doc_recepisse IS NULL OR doc_recepisse = '' THEN 1 ELSE 0 END +
+                    CASE WHEN doc_jo IS NULL OR doc_jo = '' THEN 1 ELSE 0 END +
+                    CASE WHEN doc_pv_ag IS NULL OR doc_pv_ag = '' THEN 1 ELSE 0 END +
+                    CASE WHEN doc_cer IS NULL OR doc_cer = '' THEN 1 ELSE 0 END +
+                    CASE WHEN doc_attestation_cer IS NULL OR doc_attestation_cer = '' THEN 1 ELSE 0 END
+                    as missing_docs
+                FROM {$settings['table_clubs']}
+                WHERE id = %d";
+        
+        $missing_docs = $wpdb->get_var( $wpdb->prepare( $sql, $club_id ) );
+        if ( $missing_docs > 0 ) {
+            $alerts[] = array(
+                'type' => 'info',
+                'message' => sprintf( 'Il vous manque %d document(s) obligatoire(s)', $missing_docs )
+            );
+        }
+        
+        $stats['alerts'] = $alerts;
+        
+        // Cache for 10 minutes
+        set_transient( $cache_key, $stats, 10 * MINUTE_IN_SECONDS );
+        
+        return new WP_REST_Response( $stats, 200 );
+    }
+
+    /**
+     * // UFSC: Handle licence deletion
+     */
+    public static function handle_licence_delete( $request ) {
+        $licence_id = $request->get_param( 'id' );
+        $user_id = get_current_user_id();
+        $club_id = ufsc_get_user_club_id( $user_id );
+        
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+        
+        // Get licence details
+        $licence = $wpdb->get_row( $wpdb->prepare(
+            "SELECT statut FROM {$licences_table} WHERE id = %d AND club_id = %d",
+            $licence_id, $club_id
+        ) );
+        
+        if ( ! $licence ) {
+            return new WP_Error( 'licence_not_found', 'Licence not found', array( 'status' => 404 ) );
+        }
+        
+        // Check if deletion is allowed
+        $deletable_statuses = array( 'brouillon', 'non_payee' );
+        if ( ! in_array( $licence->statut, $deletable_statuses ) ) {
+            return new WP_Error( 'delete_not_allowed', 'Delete not allowed for this status', array( 'status' => 403 ) );
+        }
+        
+        // Soft delete (set deleted flag)
+        $result = $wpdb->update(
+            $licences_table,
+            array( 'ufsc_deleted' => 1 ),
+            array( 'id' => $licence_id ),
+            array( '%d' ),
+            array( '%d' )
+        );
+        
+        if ( $result === false ) {
+            return new WP_Error( 'delete_failed', 'Failed to delete licence', array( 'status' => 500 ) );
+        }
+        
+        // Clear cache
+        ufsc_invalidate_stats_cache( $club_id );
+        
+        return new WP_REST_Response( array( 'message' => 'Licence deleted successfully' ), 200 );
     }
 
     // Additional stub methods would be here...

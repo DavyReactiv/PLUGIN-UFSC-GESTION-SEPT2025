@@ -24,6 +24,8 @@ require_once UFSC_CL_DIR.'includes/core/class-uploads.php';
 require_once UFSC_CL_DIR.'includes/core/class-permissions.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-badges.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-pdf-attestations.php';
+require_once UFSC_CL_DIR.'includes/core/class-unified-handlers.php';
+require_once UFSC_CL_DIR.'includes/core/class-cache-manager.php';
 
 // New UFSC Gestion enhancement classes
 require_once UFSC_CL_DIR.'includes/common/class-ufsc-utils.php';
@@ -91,6 +93,8 @@ final class UFSC_CL_Bootstrap {
         add_action( 'init', array( 'UFSC_Club_Dashboard', 'init' ) );
         add_action( 'init', array( 'UFSC_Affiliation_Form', 'init' ) );
         add_action( 'init', array( 'UFSC_CL_Club_Form', 'init' ) );
+        add_action( 'init', array( 'UFSC_Unified_Handlers', 'init' ) );
+        add_action( 'init', array( 'UFSC_Cache_Manager', 'init' ) );
         add_action( 'plugins_loaded', array( 'UFSC_DB_Migrations', 'run_migrations' ) );
         
         // Initialize UFSC Gestion WooCommerce hooks

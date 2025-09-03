@@ -37,75 +37,193 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
         </div>
     </div>
 
-    <!-- 2. KPI Rapides -->
+    <!-- 2. Filtres et KPI -->
     <div class="ufsc-dashboard-section ufsc-kpi-section">
-        <h2><?php echo esc_html__( 'Aperçu rapide', 'ufsc-clubs' ); ?></h2>
-        <div class="ufsc-kpi-grid" id="ufsc-kpi-grid">
-            <div class="ufsc-kpi-card">
-                <div class="ufsc-kpi-value" id="kpi-licences-total">-</div>
-                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Licences total', 'ufsc-clubs' ); ?></div>
+        <!-- // UFSC: Filtres pour les statistiques -->
+        <div class="ufsc-filters-bar">
+            <h2><?php echo esc_html__( 'Aperçu rapide', 'ufsc-clubs' ); ?></h2>
+            <div class="ufsc-filters">
+                <select id="filter-periode" class="ufsc-filter">
+                    <option value="7"><?php echo esc_html__( '7 derniers jours', 'ufsc-clubs' ); ?></option>
+                    <option value="30" selected><?php echo esc_html__( '30 derniers jours', 'ufsc-clubs' ); ?></option>
+                    <option value="90"><?php echo esc_html__( '90 derniers jours', 'ufsc-clubs' ); ?></option>
+                    <option value="365"><?php echo esc_html__( 'Cette année', 'ufsc-clubs' ); ?></option>
+                </select>
+                <select id="filter-genre" class="ufsc-filter">
+                    <option value=""><?php echo esc_html__( 'Tous les genres', 'ufsc-clubs' ); ?></option>
+                    <option value="M"><?php echo esc_html__( 'Homme', 'ufsc-clubs' ); ?></option>
+                    <option value="F"><?php echo esc_html__( 'Femme', 'ufsc-clubs' ); ?></option>
+                    <option value="Autre"><?php echo esc_html__( 'Autre', 'ufsc-clubs' ); ?></option>
+                </select>
+                <select id="filter-role" class="ufsc-filter">
+                    <option value=""><?php echo esc_html__( 'Tous les rôles', 'ufsc-clubs' ); ?></option>
+                    <option value="president"><?php echo esc_html__( 'Président', 'ufsc-clubs' ); ?></option>
+                    <option value="secretaire"><?php echo esc_html__( 'Secrétaire', 'ufsc-clubs' ); ?></option>
+                    <option value="tresorier"><?php echo esc_html__( 'Trésorier', 'ufsc-clubs' ); ?></option>
+                    <option value="entraineur"><?php echo esc_html__( 'Entraîneur', 'ufsc-clubs' ); ?></option>
+                    <option value="adherent"><?php echo esc_html__( 'Adhérent', 'ufsc-clubs' ); ?></option>
+                </select>
+                <select id="filter-competition" class="ufsc-filter">
+                    <option value=""><?php echo esc_html__( 'Tous types', 'ufsc-clubs' ); ?></option>
+                    <option value="1"><?php echo esc_html__( 'Compétition', 'ufsc-clubs' ); ?></option>
+                    <option value="0"><?php echo esc_html__( 'Loisir', 'ufsc-clubs' ); ?></option>
+                </select>
+                <button id="btn-export-csv" class="ufsc-btn ufsc-btn-secondary">
+                    <span class="dashicons dashicons-download"></span>
+                    <?php echo esc_html__( 'Export CSV', 'ufsc-clubs' ); ?>
+                </button>
             </div>
-            <div class="ufsc-kpi-card">
+        </div>
+
+        <!-- // UFSC: KPIs selon les exigences (Validées, Payées, En attente, Refusées) -->
+        <div class="ufsc-grid ufsc-kpi-grid" id="ufsc-kpi-grid">
+            <div class="ufsc-card ufsc-kpi-card -validees">
                 <div class="ufsc-kpi-value" id="kpi-licences-validees">-</div>
-                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Licences validées', 'ufsc-clubs' ); ?></div>
+                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Licences Validées', 'ufsc-clubs' ); ?></div>
             </div>
-            <div class="ufsc-kpi-card">
+            <div class="ufsc-card ufsc-kpi-card -payees">
+                <div class="ufsc-kpi-value" id="kpi-licences-payees">-</div>
+                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Payées (en cours)', 'ufsc-clubs' ); ?></div>
+            </div>
+            <div class="ufsc-card ufsc-kpi-card -attente">
                 <div class="ufsc-kpi-value" id="kpi-licences-attente">-</div>
                 <div class="ufsc-kpi-label"><?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></div>
             </div>
-            <div class="ufsc-kpi-card">
-                <div class="ufsc-kpi-value" id="kpi-licences-expirees">-</div>
-                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Expirées', 'ufsc-clubs' ); ?></div>
-            </div>
-            <div class="ufsc-kpi-card">
-                <div class="ufsc-kpi-value" id="kpi-paiements-a-payer">-</div>
-                <div class="ufsc-kpi-label"><?php echo esc_html__( 'À payer', 'ufsc-clubs' ); ?></div>
-            </div>
-            <div class="ufsc-kpi-card">
-                <div class="ufsc-kpi-value" id="kpi-paiements-payes">-</div>
-                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Payé', 'ufsc-clubs' ); ?></div>
-            </div>
-            <div class="ufsc-kpi-card">
-                <div class="ufsc-kpi-value"><?php echo (int) $club->quota_licences; ?></div>
-                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Quota autorisé', 'ufsc-clubs' ); ?></div>
-            </div>
-            <div class="ufsc-kpi-card">
-                <div class="ufsc-kpi-value" id="kpi-documents">-</div>
-                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Documents', 'ufsc-clubs' ); ?></div>
+            <div class="ufsc-card ufsc-kpi-card -refusees">
+                <div class="ufsc-kpi-value" id="kpi-licences-refusees">-</div>
+                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Refusées', 'ufsc-clubs' ); ?></div>
             </div>
         </div>
     </div>
 
-    <!-- 3. Actions Rapides -->
+    <!-- 3. Licences récentes -->
+    <div class="ufsc-dashboard-section ufsc-recent-licences-section">
+        <h2><?php echo esc_html__( 'Licences récentes', 'ufsc-clubs' ); ?></h2>
+        <div class="ufsc-card">
+            <div class="ufsc-recent-licences" id="ufsc-recent-licences">
+                <!-- // UFSC: Section populated via JavaScript -->
+                <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Documents du club -->
+    <div class="ufsc-dashboard-section ufsc-documents-section">
+        <h2><?php echo esc_html__( 'Documents du club', 'ufsc-clubs' ); ?></h2>
+        <div class="ufsc-card">
+            <div class="ufsc-documents-status" id="ufsc-documents-status">
+                <!-- // UFSC: Documents obligatoires avec statut visuel -->
+                <div class="ufsc-document-item" data-doc="statuts">
+                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-name"><?php echo esc_html__( 'Statuts', 'ufsc-clubs' ); ?></span>
+                    <span class="ufsc-document-status">⏳</span>
+                </div>
+                <div class="ufsc-document-item" data-doc="recepisse">
+                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-name"><?php echo esc_html__( 'Récépissé', 'ufsc-clubs' ); ?></span>
+                    <span class="ufsc-document-status">⏳</span>
+                </div>
+                <div class="ufsc-document-item" data-doc="jo">
+                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-name"><?php echo esc_html__( 'Journal Officiel', 'ufsc-clubs' ); ?></span>
+                    <span class="ufsc-document-status">⏳</span>
+                </div>
+                <div class="ufsc-document-item" data-doc="pv_ag">
+                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-name"><?php echo esc_html__( 'PV Assemblée Générale', 'ufsc-clubs' ); ?></span>
+                    <span class="ufsc-document-status">⏳</span>
+                </div>
+                <div class="ufsc-document-item" data-doc="cer">
+                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-name"><?php echo esc_html__( 'CER', 'ufsc-clubs' ); ?></span>
+                    <span class="ufsc-document-status">⏳</span>
+                </div>
+                <div class="ufsc-document-item" data-doc="attestation_cer">
+                    <span class="ufsc-document-icon">📄</span>
+                    <span class="ufsc-document-name"><?php echo esc_html__( 'Attestation CER', 'ufsc-clubs' ); ?></span>
+                    <span class="ufsc-document-status">⏳</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Actions Rapides -->
     <div class="ufsc-dashboard-section ufsc-actions-section">
         <h2><?php echo esc_html__( 'Actions rapides', 'ufsc-clubs' ); ?></h2>
         <div class="ufsc-actions-grid">
-            <a href="#" class="ufsc-action-btn" id="btn-nouvelle-licence">
+            <a href="#" class="ufsc-btn ufsc-btn-primary" id="btn-ajouter-licence">
                 <span class="dashicons dashicons-plus-alt2"></span>
-                <?php echo esc_html__( 'Nouvelle licence', 'ufsc-clubs' ); ?>
+                <?php echo esc_html__( 'Ajouter une licence', 'ufsc-clubs' ); ?>
             </a>
-            <a href="#" class="ufsc-action-btn" id="btn-importer-csv">
-                <span class="dashicons dashicons-upload"></span>
-                <?php echo esc_html__( 'Importer CSV', 'ufsc-clubs' ); ?>
-            </a>
-            <a href="#" class="ufsc-action-btn" id="btn-exporter-selection">
-                <span class="dashicons dashicons-download"></span>
-                <?php echo esc_html__( 'Exporter la sélection', 'ufsc-clubs' ); ?>
-            </a>
-            <a href="#" class="ufsc-action-btn" id="btn-generer-attestation">
-                <span class="dashicons dashicons-media-document"></span>
-                <?php echo esc_html__( 'Générer attestation', 'ufsc-clubs' ); ?>
-            </a>
-            <a href="#" class="ufsc-action-btn" id="btn-configurer-club">
+            <a href="#" class="ufsc-btn ufsc-btn-secondary" id="btn-mettre-a-jour-club">
                 <span class="dashicons dashicons-admin-settings"></span>
-                <?php echo esc_html__( 'Configurer le club', 'ufsc-clubs' ); ?>
+                <?php echo esc_html__( 'Mettre à jour infos club', 'ufsc-clubs' ); ?>
+            </a>
+            <a href="#" class="ufsc-btn ufsc-btn-secondary" id="btn-televerser-document">
+                <span class="dashicons dashicons-upload"></span>
+                <?php echo esc_html__( 'Téléverser un document', 'ufsc-clubs' ); ?>
             </a>
         </div>
     </div>
 
-    <!-- 4. Graphiques -->
+    <!-- 6. Statistiques détaillées -->
+    <div class="ufsc-dashboard-section ufsc-advanced-stats-section">
+        <h2><?php echo esc_html__( 'Statistiques détaillées', 'ufsc-clubs' ); ?></h2>
+        
+        <!-- // UFSC: Statistiques par sexe -->
+        <div class="ufsc-grid ufsc-stats-grid">
+            <div class="ufsc-card ufsc-stat-card">
+                <h3><?php echo esc_html__( 'Répartition par sexe', 'ufsc-clubs' ); ?></h3>
+                <div class="ufsc-stat-content" id="stats-sexe">
+                    <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
+                </div>
+            </div>
+            
+            <!-- // UFSC: Statistiques par âge -->
+            <div class="ufsc-card ufsc-stat-card">
+                <h3><?php echo esc_html__( 'Tranches d\'âge', 'ufsc-clubs' ); ?></h3>
+                <div class="ufsc-stat-content" id="stats-age">
+                    <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
+                </div>
+            </div>
+            
+            <!-- // UFSC: Compétition vs Loisir -->
+            <div class="ufsc-card ufsc-stat-card">
+                <h3><?php echo esc_html__( 'Compétition vs Loisir', 'ufsc-clubs' ); ?></h3>
+                <div class="ufsc-stat-content" id="stats-competition">
+                    <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
+                </div>
+            </div>
+            
+            <!-- // UFSC: Répartition par rôles -->
+            <div class="ufsc-card ufsc-stat-card">
+                <h3><?php echo esc_html__( 'Répartition par rôles', 'ufsc-clubs' ); ?></h3>
+                <div class="ufsc-stat-content" id="stats-roles">
+                    <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
+                </div>
+            </div>
+            
+            <!-- // UFSC: Évolution 30 jours -->
+            <div class="ufsc-card ufsc-stat-card -wide">
+                <h3><?php echo esc_html__( 'Évolution 30 derniers jours', 'ufsc-clubs' ); ?></h3>
+                <div class="ufsc-evolution-stats" id="stats-evolution">
+                    <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
+                </div>
+            </div>
+            
+            <!-- // UFSC: Alertes -->
+            <div class="ufsc-card ufsc-stat-card -wide">
+                <h3><?php echo esc_html__( 'Alertes', 'ufsc-clubs' ); ?></h3>
+                <div class="ufsc-alerts" id="stats-alerts">
+                    <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Graphiques visuels -->
     <div class="ufsc-dashboard-section ufsc-charts-section">
-        <h2><?php echo esc_html__( 'Statistiques visuelles', 'ufsc-clubs' ); ?></h2>
+        <h2><?php echo esc_html__( 'Graphiques visuels', 'ufsc-clubs' ); ?></h2>
         
         <div class="ufsc-charts-grid">
             <div class="ufsc-chart-container">
@@ -119,47 +237,30 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
             </div>
             
             <div class="ufsc-chart-container ufsc-chart-wide">
-                <h3><?php echo esc_html__( 'Paiements par mois', 'ufsc-clubs' ); ?></h3>
-                <canvas id="chart-paiements" width="600" height="300"></canvas>
+                <h3><?php echo esc_html__( 'Évolution mensuelle', 'ufsc-clubs' ); ?></h3>
+                <canvas id="chart-evolution" width="600" height="300"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- 5. Documents -->
-    <div class="ufsc-dashboard-section ufsc-documents-section">
-        <h2><?php echo esc_html__( 'Documents', 'ufsc-clubs' ); ?></h2>
-        
-        <div class="ufsc-documents-grid">
-            <div class="ufsc-document-item">
-                <div class="ufsc-document-icon">
-                    <span class="dashicons dashicons-media-document"></span>
-                </div>
-                <div class="ufsc-document-info">
-                    <h4><?php echo esc_html__( 'Attestation d\'affiliation', 'ufsc-clubs' ); ?></h4>
-                    <?php if ( isset( $attestation_affiliation ) && $attestation_affiliation ) : ?>
-                        <p class="ufsc-document-status ufsc-available"><?php echo esc_html__( 'Disponible', 'ufsc-clubs' ); ?></p>
-                        <a href="<?php echo esc_url( $attestation_affiliation ); ?>" class="button button-small" target="_blank"><?php echo esc_html__( 'Télécharger', 'ufsc-clubs' ); ?></a>
-                    <?php else : ?>
-                        <p class="ufsc-document-status ufsc-unavailable"><?php echo esc_html__( 'Non disponible', 'ufsc-clubs' ); ?></p>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 6. Notifications -->
+    <!-- 8. Notifications et Alertes -->
     <div class="ufsc-dashboard-section ufsc-notifications-section">
-        <h2><?php echo esc_html__( 'Notifications', 'ufsc-clubs' ); ?></h2>
-        <div class="ufsc-notifications-container" id="ufsc-notifications">
-            <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
-        </div>
-    </div>
-
-    <!-- 7. Journal d'audit -->
-    <div class="ufsc-dashboard-section ufsc-audit-section">
-        <h2><?php echo esc_html__( 'Journal d\'activité', 'ufsc-clubs' ); ?></h2>
-        <div class="ufsc-audit-container" id="ufsc-audit-log">
-            <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
+        <h2><?php echo esc_html__( 'Notifications & Journal d\'activité', 'ufsc-clubs' ); ?></h2>
+        
+        <div class="ufsc-grid">
+            <div class="ufsc-card">
+                <h3><?php echo esc_html__( 'Notifications', 'ufsc-clubs' ); ?></h3>
+                <div class="ufsc-notifications-container" id="ufsc-notifications">
+                    <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
+                </div>
+            </div>
+            
+            <div class="ufsc-card">
+                <h3><?php echo esc_html__( 'Journal d\'activité', 'ufsc-clubs' ); ?></h3>
+                <div class="ufsc-audit-container" id="ufsc-audit-log">
+                    <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
+                </div>
+            </div>
         </div>
     </div>
 

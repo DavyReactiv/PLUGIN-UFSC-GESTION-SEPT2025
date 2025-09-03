@@ -24,7 +24,12 @@
 
         // Initialize dashboard
         init: function() {
-            this.config = $.extend(this.config, window.ufsc_dashboard_vars || {});
+            // // UFSC: Use frontend vars and get club ID from current user
+            this.config = $.extend(this.config, window.ufsc_frontend_vars || {});
+            
+            // Get club ID from dashboard configuration
+            var dashboardConfig = window.ufsc_dashboard_vars || {};
+            this.config.club_id = dashboardConfig.club_id || this.config.club_id;
             
             if (!this.config.club_id) {
                 console.warn('UFSC Dashboard: No club ID provided');
@@ -41,10 +46,39 @@
         setupEventHandlers: function() {
             var self = this;
 
-            // Action buttons
-            $('#btn-nouvelle-licence').on('click', function(e) {
+            // // UFSC: Enhanced Action buttons
+            $('#btn-ajouter-licence').on('click', function(e) {
                 e.preventDefault();
-                self.handleNewLicence();
+                self.handleAddLicence();
+            });
+
+            $('#btn-mettre-a-jour-club').on('click', function(e) {
+                e.preventDefault();
+                self.handleUpdateClub();
+            });
+
+            $('#btn-televerser-document').on('click', function(e) {
+                e.preventDefault();
+                self.handleUploadDocument();
+            });
+
+            // // UFSC: Filters
+            $('.ufsc-filter').on('change', function() {
+                self.applyFilters();
+            });
+
+            // // UFSC: CSV Export
+            $('#btn-export-csv').on('click', function(e) {
+                e.preventDefault();
+                self.handleExportCSV();
+            });
+
+            // // UFSC: License actions
+            $(document).on('click', '.ufsc-licence-action', function(e) {
+                e.preventDefault();
+                var action = $(this).data('action');
+                var licenceId = $(this).data('licence-id');
+                self.handleLicenceAction(action, licenceId);
             });
 
             $('#btn-importer-csv').on('click', function(e) {
@@ -85,23 +119,28 @@
         // Load initial dashboard data
         loadInitialData: function() {
             this.loadKPIs();
+            this.loadRecentLicences();
+            this.loadDocumentsStatus();
+            this.loadStatistics();
             this.loadNotifications();
             this.loadAuditLog();
             this.loadChartsData();
         },
 
-        // Load KPI data
+        // Load KPI data with enhanced status tracking
         loadKPIs: function() {
             var self = this;
-            var cacheKey = 'kpis_' + this.config.club_id;
+            var filters = this.getCurrentFilters();
+            var cacheKey = 'kpis_' + this.config.club_id + '_' + JSON.stringify(filters);
 
             if (this.isCacheValid(cacheKey)) {
-                this.updateKPIs(this.cache[cacheKey]);
+                this.updateKPIs(this.cache[cacheKey].data);
                 return;
             }
 
-            this.apiRequest('get_club_kpis', {
-                club_id: this.config.club_id
+            // // UFSC: Use REST API endpoint
+            this.restRequest('dashboard/kpis', {
+                filters: filters
             }, function(data) {
                 self.cache[cacheKey] = {
                     data: data,
@@ -113,15 +152,160 @@
             });
         },
 
-        // Update KPI displays
+        // // UFSC: Update KPI displays according to new status structure
         updateKPIs: function(data) {
-            $('#kpi-licences-total').text(data.licences_total || '-');
             $('#kpi-licences-validees').text(data.licences_validees || '-');
+            $('#kpi-licences-payees').text(data.licences_payees || '-');  
             $('#kpi-licences-attente').text(data.licences_attente || '-');
-            $('#kpi-licences-expirees').text(data.licences_expirees || '-');
-            $('#kpi-paiements-a-payer').text(data.paiements_a_payer || '-');
-            $('#kpi-paiements-payes').text(data.paiements_payes || '-');
-            $('#kpi-documents').text(data.documents_complets || '-');
+            $('#kpi-licences-refusees').text(data.licences_refusees || '-');
+        },
+
+        // // UFSC: Get current filter values
+        getCurrentFilters: function() {
+            return {
+                periode: $('#filter-periode').val(),
+                genre: $('#filter-genre').val(),
+                role: $('#filter-role').val(),
+                competition: $('#filter-competition').val()
+            };
+        },
+
+        // // UFSC: Apply filters and refresh data
+        applyFilters: function() {
+            // Clear relevant cache entries
+            var self = this;
+            Object.keys(this.cache).forEach(function(key) {
+                if (key.includes('kpis_') || key.includes('recent_licences_') || key.includes('stats_')) {
+                    delete self.cache[key];
+                }
+            });
+            
+            // Reload data
+            this.loadKPIs();
+            this.loadRecentLicences();
+            this.loadStatistics();
+        },
+
+        // // UFSC: Load recent licenses with actions
+        loadRecentLicences: function() {
+            var self = this;
+            var filters = this.getCurrentFilters();
+            var cacheKey = 'recent_licences_' + this.config.club_id + '_' + JSON.stringify(filters);
+
+            if (this.isCacheValid(cacheKey)) {
+                this.updateRecentLicences(this.cache[cacheKey].data);
+                return;
+            }
+
+            this.restRequest('dashboard/recent-licences', {
+                limit: 5,
+                filters: filters
+            }, function(data) {
+                self.cache[cacheKey] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+                self.updateRecentLicences(data);
+            }, function() {
+                $('#ufsc-recent-licences').html('<div class="ufsc-error">Erreur lors du chargement</div>');
+            });
+        },
+
+        // // UFSC: Update recent licenses display
+        updateRecentLicences: function(licences) {
+            var container = $('#ufsc-recent-licences');
+            
+            if (!licences || licences.length === 0) {
+                container.html('<p>Aucune licence récente</p>');
+                return;
+            }
+
+            var html = '<table class="ufsc-table">';
+            html += '<thead><tr><th>Nom</th><th>Rôle</th><th>Statut</th><th>Actions</th></tr></thead>';
+            html += '<tbody>';
+            
+            licences.forEach(function(licence) {
+                html += '<tr>';
+                html += '<td>' + licence.prenom + ' ' + licence.nom + '</td>';
+                html += '<td>' + (licence.role || 'Adhérent') + '</td>';
+                html += '<td>' + self.renderStatusBadge(licence.statut) + '</td>';
+                html += '<td>' + self.renderLicenceActions(licence) + '</td>';
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            container.html(html);
+        },
+
+        // // UFSC: Render status badge
+        renderStatusBadge: function(statut) {
+            var badges = {
+                'brouillon': '<span class="ufsc-badge -draft">Brouillon</span>',
+                'non_payee': '<span class="ufsc-badge -pending">En attente</span>',
+                'payee': '<span class="ufsc-badge -pending">⏳ Payée (en cours)</span>',
+                'validee': '<span class="ufsc-badge -ok">✅ Validée</span>',
+                'refusee': '<span class="ufsc-badge -rejected">Refusée</span>'
+            };
+            return badges[statut] || '<span class="ufsc-badge">' + statut + '</span>';
+        },
+
+        // // UFSC: Render license actions based on status
+        renderLicenceActions: function(licence) {
+            var actions = [];
+            var editableStatuses = ['brouillon', 'non_payee', 'refusee'];
+            var deletableStatuses = ['brouillon', 'non_payee'];
+            
+            // View action (always available)
+            actions.push('<a href="?view_licence=' + licence.id + '" class="ufsc-btn-small">Consulter</a>');
+            
+            // Edit action (conditionally available)
+            if (editableStatuses.includes(licence.statut)) {
+                actions.push('<a href="?edit_licence=' + licence.id + '" class="ufsc-btn-small">Modifier</a>');
+            }
+            
+            // Delete action (conditionally available)
+            if (deletableStatuses.includes(licence.statut)) {
+                actions.push('<button class="ufsc-licence-action ufsc-btn-small -danger" data-action="delete" data-licence-id="' + licence.id + '">Supprimer</button>');
+            }
+            
+            return '<div class="ufsc-row-actions">' + actions.join(' ') + '</div>';
+        },
+
+        // // UFSC: Load documents status
+        loadDocumentsStatus: function() {
+            var self = this;
+            var cacheKey = 'documents_' + this.config.club_id;
+
+            if (this.isCacheValid(cacheKey)) {
+                this.updateDocumentsStatus(this.cache[cacheKey].data);
+                return;
+            }
+
+            this.restRequest('dashboard/documents', {}, function(data) {
+                self.cache[cacheKey] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+                self.updateDocumentsStatus(data);
+            });
+        },
+
+        // // UFSC: Update documents status display
+        updateDocumentsStatus: function(documents) {
+            var docTypes = ['statuts', 'recepisse', 'jo', 'pv_ag', 'cer', 'attestation_cer'];
+            
+            docTypes.forEach(function(docType) {
+                var item = $('.ufsc-document-item[data-doc="' + docType + '"]');
+                var status = item.find('.ufsc-document-status');
+                
+                if (documents && documents[docType]) {
+                    status.text('✅');
+                    item.addClass('-transmitted');
+                } else {
+                    status.text('⏳');
+                    item.removeClass('-transmitted');
+                }
+            });
         },
 
         // Load notifications
@@ -388,6 +572,164 @@
             this.showToast('Redirection vers la configuration...', 'info');
         },
 
+        // // UFSC: New action handlers
+        handleAddLicence: function() {
+            window.location.href = '?add_licence=1';
+        },
+
+        handleUpdateClub: function() {
+            window.location.href = '?edit_club=1';
+        },
+
+        handleUploadDocument: function() {
+            window.location.href = '?upload_documents=1';
+        },
+
+        // // UFSC: CSV Export with filters
+        handleExportCSV: function() {
+            var self = this;
+            var filters = this.getCurrentFilters();
+            
+            this.showToast('Export en cours...', 'info');
+            
+            var form = $('<form method="post" action="' + this.config.ajax_url + '">');
+            form.append('<input type="hidden" name="action" value="ufsc_export_stats">');
+            form.append('<input type="hidden" name="nonce" value="' + this.config.nonce + '">');
+            form.append('<input type="hidden" name="club_id" value="' + this.config.club_id + '">');
+            form.append('<input type="hidden" name="filters" value="' + JSON.stringify(filters) + '">');
+            
+            $('body').append(form);
+            form.submit();
+            form.remove();
+        },
+
+        // // UFSC: Handle license actions
+        handleLicenceAction: function(action, licenceId) {
+            var self = this;
+            
+            if (action === 'delete') {
+                if (!confirm('Êtes-vous sûr de vouloir supprimer cette licence ?')) {
+                    return;
+                }
+                
+                this.restDelete('licences/' + licenceId, function(data) {
+                    self.showToast('Licence supprimée avec succès', 'success');
+                    self.loadRecentLicences(); // Refresh list
+                    self.loadKPIs(); // Refresh counters
+                }, function(error) {
+                    self.showToast('Erreur lors de la suppression: ' + error, 'error');
+                });
+            }
+        },
+
+        // // UFSC: Load statistics for detailed view
+        loadStatistics: function() {
+            var self = this;
+            var filters = this.getCurrentFilters();
+            var cacheKey = 'stats_' + this.config.club_id + '_' + JSON.stringify(filters);
+
+            if (this.isCacheValid(cacheKey)) {
+                this.updateStatistics(this.cache[cacheKey].data);
+                return;
+            }
+
+            this.restRequest('dashboard/detailed-stats', {
+                filters: filters
+            }, function(data) {
+                self.cache[cacheKey] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+                self.updateStatistics(data);
+            });
+        },
+
+        // // UFSC: Update statistics displays
+        updateStatistics: function(stats) {
+            // Sex statistics
+            if (stats.sexe) {
+                var sexeHtml = '';
+                Object.keys(stats.sexe).forEach(function(sex) {
+                    var percentage = stats.sexe[sex].percentage || 0;
+                    sexeHtml += '<div class="ufsc-stat-item">';
+                    sexeHtml += '<span class="ufsc-stat-label">' + sex + '</span>';
+                    sexeHtml += '<span class="ufsc-stat-value">' + percentage.toFixed(1) + '%</span>';
+                    sexeHtml += '</div>';
+                });
+                $('#stats-sexe').html(sexeHtml);
+            }
+
+            // Age statistics
+            if (stats.age) {
+                var ageHtml = '';
+                Object.keys(stats.age).forEach(function(tranche) {
+                    var count = stats.age[tranche] || 0;
+                    ageHtml += '<div class="ufsc-stat-item">';
+                    ageHtml += '<span class="ufsc-stat-label">' + tranche + '</span>';
+                    ageHtml += '<span class="ufsc-stat-value">' + count + '</span>';
+                    ageHtml += '</div>';
+                });
+                $('#stats-age').html(ageHtml);
+            }
+
+            // Competition vs Leisure
+            if (stats.competition) {
+                var compHtml = '';
+                compHtml += '<div class="ufsc-stat-item">';
+                compHtml += '<span class="ufsc-stat-label">Compétition</span>';
+                compHtml += '<span class="ufsc-stat-value">' + (stats.competition.competition || 0) + '</span>';
+                compHtml += '</div>';
+                compHtml += '<div class="ufsc-stat-item">';
+                compHtml += '<span class="ufsc-stat-label">Loisir</span>';
+                compHtml += '<span class="ufsc-stat-value">' + (stats.competition.loisir || 0) + '</span>';
+                compHtml += '</div>';
+                $('#stats-competition').html(compHtml);
+            }
+
+            // Roles
+            if (stats.roles) {
+                var rolesHtml = '';
+                Object.keys(stats.roles).forEach(function(role) {
+                    var count = stats.roles[role] || 0;
+                    rolesHtml += '<div class="ufsc-stat-item">';
+                    rolesHtml += '<span class="ufsc-stat-label">' + role + '</span>';
+                    rolesHtml += '<span class="ufsc-stat-value">' + count + '</span>';
+                    rolesHtml += '</div>';
+                });
+                $('#stats-roles').html(rolesHtml);
+            }
+
+            // Evolution
+            if (stats.evolution) {
+                var evolHtml = '';
+                evolHtml += '<div class="ufsc-evolution-item">';
+                evolHtml += '<span class="ufsc-evolution-label">Nouveaux brouillons</span>';
+                evolHtml += '<span class="ufsc-evolution-value">' + (stats.evolution.nouveaux_brouillons || 0) + '</span>';
+                evolHtml += '</div>';
+                evolHtml += '<div class="ufsc-evolution-item">';
+                evolHtml += '<span class="ufsc-evolution-label">Nouveaux payés</span>';
+                evolHtml += '<span class="ufsc-evolution-value">' + (stats.evolution.nouveaux_payes || 0) + '</span>';
+                evolHtml += '</div>';
+                evolHtml += '<div class="ufsc-evolution-item">';
+                evolHtml += '<span class="ufsc-evolution-label">Nouveaux validés</span>';
+                evolHtml += '<span class="ufsc-evolution-value">' + (stats.evolution.nouveaux_valides || 0) + '</span>';
+                evolHtml += '</div>';
+                $('#stats-evolution').html(evolHtml);
+            }
+
+            // Alerts
+            if (stats.alerts) {
+                var alertsHtml = '';
+                stats.alerts.forEach(function(alert) {
+                    alertsHtml += '<div class="ufsc-alert ufsc-alert-' + alert.type + '">';
+                    alertsHtml += '<span class="ufsc-alert-icon">⚠️</span>';
+                    alertsHtml += '<span class="ufsc-alert-message">' + alert.message + '</span>';
+                    alertsHtml += '</div>';
+                });
+                $('#stats-alerts').html(alertsHtml || '<p>Aucune alerte</p>');
+            }
+        },
+
         // Utility functions
         apiRequest: function(action, data, successCallback, errorCallback) {
             var requestData = $.extend({
@@ -408,6 +750,54 @@
                 },
                 error: function() {
                     errorCallback('Erreur de communication');
+                }
+            });
+        },
+
+        // // UFSC: REST API request method
+        restRequest: function(endpoint, data, successCallback, errorCallback) {
+            var url = this.config.rest_url + endpoint;
+            var params = $.param(data || {});
+            if (params) {
+                url += '?' + params;
+            }
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', window.ufsc_frontend_vars ? window.ufsc_frontend_vars.nonce : '');
+                },
+                success: function(response) {
+                    successCallback(response);
+                },
+                error: function(xhr) {
+                    var message = 'Erreur de communication';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    errorCallback(message);
+                }
+            });
+        },
+
+        // // UFSC: DELETE request for license deletion
+        restDelete: function(endpoint, successCallback, errorCallback) {
+            $.ajax({
+                url: this.config.rest_url + endpoint,
+                type: 'DELETE',
+                beforeSend: function(xhr) {
+                    xhr.setRequestHeader('X-WP-Nonce', window.ufsc_frontend_vars ? window.ufsc_frontend_vars.nonce : '');
+                },
+                success: function(response) {
+                    successCallback(response);
+                },
+                error: function(xhr) {
+                    var message = 'Erreur de communication';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        message = xhr.responseJSON.message;
+                    }
+                    errorCallback(message);
                 }
             });
         },
