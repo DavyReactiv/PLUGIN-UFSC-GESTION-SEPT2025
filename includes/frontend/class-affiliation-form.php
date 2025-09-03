@@ -14,6 +14,37 @@ class UFSC_Affiliation_Form {
         add_shortcode( 'ufsc_affiliation_form', array( __CLASS__, 'render_shortcode' ) );
         add_action( 'admin_post_ufsc_create_club', array( __CLASS__, 'handle_form_submission' ) );
         add_action( 'admin_post_nopriv_ufsc_create_club', array( __CLASS__, 'handle_form_submission' ) );
+        add_action( 'wp_ajax_ufsc_affiliation_pay', array( __CLASS__, 'ajax_affiliation_pay' ) );
+        add_action( 'wp_ajax_nopriv_ufsc_affiliation_pay', array( __CLASS__, 'ajax_affiliation_pay' ) );
+        add_action( 'admin_post_ufsc_affiliation_pay', array( __CLASS__, 'handle_affiliation_pay' ) );
+        add_action( 'admin_post_nopriv_ufsc_affiliation_pay', array( __CLASS__, 'handle_affiliation_pay' ) );
+    }
+
+    /**
+     * Enqueue affiliation payment script
+     */
+    private static function enqueue_scripts() {
+        if ( ! function_exists( 'ufsc_is_woocommerce_active' ) || ! ufsc_is_woocommerce_active() ) {
+            return;
+        }
+
+        wp_enqueue_script(
+            'ufsc-affiliation',
+            UFSC_CL_URL . 'assets/js/ufsc-affiliation.js',
+            array( 'jquery' ),
+            UFSC_CL_VERSION,
+            true
+        );
+
+        wp_localize_script(
+            'ufsc-affiliation',
+            'ufscAffiliation',
+            array(
+                'ajax_url'     => admin_url( 'admin-ajax.php' ),
+                'checkout_url' => function_exists( 'wc_get_checkout_url' ) ? wc_get_checkout_url() : '',
+                'nonce'        => wp_create_nonce( 'ufsc_affiliation_pay' ),
+            )
+        );
     }
 
     /**
@@ -56,10 +87,12 @@ class UFSC_Affiliation_Form {
         // Handle error message
         $error_message = '';
         if ( isset( $_GET['error'] ) ) {
-            $error_message = '<div class="ufsc-message ufsc-error">' . 
-                            esc_html( sanitize_text_field( $_GET['error'] ) ) . 
+            $error_message = '<div class="ufsc-message ufsc-error">' .
+                            esc_html( sanitize_text_field( $_GET['error'] ) ) .
                             '</div>';
         }
+
+        self::enqueue_scripts();
 
         ob_start();
         ?>
@@ -153,6 +186,15 @@ class UFSC_Affiliation_Form {
                     </button>
                 </div>
             </form>
+            <?php if ( function_exists( 'ufsc_is_woocommerce_active' ) && ufsc_is_woocommerce_active() ) : ?>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-affiliation-pay-form">
+                <?php wp_nonce_field( 'ufsc_affiliation_pay', 'ufsc_affiliation_nonce' ); ?>
+                <input type="hidden" name="action" value="ufsc_affiliation_pay">
+                <button type="submit" id="ufsc-pay-affiliation" class="button button-secondary">
+                    <?php echo esc_html__( 'Payer mon affiliation', 'ufsc-clubs' ); ?>
+                </button>
+            </form>
+            <?php endif; ?>
         </div>
 
         <style>
@@ -238,6 +280,48 @@ class UFSC_Affiliation_Form {
         <?php
 
         return ob_get_clean();
+    }
+
+    /**
+     * AJAX handler to add affiliation product to cart
+     */
+    public static function ajax_affiliation_pay() {
+        check_ajax_referer( 'ufsc_affiliation_pay', 'nonce' );
+
+        if ( ! function_exists( 'ufsc_is_woocommerce_active' ) || ! ufsc_is_woocommerce_active() ) {
+            wp_send_json_error();
+        }
+
+        $settings   = ufsc_get_woocommerce_settings();
+        $product_id = absint( $settings['product_affiliation_id'] );
+        $added      = $product_id ? WC()->cart->add_to_cart( $product_id ) : false;
+
+        if ( $added ) {
+            wp_send_json_success( array( 'redirect' => wc_get_checkout_url() ) );
+        }
+
+        wp_send_json_error();
+    }
+
+    /**
+     * Handle non-AJAX affiliation payment form
+     */
+    public static function handle_affiliation_pay() {
+        if ( ! isset( $_POST['ufsc_affiliation_nonce'] ) || ! wp_verify_nonce( $_POST['ufsc_affiliation_nonce'], 'ufsc_affiliation_pay' ) ) {
+            wp_die( esc_html__( 'Erreur de sécurité. Veuillez réessayer.', 'ufsc-clubs' ) );
+        }
+
+        if ( function_exists( 'ufsc_is_woocommerce_active' ) && ufsc_is_woocommerce_active() ) {
+            $settings   = ufsc_get_woocommerce_settings();
+            $product_id = absint( $settings['product_affiliation_id'] );
+
+            if ( $product_id ) {
+                WC()->cart->add_to_cart( $product_id );
+            }
+        }
+
+        wp_safe_redirect( function_exists( 'wc_get_checkout_url' ) ? wc_get_checkout_url() : home_url() );
+        exit;
     }
 
     /**
