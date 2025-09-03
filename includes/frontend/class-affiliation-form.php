@@ -109,6 +109,8 @@ class UFSC_Affiliation_Form {
 
             <div class="ufsc-notices" aria-live="polite"></div>
 
+            <div class="ufsc-notices" aria-live="polite"></div>
+
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-form">
 
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-form ufsc-grid" enctype="multipart/form-data">

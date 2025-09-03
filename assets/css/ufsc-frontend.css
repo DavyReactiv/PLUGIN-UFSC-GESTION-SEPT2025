@@ -3,7 +3,6 @@
  * Styles for frontend shortcodes and forms
  */
 
-
 /* Accessibility focus styles for interactive elements */
 a:focus,
 button:focus,
@@ -21,6 +20,7 @@ button,
 .ufsc-btn,
 table tr {
     transition: 150ms ease;
+
 
 :root {
     --ufsc-primary: #3498db;
@@ -152,9 +152,11 @@ table tr {
     outline-offset: 2px;
     box-shadow: none;
 
+
     outline: none;
     border-color: var(--ufsc-primary);
     box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+
 
 }
 
@@ -330,6 +332,10 @@ button:focus,
     cursor: pointer;
 
     transition: 150ms ease;
+
+
+    transition: 150ms ease;
+
 
 }
 
