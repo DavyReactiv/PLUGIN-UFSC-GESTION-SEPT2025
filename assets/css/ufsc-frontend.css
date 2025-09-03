@@ -56,6 +56,40 @@
     text-align: center;
 }
 
+
+/* Interactive elements */
+a,
+button,
+.ufsc-btn {
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+a {
+    color: #177bbe;
+    text-decoration: underline;
+}
+
+a:hover,
+a:focus {
+    color: #125f96;
+}
+
+a:active {
+    color: #0f5180;
+}
+
+a:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+button:focus,
+.ufsc-btn:focus {
+    outline: 2px solid #000;
+    outline-offset: 2px;
+}
+
+
 /* Affiliation form grid structure */
 .ufsc-grid {
     display: grid;
@@ -169,47 +203,130 @@
     }
 }
 
+
 /* Frontend buttons */
 .ufsc-btn {
     display: inline-block;
     padding: 12px 24px;
-    background: #3498db;
-    color: white;
+    background: #177bbe;
+    color: #fff;
     text-decoration: none;
     border-radius: 4px;
     border: none;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
 }
 
 .ufsc-btn:hover {
-    background: #2980b9;
-    color: white;
+    background: #156fae;
+    color: #fff;
     text-decoration: none;
     transform: translateY(-1px);
 }
 
+.ufsc-btn:active {
+    background: #125f96;
+    transform: translateY(0);
+}
+
 .ufsc-btn-primary {
-    background: #3498db;
+    background: #177bbe;
 }
 
 .ufsc-btn-success {
-    background: #27ae60;
+    background: #02893b;
 }
 
 .ufsc-btn-success:hover {
-    background: #219a52;
+    background: #026c2f;
+}
+
+.ufsc-btn-success:active {
+    background: #025526;
 }
 
 .ufsc-btn-secondary {
-    background: #95a5a6;
-    color: white;
+    background: #69797a;
+    color: #fff;
 }
 
 .ufsc-btn-secondary:hover {
-    background: #7f8c8d;
+    background: #566364;
+}
+
+.ufsc-btn-secondary:active {
+    background: #495355;
+}
+
+/* Badge styling */
+.ufsc-badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 0.75em;
+    font-weight: 600;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+    border: 1px solid transparent;
+    text-decoration: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.ufsc-badge:hover {
+    opacity: 0.9;
+}
+
+.ufsc-badge-success {
+    background-color: #0a8927;
+    color: #fff;
+}
+
+.ufsc-badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.ufsc-badge-info {
+    background-color: #008298;
+    color: #fff;
+}
+
+.ufsc-badge-danger {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.ufsc-badge-region {
+    background-color: #0073aa;
+    color: #fff;
+}
+
+.ufsc-badge-doc-complete {
+    background-color: #0a8927;
+    color: #fff;
+}
+
+.ufsc-badge-doc-partial {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.ufsc-badge-doc-missing {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.ufsc-badge-sm {
+    padding: 0.2em 0.5em;
+    font-size: 0.65em;
+}
+
+.ufsc-badge-lg {
+    padding: 0.35em 0.8em;
+    font-size: 0.85em;
 }
 
 /* Club dashboard styling */
