@@ -713,8 +713,8 @@ class UFSC_Frontend_Shortcodes {
             </div>
 
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-form">
-                <input type="hidden" name="action" value="ufsc_save_licence">
-                <?php wp_nonce_field( 'ufsc_save_licence', '_wpnonce' ); ?>
+                <input type="hidden" name="action" value="ufsc_add_licence">
+                <?php wp_nonce_field( 'ufsc_add_licence', 'ufsc_nonce' ); ?>
                 
                 <!-- // UFSC: Enhanced form structure with conditional fields -->
                 <div class="ufsc-grid">
