@@ -13,8 +13,6 @@ class UFSC_Unified_Handlers {
     public static function init() {
         // License handlers
 
-        add_action( 'admin_post_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
-        add_action( 'admin_post_nopriv_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
 
         add_action( 'admin_post_ufsc_add_licence', array( __CLASS__, 'handle_add_licence' ) );
         add_action( 'admin_post_nopriv_ufsc_add_licence', array( __CLASS__, 'handle_add_licence' ) );
@@ -43,24 +41,6 @@ class UFSC_Unified_Handlers {
         add_action( 'admin_post_nopriv_ufsc_export_stats', array( __CLASS__, 'handle_export_stats' ) );
         add_action( 'wp_ajax_ufsc_export_stats', array( __CLASS__, 'ajax_export_stats' ) );
         add_action( 'wp_ajax_nopriv_ufsc_export_stats', array( __CLASS__, 'ajax_export_stats' ) );
-    }
-
-    /**
-
-     * Handle licence creation
-
-     * Handle add licence form submission
-     */
-    public static function handle_add_licence() {
-        self::process_licence_request( 0 );
-    }
-
-    /**
-     * Handle update licence form submission
-     */
-    public static function handle_update_licence() {
-        $licence_id = isset( $_POST['licence_id'] ) ? intval( $_POST['licence_id'] ) : 0;
-        self::process_licence_request( $licence_id );
     }
 
     /**
