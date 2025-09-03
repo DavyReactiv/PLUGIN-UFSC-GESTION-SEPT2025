@@ -250,10 +250,13 @@ class UFSC_Frontend_Shortcodes {
                        class="ufsc-btn ufsc-btn-secondary">
                         <?php esc_html_e( 'Exporter CSV', 'ufsc-clubs' ); ?>
                     </a>
-                    <a href="<?php echo esc_url( add_query_arg( 'ufsc_export', 'xlsx' ) ); ?>" 
+                    <a href="<?php echo esc_url( add_query_arg( 'ufsc_export', 'xlsx' ) ); ?>"
                        class="ufsc-btn ufsc-btn-secondary">
                         <?php esc_html_e( 'Exporter Excel', 'ufsc-clubs' ); ?>
                     </a>
+                    <button id="btn-exporter-selection" class="ufsc-btn ufsc-btn-secondary">
+                        <?php esc_html_e( 'Exporter sélection', 'ufsc-clubs' ); ?>
+                    </button>
                     <button class="ufsc-btn ufsc-btn-secondary" onclick="document.getElementById('ufsc-import-modal').style.display='block'">
                         <?php esc_html_e( 'Importer CSV', 'ufsc-clubs' ); ?>
                     </button>
@@ -328,6 +331,7 @@ class UFSC_Frontend_Shortcodes {
                     <table class="ufsc-table">
                         <thead>
                             <tr>
+                                <th scope="col"><input type="checkbox" id="ufsc-select-all"></th>
                                 <th scope="col"><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
                                 <th scope="col"><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></th>
                                 <th scope="col" class="ufsc-hide-mobile"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></th>
@@ -339,6 +343,7 @@ class UFSC_Frontend_Shortcodes {
                         <tbody>
                             <?php foreach ( $licences as $licence ): ?>
                                 <tr>
+                                    <td><input type="checkbox" class="ufsc-licence-select" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>"></td>
                                     <th scope="row"><?php echo esc_html( $licence->nom ?? '' ); ?></th>
                                     <td><?php echo esc_html( $licence->prenom ?? '' ); ?></td>
                                     <td class="ufsc-hide-mobile"><?php echo esc_html( $licence->email ?? '' ); ?></td>
