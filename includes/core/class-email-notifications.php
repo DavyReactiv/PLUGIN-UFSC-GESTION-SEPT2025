@@ -609,7 +609,7 @@ class UFSC_Email_Notifications {
         );
     }
 
-    // STUB HELPER METHODS - To be implemented
+    // Helper methods
 
     private static function get_licence_data( $licence_id ) {
         global $wpdb;
@@ -623,6 +623,7 @@ class UFSC_Email_Notifications {
 
         $columns = array(
             'id'            => $id_col,
+            'club_id'       => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'club_id' ) : 'club_id',
             'nom'           => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'nom' ) : 'nom',
             'prenom'        => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'prenom' ) : 'prenom',
             'email'         => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'email' ) : 'email',
@@ -690,7 +691,22 @@ class UFSC_Email_Notifications {
 
     private static function get_dashboard_url() {
         $dashboard_page = get_option( 'ufsc_dashboard_page' );
+
+        if ( $dashboard_page ) {
+            $url = get_permalink( $dashboard_page );
+            if ( $url ) {
+                return $url;
+            }
+        }
+
+        if ( function_exists( 'wc_get_account_endpoint_url' ) ) {
+            return wc_get_account_endpoint_url( 'ufsc-tableau-de-bord' );
+        }
+
+        return home_url( '/tableau-de-bord/' );
+
         return $dashboard_page ? get_permalink( $dashboard_page ) : home_url( '/club-dashboard/' );
+
     }
 }
 
