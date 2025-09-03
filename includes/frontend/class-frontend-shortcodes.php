@@ -915,76 +915,94 @@ class UFSC_Frontend_Shortcodes {
     private static function get_club_licences( $club_id, $args ) {
         global $wpdb;
 
-        if ( ! function_exists( 'ufsc_get_licences_table' ) ) { return array(); }
+        if ( ! function_exists( 'ufsc_get_licences_table' ) ) { 
+            return array(); 
+        }
         $licences_table = ufsc_get_licences_table();
-        
+
         $defaults = array(
-            'search' => '',
-            'status' => '',
-            'season' => '',
-            'paged' => 1,
-            'per_page' => 20
+            'search'   => '',
+            'status'   => '',
+            'season'   => '',
+            'page'     => 1,
+            'per_page' => 20,
+            'sort'     => 'created_desc',
         );
         $args = wp_parse_args( $args, $defaults );
-        
-        // Get table columns for dynamic detection
+
+        // Colonnes disponibles
         $columns = $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
-        
-        // Build WHERE conditions
-        $where_conditions = array();
-        $where_conditions[] = $wpdb->prepare( "club_id = %d", $club_id );
-        
-        // Search filter
+
+        // Clauses et valeurs de préparation
+        $clauses = array( 'club_id = %d' );
+        $values  = array( (int) $club_id );
+
+        // Recherche
         if ( ! empty( $args['search'] ) ) {
             $search_fields = array();
-            foreach ( ['nom', 'nom_licence', 'prenom', 'email'] as $field ) {
-                if ( in_array( $field, $columns ) ) {
+            $search_values = array();
+            foreach ( array( 'nom', 'nom_licence', 'prenom', 'email' ) as $field ) {
+                if ( in_array( $field, $columns, true ) ) {
                     $search_fields[] = "`{$field}` LIKE %s";
+                    $search_values[] = '%' . $wpdb->esc_like( $args['search'] ) . '%';
                 }
             }
-            if ( ! empty( $search_fields ) ) {
-                $search_term = '%' . $wpdb->esc_like( $args['search'] ) . '%';
-                $search_params = array_fill( 0, count( $search_fields ), $search_term );
-                $where_conditions[] = '(' . implode( ' OR ', $search_fields ) . ')';
+            if ( $search_fields ) {
+                $clauses[] = '(' . implode( ' OR ', $search_fields ) . ')';
+                $values    = array_merge( $values, $search_values );
             }
         }
-        
-        // Status filter
+
+        // Statut
         if ( ! empty( $args['status'] ) ) {
-            $status_column = null;
-            foreach ( ['status', 'statut'] as $col ) {
-                if ( in_array( $col, $columns ) ) {
-                    $status_column = $col;
-                    break;
-                }
+            $status_col = null;
+            foreach ( array( 'status', 'statut' ) as $col ) {
+                if ( in_array( $col, $columns, true ) ) { $status_col = $col; break; }
             }
-            if ( $status_column ) {
-                $where_conditions[] = $wpdb->prepare( "`{$status_column}` = %s", $args['status'] );
+            if ( $status_col ) {
+                $clauses[] = "`{$status_col}` = %s";
+                $values[]  = $args['status'];
             }
         }
-        
-        // Season filter (if applicable) 
+
+        // Saison
         if ( ! empty( $args['season'] ) ) {
-            $season_column = null;
-            foreach ( ['season', 'saison', 'paid_season'] as $col ) {
-                if ( in_array( $col, $columns ) ) {
-                    $season_column = $col;
-                    break;
-                }
+            $season_col = null;
+            foreach ( array( 'season', 'saison', 'paid_season' ) as $col ) {
+                if ( in_array( $col, $columns, true ) ) { $season_col = $col; break; }
             }
-            if ( $season_column ) {
-                $where_conditions[] = $wpdb->prepare( "`{$season_column}` = %s", $args['season'] );
+            if ( $season_col ) {
+                $clauses[] = "`{$season_col}` = %s";
+                $values[]  = $args['season'];
             }
         }
-        
-        $where_clause = ! empty( $where_conditions ) ? 'WHERE ' . implode( ' AND ', $where_conditions ) : '';
-        
+
+        // Tri
+        $order_by = 'id DESC';
+        switch ( $args['sort'] ) {
+            case 'created_asc':
+                $order_by = 'id ASC';
+                break;
+            case 'name_asc':
+                if ( in_array( 'nom', $columns, true ) ) { $order_by = 'nom ASC'; }
+                break;
+            case 'name_desc':
+                if ( in_array( 'nom', $columns, true ) ) { $order_by = 'nom DESC'; }
+                break;
+        }
+
         // Pagination
-        $offset = ( $args['paged'] - 1 ) * $args['per_page'];
-        
-        $sql = "SELECT * FROM `{$licences_table}` {$where_clause} ORDER BY id DESC LIMIT {$args['per_page']} OFFSET {$offset}";
-        
-        return $wpdb->get_results( $sql );
+        $per_page = max( 1, (int) $args['per_page'] );
+        $page     = isset( $args['page'] ) ? (int) $args['page'] : ( isset( $args['paged'] ) ? (int) $args['paged'] : 1 );
+        $page     = max( 1, $page );
+        $offset   = ( $page - 1 ) * $per_page;
+
+        $where_sql = $clauses ? 'WHERE ' . implode( ' AND ', $clauses ) : '';
+        $sql       = "SELECT * FROM `{$licences_table}` {$where_sql} ORDER BY {$order_by} LIMIT %d OFFSET %d";
+        $values[]  = $per_page;
+        $values[]  = $offset;
+
+        return $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
     }
 
     /**
@@ -993,95 +1011,67 @@ class UFSC_Frontend_Shortcodes {
     private static function get_club_licences_count( $club_id, $args ) {
         global $wpdb;
 
-        if ( ! function_exists( 'ufsc_get_licences_table' ) ) { return 0; }
-        $licences_table = ufsc_get_licences_table();
-        
-        $defaults = array(
-            'search' => '',
-            'status' => '',
-            'season' => ''
-        );
-        $args = wp_parse_args( $args, $defaults );
-        
-        // Get table columns for dynamic detection
-        $columns = $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
-        
-        // Build WHERE conditions (same logic as get_club_licences)
-        $where_conditions = array();
-        $where_conditions[] = $wpdb->prepare( "club_id = %d", $club_id );
-        
-        // Search filter
-        if ( ! empty( $args['search'] ) ) {
-            $search_fields = array();
-            foreach ( ['nom', 'nom_licence', 'prenom', 'email'] as $field ) {
-                if ( in_array( $field, $columns ) ) {
-                    $search_fields[] = "`{$field}` LIKE %s";
-                }
-            }
-            if ( ! empty( $search_fields ) ) {
-                $search_term = '%' . $wpdb->esc_like( $args['search'] ) . '%';
-                $search_params = array_fill( 0, count( $search_fields ), $search_term );
-                $where_conditions[] = '(' . implode( ' OR ', $search_fields ) . ')';
-            }
-        }
-        
-        // Status filter
-        if ( ! empty( $args['status'] ) ) {
-            $status_column = null;
-            foreach ( ['status', 'statut'] as $col ) {
-                if ( in_array( $col, $columns ) ) {
-                    $status_column = $col;
-                    break;
-                }
-            }
-            if ( $status_column ) {
-                $where_conditions[] = $wpdb->prepare( "`{$status_column}` = %s", $args['status'] );
-
-        
         if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
             return 0;
         }
-        
-        $table = ufsc_get_licences_table();
-        $club_id_col = ufsc_lic_col( 'club_id' );
-        
-        if ( ! $club_id_col ) {
-            return 0;
-        }
-        
-        $where_conditions = array( $wpdb->prepare( "`{$club_id_col}` = %d", $club_id ) );
-        $where_values = array();
-        
-        // Status filter
-        if ( ! empty( $args['status'] ) ) {
-            $status_col = ufsc_get_mapped_column_if_exists( $table, 'status', 'licences' );
-            if ( $status_col ) {
-                $where_conditions[] = "`{$status_col}` = %s";
-                $where_values[] = $args['status'];
+        $licences_table = ufsc_get_licences_table();
 
-            }
-        }
-        
-        // Season filter
-        if ( ! empty( $args['season'] ) ) {
+        $defaults = array(
+            'search' => '',
+            'status' => '',
+            'season' => '',
+        );
+        $args = wp_parse_args( $args, $defaults );
 
-            $season_column = null;
-            foreach ( ['season', 'saison', 'paid_season'] as $col ) {
-                if ( in_array( $col, $columns ) ) {
-                    $season_column = $col;
-                    break;
+        $columns = $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
+
+        $clauses = array( 'club_id = %d' );
+        $values  = array( (int) $club_id );
+
+        // Recherche
+        if ( ! empty( $args['search'] ) ) {
+            $search_fields = array();
+            $search_values = array();
+            foreach ( array( 'nom', 'nom_licence', 'prenom', 'email' ) as $field ) {
+                if ( in_array( $field, $columns, true ) ) {
+                    $search_fields[] = "`{$field}` LIKE %s";
+                    $search_values[] = '%' . $wpdb->esc_like( $args['search'] ) . '%';
                 }
             }
-            if ( $season_column ) {
-                $where_conditions[] = $wpdb->prepare( "`{$season_column}` = %s", $args['season'] );
+            if ( $search_fields ) {
+                $clauses[] = '(' . implode( ' OR ', $search_fields ) . ')';
+                $values    = array_merge( $values, $search_values );
             }
         }
-        
-        $where_clause = ! empty( $where_conditions ) ? 'WHERE ' . implode( ' AND ', $where_conditions ) : '';
-        
-        $query = "SELECT COUNT(*) FROM `{$licences_table}` {$where_clause}";
-        
-        return (int) $wpdb->get_var( $query );
+
+        // Statut
+        if ( ! empty( $args['status'] ) ) {
+            $status_col = null;
+            foreach ( array( 'status', 'statut' ) as $col ) {
+                if ( in_array( $col, $columns, true ) ) { $status_col = $col; break; }
+            }
+            if ( $status_col ) {
+                $clauses[] = "`{$status_col}` = %s";
+                $values[]  = $args['status'];
+            }
+        }
+
+        // Saison
+        if ( ! empty( $args['season'] ) ) {
+            $season_col = null;
+            foreach ( array( 'season', 'saison', 'paid_season' ) as $col ) {
+                if ( in_array( $col, $columns, true ) ) { $season_col = $col; break; }
+            }
+            if ( $season_col ) {
+                $clauses[] = "`{$season_col}` = %s";
+                $values[]  = $args['season'];
+            }
+        }
+
+        $where_sql = $clauses ? 'WHERE ' . implode( ' AND ', $clauses ) : '';
+        $sql       = "SELECT COUNT(*) FROM `{$licences_table}` {$where_sql}";
+
+        return (int) $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
     }
 
     /**
@@ -1162,39 +1152,31 @@ class UFSC_Frontend_Shortcodes {
     private static function get_club_data( $club_id ) {
         global $wpdb;
 
-        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) { 
-            return (object) array( 'id' => $club_id, 'nom' => 'Club Test', 'email' => '', 'telephone' => '' );
-        }
-        $clubs_table = ufsc_get_clubs_table();
-        $club = $wpdb->get_row( $wpdb->prepare(
-            "SELECT * FROM `{$clubs_table}` WHERE id = %d LIMIT 1",
-            $club_id
-        ) );
-        return $club ?: (object) array( 'id' => $club_id, 'nom' => 'Club Test', 'email' => '', 'telephone' => '' );
-
-        
-
-        $settings = UFSC_SQL::get_settings();
-        $table = $settings['table_clubs'];
-        $pk = ufsc_club_col( 'id' );
-        
-        $club = $wpdb->get_row( $wpdb->prepare(
-            "SELECT * FROM `{$table}` WHERE `{$pk}` = %d LIMIT 1",
-
         if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
-            return false;
+            // Fallback minimal si la table n'est pas disponible
+            return (object) array(
+                'id'        => (int) $club_id,
+                'nom'       => 'Club',
+                'email'     => '',
+                'telephone' => '',
+            );
         }
-        
-        $table = ufsc_get_clubs_table();
-        
-        $club = $wpdb->get_row( $wpdb->prepare(
-            "SELECT * FROM `{$table}` WHERE `id` = %d",
 
-            $club_id
-        ) );
-        
-        return $club ?: false;
+        $clubs_table = ufsc_get_clubs_table();
 
+        $club = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT * FROM `{$clubs_table}` WHERE id = %d LIMIT 1",
+                (int) $club_id
+            )
+        );
+
+        return $club ?: (object) array(
+            'id'        => (int) $club_id,
+            'nom'       => 'Club',
+            'email'     => '',
+            'telephone' => '',
+        );
     }
 
     /**
