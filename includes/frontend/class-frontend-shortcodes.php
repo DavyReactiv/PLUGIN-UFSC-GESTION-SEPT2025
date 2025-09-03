@@ -187,10 +187,17 @@ class UFSC_Frontend_Shortcodes {
         ob_start();
         ?>
         <div class="ufsc-licences-section">
+            <div class="ufsc-feedback" id="ufsc-feedback" aria-live="polite">
+                <?php if ( isset( $_GET['ufsc_message'] ) ) : ?>
+                    <div class="ufsc-message ufsc-success"><?php echo esc_html( $_GET['ufsc_message'] ); ?></div>
+                <?php elseif ( isset( $_GET['ufsc_error'] ) ) : ?>
+                    <div class="ufsc-message ufsc-error"><?php echo esc_html( $_GET['ufsc_error'] ); ?></div>
+                <?php endif; ?>
+            </div>
             <div class="ufsc-section-header">
                 <h3><?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?></h3>
                 <div class="ufsc-section-actions">
-                    <a href="<?php echo esc_url( add_query_arg( 'ufsc_export', 'csv' ) ); ?>" 
+                    <a href="<?php echo esc_url( add_query_arg( 'ufsc_export', 'csv' ) ); ?>"
                        class="ufsc-btn ufsc-btn-secondary">
                         <?php esc_html_e( 'Exporter CSV', 'ufsc-clubs' ); ?>
                     </a>
@@ -294,16 +301,27 @@ class UFSC_Frontend_Shortcodes {
                                     <td class="ufsc-hide-mobile"><?php echo esc_html( $licence->date_creation ?? '' ); ?></td>
                                     <td class="ufsc-actions" aria-label="<?php esc_attr_e( 'Actions', 'ufsc-clubs' ); ?>">
                                         <div class="ufsc-row-actions">
-                                            <?php if ( ! self::is_validated_licence( $licence->id ?? 0 ) ): ?>
+                                            <a href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"
+                                               class="ufsc-btn ufsc-btn-small"
+                                               aria-label="<?php esc_attr_e( 'Consulter la licence', 'ufsc-clubs' ); ?>">
+                                                <?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?>
+                                            </a>
+                                            <?php if ( in_array( $licence->statut ?? '', array( 'brouillon', 'non_payee', 'refusee' ), true ) ) : ?>
                                                 <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"
                                                    class="ufsc-btn ufsc-btn-small"
                                                    aria-label="<?php esc_attr_e( 'Modifier la licence', 'ufsc-clubs' ); ?>">
                                                     <?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?>
                                                 </a>
-                                            <?php else: ?>
-                                                <span class="ufsc-text-muted">
-                                                    <?php esc_html_e( 'Validée - Non modifiable', 'ufsc-clubs' ); ?>
-                                                </span>
+                                            <?php endif; ?>
+                                            <?php if ( in_array( $licence->statut ?? '', array( 'brouillon', 'non_payee' ), true ) ) : ?>
+                                                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-delete-licence-form" style="display:inline">
+                                                    <?php wp_nonce_field( 'ufsc_delete_licence', 'ufsc_delete_licence_nonce' ); ?>
+                                                    <input type="hidden" name="action" value="ufsc_delete_licence">
+                                                    <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
+                                                    <button type="submit" class="ufsc-btn ufsc-btn-small ufsc-btn-danger" aria-label="<?php esc_attr_e( 'Supprimer la licence', 'ufsc-clubs' ); ?>">
+                                                        <?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?>
+                                                    </button>
+                                                </form>
                                             <?php endif; ?>
                                         </div>
                                     </td>
