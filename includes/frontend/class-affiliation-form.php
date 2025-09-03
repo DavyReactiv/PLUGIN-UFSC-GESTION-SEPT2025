@@ -505,6 +505,17 @@ class UFSC_Affiliation_Form {
      */
     private static function get_dashboard_url() {
         $dashboard_page = get_option( 'ufsc_dashboard_page' );
-        return $dashboard_page ? get_permalink( $dashboard_page ) : null;
+        if ( $dashboard_page ) {
+            $url = get_permalink( $dashboard_page );
+            if ( $url ) {
+                return $url;
+            }
+        }
+
+        if ( function_exists( 'wc_get_account_endpoint_url' ) ) {
+            return wc_get_account_endpoint_url( 'ufsc-tableau-de-bord' );
+        }
+
+        return home_url( '/tableau-de-bord/' );
     }
 }
