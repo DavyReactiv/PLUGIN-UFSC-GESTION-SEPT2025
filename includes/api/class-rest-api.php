@@ -512,11 +512,21 @@ class UFSC_REST_API {
         $filename  = "attestation_{$type}_{$data['club_id']}_" . time() . '.pdf';
         $file_path = $temp_dir . $filename;
 
+        if ( ! class_exists( 'FPDF' ) ) {
+            require_once UFSC_CL_DIR . 'includes/lib/fpdf/fpdf.php';
+        }
+
+        $pdf = new FPDF();
+        $pdf->AddPage();
+        $pdf->SetTitle( __( 'Attestation UFSC', 'ufsc-clubs' ) );
+        $pdf->SetFont( 'Arial', '', 12 );
+
         $lines = array(
             sprintf( __( 'Type: %s', 'ufsc-clubs' ), ucfirst( $type ) ),
             sprintf( __( 'Club ID: %s', 'ufsc-clubs' ), $data['club_id'] ),
             sprintf( __( 'Généré le: %s', 'ufsc-clubs' ), current_time( 'mysql' ) ),
         );
+
 
         // Generate PDF using FPDF library
         require_once UFSC_CL_DIR . 'includes/lib/fpdf.php';
@@ -527,6 +537,12 @@ class UFSC_REST_API {
         foreach ( $lines as $line ) {
             $pdf->Cell( 0, 10, $line, 0, 1 );
         }
+
+        foreach ( $lines as $line ) {
+            $pdf->Cell( 0, 10, $line, 0, 1 );
+        }
+
+
         $pdf->Output( 'F', $file_path );
 
         return $file_path;

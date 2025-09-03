@@ -27,7 +27,13 @@ class UFSC_Frontend_Shortcodes {
      */
     public static function render_club_dashboard( $atts = array() ) {
         wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
-        wp_enqueue_script( 'chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', array(), '4.4.0', true );
+        wp_enqueue_script(
+            'chart-js',
+            'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+            array(),
+            '4.4.0',
+            true
+        );
         $atts = shortcode_atts( array(
             'show_sections' => 'licences,stats,profile,add_licence'
         ), $atts );
@@ -50,6 +56,25 @@ class UFSC_Frontend_Shortcodes {
         $wc_settings = ufsc_get_woocommerce_settings();
         $season = $wc_settings['season'];
         $stats = self::get_club_stats( $club_id, $season );
+        wp_localize_script(
+            'chart-js',
+            'ufscLicenceStats',
+            array(
+                'labels' => array(
+                    esc_html__( 'Total', 'ufsc-clubs' ),
+                    esc_html__( 'Payées', 'ufsc-clubs' ),
+                    esc_html__( 'Validées', 'ufsc-clubs' ),
+                    esc_html__( 'Quota restant', 'ufsc-clubs' ),
+                ),
+                'data'   => array(
+                    (int) $stats['total_licences'],
+                    (int) $stats['paid_licences'],
+                    (int) $stats['validated_licences'],
+                    (int) $stats['quota_remaining'],
+                ),
+                'datasetLabel' => esc_html__( 'Licences', 'ufsc-clubs' ),
+            )
+        );
 
         $sections = explode( ',', $atts['show_sections'] );
         
@@ -140,14 +165,14 @@ class UFSC_Frontend_Shortcodes {
             });
 
             var ctx = document.getElementById('ufsc-licence-chart');
-            if (ctx) {
+            if (ctx && typeof ufscLicenceStats !== 'undefined') {
                 new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: ['Total', 'Payées', 'Validées', 'Quota restant'],
+                        labels: ufscLicenceStats.labels,
                         datasets: [{
-                            label: 'Licences',
-                            data: [<?php echo (int) $stats['total_licences']; ?>, <?php echo (int) $stats['paid_licences']; ?>, <?php echo (int) $stats['validated_licences']; ?>, <?php echo (int) $stats['quota_remaining']; ?>],
+                            label: ufscLicenceStats.datasetLabel,
+                            data: ufscLicenceStats.data,
                             backgroundColor: ['#36a2eb', '#4caf50', '#ffce56', '#f44336']
                         }]
                     },
