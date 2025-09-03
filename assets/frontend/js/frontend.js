@@ -279,18 +279,94 @@ jQuery(document).ready(function($) {
      * Initialize import/export functionality
      */
     function initImportExport() {
-        // Export buttons
+        // Export buttons with progress feedback
         $('a[href*="ufsc_export"]').on('click', function(e) {
+            e.preventDefault();
+
             var $btn = $(this);
-            
-            $btn.addClass('ufsc-loading');
+
+            // Prevent multiple clicks
+            if ($btn.data('exporting')) {
+                return;
+            }
+
+            var originalText = $btn.text();
+            $btn.data('original-text', originalText);
+            $btn.data('exporting', true);
+
+            // Build export URL
+            var url = new URL($btn.attr('href'), window.location.href);
+
+            // Append filter parameters if form exists
+            var $form = $('.ufsc-filters-form');
+            if ($form.length) {
+                $form.serializeArray().forEach(function(field) {
+                    if (field.value) {
+                        var key = field.name.replace(/^ufsc_/, '');
+                        url.searchParams.set(key, field.value);
+                    }
+                });
+            }
+
+            // Append selected licence IDs if available
+            var selectedIds = $('input[name="licence_ids[]"]:checked').map(function() {
+                return $(this).val();
+            }).get();
+            if (selectedIds.length) {
+                url.searchParams.set('ids', selectedIds.join(','));
+            }
+
+            // UI feedback
+            $btn.addClass('ufsc-loading').prop('disabled', true);
             $btn.text(ufsc_frontend_vars.strings.exporting);
-            
-            // Let the default action proceed, then reset button after delay
-            setTimeout(function() {
-                $btn.removeClass('ufsc-loading');
-                $btn.text($btn.data('original-text') || ufsc_frontend_vars.strings.export);
-            }, 3000);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', url.toString(), true);
+            xhr.responseType = 'blob';
+
+            xhr.onprogress = function(event) {
+                if (event.lengthComputable) {
+                    var percent = Math.round((event.loaded / event.total) * 100);
+                    $btn.text(ufsc_frontend_vars.strings.exporting + ' ' + percent + '%');
+                }
+            };
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var blob = xhr.response;
+                    var downloadUrl = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    var disposition = xhr.getResponseHeader('Content-Disposition');
+                    var filename = 'export.' + (url.searchParams.get('ufsc_export') === 'xlsx' ? 'xlsx' : 'csv');
+                    if (disposition && disposition.indexOf('filename=') !== -1) {
+                        var match = disposition.match(/filename="?([^";]+)"?/);
+                        if (match && match[1]) {
+                            filename = match[1];
+                        }
+                    }
+                    a.href = downloadUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(downloadUrl);
+                } else {
+                    alert(ufsc_frontend_vars.strings.ajax_error);
+                }
+
+                $btn.removeClass('ufsc-loading').prop('disabled', false);
+                $btn.text(originalText);
+                $btn.data('exporting', false);
+            };
+
+            xhr.onerror = function() {
+                alert(ufsc_frontend_vars.strings.ajax_error);
+                $btn.removeClass('ufsc-loading').prop('disabled', false);
+                $btn.text(originalText);
+                $btn.data('exporting', false);
+            };
+
+            xhr.send();
         });
         
         // CSV import preview
