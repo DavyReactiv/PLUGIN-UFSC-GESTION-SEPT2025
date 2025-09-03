@@ -45,23 +45,6 @@ class UFSC_Unified_Handlers {
         add_action( 'wp_ajax_nopriv_ufsc_export_stats', array( __CLASS__, 'ajax_export_stats' ) );
     }
 
-    /**
-
-     * Handle licence creation
-
-     * Handle add licence form submission
-     */
-    public static function handle_add_licence() {
-        self::process_licence_request( 0 );
-    }
-
-    /**
-     * Handle update licence form submission
-     */
-    public static function handle_update_licence() {
-        $licence_id = isset( $_POST['licence_id'] ) ? intval( $_POST['licence_id'] ) : 0;
-        self::process_licence_request( $licence_id );
-    }
 
     /**
      * // UFSC: Handle license save (create/update)
