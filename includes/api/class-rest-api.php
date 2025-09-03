@@ -820,9 +820,11 @@ class UFSC_REST_API {
         // Initialize counts
         $kpis = array(
             'licences_validees' => 0,
-            'licences_payees' => 0,
-            'licences_attente' => 0,
-            'licences_refusees' => 0
+            'licences_payees'    => 0,
+            'licences_attente'   => 0,
+            'licences_refusees'  => 0,
+            'sexe'               => array(),
+            'age'                => array()
         );
         
         // Map results to KPIs
@@ -844,9 +846,37 @@ class UFSC_REST_API {
             }
         }
         
+        // Count by sexe
+        $sql = "SELECT sexe, COUNT(*) as count
+                FROM {$licences_table}
+                {$where_clause} AND sexe IS NOT NULL
+                GROUP BY sexe";
+
+        $sexe_results = $wpdb->get_results( $wpdb->prepare( $sql, $where_values ) );
+        foreach ( $sexe_results as $row ) {
+            $kpis['sexe'][ $row->sexe ] = intval( $row->count );
+        }
+
+        // Count by age ranges
+        $sql = "SELECT
+                    CASE
+                        WHEN TIMESTAMPDIFF(YEAR, date_naissance, CURDATE()) < 18 THEN '<18'
+                        WHEN TIMESTAMPDIFF(YEAR, date_naissance, CURDATE()) BETWEEN 18 AND 40 THEN '18-40'
+                        ELSE '>40'
+                    END as tranche_age,
+                    COUNT(*) as count
+                FROM {$licences_table}
+                {$where_clause} AND date_naissance IS NOT NULL
+                GROUP BY tranche_age";
+
+        $age_results = $wpdb->get_results( $wpdb->prepare( $sql, $where_values ) );
+        foreach ( $age_results as $row ) {
+            $kpis['age'][ $row->tranche_age ] = intval( $row->count );
+        }
+
         // Cache for 10 minutes
         set_transient( $cache_key, $kpis, 10 * MINUTE_IN_SECONDS );
-        
+
         return new WP_REST_Response( $kpis, 200 );
     }
 
