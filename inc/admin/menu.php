@@ -176,21 +176,27 @@ function ufsc_render_dashboard_page() {
  * Render clubs page placeholder
  */
 function ufsc_render_clubs_page() {
+    require_once __DIR__ . '/class-ufsc-gestion-clubs-list-table.php';
+    $list_table = new UFSC_Gestion_Clubs_List_Table();
+    $list_table->prepare_items();
     ?>
     <div class="wrap">
         <h1><?php esc_html_e( 'Gestion des Clubs', 'ufsc-clubs' ); ?></h1>
         <div class="notice notice-info">
-            <p><?php esc_html_e( 'Cette page sera connectée à la table clubs via WP_List_Table.', 'ufsc-clubs' ); ?></p>
+            <p><?php esc_html_e( 'Liste des clubs provenant de la base de données.', 'ufsc-clubs' ); ?></p>
             <p><?php esc_html_e( 'Table configurée:', 'ufsc-clubs' ); ?> <strong><?php echo esc_html( ufsc_get_clubs_table() ); ?></strong></p>
         </div>
-        
+
         <p>
             <a href="<?php echo admin_url( 'admin.php?page=ufsc-gestion-clubs&action=new' ); ?>" class="button button-primary">
                 <?php esc_html_e( 'Ajouter un club', 'ufsc-clubs' ); ?>
             </a>
         </p>
-        
-        <!-- TODO: Implement WP_List_Table for clubs -->
+
+        <form method="get">
+            <input type="hidden" name="page" value="ufsc-gestion-clubs" />
+            <?php $list_table->display(); ?>
+        </form>
     </div>
     <?php
 }
@@ -199,22 +205,28 @@ function ufsc_render_clubs_page() {
  * Render licences page placeholder
  */
 function ufsc_render_licences_page() {
+    require_once __DIR__ . '/class-ufsc-gestion-licences-list-table.php';
+    $list_table = new UFSC_Gestion_Licences_List_Table();
+    $list_table->prepare_items();
     ?>
     <div class="wrap">
         <h1><?php esc_html_e( 'Gestion des Licences', 'ufsc-clubs' ); ?></h1>
         <div class="notice notice-info">
-            <p><?php esc_html_e( 'Cette page sera connectée à la table licences via WP_List_Table.', 'ufsc-clubs' ); ?></p>
+            <p><?php esc_html_e( 'Liste des licences provenant de la base de données.', 'ufsc-clubs' ); ?></p>
             <p><?php esc_html_e( 'Table configurée:', 'ufsc-clubs' ); ?> <strong><?php echo esc_html( ufsc_get_licences_table() ); ?></strong></p>
         </div>
-        
+
         <p>
             <a href="<?php echo admin_url( 'admin.php?page=ufsc-gestion-licences&action=new' ); ?>" class="button button-primary">
                 <?php esc_html_e( 'Ajouter une licence', 'ufsc-clubs' ); ?>
             </a>
         </p>
-        
-        <!-- TODO: Implement WP_List_Table for licences -->
-        
+
+        <form method="get">
+            <input type="hidden" name="page" value="ufsc-gestion-licences" />
+            <?php $list_table->display(); ?>
+        </form>
+
         <h3><?php esc_html_e( 'Actions sur les licences sélectionnées', 'ufsc-clubs' ); ?></h3>
         <form method="post" action="<?php echo admin_url( 'admin-post.php' ); ?>">
             <?php wp_nonce_field( 'ufsc_send_to_payment' ); ?>
@@ -222,7 +234,7 @@ function ufsc_render_licences_page() {
             <input type="hidden" name="club_id" value="1" />
             <input type="hidden" name="license_ids[]" value="1" />
             <input type="hidden" name="license_ids[]" value="2" />
-            
+
             <p>
                 <input type="submit" class="button button-secondary" value="<?php esc_attr_e( 'Envoyer au paiement (exemple)', 'ufsc-clubs' ); ?>" />
             </p>
@@ -236,7 +248,6 @@ function ufsc_render_licences_page() {
 
 /**
  * Get clubs count from database
- * TODO: Implement according to existing database schema
  */
 function ufsc_get_clubs_count() {
     global $wpdb;
@@ -253,7 +264,6 @@ function ufsc_get_clubs_count() {
 
 /**
  * Get licences count from database
- * TODO: Implement according to existing database schema
  */
 function ufsc_get_licences_count() {
     global $wpdb;
@@ -270,3 +280,4 @@ function ufsc_get_licences_count() {
 
 // Register the menu
 add_action( 'admin_menu', 'ufsc_register_admin_menu' );
+
