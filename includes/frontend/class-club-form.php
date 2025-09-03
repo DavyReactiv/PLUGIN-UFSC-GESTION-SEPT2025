@@ -334,42 +334,44 @@ class UFSC_CL_Club_Form {
                 </fieldset>
                 
                 <!-- Dirigeants Section -->
-                <fieldset class="ufsc-form-section ufsc-grid">
+                <fieldset class="ufsc-form-section ufsc-dirigeants">
                     <legend><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></legend>
-                    
-                    <?php 
+
+                    <?php
                     $dirigeants_info = array(
-                        'president' => array( 'label' => __( 'Président', 'ufsc-clubs' ), 'required' => true ),
+                        'president'  => array( 'label' => __( 'Président', 'ufsc-clubs' ),  'required' => true ),
                         'secretaire' => array( 'label' => __( 'Secrétaire', 'ufsc-clubs' ), 'required' => true ),
-                        'tresorier' => array( 'label' => __( 'Trésorier', 'ufsc-clubs' ), 'required' => true ),
+                        'tresorier'  => array( 'label' => __( 'Trésorier', 'ufsc-clubs' ),  'required' => true ),
                         'entraineur' => array( 'label' => __( 'Entraîneur', 'ufsc-clubs' ), 'required' => false )
                     );
-                    
-                    foreach ( $dirigeants_info as $dirigeant => $info ):
+
+                    foreach ( $dirigeants_info as $dirigeant => $info ) :
                     ?>
                         <div class="ufsc-dirigeant-section">
                             <h4><?php echo esc_html( $info['label'] ); ?> <?php echo $info['required'] ? '<span class="required">*</span>' : ''; ?></h4>
-                            
-                            <div class="ufsc-grid">
-                                <div class="ufsc-field">
-                                    <label for="<?php echo esc_attr( $dirigeant ); ?>_prenom" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></label>
-                                    <input type="text" id="<?php echo esc_attr( $dirigeant ); ?>_prenom" name="<?php echo esc_attr( $dirigeant ); ?>_prenom" value="<?php echo esc_attr( $club_data[$dirigeant . '_prenom'] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
-                                <div class="ufsc-field-error" aria-live="polite"></div></div>
-                                <div class="ufsc-field">
-                                    <label for="<?php echo esc_attr( $dirigeant ); ?>_nom" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></label>
-                                    <input type="text" id="<?php echo esc_attr( $dirigeant ); ?>_nom" name="<?php echo esc_attr( $dirigeant ); ?>_nom" value="<?php echo esc_attr( $club_data[$dirigeant . '_nom'] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
-                                <div class="ufsc-field-error" aria-live="polite"></div></div>
+
+                            <div class="ufsc-field">
+                                <label for="<?php echo esc_attr( $dirigeant ); ?>_prenom" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></label>
+                                <input type="text" id="<?php echo esc_attr( $dirigeant ); ?>_prenom" name="<?php echo esc_attr( $dirigeant ); ?>_prenom" value="<?php echo esc_attr( $club_data[ $dirigeant . '_prenom' ] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
+                                <div class="ufsc-field-error" aria-live="polite"></div>
                             </div>
-                            
-                            <div class="ufsc-grid">
-                                <div class="ufsc-field">
-                                    <label for="<?php echo esc_attr( $dirigeant ); ?>_email" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></label>
-                                    <input type="email" id="<?php echo esc_attr( $dirigeant ); ?>_email" name="<?php echo esc_attr( $dirigeant ); ?>_email" value="<?php echo esc_attr( $club_data[$dirigeant . '_email'] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
-                                <div class="ufsc-field-error" aria-live="polite"></div></div>
-                                <div class="ufsc-field">
-                                    <label for="<?php echo esc_attr( $dirigeant ); ?>_tel" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Téléphone', 'ufsc-clubs' ); ?></label>
-                                    <input type="tel" id="<?php echo esc_attr( $dirigeant ); ?>_tel" name="<?php echo esc_attr( $dirigeant ); ?>_tel" value="<?php echo esc_attr( $club_data[$dirigeant . '_tel'] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
-                                <div class="ufsc-field-error" aria-live="polite"></div></div>
+
+                            <div class="ufsc-field">
+                                <label for="<?php echo esc_attr( $dirigeant ); ?>_nom" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></label>
+                                <input type="text" id="<?php echo esc_attr( $dirigeant ); ?>_nom" name="<?php echo esc_attr( $dirigeant ); ?>_nom" value="<?php echo esc_attr( $club_data[ $dirigeant . '_nom' ] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
+                                <div class="ufsc-field-error" aria-live="polite"></div>
+                            </div>
+
+                            <div class="ufsc-field">
+                                <label for="<?php echo esc_attr( $dirigeant ); ?>_email" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></label>
+                                <input type="email" id="<?php echo esc_attr( $dirigeant ); ?>_email" name="<?php echo esc_attr( $dirigeant ); ?>_email" value="<?php echo esc_attr( $club_data[ $dirigeant . '_email' ] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
+                                <div class="ufsc-field-error" aria-live="polite"></div>
+                            </div>
+
+                            <div class="ufsc-field">
+                                <label for="<?php echo esc_attr( $dirigeant ); ?>_tel" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Téléphone', 'ufsc-clubs' ); ?></label>
+                                <input type="tel" id="<?php echo esc_attr( $dirigeant ); ?>_tel" name="<?php echo esc_attr( $dirigeant ); ?>_tel" value="<?php echo esc_attr( $club_data[ $dirigeant . '_tel' ] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
+                                <div class="ufsc-field-error" aria-live="polite"></div>
                             </div>
                         </div>
                     <?php endforeach; ?>
