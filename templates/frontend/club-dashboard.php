@@ -96,8 +96,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                 </div>
                 <div class="ufsc-kpi-label"><?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></div>
             </div>
-            <div class="ufsc-card ufsc-kpi-card -refusees">
-                <div class="ufsc-kpi-value" id="kpi-licences-refusees" aria-live="polite">
+            <div class="ufsc-card ufsc-kpi-card -rejected">
+                <div class="ufsc-kpi-value" id="kpi-licences-rejected" aria-live="polite">
                     <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
                 </div>
                 <div class="ufsc-kpi-label"><?php echo esc_html__( 'Refusées', 'ufsc-clubs' ); ?></div>

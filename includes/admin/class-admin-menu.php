@@ -260,7 +260,7 @@ class UFSC_CL_Admin_Menu {
             $data['licenses_total'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics`");
             $data['licenses_valid'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics` WHERE statut IN ('valide', 'validee', 'active')");
             $data['licenses_pending'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics` WHERE statut IN ('en_attente', 'attente', 'pending', 'a_regler')");
-            $data['licenses_rejected'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics` WHERE statut IN ('refusee', 'refuse', 'rejected')");
+            $data['licenses_rejected'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics` WHERE statut IN ('refuse', 'rejected')");
             
             // Expiring licenses (if certificat_expiration field exists)
             $columns = $wpdb->get_col("DESCRIBE `$t_lics`");
@@ -329,7 +329,6 @@ class UFSC_CL_Admin_Menu {
             'attente' => 'pending',
             'pending' => 'pending',
             'a_regler' => 'pending',
-            'refusee' => 'rejected',
             'refuse' => 'rejected',
             'rejected' => 'rejected',
             'desactive' => 'inactive',
