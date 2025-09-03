@@ -106,18 +106,29 @@ class UFSC_CL_Club_Form_Handler {
             // Post-save actions
             self::handle_post_save_actions( $result_club_id, $affiliation, $is_edit );
             
-            // Success redirect
-            if ( $affiliation && function_exists( 'ufsc_add_affiliation_to_cart' ) && function_exists( 'wc_get_checkout_url' ) ) {
-                // Add to WooCommerce cart and redirect to checkout
+            // Add club to WooCommerce cart when in affiliation mode
+            if ( $affiliation && function_exists( 'ufsc_add_affiliation_to_cart' ) ) {
                 ufsc_add_affiliation_to_cart( $result_club_id );
-                wp_safe_redirect( wc_get_checkout_url() );
-            } else {
-                $success_message = $is_edit 
-                    ? __( 'Club mis à jour avec succès.', 'ufsc-clubs' )
-                    : __( 'Club créé avec succès.', 'ufsc-clubs' );
-                
-                self::redirect_with_success( $success_message, $result_club_id, $affiliation );
             }
+
+            // Redirect to WooCommerce checkout if in affiliation mode
+            if ( $affiliation && function_exists( 'wc_get_checkout_url' ) ) {
+                wp_safe_redirect( wc_get_checkout_url() );
+                exit;
+            }
+
+            // Build success message
+            $success_message = $is_edit
+                ? __( 'Club mis à jour avec succès.', 'ufsc-clubs' )
+                : __( 'Club créé avec succès.', 'ufsc-clubs' );
+
+            // Append cart link if WooCommerce is active and not in affiliation mode
+            if ( ! $affiliation && function_exists( 'wc_get_cart_url' ) ) {
+                $cart_url = wc_get_cart_url();
+                $success_message .= ' <a href="' . esc_url( $cart_url ) . '" class="button ufsc-view-cart">' . __( 'Voir le panier', 'ufsc-clubs' ) . '</a>';
+            }
+
+            self::redirect_with_success( $success_message, $result_club_id, $affiliation );
             
         } catch ( Exception $e ) {
             UFSC_CL_Utils::log( 'Erreur lors de la sauvegarde du club: ' . $e->getMessage(), 'error' );
