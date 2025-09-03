@@ -56,6 +56,119 @@
     text-align: center;
 }
 
+/* Affiliation form grid structure */
+.ufsc-grid {
+    display: grid;
+    gap: var(--ufsc-spacing-sm, 16px);
+}
+
+.ufsc-field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: var(--ufsc-spacing-sm, 16px);
+}
+
+.ufsc-field-group {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--ufsc-spacing-sm, 16px);
+}
+
+.ufsc-field label {
+    font-weight: 600;
+    margin-bottom: var(--ufsc-spacing-xs, 8px);
+}
+
+.ufsc-field label.required::after {
+    content: " *";
+    color: var(--ufsc-danger, #ef4444);
+}
+
+.ufsc-field input,
+.ufsc-field select {
+    width: 100%;
+    padding: var(--ufsc-spacing-xs, 8px) var(--ufsc-spacing-sm, 16px);
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    font-size: 14px;
+}
+
+.ufsc-field input:focus,
+.ufsc-field select:focus {
+    outline: 2px solid var(--ufsc-primary, #2271b1);
+    outline-offset: 2px;
+}
+
+.ufsc-field input[type="file"]:focus {
+    outline: 2px solid var(--ufsc-primary, #2271b1);
+    outline-offset: 2px;
+}
+
+.ufsc-checkbox-row label {
+    align-items: center;
+    font-weight: normal;
+    display: flex;
+}
+
+.ufsc-checkbox-row input[type="checkbox"] {
+    width: auto;
+    margin-right: var(--ufsc-spacing-xs, 8px);
+}
+
+.ufsc-error-message {
+    color: var(--ufsc-danger, #ef4444);
+    font-size: 0.875rem;
+    margin-top: 4px;
+}
+
+.ufsc-help {
+    font-size: 0.875rem;
+    color: var(--ufsc-neutral, #6b7280);
+    margin-top: 4px;
+}
+
+.ufsc-affiliation-form {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.ufsc-form-section {
+    background: #f9f9f9;
+    padding: var(--ufsc-spacing-md, 24px);
+    margin-bottom: var(--ufsc-spacing-md, 24px);
+    border-radius: 5px;
+}
+
+.ufsc-form-section h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: var(--ufsc-spacing-xs, 8px);
+}
+
+.ufsc-message.ufsc-success {
+    background: #d4edda;
+    border-left: 4px solid var(--ufsc-success, #059669);
+    color: #155724;
+}
+
+.ufsc-message.ufsc-error {
+    background: #f8d7da;
+    border-left: 4px solid var(--ufsc-danger, #ef4444);
+    color: #721c24;
+}
+
+.ufsc-message.ufsc-info {
+    background: #d1ecf1;
+    border-left: 4px solid var(--ufsc-info, #3b82f6);
+    color: #0c5460;
+}
+
+@media (max-width: 768px) {
+    .ufsc-field-group {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Frontend buttons */
 .ufsc-btn {
     display: inline-block;
