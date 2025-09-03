@@ -1,5 +1,13 @@
 /* UFSC Frontend Styles */
 
+/* Typography base */
+:root {
+    --ufsc-font-size-base: 0.95rem;
+    --ufsc-font-size-heading: 1.4rem;
+    --ufsc-font-weight-regular: 400;
+    --ufsc-font-weight-semibold: 600;
+}
+
 /* // UFSC: Premium Grid System */
 .ufsc-grid {
     display: grid;
@@ -395,6 +403,11 @@
     border-bottom: 2px solid #f8f9fa;
 }
 
+.ufsc-section-header--tight {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+}
+
 /* // UFSC: Statistics Cards */
 .ufsc-stats-grid {
     display: grid;
@@ -532,11 +545,13 @@
     text-align: left;
     border-bottom: 1px solid #dee2e6;
     vertical-align: top;
+    font-size: var(--ufsc-font-size-base);
+    font-weight: var(--ufsc-font-weight-regular);
 }
 
 .ufsc-table th {
     background: #f8f9fa;
-    font-weight: 600;
+    font-weight: var(--ufsc-font-weight-semibold);
     color: #495057;
 }
 
@@ -549,6 +564,13 @@
 
 .ufsc-table tbody tr:hover {
     background: #f8f9fa;
+}
+
+/* Utility: spacious table variant */
+.ufsc-table--spacious th,
+.ufsc-table--spacious td {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
 }
 
 /* // UFSC: Small buttons */
@@ -643,12 +665,23 @@
     }
     
     .ufsc-table {
-        font-size: 0.9rem;
+        font-size: var(--ufsc-font-size-base);
     }
-    
+
     .ufsc-table th,
     .ufsc-table td {
         padding: 0.5rem;
+    }
+
+    .ufsc-table--spacious th,
+    .ufsc-table--spacious td {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .ufsc-section-header--tight {
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.25rem;
     }
 }
 
@@ -714,8 +747,8 @@
 .ufsc-section-header h3 {
     margin: 0;
     color: #2c3e50;
-    font-size: 1.4rem;
-    font-weight: 600;
+    font-size: var(--ufsc-font-size-heading);
+    font-weight: var(--ufsc-font-weight-semibold);
 }
 
 .ufsc-section-actions {
@@ -1269,14 +1302,25 @@
     .ufsc-filters-form {
         grid-template-columns: 1fr;
     }
-    
+
     .ufsc-table {
-        font-size: 0.8rem;
+        font-size: var(--ufsc-font-size-base);
     }
-    
+
     .ufsc-table th,
     .ufsc-table td {
         padding: 0.5rem;
+    }
+
+    .ufsc-table--spacious th,
+    .ufsc-table--spacious td {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .ufsc-section-header--tight {
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.25rem;
     }
 }
 
