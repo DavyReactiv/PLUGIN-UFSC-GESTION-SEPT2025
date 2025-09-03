@@ -141,7 +141,7 @@ class UFSC_Cache_Manager {
             'licences_validees' => 0,
             'licences_payees' => 0,
             'licences_attente' => 0,
-            'licences_refusees' => 0
+            'licences_rejected' => 0
         );
         
         foreach ( $results as $result ) {
@@ -156,8 +156,8 @@ class UFSC_Cache_Manager {
                 case 'non_payee':
                     $kpis['licences_attente'] += intval( $result->count );
                     break;
-                case 'refusee':
-                    $kpis['licences_refusees'] = intval( $result->count );
+                case 'rejected':
+                    $kpis['licences_rejected'] = intval( $result->count );
                     break;
             }
         }

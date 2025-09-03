@@ -160,7 +160,7 @@
             $('#kpi-licences-validees').text(data.licences_validees || '-');
             $('#kpi-licences-payees').text(data.licences_payees || '-');
             $('#kpi-licences-attente').text(data.licences_attente || '-');
-            $('#kpi-licences-refusees').text(data.licences_refusees || '-');
+            $('#kpi-licences-rejected').text(data.licences_rejected || '-');
 
             var kpiGrid = $('#ufsc-kpi-grid');
             // Remove previously generated KPI cards for sex and age
@@ -273,7 +273,7 @@
                 'non_payee': '<span class="ufsc-badge -pending">En attente</span>',
                 'payee': '<span class="ufsc-badge -pending">⏳ Payée (en cours)</span>',
                 'validee': '<span class="ufsc-badge -ok">✅ Validée</span>',
-                'refusee': '<span class="ufsc-badge -rejected">Refusée</span>'
+                'rejected': '<span class="ufsc-badge -rejected">Refusée</span>'
             };
             return badges[statut] || '<span class="ufsc-badge">' + statut + '</span>';
         },
@@ -281,7 +281,7 @@
         // // UFSC: Render license actions based on status
         renderLicenceActions: function(licence) {
             var actions = [];
-            var editableStatuses = ['brouillon', 'non_payee', 'refusee'];
+            var editableStatuses = ['brouillon', 'non_payee', 'rejected'];
             var deletableStatuses = ['brouillon', 'non_payee'];
             var adminPostUrl = this.config.ajax_url ? this.config.ajax_url.replace('admin-ajax.php', 'admin-post.php') : 'admin-post.php';
 

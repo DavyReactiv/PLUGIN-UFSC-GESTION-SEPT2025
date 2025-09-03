@@ -826,7 +826,7 @@ class UFSC_REST_API {
             'licences_validees' => 0,
             'licences_payees'    => 0,
             'licences_attente'   => 0,
-            'licences_refusees'  => 0,
+            'licences_rejected'  => 0,
             'sexe'               => array(),
             'age'                => array()
         );
@@ -844,8 +844,8 @@ class UFSC_REST_API {
                 case 'non_payee':
                     $kpis['licences_attente'] += intval( $result->count );
                     break;
-                case 'refusee':
-                    $kpis['licences_refusees'] = intval( $result->count );
+                case 'rejected':
+                    $kpis['licences_rejected'] = intval( $result->count );
                     break;
             }
         }

@@ -20,7 +20,6 @@ class UFSC_SQL_Admin {
             'attente' => 'pending',
             'pending' => 'pending',
             'a_regler' => 'pending',
-            'refusee' => 'rejected',
             'refuse' => 'rejected',
             'rejected' => 'rejected',
             'desactive' => 'inactive',

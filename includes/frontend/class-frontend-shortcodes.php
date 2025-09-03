@@ -373,6 +373,9 @@ class UFSC_Frontend_Shortcodes {
                                                 <?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?>
                                             </a>
 
+                                            <?php if ( in_array( $licence->statut ?? '', array( 'brouillon', 'non_payee', 'rejected' ), true ) ) : ?>
+
+
                                             <?php if ( 'brouillon' === ( $licence->statut ?? '' ) ) : ?>
                                                 <a href="<?php echo esc_url( add_query_arg( array(
                                                     'ufsc_add_to_cart' => $wc_settings['product_license_id'],
@@ -386,6 +389,7 @@ class UFSC_Frontend_Shortcodes {
                                             <?php if ( in_array( $licence->statut ?? '', array( 'brouillon', 'non_payee', 'refusee' ), true ) ) : ?>
 
                                             <?php if ( in_array( $licence->statut ?? '', array( 'brouillon' ), true ) ) : ?>
+
 
                                                 <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"
                                                    class="ufsc-btn ufsc-btn-small"
