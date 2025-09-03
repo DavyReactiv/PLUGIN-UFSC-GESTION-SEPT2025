@@ -126,8 +126,9 @@ class UFSC_CL_Club_Form {
         // Display messages
         self::display_messages();
         ?>
-        
+
         <div class="ufsc-club-form-container">
+            <div class="ufsc-notices" aria-live="polite"></div>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-club-form">
                 <?php wp_nonce_field( 'ufsc_save_club', 'ufsc_club_nonce' ); ?>
                 <input type="hidden" name="action" value="ufsc_save_club" />
@@ -143,15 +144,15 @@ class UFSC_CL_Club_Form {
                 <?php endif; ?>
                 
                 <!-- General Information Section -->
-                <fieldset class="ufsc-form-section">
+                <fieldset class="ufsc-form-section ufsc-grid">
                     <legend><?php esc_html_e( 'Informations générales', 'ufsc-clubs' ); ?></legend>
                     
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="nom" class="ufsc-label required"><?php esc_html_e( 'Nom du club', 'ufsc-clubs' ); ?></label>
                         <input type="text" id="nom" name="nom" value="<?php echo esc_attr( $club_data['nom'] ?? '' ); ?>" required />
-                    </div>
+                    <div class="ufsc-field-error" aria-live="polite"></div></div>
                     
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="region" class="ufsc-label required"><?php esc_html_e( 'Région', 'ufsc-clubs' ); ?></label>
                         <select id="region" name="region" required>
                             <option value=""><?php esc_html_e( 'Sélectionner une région', 'ufsc-clubs' ); ?></option>
@@ -161,127 +162,137 @@ class UFSC_CL_Club_Form {
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                    </div>
+                    <div class="ufsc-field-error" aria-live="polite"></div></div>
                     
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="adresse" class="ufsc-label required"><?php esc_html_e( 'Adresse', 'ufsc-clubs' ); ?></label>
                         <input type="text" id="adresse" name="adresse" value="<?php echo esc_attr( $club_data['adresse'] ?? '' ); ?>" required />
-                    </div>
+                    <div class="ufsc-field-error" aria-live="polite"></div></div>
                     
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="complement_adresse" class="ufsc-label"><?php esc_html_e( 'Complément d\'adresse', 'ufsc-clubs' ); ?></label>
                         <input type="text" id="complement_adresse" name="complement_adresse" value="<?php echo esc_attr( $club_data['complement_adresse'] ?? '' ); ?>" />
-                    </div>
+                    <div class="ufsc-field-error" aria-live="polite"></div></div>
                     
-                    <div class="ufsc-form-row ufsc-form-row-inline">
-                        <div class="ufsc-form-col">
+                    <div class="ufsc-grid">
+                        <div class="ufsc-field">
                             <label for="code_postal" class="ufsc-label required"><?php esc_html_e( 'Code postal', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="code_postal" name="code_postal" value="<?php echo esc_attr( $club_data['code_postal'] ?? '' ); ?>" pattern="\d{5}" required />
-                        </div>
-                        <div class="ufsc-form-col">
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
+                        <div class="ufsc-field">
                             <label for="ville" class="ufsc-label required"><?php esc_html_e( 'Ville', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="ville" name="ville" value="<?php echo esc_attr( $club_data['ville'] ?? '' ); ?>" required />
-                        </div>
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
                     </div>
                     
-                    <div class="ufsc-form-row ufsc-form-row-inline">
-                        <div class="ufsc-form-col">
+                    <div class="ufsc-grid">
+                        <div class="ufsc-field">
                             <label for="email" class="ufsc-label required"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></label>
                             <input type="email" id="email" name="email" value="<?php echo esc_attr( $club_data['email'] ?? '' ); ?>" required />
-                        </div>
-                        <div class="ufsc-form-col">
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
+                        <div class="ufsc-field">
                             <label for="telephone" class="ufsc-label required"><?php esc_html_e( 'Téléphone', 'ufsc-clubs' ); ?></label>
                             <input type="tel" id="telephone" name="telephone" value="<?php echo esc_attr( $club_data['telephone'] ?? '' ); ?>" required />
-                        </div>
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
                     </div>
                 </fieldset>
                 
+
                 <!-- Logo & Web Section -->
-                <fieldset class="ufsc-form-section">
+                <fieldset class="ufsc-form-section ufsc-grid">
                     <legend><?php esc_html_e( 'Logo & Web', 'ufsc-clubs' ); ?></legend>
                     
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="logo_upload" class="ufsc-label"><?php esc_html_e( 'Logo du club', 'ufsc-clubs' ); ?></label>
                         <input type="file" id="logo_upload" name="logo_upload" accept=".jpg,.jpeg,.png,.gif" />
                         <p class="ufsc-description"><?php esc_html_e( 'Formats acceptés : JPG, PNG, GIF. Taille max : 2 MB', 'ufsc-clubs' ); ?></p>
-                        <?php if ( ! empty( $club_data['logo_url'] ) ): ?>
+                        <?php if ( ! empty( $club_data['logo_url'] ) && UFSC_CL_Permissions::ufsc_user_can_edit_club( $club_id ) ): ?>
                             <p class="ufsc-current-file">
-                                <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?> 
+                                <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?>
                                 <a href="<?php echo esc_url( $club_data['logo_url'] ); ?>" target="_blank"><?php esc_html_e( 'Voir le logo', 'ufsc-clubs' ); ?></a>
                             </p>
                         <?php endif; ?>
-                    </div>
+                    <div class="ufsc-field-error" aria-live="polite"></div></div>
                     
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="url_site" class="ufsc-label"><?php esc_html_e( 'Site web', 'ufsc-clubs' ); ?></label>
                         <input type="url" id="url_site" name="url_site" value="<?php echo esc_attr( $club_data['url_site'] ?? '' ); ?>" />
-                    </div>
+                    <div class="ufsc-field-error" aria-live="polite"></div></div>
                     
-                    <div class="ufsc-form-row ufsc-form-row-inline">
-                        <div class="ufsc-form-col">
+                    <div class="ufsc-grid">
+                        <div class="ufsc-field">
                             <label for="url_facebook" class="ufsc-label"><?php esc_html_e( 'Facebook', 'ufsc-clubs' ); ?></label>
                             <input type="url" id="url_facebook" name="url_facebook" value="<?php echo esc_attr( $club_data['url_facebook'] ?? '' ); ?>" />
-                        </div>
-                        <div class="ufsc-form-col">
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
+                        <div class="ufsc-field">
                             <label for="url_instagram" class="ufsc-label"><?php esc_html_e( 'Instagram', 'ufsc-clubs' ); ?></label>
                             <input type="url" id="url_instagram" name="url_instagram" value="<?php echo esc_attr( $club_data['url_instagram'] ?? '' ); ?>" />
-                        </div>
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
                     </div>
                 </fieldset>
                 
+
                 <!-- Legal & Financial Section -->
-                <fieldset class="ufsc-form-section">
+                <fieldset class="ufsc-form-section ufsc-grid">
                     <legend><?php esc_html_e( 'Informations légales et financières', 'ufsc-clubs' ); ?></legend>
                     
-                    <div class="ufsc-form-row ufsc-form-row-inline">
-                        <div class="ufsc-form-col">
+                    <div class="ufsc-grid">
+                        <div class="ufsc-field">
                             <label for="num_declaration" class="ufsc-label required"><?php esc_html_e( 'N° de déclaration', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="num_declaration" name="num_declaration" value="<?php echo esc_attr( $club_data['num_declaration'] ?? '' ); ?>" required />
-                        </div>
-                        <div class="ufsc-form-col">
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
+                        <div class="ufsc-field">
                             <label for="date_declaration" class="ufsc-label required"><?php esc_html_e( 'Date de déclaration', 'ufsc-clubs' ); ?></label>
                             <input type="date" id="date_declaration" name="date_declaration" value="<?php echo esc_attr( $club_data['date_declaration'] ?? '' ); ?>" required />
-                        </div>
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
                     </div>
                     
-                    <div class="ufsc-form-row ufsc-form-row-inline">
-                        <div class="ufsc-form-col">
+                    <div class="ufsc-grid">
+                        <div class="ufsc-field">
                             <label for="siren" class="ufsc-label"><?php esc_html_e( 'SIREN', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="siren" name="siren" value="<?php echo esc_attr( $club_data['siren'] ?? '' ); ?>" />
-                        </div>
-                        <div class="ufsc-form-col">
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
+                        <div class="ufsc-field">
                             <label for="rna_number" class="ufsc-label"><?php esc_html_e( 'RNA', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="rna_number" name="rna_number" value="<?php echo esc_attr( $club_data['rna_number'] ?? '' ); ?>" />
-                        </div>
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
                     </div>
                     
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="iban" class="ufsc-label"><?php esc_html_e( 'IBAN', 'ufsc-clubs' ); ?></label>
                         <input type="text" id="iban" name="iban" value="<?php echo esc_attr( $club_data['iban'] ?? '' ); ?>" />
-                    </div>
+                    <div class="ufsc-field-error" aria-live="polite"></div></div>
                     
-                    <div class="ufsc-form-row ufsc-form-row-inline">
-                        <div class="ufsc-form-col">
+                    <div class="ufsc-grid">
+                        <div class="ufsc-field">
                             <label for="ape" class="ufsc-label"><?php esc_html_e( 'APE', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="ape" name="ape" value="<?php echo esc_attr( $club_data['ape'] ?? '' ); ?>" />
-                        </div>
-                        <div class="ufsc-form-col">
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
+                        <div class="ufsc-field">
                             <label for="ccn" class="ufsc-label"><?php esc_html_e( 'CCN', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="ccn" name="ccn" value="<?php echo esc_attr( $club_data['ccn'] ?? '' ); ?>" />
-                        </div>
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
                     </div>
                     
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="ancv" class="ufsc-label"><?php esc_html_e( 'ANCV', 'ufsc-clubs' ); ?></label>
                         <input type="text" id="ancv" name="ancv" value="<?php echo esc_attr( $club_data['ancv'] ?? '' ); ?>" />
-                    </div>
+                    <div class="ufsc-field-error" aria-live="polite"></div></div>
                 </fieldset>
                 
+
                 <!-- Legal Documents Section -->
-                <fieldset class="ufsc-form-section">
+                <fieldset class="ufsc-form-section ufsc-grid">
                     <legend><?php esc_html_e( 'Documents légaux', 'ufsc-clubs' ); ?></legend>
                     
                     <?php 
+
+                <!-- Documents Section -->
+                <fieldset class="ufsc-form-section">
+                    <legend><?php esc_html_e( 'Mes documents', 'ufsc-clubs' ); ?></legend>
+
+                    <?php
+
                     $documents = array(
                         'doc_statuts' => array( 'label' => __( 'Statuts', 'ufsc-clubs' ), 'required' => $affiliation ),
                         'doc_recepisse' => array( 'label' => __( 'Récépissé', 'ufsc-clubs' ), 'required' => $affiliation ),
@@ -290,28 +301,39 @@ class UFSC_CL_Club_Form {
                         'doc_cer' => array( 'label' => __( 'CER', 'ufsc-clubs' ), 'required' => $affiliation ),
                         'doc_attestation_cer' => array( 'label' => __( 'Attestation CER', 'ufsc-clubs' ), 'required' => false )
                     );
-                    
+
                     foreach ( $documents as $doc_key => $doc_info ):
                         $upload_key = str_replace( 'doc_', '', $doc_key ) . '_upload';
                     ?>
-                        <div class="ufsc-form-row">
+                        <div class="ufsc-field">
                             <label for="<?php echo esc_attr( $upload_key ); ?>" class="ufsc-label <?php echo $doc_info['required'] ? 'required' : ''; ?>">
                                 <?php echo esc_html( $doc_info['label'] ); ?>
                             </label>
+
                             <input type="file" id="<?php echo esc_attr( $upload_key ); ?>" name="<?php echo esc_attr( $upload_key ); ?>" accept=".pdf,.jpg,.jpeg,.png" <?php echo $doc_info['required'] ? 'required' : ''; ?> />
                             <p class="ufsc-description"><?php esc_html_e( 'Formats acceptés : PDF, JPG, PNG. Taille max : 5 MB', 'ufsc-clubs' ); ?></p>
+                            <?php if ( ! empty( $club_data[$doc_key] ) && UFSC_CL_Permissions::ufsc_user_can_edit_club( $club_id ) ): ?>
+
+                            <input type="file"
+                                   id="<?php echo esc_attr( $upload_key ); ?>"
+                                   name="<?php echo esc_attr( $upload_key ); ?>"
+                                   accept=".pdf,.jpg,.jpeg,.png"
+                                   data-max-size="5242880"
+                                   <?php echo $doc_info['required'] ? 'required' : ''; ?> />
+                            <div class="ufsc-field-error" aria-live="polite"></div>
                             <?php if ( ! empty( $club_data[$doc_key] ) ): ?>
+
                                 <p class="ufsc-current-file">
-                                    <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?> 
+                                    <?php esc_html_e( 'Fichier actuel :', 'ufsc-clubs' ); ?>
                                     <a href="<?php echo esc_url( $club_data[$doc_key] ); ?>" target="_blank"><?php esc_html_e( 'Voir le document', 'ufsc-clubs' ); ?></a>
                                 </p>
                             <?php endif; ?>
-                        </div>
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
                     <?php endforeach; ?>
                 </fieldset>
                 
                 <!-- Dirigeants Section -->
-                <fieldset class="ufsc-form-section">
+                <fieldset class="ufsc-form-section ufsc-grid">
                     <legend><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></legend>
                     
                     <?php 
@@ -327,26 +349,26 @@ class UFSC_CL_Club_Form {
                         <div class="ufsc-dirigeant-section">
                             <h4><?php echo esc_html( $info['label'] ); ?> <?php echo $info['required'] ? '<span class="required">*</span>' : ''; ?></h4>
                             
-                            <div class="ufsc-form-row ufsc-form-row-inline">
-                                <div class="ufsc-form-col">
+                            <div class="ufsc-grid">
+                                <div class="ufsc-field">
                                     <label for="<?php echo esc_attr( $dirigeant ); ?>_prenom" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></label>
                                     <input type="text" id="<?php echo esc_attr( $dirigeant ); ?>_prenom" name="<?php echo esc_attr( $dirigeant ); ?>_prenom" value="<?php echo esc_attr( $club_data[$dirigeant . '_prenom'] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
-                                </div>
-                                <div class="ufsc-form-col">
+                                <div class="ufsc-field-error" aria-live="polite"></div></div>
+                                <div class="ufsc-field">
                                     <label for="<?php echo esc_attr( $dirigeant ); ?>_nom" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></label>
                                     <input type="text" id="<?php echo esc_attr( $dirigeant ); ?>_nom" name="<?php echo esc_attr( $dirigeant ); ?>_nom" value="<?php echo esc_attr( $club_data[$dirigeant . '_nom'] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
-                                </div>
+                                <div class="ufsc-field-error" aria-live="polite"></div></div>
                             </div>
                             
-                            <div class="ufsc-form-row ufsc-form-row-inline">
-                                <div class="ufsc-form-col">
+                            <div class="ufsc-grid">
+                                <div class="ufsc-field">
                                     <label for="<?php echo esc_attr( $dirigeant ); ?>_email" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></label>
                                     <input type="email" id="<?php echo esc_attr( $dirigeant ); ?>_email" name="<?php echo esc_attr( $dirigeant ); ?>_email" value="<?php echo esc_attr( $club_data[$dirigeant . '_email'] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
-                                </div>
-                                <div class="ufsc-form-col">
+                                <div class="ufsc-field-error" aria-live="polite"></div></div>
+                                <div class="ufsc-field">
                                     <label for="<?php echo esc_attr( $dirigeant ); ?>_tel" class="ufsc-label <?php echo $info['required'] ? 'required' : ''; ?>"><?php esc_html_e( 'Téléphone', 'ufsc-clubs' ); ?></label>
                                     <input type="tel" id="<?php echo esc_attr( $dirigeant ); ?>_tel" name="<?php echo esc_attr( $dirigeant ); ?>_tel" value="<?php echo esc_attr( $club_data[$dirigeant . '_tel'] ?? '' ); ?>" <?php echo $info['required'] ? 'required' : ''; ?> />
-                                </div>
+                                <div class="ufsc-field-error" aria-live="polite"></div></div>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -354,10 +376,10 @@ class UFSC_CL_Club_Form {
                 
                 <!-- User Association Section for Affiliation -->
                 <?php if ( $affiliation && ! $is_edit ): ?>
-                <fieldset class="ufsc-form-section">
+                <fieldset class="ufsc-form-section ufsc-grid">
                     <legend><?php esc_html_e( 'Association utilisateur', 'ufsc-clubs' ); ?></legend>
                     
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label class="ufsc-label"><?php esc_html_e( 'Comment souhaitez-vous associer ce club ?', 'ufsc-clubs' ); ?></label>
                         
                         <div class="ufsc-radio-group">
@@ -377,31 +399,31 @@ class UFSC_CL_Club_Form {
                                 <?php esc_html_e( 'Associer à un utilisateur existant', 'ufsc-clubs' ); ?>
                             </label>
                             <?php endif; ?>
-                        </div>
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
                     </div>
                     
                     <!-- Create User Fields -->
                     <div id="create-user-fields" class="ufsc-conditional-section" style="display: none;">
-                        <div class="ufsc-form-row ufsc-form-row-inline">
-                            <div class="ufsc-form-col">
+                        <div class="ufsc-grid">
+                            <div class="ufsc-field">
                                 <label for="new_user_login" class="ufsc-label"><?php esc_html_e( 'Nom d\'utilisateur', 'ufsc-clubs' ); ?></label>
                                 <input type="text" id="new_user_login" name="new_user_login" />
-                            </div>
-                            <div class="ufsc-form-col">
+                            <div class="ufsc-field-error" aria-live="polite"></div></div>
+                            <div class="ufsc-field">
                                 <label for="new_user_email" class="ufsc-label"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></label>
                                 <input type="email" id="new_user_email" name="new_user_email" />
-                            </div>
+                            <div class="ufsc-field-error" aria-live="polite"></div></div>
                         </div>
-                        <div class="ufsc-form-row">
+                        <div class="ufsc-field">
                             <label for="new_user_display_name" class="ufsc-label"><?php esc_html_e( 'Nom d\'affichage', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="new_user_display_name" name="new_user_display_name" />
-                        </div>
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
                     </div>
                     
                     <!-- Existing User Fields (Admin only) -->
                     <?php if ( current_user_can( 'manage_options' ) ): ?>
                     <div id="existing-user-fields" class="ufsc-conditional-section" style="display: none;">
-                        <div class="ufsc-form-row">
+                        <div class="ufsc-field">
                             <label for="existing_user_id" class="ufsc-label"><?php esc_html_e( 'Utilisateur existant', 'ufsc-clubs' ); ?></label>
                             <select id="existing_user_id" name="existing_user_id">
                                 <option value=""><?php esc_html_e( 'Sélectionner un utilisateur', 'ufsc-clubs' ); ?></option>
@@ -414,7 +436,7 @@ class UFSC_CL_Club_Form {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
                     </div>
                     <?php endif; ?>
                 </fieldset>
@@ -422,11 +444,11 @@ class UFSC_CL_Club_Form {
                 
                 <!-- Admin-only fields -->
                 <?php if ( current_user_can( 'manage_options' ) ): ?>
-                <fieldset class="ufsc-form-section">
+                <fieldset class="ufsc-form-section ufsc-grid">
                     <legend><?php esc_html_e( 'Administration', 'ufsc-clubs' ); ?></legend>
                     
-                    <div class="ufsc-form-row ufsc-form-row-inline">
-                        <div class="ufsc-form-col">
+                    <div class="ufsc-grid">
+                        <div class="ufsc-field">
                             <label for="statut" class="ufsc-label"><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></label>
                             <select id="statut" name="statut">
                                 <?php foreach ( $statuses as $status_key => $status_label ): ?>
@@ -435,17 +457,17 @@ class UFSC_CL_Club_Form {
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
-                        <div class="ufsc-form-col">
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
+                        <div class="ufsc-field">
                             <label for="quota_licences" class="ufsc-label"><?php esc_html_e( 'Quota licences', 'ufsc-clubs' ); ?></label>
                             <input type="number" id="quota_licences" name="quota_licences" value="<?php echo esc_attr( $club_data['quota_licences'] ?? '' ); ?>" min="0" />
-                        </div>
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
                     </div>
                     
-                    <div class="ufsc-form-row">
+                    <div class="ufsc-field">
                         <label for="num_affiliation" class="ufsc-label"><?php esc_html_e( 'N° Affiliation', 'ufsc-clubs' ); ?></label>
                         <input type="text" id="num_affiliation" name="num_affiliation" value="<?php echo esc_attr( $club_data['num_affiliation'] ?? '' ); ?>" />
-                    </div>
+                    <div class="ufsc-field-error" aria-live="polite"></div></div>
                 </fieldset>
                 <?php endif; ?>
                 
