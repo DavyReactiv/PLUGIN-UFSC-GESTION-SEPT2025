@@ -663,35 +663,35 @@ class UFSC_Email_Notifications {
             'responsable_id' => function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id',
         );
 
-        $select = array();
-        foreach ( $columns as $alias => $col ) {
-            $select[] = "`{$col}` AS {$alias}";
-        }
+        $responsable_col = $columns['responsable_id'];
+        $users_table     = $wpdb->users;
 
-        $id_col = $columns['id'];
-        $row    = $wpdb->get_row(
-            $wpdb->prepare(
-                'SELECT ' . implode( ', ', $select ) . " FROM `{$table}` WHERE `{$id_col}` = %d LIMIT 1",
-                (int) $club_id
-            ),
-            ARRAY_A
+        $sql = $wpdb->prepare(
+            "SELECT c.`{$columns['id']}` AS id,
+                    c.`{$columns['nom']}` AS nom,
+                    c.`{$columns['email']}` AS email,
+                    c.`{$responsable_col}` AS responsable_id,
+                    u.user_email AS responsable_email
+             FROM `{$table}` c
+             LEFT JOIN {$users_table} u ON u.ID = c.`{$responsable_col}`
+             WHERE c.`{$columns['id']}` = %d
+             LIMIT 1",
+            (int) $club_id
         );
+
+        $row = $wpdb->get_row( $sql, ARRAY_A );
 
         return $row ?: null;
     }
 
     private static function get_club_responsible_email( $club_id ) {
         $club = self::get_club_data( $club_id );
-        if ( ! $club || empty( $club['responsable_id'] ) ) {
-            return '';
-        }
-
-        $user = get_userdata( (int) $club['responsable_id'] );
-        return $user ? $user->user_email : '';
+        return $club['responsable_email'] ?? '';
     }
 
     private static function get_dashboard_url() {
         $dashboard_page = get_option( 'ufsc_dashboard_page' );
+
         if ( $dashboard_page ) {
             $url = get_permalink( $dashboard_page );
             if ( $url ) {
@@ -704,6 +704,9 @@ class UFSC_Email_Notifications {
         }
 
         return home_url( '/tableau-de-bord/' );
+
+        return $dashboard_page ? get_permalink( $dashboard_page ) : home_url( '/club-dashboard/' );
+
     }
 }
 
