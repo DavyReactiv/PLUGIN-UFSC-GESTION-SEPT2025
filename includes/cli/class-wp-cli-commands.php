@@ -184,18 +184,120 @@ class UFSC_CLI_Commands {
     // Helper methods - STUBS to be implemented
 
     private function get_club_stats( $club_id, $season ) {
-        // TODO: Implement actual stats retrieval
-        return array(
-            'total_licences' => 0,
-            'paid_licences' => 0,
-            'validated_licences' => 0,
-            'quota_remaining' => 10
-        );
+        $cache_key = "ufsc_stats_{$club_id}_{$season}";
+        $stats = get_transient( $cache_key );
+
+        if ( false === $stats ) {
+            global $wpdb;
+
+            if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+                $stats = array(
+                    'total_licences'     => 0,
+                    'paid_licences'      => 0,
+                    'validated_licences' => 0,
+                    'quota_remaining'    => 10,
+                );
+            } else {
+                $licences_table = ufsc_get_licences_table();
+                $columns        = $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
+
+                // Base WHERE clause for club and season if available
+                $where        = array( 'club_id = %d' );
+                $where_values = array( (int) $club_id );
+
+                $season_column = null;
+                foreach ( array( 'season', 'saison', 'paid_season' ) as $col ) {
+                    if ( in_array( $col, $columns, true ) ) {
+                        $season_column = $col;
+                        break;
+                    }
+                }
+
+                if ( $season_column ) {
+                    $where[]        = "`{$season_column}` = %s";
+                    $where_values[] = $season;
+                }
+
+                $where_sql = implode( ' AND ', $where );
+
+                // Total licences
+                $total_licences = (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT COUNT(*) FROM `{$licences_table}` WHERE {$where_sql}",
+                        $where_values
+                    )
+                );
+
+                // Paid licences
+                $paid_conditions = array();
+                $paid_values     = array();
+
+                if ( in_array( 'paid_season', $columns, true ) ) {
+                    $paid_conditions[] = 'paid_season = %s';
+                    $paid_values[]     = $season;
+                }
+                if ( in_array( 'is_paid', $columns, true ) ) {
+                    $paid_conditions[] = 'is_paid = 1';
+                }
+
+                $paid_licences = 0;
+                if ( ! empty( $paid_conditions ) ) {
+                    $paid_query   = "SELECT COUNT(*) FROM `{$licences_table}` WHERE {$where_sql} AND (" . implode( ' OR ', $paid_conditions ) . ')';
+                    $paid_values  = array_merge( $where_values, $paid_values );
+                    $paid_licences = (int) $wpdb->get_var( $wpdb->prepare( $paid_query, $paid_values ) );
+                }
+
+                // Validated licences
+                $validated_licences = 0;
+                $status_column      = null;
+                foreach ( array( 'status', 'statut' ) as $col ) {
+                    if ( in_array( $col, $columns, true ) ) {
+                        $status_column = $col;
+                        break;
+                    }
+                }
+
+                if ( $status_column ) {
+                    $validated_statuses  = array( 'valide', 'validée', 'validé', 'validated', 'approved' );
+                    $placeholders        = implode( ',', array_fill( 0, count( $validated_statuses ), '%s' ) );
+                    $validated_query     = "SELECT COUNT(*) FROM `{$licences_table}` WHERE {$where_sql} AND `{$status_column}` IN ({$placeholders})";
+                    $validated_values    = array_merge( $where_values, $validated_statuses );
+                    $validated_licences  = (int) $wpdb->get_var( $wpdb->prepare( $validated_query, $validated_values ) );
+                }
+
+                $stats = array(
+                    'total_licences'     => $total_licences,
+                    'paid_licences'      => $paid_licences,
+                    'validated_licences' => $validated_licences,
+                    'quota_remaining'    => max( 0, 50 - $total_licences ),
+                );
+            }
+
+            // Cache for one hour
+            set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
+        }
+
+        return $stats;
     }
 
     private function get_all_clubs_stats( $season ) {
-        // TODO: Implement actual stats retrieval for all clubs
-        return array();
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+            return array();
+        }
+
+        global $wpdb;
+        $clubs_table = ufsc_get_clubs_table();
+        $clubs       = $wpdb->get_results( "SELECT id, nom FROM `{$clubs_table}`" );
+
+        $all_stats = array();
+        foreach ( $clubs as $club ) {
+            $stats              = $this->get_club_stats( $club->id, $season );
+            $stats['club_id']   = (int) $club->id;
+            $stats['club_name'] = $club->nom;
+            $all_stats[]        = $stats;
+        }
+
+        return $all_stats;
     }
 
     private function purge_cache( $club_id = null, $season = null ) {
@@ -216,10 +318,21 @@ class UFSC_CLI_Commands {
     }
 
     private function cache_info() {
-        // TODO: Implement cache information display
-        WP_CLI::log( "Cache information:" );
-        WP_CLI::log( "  Object cache enabled: " . ( wp_using_ext_object_cache() ? 'Yes' : 'No' ) );
-        WP_CLI::log( "  Transients in use: Yes (WordPress transients)" );
+        WP_CLI::log( 'Cache information:' );
+        WP_CLI::log( '  Object cache enabled: ' . ( wp_using_ext_object_cache() ? 'Yes' : 'No' ) );
+
+        if ( class_exists( 'UFSC_Cache_Manager' ) ) {
+            $stats = UFSC_Cache_Manager::get_cache_stats();
+            WP_CLI::log( '  UFSC transients: ' . $stats['total_count'] );
+            if ( ! empty( $stats['details'] ) ) {
+                WP_CLI::log( '  Transient details:' );
+                foreach ( $stats['details'] as $detail ) {
+                    WP_CLI::log( sprintf( '    %s - %d bytes - expires %s', $detail['option_name'], $detail['size_bytes'], $detail['expires'] ) );
+                }
+            }
+        } else {
+            WP_CLI::log( '  Cache manager not available.' );
+        }
     }
 }
 
