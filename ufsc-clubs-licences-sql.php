@@ -24,6 +24,7 @@ require_once UFSC_CL_DIR.'includes/core/class-uploads.php';
 require_once UFSC_CL_DIR.'includes/core/class-permissions.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-badges.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-pdf-attestations.php';
+require_once UFSC_CL_DIR.'includes/lib/class-simple-pdf.php';
 require_once UFSC_CL_DIR.'includes/core/class-unified-handlers.php';
 require_once UFSC_CL_DIR.'includes/core/class-cache-manager.php';
 

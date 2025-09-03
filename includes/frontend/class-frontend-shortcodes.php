@@ -736,6 +736,10 @@ class UFSC_Frontend_Shortcodes {
             }
         }
 
+
+        $quota_info = self::get_club_quota_info( $atts['club_id'] );
+
+
         // Handle form submission
         if ( isset( $_POST['ufsc_add_licence'] ) && wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_add_licence' ) ) {
             $result = self::handle_licence_creation( $atts['club_id'], $_POST );
@@ -1086,15 +1090,44 @@ class UFSC_Frontend_Shortcodes {
         return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d AND club_id = %d", $licence_id, $club_id ) );
     }
 
-    // Helper methods - STUBS to be implemented
+    // Helper methods
 
     /**
      * Get user club ID
-     * TODO: Implement according to database schema
+     *
+     * This helper retrieves the club managed by a user. It first
+     * delegates to the global ufsc_get_user_club_id() if available which
+     * is backed by the UFSC_User_Club_Mapping class. If the global
+     * function is not loaded, it performs a direct lookup using the
+     * configured UFSC SQL tables.
+     *
+     * @param int $user_id User ID
+     * @return int|false   Club ID or false if none
      */
     private static function get_user_club_id( $user_id ) {
-        // STUB: Return club ID for user
-        return ufsc_get_user_club_id( $user_id );
+        if ( function_exists( 'ufsc_get_user_club_id' ) ) {
+            return ufsc_get_user_club_id( $user_id );
+        }
+
+        global $wpdb;
+
+        if ( ! class_exists( 'UFSC_SQL' ) ) {
+            return false;
+        }
+
+        $settings        = UFSC_SQL::get_settings();
+        $clubs_table     = $settings['table_clubs'];
+        $pk_col          = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id';
+        $responsable_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id';
+
+        $club_id = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT `{$pk_col}` FROM `{$clubs_table}` WHERE `{$responsable_col}` = %d LIMIT 1",
+                $user_id
+            )
+        );
+
+        return $club_id ? (int) $club_id : false;
     }
 
     /**
@@ -1407,33 +1440,15 @@ class UFSC_Frontend_Shortcodes {
             "SELECT `{$status_column}` FROM `{$clubs_table}` WHERE id = %d LIMIT 1",
             $club_id
         ) );
-        
-        return $status && in_array( strtolower( $status ), ['actif', 'validé', 'validée', 'approved', 'validate', 'validated'] );
 
-        
-        $settings = UFSC_SQL::get_settings();
-        $table = $settings['table_clubs'];
-        $pk = ufsc_club_col( 'id' );
-        $statut_col = ufsc_club_col( 'statut' );
-        
-        $statut = $wpdb->get_var( $wpdb->prepare(
-            "SELECT `{$statut_col}` FROM `{$table}` WHERE `{$pk}` = %d LIMIT 1",
-            $club_id
-        ) );
-        
-        if ( ! $statut ) {
-            return false;
-        }
-        
-        // Consider various forms of active/validated status
-        $valid_statuses = array( 'actif', 'active', 'valide', 'validé', 'validée', 'approved' );
-        return in_array( strtolower( $statut ), $valid_statuses );
-
+        return $status && in_array( strtolower( $status ), [ 'actif', 'validé', 'validée', 'approved', 'validate', 'validated' ] );
     }
 
     /**
-     * Check if licence is validated
-     * TODO: Implement according to validation logic
+     * Check if a licence has been validated.
+     *
+     * @param int $licence_id Licence ID
+     * @return bool
      */
     private static function is_validated_licence( $licence_id ) {
         return ufsc_is_validated_licence( $licence_id );
@@ -1471,14 +1486,40 @@ class UFSC_Frontend_Shortcodes {
 
     /**
      * Get club quota information
-     * TODO: Implement according to quota logic
+     *
+     * Retrieves the total allowed licences for the club, the number of
+     * licences currently used and calculates the remaining quota. Values
+     * are fetched directly from the UFSC SQL tables.
+     *
+     * @param int $club_id Club ID
+     * @return array{total:int,used:int,remaining:int}
      */
     private static function get_club_quota_info( $club_id ) {
-        // STUB: Return quota info
+        global $wpdb;
+
+        if ( ! class_exists( 'UFSC_SQL' ) ) {
+            return array( 'total' => 0, 'used' => 0, 'remaining' => 0 );
+        }
+
+        $settings        = UFSC_SQL::get_settings();
+        $clubs_table     = $settings['table_clubs'];
+        $licences_table  = $settings['table_licences'];
+        $quota_col       = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'quota_licences' ) : 'quota_licences';
+
+        $quota_total = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT `{$quota_col}` FROM `{$clubs_table}` WHERE id = %d",
+            $club_id
+        ) );
+
+        $used = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM `{$licences_table}` WHERE club_id = %d",
+            $club_id
+        ) );
+
         return array(
-            'total' => 10,
-            'used' => 3,
-            'remaining' => 7
+            'total'     => $quota_total,
+            'used'      => $used,
+            'remaining' => max( 0, $quota_total - $used )
         );
     }
 
@@ -1776,14 +1817,98 @@ class UFSC_Frontend_Shortcodes {
 
     /**
      * Handle licence creation
-     * TODO: Implement creation logic with quota checks
+     *
+     * Creates a new licence record for the specified club while applying
+     * quota checks. When the club has exhausted its quota, a WooCommerce
+     * order is created for the additional licence and a payment URL is
+     * returned.
+     *
+     * @param int   $club_id Club ID
+     * @param array $data    Raw form data
+     * @return array Result array with success flag, message and optional
+     *               payment URL
      */
     private static function handle_licence_creation( $club_id, $data ) {
-        // STUB: Handle licence creation
-        return array(
+        if ( ! class_exists( 'UFSC_SQL' ) ) {
+            return array( 'success' => false, 'message' => __( 'Base UFSC non disponible.', 'ufsc-clubs' ) );
+        }
+
+        $fields = array( 'nom', 'prenom', 'email', 'telephone', 'date_naissance', 'sexe', 'adresse', 'ville', 'code_postal' );
+        $sanitized = array();
+        foreach ( $fields as $field ) {
+            if ( isset( $data[ $field ] ) ) {
+                $value = 'email' === $field ? sanitize_email( $data[ $field ] ) : sanitize_text_field( $data[ $field ] );
+                $sanitized[ $field ] = $value;
+            }
+        }
+
+        if ( empty( $sanitized['nom'] ) || empty( $sanitized['prenom'] ) || empty( $sanitized['email'] ) ) {
+            return array( 'success' => false, 'message' => __( 'Champs obligatoires manquants.', 'ufsc-clubs' ) );
+        }
+
+        if ( ! is_email( $sanitized['email'] ) ) {
+            return array( 'success' => false, 'message' => __( 'Adresse email invalide.', 'ufsc-clubs' ) );
+        }
+
+        $quota_info   = self::get_club_quota_info( $club_id );
+        $needs_payment = $quota_info['remaining'] <= 0;
+
+        global $wpdb;
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        $insert_data = array(
+            'club_id'        => $club_id,
+            'nom'            => $sanitized['nom'],
+            'prenom'         => $sanitized['prenom'],
+            'email'          => $sanitized['email'],
+            'tel_mobile'     => $sanitized['telephone'] ?? '',
+            'date_naissance' => $sanitized['date_naissance'] ?? '',
+            'sexe'           => isset( $sanitized['sexe'] ) ? strtoupper( $sanitized['sexe'] ) : '',
+            'adresse'        => $sanitized['adresse'] ?? '',
+            'ville'          => $sanitized['ville'] ?? '',
+            'code_postal'    => $sanitized['code_postal'] ?? '',
+            'statut'         => 'brouillon',
+            'date_inscription' => current_time( 'mysql' )
+        );
+
+        $result = $wpdb->insert( $licences_table, $insert_data );
+
+        if ( false === $result ) {
+            return array( 'success' => false, 'message' => __( 'Échec de création de la licence.', 'ufsc-clubs' ) );
+        }
+
+        $licence_id = $wpdb->insert_id;
+        $response   = array(
             'success' => true,
             'message' => __( 'Licence créée avec succès.', 'ufsc-clubs' )
         );
+
+        if ( $needs_payment ) {
+            $order_id = ufsc_create_additional_license_order( $club_id, array( $licence_id ), get_current_user_id() );
+            if ( $order_id ) {
+                $order                  = wc_get_order( $order_id );
+                $response['payment_url'] = $order ? $order->get_checkout_payment_url() : '';
+            }
+            /**
+             * Triggered when licence creation exceeds quota.
+             *
+             * @param int   $club_id    Club ID
+             * @param array $context    Context array including licence ID
+             */
+            do_action( 'ufsc_quota_exceeded', $club_id, array( 'licence_id' => $licence_id ) );
+        }
+
+        if ( function_exists( 'ufsc_audit_log' ) ) {
+            ufsc_audit_log( 'licence_created', array(
+                'licence_id'    => $licence_id,
+                'club_id'       => $club_id,
+                'user_id'       => get_current_user_id(),
+                'needs_payment' => $needs_payment
+            ) );
+        }
+
+        return $response;
     }
 
     /**
@@ -1907,8 +2032,37 @@ if ( ! function_exists( 'ufsc_is_validated_club' ) ) {
 }
 
 if ( ! function_exists( 'ufsc_is_validated_licence' ) ) {
+    /**
+     * Check if a licence has been validated.
+     *
+     * Looks up the licence status in the UFSC licences table and
+     * determines if it corresponds to a validated state.
+     *
+     * @param int $licence_id Licence ID
+     * @return bool True if licence is validated
+     */
     function ufsc_is_validated_licence( $licence_id ) {
-        // TODO: Implement validation check
-        return false;
+        global $wpdb;
+
+        if ( ! class_exists( 'UFSC_SQL' ) ) {
+            return false;
+        }
+
+        $settings      = UFSC_SQL::get_settings();
+        $table         = $settings['table_licences'];
+        $pk            = function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'id' ) : 'id';
+        $status_column = function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'statut' ) : 'statut';
+
+        $status = $wpdb->get_var( $wpdb->prepare(
+            "SELECT `{$status_column}` FROM `{$table}` WHERE `{$pk}` = %d LIMIT 1",
+            $licence_id
+        ) );
+
+        if ( ! $status ) {
+            return false;
+        }
+
+        $valid_statuses = array( 'valide', 'validé', 'validée', 'validated', 'applied', 'approved' );
+        return in_array( strtolower( $status ), $valid_statuses, true );
     }
 }

@@ -612,34 +612,86 @@ class UFSC_Email_Notifications {
     // STUB HELPER METHODS - To be implemented
 
     private static function get_licence_data( $licence_id ) {
-        // TODO: Implement licence data retrieval
-        return array(
-            'id' => $licence_id,
-            'nom' => 'Doe',
-            'prenom' => 'John',
-            'email' => 'john.doe@example.com',
-            'date_naissance' => '1990-01-01',
-            'statut' => 'brouillon'
+        global $wpdb;
+
+        if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+            return null;
+        }
+
+        $table  = ufsc_get_licences_table();
+        $id_col = function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'id' ) : 'id';
+
+        $columns = array(
+            'id'            => $id_col,
+            'nom'           => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'nom' ) : 'nom',
+            'prenom'        => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'prenom' ) : 'prenom',
+            'email'         => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'email' ) : 'email',
+            'date_naissance'=> function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'date_naissance' ) : 'date_naissance',
+            'statut'        => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'statut' ) : 'statut',
         );
+
+        $select = array();
+        foreach ( $columns as $alias => $col ) {
+            $select[] = "`{$col}` AS {$alias}";
+        }
+
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT ' . implode( ', ', $select ) . " FROM `{$table}` WHERE `{$id_col}` = %d LIMIT 1",
+                (int) $licence_id
+            ),
+            ARRAY_A
+        );
+
+        return $row ?: null;
     }
 
     private static function get_club_data( $club_id ) {
-        // TODO: Implement club data retrieval
-        return array(
-            'id' => $club_id,
-            'nom' => 'Club Test',
-            'email' => 'test@example.com'
+        global $wpdb;
+
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+            return null;
+        }
+
+        $table = ufsc_get_clubs_table();
+
+        $columns = array(
+            'id'             => function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id',
+            'nom'            => function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'nom' ) : 'nom',
+            'email'          => function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'email' ) : 'email',
+            'responsable_id' => function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id',
         );
+
+        $select = array();
+        foreach ( $columns as $alias => $col ) {
+            $select[] = "`{$col}` AS {$alias}";
+        }
+
+        $id_col = $columns['id'];
+        $row    = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT ' . implode( ', ', $select ) . " FROM `{$table}` WHERE `{$id_col}` = %d LIMIT 1",
+                (int) $club_id
+            ),
+            ARRAY_A
+        );
+
+        return $row ?: null;
     }
 
     private static function get_club_responsible_email( $club_id ) {
-        // TODO: Implement responsible email lookup
-        return 'responsable@example.com';
+        $club = self::get_club_data( $club_id );
+        if ( ! $club || empty( $club['responsable_id'] ) ) {
+            return '';
+        }
+
+        $user = get_userdata( (int) $club['responsable_id'] );
+        return $user ? $user->user_email : '';
     }
 
     private static function get_dashboard_url() {
-        // TODO: Return actual dashboard URL
-        return home_url( '/tableau-de-bord/' );
+        $dashboard_page = get_option( 'ufsc_dashboard_page' );
+        return $dashboard_page ? get_permalink( $dashboard_page ) : home_url( '/tableau-de-bord/' );
     }
 }
 

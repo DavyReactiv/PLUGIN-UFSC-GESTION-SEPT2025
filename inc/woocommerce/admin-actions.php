@@ -7,52 +7,37 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 
 /**
- * Check if club should be charged for additional licenses
- * TODO: Implement according to existing database schema
- * 
- * @param int $club_id Club ID
- * @param string $season Season identifier
- * @return bool True if club has exhausted included quota
+ * Check if a club has exhausted its licence quota.
+ *
+ * The implementation compares the number of licences created for the club
+ * with the quota stored in the clubs table. If the quota is reached or
+ * exceeded, any additional licence should be charged.
+ *
+ * @param int    $club_id Club ID.
+ * @param string $season  Season identifier (unused).
+ * @return bool  True if quota exhausted, false otherwise.
  */
 function ufsc_should_charge_license( $club_id, $season ) {
-    // STUB: This should check if the club has exhausted its included quota
-    // Implementation depends on how quota tracking is implemented in the database
-    
-    // Example logic (to be implemented according to actual schema):
-    /*
     global $wpdb;
-    $clubs_table = ufsc_get_clubs_table();
+
+    $clubs_table    = ufsc_get_clubs_table();
     $licences_table = ufsc_get_licences_table();
-    
-    // Get total credits from paid packs for this season
-    $pack_credits = $wpdb->get_var( $wpdb->prepare(
-        "SELECT COALESCE(SUM(quota_included), 0) FROM {$clubs_table} 
-         WHERE id = %d AND affiliation_paid_season = %s",
-        $club_id,
-        $season
-    ) );
-    
-    // Get total paid additional licenses
-    $paid_additional = $wpdb->get_var( $wpdb->prepare(
-        "SELECT COALESCE(SUM(quota_paid), 0) FROM {$clubs_table} 
-         WHERE id = %d",
-        $club_id
-    ) );
-    
-    // Get total licenses used (both included and paid)
-    $used_licenses = $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(*) FROM {$licences_table} 
-         WHERE club_id = %d AND (is_included = 1 OR paid_season = %s)",
-        $club_id,
-        $season
-    ) );
-    
-    $total_available = $pack_credits + $paid_additional;
-    return $used_licenses >= $total_available;
-    */
-    
-    // Temporary implementation for testing
-    return false;
+
+    $quota_total = (int) $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT quota_licences FROM {$clubs_table} WHERE id = %d",
+            $club_id
+        )
+    );
+
+    $used = (int) $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d",
+            $club_id
+        )
+    );
+
+    return $used >= $quota_total && $quota_total >= 0;
 }
 
 /**
@@ -239,30 +224,22 @@ function ufsc_handle_admin_send_to_payment() {
 
 /**
  * Get responsible user ID for a club
- * TODO: Implement according to existing database schema
- * 
+ *
  * @param int $club_id Club ID
  * @return int|false User ID or false if not found
  */
 function ufsc_get_club_responsible_user_id( $club_id ) {
-    // STUB: This should query the existing database to find the responsible user for this club
-    // Implementation depends on how the relationship is stored
-    
-    // Example implementation (to be adjusted):
-    /*
     global $wpdb;
+
     $clubs_table = ufsc_get_clubs_table();
-    
-    $user_id = $wpdb->get_var( $wpdb->prepare(
-        "SELECT responsable_id FROM {$clubs_table} WHERE id = %d",
-        $club_id
-    ) );
-    
+    $user_id     = $wpdb->get_var(
+        $wpdb->prepare(
+            "SELECT responsable_id FROM {$clubs_table} WHERE id = %d",
+            $club_id
+        )
+    );
+
     return $user_id ? (int) $user_id : false;
-    */
-    
-    // Temporary fallback
-    return false;
 }
 
 // Register admin action

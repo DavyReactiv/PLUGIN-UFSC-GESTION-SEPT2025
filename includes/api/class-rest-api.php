@@ -502,22 +502,23 @@ class UFSC_REST_API {
      * Generate attestation file
      */
     private static function generate_attestation_file( $type, $data ) {
-        // This would integrate with your PDF generation system
-        // For now, return a stub implementation
-        
         $upload_dir = wp_upload_dir();
         $temp_dir = $upload_dir['basedir'] . '/ufsc_temp/';
-        
+
         if ( ! file_exists( $temp_dir ) ) {
             wp_mkdir_p( $temp_dir );
         }
 
-        $filename = "attestation_{$type}_{$data['club_id']}_" . time() . '.pdf';
+        $filename  = "attestation_{$type}_{$data['club_id']}_" . time() . '.pdf';
         $file_path = $temp_dir . $filename;
 
-        // TODO: Implement actual PDF generation
-        // For now, create a placeholder file
-        file_put_contents( $file_path, "Attestation PDF placeholder for club {$data['club_id']}" );
+        $lines = array(
+            sprintf( __( 'Type: %s', 'ufsc-clubs' ), ucfirst( $type ) ),
+            sprintf( __( 'Club ID: %s', 'ufsc-clubs' ), $data['club_id'] ),
+            sprintf( __( 'Généré le: %s', 'ufsc-clubs' ), current_time( 'mysql' ) ),
+        );
+
+        UFSC_Simple_PDF::generate( $file_path, $lines, __( 'Attestation UFSC', 'ufsc-clubs' ) );
 
         return $file_path;
     }
@@ -643,8 +644,51 @@ class UFSC_REST_API {
     }
 
     private static function create_payment_order( $club_id, $licence_ids ) {
-        // TODO: Implement WooCommerce order creation
-        return ufsc_create_additional_license_order( $club_id, $licence_ids, get_current_user_id() );
+        if ( ! function_exists( 'ufsc_is_woocommerce_active' ) || ! ufsc_is_woocommerce_active() ) {
+            return false;
+        }
+
+        $wc_settings       = ufsc_get_woocommerce_settings();
+        $license_product_id = $wc_settings['product_license_id'];
+        $product            = wc_get_product( $license_product_id );
+
+        if ( ! $product || ! $product->exists() ) {
+            return false;
+        }
+
+        $quantity = max( 1, count( $licence_ids ) );
+
+        try {
+            $order = wc_create_order();
+            if ( ! $order ) {
+                return false;
+            }
+
+            $user_id = get_current_user_id();
+            if ( $user_id > 0 ) {
+                $order->set_customer_id( $user_id );
+            }
+
+            $item_id = $order->add_product( $product, $quantity );
+            if ( ! $item_id ) {
+                $order->delete( true );
+                return false;
+            }
+
+            if ( ! empty( $licence_ids ) ) {
+                wc_add_order_item_meta( $item_id, '_ufsc_licence_ids', $licence_ids );
+            }
+            wc_add_order_item_meta( $item_id, '_ufsc_club_id', $club_id );
+
+            $order->calculate_totals();
+            $order->update_status( 'pending', __( 'Commande créée pour licences UFSC additionnelles', 'ufsc-clubs' ) );
+            $order->add_order_note( sprintf( __( 'Commande créée automatiquement pour %d licence(s) additionnelle(s) - Club ID: %d', 'ufsc-clubs' ), $quantity, $club_id ) );
+
+            return $order->get_id();
+        } catch ( Exception $e ) {
+            error_log( 'UFSC: Error creating additional license order: ' . $e->getMessage() );
+            return false;
+        }
     }
 
     private static function get_cached_club_stats( $club_id, $season ) {
