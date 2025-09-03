@@ -828,6 +828,128 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
+                <div class="ufsc-grid">
+                    <div class="ufsc-card ufsc-form-section">
+                        <h4><?php esc_html_e( 'Réductions et identifiants', 'ufsc-clubs' ); ?></h4>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="reduction_benevole" name="reduction_benevole" value="1" class="ufsc-toggle">
+                                <?php esc_html_e( 'Réduction bénévole', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+                        <div class="ufsc-form-field ufsc-conditional-field" data-depends="reduction_benevole">
+                            <label for="reduction_benevole_num"><?php esc_html_e( 'Numéro bénévole', 'ufsc-clubs' ); ?></label>
+                            <input type="text" id="reduction_benevole_num" name="reduction_benevole_num">
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="reduction_postier" name="reduction_postier" value="1" class="ufsc-toggle">
+                                <?php esc_html_e( 'Réduction postier', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+                        <div class="ufsc-form-field ufsc-conditional-field" data-depends="reduction_postier">
+                            <label for="reduction_postier_num"><?php esc_html_e( 'Matricule postier', 'ufsc-clubs' ); ?></label>
+                            <input type="text" id="reduction_postier_num" name="reduction_postier_num">
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="identifiant_laposte_flag" name="identifiant_laposte_flag" value="1" class="ufsc-toggle">
+                                <?php esc_html_e( 'Identifiant La Poste', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+                        <div class="ufsc-form-field ufsc-conditional-field" data-depends="identifiant_laposte_flag">
+                            <label for="identifiant_laposte"><?php esc_html_e( 'Identifiant La Poste', 'ufsc-clubs' ); ?></label>
+                            <input type="text" id="identifiant_laposte" name="identifiant_laposte">
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="fonction_publique" name="fonction_publique" value="1">
+                                <?php esc_html_e( 'Fonction publique', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="licence_delegataire" name="licence_delegataire" value="1" class="ufsc-toggle">
+                                <?php esc_html_e( 'Licence délégataire', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+                        <div class="ufsc-form-field ufsc-conditional-field" data-depends="licence_delegataire">
+                            <label for="numero_licence_delegataire"><?php esc_html_e( 'Numéro de licence délégataire', 'ufsc-clubs' ); ?></label>
+                            <input type="text" id="numero_licence_delegataire" name="numero_licence_delegataire">
+                        </div>
+                    </div>
+
+                    <div class="ufsc-card ufsc-form-section">
+                        <h4><?php esc_html_e( 'Consents et assurances', 'ufsc-clubs' ); ?></h4>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="diffusion_image" name="diffusion_image" value="1">
+                                <?php esc_html_e( 'Autoriser la diffusion d\'image', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="infos_fsasptt" name="infos_fsasptt" value="1">
+                                <?php esc_html_e( 'Recevoir les informations FSASPTT', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="infos_asptt" name="infos_asptt" value="1">
+                                <?php esc_html_e( 'Recevoir les informations ASPTT', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="infos_cr" name="infos_cr" value="1">
+                                <?php esc_html_e( 'Recevoir les informations du CR', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="infos_partenaires" name="infos_partenaires" value="1">
+                                <?php esc_html_e( 'Recevoir les informations partenaires', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="honorabilite" name="honorabilite" value="1">
+                                <?php esc_html_e( 'Je certifie mon honorabilité', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="assurance_dommage_corporel" name="assurance_dommage_corporel" value="1">
+                                <?php esc_html_e( 'Assurance dommage corporel', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label class="ufsc-checkbox-label">
+                                <input type="checkbox" id="assurance_assistance" name="assurance_assistance" value="1">
+                                <?php esc_html_e( 'Assurance assistance', 'ufsc-clubs' ); ?>
+                            </label>
+                        </div>
+
+                        <div class="ufsc-form-field">
+                            <label for="note"><?php esc_html_e( 'Note', 'ufsc-clubs' ); ?></label>
+                            <textarea id="note" name="note" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="ufsc-form-actions">
                     <button type="submit" name="ufsc_add_licence" class="ufsc-btn ufsc-btn-primary">
                         <?php if ( $quota_info['remaining'] > 0 ): ?>

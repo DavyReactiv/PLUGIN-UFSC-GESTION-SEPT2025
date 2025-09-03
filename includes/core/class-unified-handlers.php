@@ -235,15 +235,54 @@ class UFSC_Unified_Handlers {
             'sexe' => 'sanitize_text_field',
             'role' => 'sanitize_text_field',
             'competition' => 'absint',
-            'statut' => 'sanitize_text_field'
+            'statut' => 'sanitize_text_field',
+            'note' => 'sanitize_textarea_field'
         );
-        
+
         foreach ( $optional_fields as $field => $sanitizer ) {
             if ( ! empty( $post_data[$field] ) ) {
-                $data[$field] = call_user_func( $sanitizer, $post_data[$field] );
+                $data[ $field ] = call_user_func( $sanitizer, $post_data[$field] );
             }
         }
-        
+
+        // Boolean fields
+        $boolean_fields = array(
+            'reduction_benevole',
+            'reduction_postier',
+            'identifiant_laposte_flag',
+            'fonction_publique',
+            'licence_delegataire',
+            'diffusion_image',
+            'infos_fsasptt',
+            'infos_asptt',
+            'infos_cr',
+            'infos_partenaires',
+            'honorabilite',
+            'assurance_dommage_corporel',
+            'assurance_assistance'
+        );
+
+        foreach ( $boolean_fields as $field ) {
+            $data[ $field ] = empty( $post_data[ $field ] ) ? 0 : 1;
+        }
+
+        // Conditional fields tied to flags
+        $data['reduction_benevole_num'] = $data['reduction_benevole'] && ! empty( $post_data['reduction_benevole_num'] )
+            ? sanitize_text_field( $post_data['reduction_benevole_num'] )
+            : '';
+
+        $data['reduction_postier_num'] = $data['reduction_postier'] && ! empty( $post_data['reduction_postier_num'] )
+            ? sanitize_text_field( $post_data['reduction_postier_num'] )
+            : '';
+
+        $data['identifiant_laposte'] = $data['identifiant_laposte_flag'] && ! empty( $post_data['identifiant_laposte'] )
+            ? sanitize_text_field( $post_data['identifiant_laposte'] )
+            : '';
+
+        $data['numero_licence_delegataire'] = $data['licence_delegataire'] && ! empty( $post_data['numero_licence_delegataire'] )
+            ? sanitize_text_field( $post_data['numero_licence_delegataire'] )
+            : '';
+
         // Conditional fields - clear if toggle is off
         if ( empty( $post_data['has_license_number'] ) ) {
             $data['numero_licence'] = '';
@@ -355,7 +394,10 @@ class UFSC_Unified_Handlers {
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
         $licences_table = $settings['table_licences'];
-        
+
+        // Whitelist fields against known licence columns
+        $fields = UFSC_SQL::get_licence_fields();
+        $data   = array_intersect_key( $data, $fields );
         $data['club_id'] = $club_id;
         
         if ( $licence_id > 0 ) {
