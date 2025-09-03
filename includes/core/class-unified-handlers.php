@@ -45,8 +45,16 @@ class UFSC_Unified_Handlers {
 
 
     /**
-     * // UFSC: Handle license save (create/update)
+     * Handle licence save (create or update based on presence of licence_id).
+     */
+    public static function handle_save_licence() {
+        $licence_id = isset( $_POST['licence_id'] ) ? intval( $_POST['licence_id'] ) : 0;
 
+        self::process_licence_request( $licence_id );
+    }
+
+    /**
+     * Handle licence creation.
      */
     public static function handle_add_licence() {
         if ( ! wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_add_licence' ) ) {
@@ -355,7 +363,7 @@ class UFSC_Unified_Handlers {
             }
         }
 
-        $data = self::validate_licence_data( $_POST );
+        $data = self::process_licence_data( $_POST );
         if ( is_wp_error( $data ) ) {
             self::store_form_and_redirect( $_POST, array( $data->get_error_message() ), $licence_id );
         }
