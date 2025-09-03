@@ -535,6 +535,12 @@ protected static function get_club_name( $club_id ) {
      *
      * @param int   $club_id Club identifier.
 
+     * @param array $filters  Optional filters: 'status' and/or 'season'.
+     * @return array List of licence rows.
+     */
+    protected static function get_club_licences_for_export( $club_id, $filters ) {
+
+
      * @param array $filters Optional filters (status, season).
      * @return array List of licences.
      */
@@ -548,6 +554,7 @@ protected static function get_club_name( $club_id ) {
      * @return array List of licence rows.
      */
     protected static function get_club_licences_for_export( $club_id, $filters ) {
+
 
         global $wpdb;
 
@@ -580,6 +587,7 @@ protected static function get_club_name( $club_id ) {
     }
 
 
+
     /**
 
      * Get club name from database.
@@ -593,6 +601,7 @@ protected static function get_club_name( $club_id ) {
      * @param int $club_id Club identifier.
      * @return string Club name or default string.
      */
+
 
     protected static function get_club_name( $club_id ) {
         global $wpdb;
