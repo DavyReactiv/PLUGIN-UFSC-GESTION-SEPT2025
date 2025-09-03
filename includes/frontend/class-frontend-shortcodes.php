@@ -338,7 +338,6 @@ class UFSC_Frontend_Shortcodes {
                                 <th scope="col" class="ufsc-hide-mobile"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></th>
                                 <th scope="col"><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></th>
                                 <th scope="col" class="ufsc-hide-mobile"><?php esc_html_e( 'Date création', 'ufsc-clubs' ); ?></th>
-                                <th scope="col"><?php esc_html_e( 'Actions', 'ufsc-clubs' ); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -354,13 +353,17 @@ class UFSC_Frontend_Shortcodes {
                                         </span>
                                     </td>
                                     <td class="ufsc-hide-mobile"><?php echo esc_html( $licence->date_creation ?? '' ); ?></td>
-                                    <td class="ufsc-actions" aria-label="<?php esc_attr_e( 'Actions', 'ufsc-clubs' ); ?>">
+                                </tr>
+                                <tr class="ufsc-row-actions-row">
+                                    <td></td>
+                                    <td colspan="5">
                                         <div class="ufsc-row-actions">
                                             <a href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"
                                                class="ufsc-btn ufsc-btn-small"
                                                aria-label="<?php esc_attr_e( 'Consulter la licence', 'ufsc-clubs' ); ?>">
                                                 <?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?>
                                             </a>
+
                                             <?php if ( 'brouillon' === ( $licence->statut ?? '' ) ) : ?>
                                                 <a href="<?php echo esc_url( add_query_arg( array(
                                                     'ufsc_add_to_cart' => $wc_settings['product_license_id'],
@@ -372,13 +375,16 @@ class UFSC_Frontend_Shortcodes {
                                                 </a>
                                             <?php endif; ?>
                                             <?php if ( in_array( $licence->statut ?? '', array( 'brouillon', 'non_payee', 'refusee' ), true ) ) : ?>
+
+                                            <?php if ( in_array( $licence->statut ?? '', array( 'brouillon' ), true ) ) : ?>
+
                                                 <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"
                                                    class="ufsc-btn ufsc-btn-small"
                                                    aria-label="<?php esc_attr_e( 'Modifier la licence', 'ufsc-clubs' ); ?>">
                                                     <?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?>
                                                 </a>
                                             <?php endif; ?>
-                                            <?php if ( in_array( $licence->statut ?? '', array( 'brouillon', 'non_payee' ), true ) ) : ?>
+        <?php if ( in_array( $licence->statut ?? '', array( 'brouillon', 'non_payee' ), true ) ) : ?>
                                                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-delete-licence-form" style="display:inline">
                                                     <?php wp_nonce_field( 'ufsc_delete_licence', 'ufsc_delete_licence_nonce' ); ?>
                                                     <input type="hidden" name="action" value="ufsc_delete_licence">
@@ -1520,14 +1526,14 @@ class UFSC_Frontend_Shortcodes {
      */
     private static function get_licence_status_badge_class( $status ) {
         $classes = array(
-            'brouillon' => 'ufsc-badge-info',
-            'paid'      => 'ufsc-badge-warning',
-            'validated' => 'ufsc-badge-success',
-            'applied'   => 'ufsc-badge-success',
-            'rejected'  => 'ufsc-badge-danger',
+            'brouillon' => '-draft',
+            'paid'      => '-pending',
+            'validated' => '-ok',
+            'applied'   => '-ok',
+            'rejected'  => '-rejected',
         );
 
-        return $classes[ $status ] ?? 'ufsc-badge-info';
+        return $classes[ $status ] ?? '-draft';
     }
 
     /**
