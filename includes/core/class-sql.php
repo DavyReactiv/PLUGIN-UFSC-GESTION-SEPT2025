@@ -138,4 +138,64 @@ class UFSC_SQL {
         $s = self::get_settings();
         return apply_filters( 'ufsc_licence_fields', $s['licence_fields'] );
     }
+
+    /**
+     * Mark a licence as paid and validated.
+     *
+     * @param int    $licence_id Licence ID.
+     * @param string $season     Season identifier.
+     * @return bool True on success, false on failure.
+     */
+    public static function mark_licence_as_paid_and_validated( $licence_id, $season ) {
+        global $wpdb;
+
+        if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+            return false;
+        }
+
+        $table   = ufsc_get_licences_table();
+        $updated = $wpdb->update(
+            $table,
+            array(
+                'statut'      => 'valide',
+                'is_included' => 0,
+                'paid_season' => $season,
+                'paid_date'   => current_time( 'mysql' ),
+            ),
+            array( 'id' => $licence_id ),
+            array( '%s', '%d', '%s', '%s' ),
+            array( '%d' )
+        );
+
+        return false !== $updated;
+    }
+
+    /**
+     * Mark a club affiliation as active.
+     *
+     * @param int    $club_id Club ID.
+     * @param string $season  Season identifier.
+     * @return bool True on success, false on failure.
+     */
+    public static function mark_club_affiliation_active( $club_id, $season ) {
+        global $wpdb;
+
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+            return false;
+        }
+
+        $table   = ufsc_get_clubs_table();
+        $updated = $wpdb->update(
+            $table,
+            array(
+                'statut'           => 'valide',
+                'date_affiliation' => current_time( 'mysql' ),
+            ),
+            array( 'id' => $club_id ),
+            array( '%s', '%s' ),
+            array( '%d' )
+        );
+
+        return false !== $updated;
+    }
 }
