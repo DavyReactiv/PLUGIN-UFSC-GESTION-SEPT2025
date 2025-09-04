@@ -45,7 +45,6 @@ require_once UFSC_CL_DIR.'includes/core/class-email-notifications.php';
 require_once UFSC_CL_DIR.'includes/core/class-import-export.php';
 require_once UFSC_CL_DIR.'includes/core/class-badge-helper.php';
 require_once UFSC_CL_DIR.'includes/core/class-user-club-mapping.php';
-require_once UFSC_CL_DIR.'includes/core/column-map.php';
 require_once UFSC_CL_DIR.'includes/admin/class-user-club-admin.php';
 require_once UFSC_CL_DIR.'includes/cli/class-wp-cli-commands.php';
 
@@ -66,6 +65,8 @@ final class UFSC_CL_Bootstrap {
     private function __construct(){
         register_activation_hook( __FILE__, array( $this, 'on_activate' ) );
         register_deactivation_hook( __FILE__, array( $this, 'on_deactivate' ) );
+
+        add_action( 'plugins_loaded', [ $this, 'load_textdomain' ] );
 
         add_action( 'admin_menu', array( 'UFSC_CL_Admin_Menu', 'register' ) );
         add_action( 'admin_enqueue_scripts', array( 'UFSC_CL_Admin_Menu', 'enqueue_admin' ) );
@@ -105,6 +106,13 @@ final class UFSC_CL_Bootstrap {
     }
     public function on_activate(){ flush_rewrite_rules(); }
     public function on_deactivate(){ flush_rewrite_rules(); }
+
+    /**
+     * Load plugin textdomain for translations
+     */
+    public function load_textdomain() {
+        load_plugin_textdomain( 'ufsc-clubs', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+    }
 
     /**
      * Enqueue frontend assets
