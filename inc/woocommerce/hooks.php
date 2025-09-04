@@ -142,6 +142,13 @@ function ufsc_handle_additional_license_payment( $order, $item, $quantity ) {
     // Check if specific license IDs are attached to this line item
     $license_ids = $item->get_meta( '_ufsc_licence_ids' );
 
+    if ( empty( $license_ids ) ) {
+        $single_id = $item->get_meta( '_ufsc_licence_id' );
+        if ( $single_id ) {
+            $license_ids = array( $single_id );
+        }
+    }
+
     if ( ! empty( $license_ids ) && is_array( $license_ids ) ) {
         // Mark specific licenses as paid
         foreach ( $license_ids as $license_id ) {
