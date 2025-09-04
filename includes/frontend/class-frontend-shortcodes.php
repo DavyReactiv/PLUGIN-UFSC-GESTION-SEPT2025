@@ -407,6 +407,8 @@ class UFSC_Frontend_Shortcodes {
                                                     </button>
                                                 </form>
                                             <?php endif; ?>
+                                            <?php endif; ?>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
