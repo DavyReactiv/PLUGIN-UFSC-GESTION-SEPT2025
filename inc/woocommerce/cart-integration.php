@@ -180,9 +180,7 @@ function ufsc_get_club_name( $club_id ) {
     );
 
 
-    return $club_name !== null ? $club_name : false;
-
-    return $club_name ? $club_name : false;
+    return ! empty( $club_name ) ? $club_name : false;
 
 }
 
