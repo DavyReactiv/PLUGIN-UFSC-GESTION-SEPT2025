@@ -147,6 +147,7 @@ final class UFSC_CL_Bootstrap {
                 'ajax_url' => admin_url( 'admin-ajax.php' ),
                 'rest_url' => rest_url( 'ufsc/v1/' ),
                 'nonce' => wp_create_nonce( 'ufsc_frontend_nonce' ),
+                'rest_nonce' => wp_create_nonce( 'wp_rest' ),
                 'strings' => array(
                     'saving' => __( 'Enregistrement...', 'ufsc-clubs' ),
                     'loading' => __( 'Chargement...', 'ufsc-clubs' ),

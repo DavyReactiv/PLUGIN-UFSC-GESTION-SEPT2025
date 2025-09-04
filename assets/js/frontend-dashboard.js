@@ -804,7 +804,8 @@
                 url: url,
                 type: 'GET',
                 beforeSend: function(xhr) {
-                    xhr.setRequestHeader('X-WP-Nonce', window.ufsc_frontend_vars ? window.ufsc_frontend_vars.nonce : '');
+                    var nonce = window.ufsc_frontend_vars && window.ufsc_frontend_vars.rest_nonce ? window.ufsc_frontend_vars.rest_nonce : '';
+                    xhr.setRequestHeader('X-WP-Nonce', nonce);
                 },
                 success: function(response) {
                     successCallback(response);
@@ -825,7 +826,8 @@
                 url: this.config.rest_url + endpoint,
                 type: 'DELETE',
                 beforeSend: function(xhr) {
-                    xhr.setRequestHeader('X-WP-Nonce', window.ufsc_frontend_vars ? window.ufsc_frontend_vars.nonce : '');
+                    var nonce = window.ufsc_frontend_vars && window.ufsc_frontend_vars.rest_nonce ? window.ufsc_frontend_vars.rest_nonce : '';
+                    xhr.setRequestHeader('X-WP-Nonce', nonce);
                 },
                 success: function(response) {
                     successCallback(response);
