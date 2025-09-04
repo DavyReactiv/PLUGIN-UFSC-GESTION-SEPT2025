@@ -471,6 +471,8 @@ class UFSC_Frontend_Shortcodes {
                    '</div>';
         }
 
+        $wc_settings = ufsc_get_woocommerce_settings();
+
         ob_start();
         ?>
         <div class="ufsc-licence-detail">
@@ -529,6 +531,33 @@ class UFSC_Frontend_Shortcodes {
                     </tr>
                 </tbody>
             </table>
+            <div class="ufsc-row-actions">
+                <?php
+                $licence_status = $licence->statut ?? '';
+                if ( 'non_payee' === $licence_status ) :
+                    ?>
+                    <a href="<?php echo esc_url( add_query_arg( array(
+                        'ufsc_add_to_cart' => $wc_settings['product_license_id'],
+                        'ufsc_license_ids' => $licence->id ?? 0,
+                    ), '' ) ); ?>" class="ufsc-btn ufsc-btn-small">
+                        <?php esc_html_e( 'Payer la licence', 'ufsc-clubs' ); ?>
+                    </a>
+                <?php endif; ?>
+
+                <?php if ( in_array( $licence_status, array( 'brouillon', 'non_payee' ), true ) ) : ?>
+                    <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>" class="ufsc-btn ufsc-btn-small">
+                        <?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?>
+                    </a>
+                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-delete-licence-form" style="display:inline">
+                        <?php wp_nonce_field( 'ufsc_delete_licence' ); ?>
+                        <input type="hidden" name="action" value="ufsc_delete_licence">
+                        <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
+                        <button type="submit" class="ufsc-btn ufsc-btn-small ufsc-btn-danger">
+                            <?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?>
+                        </button>
+                    </form>
+                <?php endif; ?>
+            </div>
             <p>
                 <a href="<?php echo esc_url( remove_query_arg( 'view_licence' ) ); ?>" class="ufsc-btn ufsc-btn-secondary">
                     <?php esc_html_e( 'Retour aux licences', 'ufsc-clubs' ); ?>
