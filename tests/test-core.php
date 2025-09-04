@@ -5,6 +5,7 @@ use PHPUnit\Framework\TestCase;
 require_once __DIR__ . '/../includes/core/class-import-export.php';
 require_once __DIR__ . '/../includes/api/class-rest-api.php';
 require_once __DIR__ . '/../inc/woocommerce/settings-woocommerce.php';
+require_once __DIR__ . '/../includes/core/class-sql.php';
 
 
 // --- WordPress and utility stubs ---
@@ -58,6 +59,16 @@ class WPDB_Stub {
         if ( preg_match( '/SELECT responsable_id FROM .*wp_ufsc_clubs.* WHERE id = (\d+)/', $query, $m ) ) {
             return $this->clubs[ (int) $m[1] ]['responsable_id'] ?? null;
         }
+        if ( preg_match( '/SELECT COUNT\(\*\) FROM .*wp_ufsc_licences.* WHERE club_id = (\d+) AND is_included = 1/', $query, $m ) ) {
+            $club_id = (int) $m[1];
+            $count = 0;
+            foreach ( $this->licences as $licence ) {
+                if ( $licence['club_id'] == $club_id && ! empty( $licence['is_included'] ) ) {
+                    $count++;
+                }
+            }
+            return $count;
+        }
         if ( preg_match( '/SELECT COUNT\(\*\) FROM .*wp_ufsc_licences.* WHERE club_id = (\d+)/', $query, $m ) ) {
             $club_id = (int) $m[1];
             $count = 0;
@@ -104,7 +115,6 @@ $GLOBALS['wpdb'] = new WPDB_Stub();
 require_once __DIR__ . '/../inc/woocommerce/admin-actions.php';
 require_once __DIR__ . '/../inc/woocommerce/cart-integration.php';
 require_once __DIR__ . '/../inc/woocommerce/hooks.php';
-=======
 if (!function_exists('ufsc_get_user_club_id')) { function ufsc_get_user_club_id($u){ return $GLOBALS['ufsc_user_club_id'] ?? null; } }
 if (!function_exists('wc_get_product')) {
     function wc_get_product($id) {
@@ -270,5 +280,23 @@ class QuotaPaymentFunctionsTest extends TestCase {
         $this->assertEquals( 'en_attente', $wpdb->licences[1]['statut'] );
         $this->assertEquals( 0, $wpdb->licences[1]['is_included'] );
         $this->assertEquals( '2025', $wpdb->licences[1]['paid_season'] );
+    }
+}
+
+class SqlHelperMethodsTest extends TestCase {
+    protected function setUp(): void {
+        global $wpdb;
+        $wpdb->licences = array(
+            1 => array( 'club_id' => 1, 'is_included' => 1 ),
+            2 => array( 'club_id' => 1, 'is_included' => 0 ),
+            3 => array( 'club_id' => 1, 'is_included' => 1 ),
+        );
+    }
+
+    public function test_count_and_mark_included() {
+        $this->assertEquals( 2, UFSC_SQL::count_included_licences( 1 ) );
+        UFSC_SQL::mark_licence_as_included( 2 );
+        $this->assertEquals( 3, UFSC_SQL::count_included_licences( 1 ) );
+        $this->assertEquals( 1, $GLOBALS['wpdb']->licences[2]['is_included'] );
     }
 }

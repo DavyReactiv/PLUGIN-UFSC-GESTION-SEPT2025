@@ -140,6 +140,44 @@ class UFSC_SQL {
     }
 
     /**
+
+     * Count licences marked as included for a club.
+     *
+     * @param int $club_id Club identifier.
+     * @return int Number of included licences.
+     */
+    public static function count_included_licences( $club_id ) {
+        global $wpdb;
+        $settings       = self::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        $count = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d AND is_included = 1",
+            $club_id
+        ) );
+
+        return $count;
+    }
+
+    /**
+     * Mark a licence as included in the quota.
+     *
+     * @param int $licence_id Licence identifier.
+     * @return int|false Number of rows updated or false on failure.
+     */
+    public static function mark_licence_as_included( $licence_id ) {
+        global $wpdb;
+        $settings       = self::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        return $wpdb->update(
+            $licences_table,
+            array( 'is_included' => 1 ),
+            array( 'id' => $licence_id ),
+            array( '%d' ),
+            array( '%d' )
+        );
+
      * Mark a licence as paid and validated.
      *
      * @param int    $licence_id Licence ID.

@@ -500,16 +500,25 @@ class UFSC_Unified_Handlers {
 
         $new_id = $result;
 
-        // Quota check: if club has exceeded included licences, add licence product to cart
-        global $wpdb;
-        $settings       = UFSC_SQL::get_settings();
-        $licences_table = $settings['table_licences'];
-        $current_count  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d", $club_id ) );
-
         $wc_settings    = ufsc_get_woocommerce_settings();
         $included_quota = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
+        $current_included = UFSC_SQL::count_included_licences( $club_id );
 
-        if ( $current_count > $included_quota && function_exists( 'WC' ) ) {
+        if ( $current_included < $included_quota ) {
+            UFSC_SQL::mark_licence_as_included( $new_id );
+            $redirect_url = esc_url_raw( add_query_arg(
+                array(
+                    'licence_included' => 1,
+                    'licence_id'       => $new_id,
+                ),
+                wp_get_referer()
+            ) );
+            wp_safe_redirect( $redirect_url );
+            exit;
+        }
+
+        // Quota exceeded: add licence product to cart
+        if ( function_exists( 'WC' ) ) {
             function_exists( 'wc_load_cart' ) && wc_load_cart();
             $product_id     = $wc_settings['product_license_id'];
             $cart_item_data = array(
