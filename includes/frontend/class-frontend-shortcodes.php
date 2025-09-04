@@ -648,92 +648,112 @@ class UFSC_Frontend_Shortcodes {
                     <!-- // UFSC: Identité du club -->
                     <div class="ufsc-card ufsc-section">
                         <h4><?php esc_html_e( 'Identité du club', 'ufsc-clubs' ); ?></h4>
-                        
-                        <?php self::render_field( 'nom', $club, __( 'Nom du club', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
-                        <?php self::render_field( 'region', $club, __( 'Région', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
-                        <?php self::render_field( 'num_affiliation', $club, __( 'N° d\'affiliation', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                        <?php self::render_field( 'statut', $club, __( 'Statut', 'ufsc-clubs' ), 'text', true, false ); ?>
+
+                        <div class="ufsc-grid">
+                            <?php self::render_field( 'nom', $club, __( 'Nom du club', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
+                            <?php self::render_field( 'region', $club, __( 'Région', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
+                            <?php self::render_field( 'num_affiliation', $club, __( 'N° d\'affiliation', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                            <?php self::render_field( 'statut', $club, __( 'Statut', 'ufsc-clubs' ), 'text', true, false ); ?>
+                        </div>
                     </div>
 
                     <!-- // UFSC: Coordonnées -->
                     <div class="ufsc-card ufsc-section">
                         <h4><?php esc_html_e( 'Coordonnées', 'ufsc-clubs' ); ?></h4>
-                        
-                        <?php self::render_field( 'adresse', $club, __( 'Adresse', 'ufsc-clubs' ), 'textarea', false, $is_admin ); ?>
-                        <?php self::render_field( 'code_postal', $club, __( 'Code postal', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                        <?php self::render_field( 'ville', $club, __( 'Ville', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                        <?php self::render_field( 'email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, true ); ?>
-                        <?php self::render_field( 'telephone', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, true ); ?>
+
+                        <div class="ufsc-grid">
+                            <?php self::render_field( 'adresse', $club, __( 'Adresse', 'ufsc-clubs' ), 'textarea', false, $is_admin ); ?>
+                            <?php self::render_field( 'code_postal', $club, __( 'Code postal', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                            <?php self::render_field( 'ville', $club, __( 'Ville', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                            <?php self::render_field( 'email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, true ); ?>
+                            <?php self::render_field( 'telephone', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, true ); ?>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Legal Section -->
                 <fieldset class="ufsc-form-section">
                     <legend><?php esc_html_e( 'Informations légales', 'ufsc-clubs' ); ?></legend>
-                    
-                    <?php self::render_field( 'siren', $club, __( 'SIREN', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'ape', $club, __( 'APE', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'ccn', $club, __( 'CCN', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'ancv', $club, __( 'ANCV', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'rna_number', $club, __( 'Numéro RNA', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'num_declaration', $club, __( 'N° déclaration', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'date_declaration', $club, __( 'Date déclaration', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
+
+                    <div class="ufsc-grid">
+                        <?php self::render_field( 'siren', $club, __( 'SIREN', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'ape', $club, __( 'APE', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'ccn', $club, __( 'CCN', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'ancv', $club, __( 'ANCV', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'rna_number', $club, __( 'Numéro RNA', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'num_declaration', $club, __( 'N° déclaration', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'date_declaration', $club, __( 'Date déclaration', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
+                    </div>
                 </fieldset>
 
                 <!-- Staff Section -->
                 <fieldset class="ufsc-form-section">
                     <legend><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></legend>
-                    
+
                     <h5><?php esc_html_e( 'Président', 'ufsc-clubs' ); ?></h5>
-                    <?php self::render_field( 'president_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'president_nom', $club, __( 'Nom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'president_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
-                    <?php self::render_field( 'president_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
+                    <div class="ufsc-grid">
+                        <?php self::render_field( 'president_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'president_nom', $club, __( 'Nom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'president_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
+                        <?php self::render_field( 'president_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
+                    </div>
 
                     <h5><?php esc_html_e( 'Secrétaire', 'ufsc-clubs' ); ?></h5>
-                    <?php self::render_field( 'secretaire_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'secretaire_nom', $club, __( 'Nom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'secretaire_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
-                    <?php self::render_field( 'secretaire_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
+                    <div class="ufsc-grid">
+                        <?php self::render_field( 'secretaire_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'secretaire_nom', $club, __( 'Nom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'secretaire_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
+                        <?php self::render_field( 'secretaire_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
+                    </div>
 
                     <h5><?php esc_html_e( 'Trésorier', 'ufsc-clubs' ); ?></h5>
-                    <?php self::render_field( 'tresorier_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'tresorier_nom', $club, __( 'Nom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'tresorier_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
-                    <?php self::render_field( 'tresorier_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
+                    <div class="ufsc-grid">
+                        <?php self::render_field( 'tresorier_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'tresorier_nom', $club, __( 'Nom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'tresorier_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
+                        <?php self::render_field( 'tresorier_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
+                    </div>
 
                     <h5><?php esc_html_e( 'Entraîneur', 'ufsc-clubs' ); ?></h5>
-                    <?php self::render_field( 'entraineur_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'entraineur_nom', $club, __( 'Nom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'entraineur_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
-                    <?php self::render_field( 'entraineur_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
+                    <div class="ufsc-grid">
+                        <?php self::render_field( 'entraineur_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'entraineur_nom', $club, __( 'Nom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'entraineur_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
+                        <?php self::render_field( 'entraineur_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
+                    </div>
                 </fieldset>
 
                 <!-- Social Section -->
                 <fieldset class="ufsc-form-section">
                     <legend><?php esc_html_e( 'Réseaux sociaux', 'ufsc-clubs' ); ?></legend>
-                    
-                    <?php self::render_field( 'url_site', $club, __( 'Site web', 'ufsc-clubs' ), 'url', false, $is_admin ); ?>
-                    <?php self::render_field( 'url_facebook', $club, __( 'Facebook', 'ufsc-clubs' ), 'url', false, $is_admin ); ?>
-                    <?php self::render_field( 'url_instagram', $club, __( 'Instagram', 'ufsc-clubs' ), 'url', false, $is_admin ); ?>
+
+                    <div class="ufsc-grid">
+                        <?php self::render_field( 'url_site', $club, __( 'Site web', 'ufsc-clubs' ), 'url', false, $is_admin ); ?>
+                        <?php self::render_field( 'url_facebook', $club, __( 'Facebook', 'ufsc-clubs' ), 'url', false, $is_admin ); ?>
+                        <?php self::render_field( 'url_instagram', $club, __( 'Instagram', 'ufsc-clubs' ), 'url', false, $is_admin ); ?>
+                    </div>
                 </fieldset>
 
                 <!-- Numbers/Dates Section -->
                 <fieldset class="ufsc-form-section">
                     <legend><?php esc_html_e( 'Chiffres et dates', 'ufsc-clubs' ); ?></legend>
-                    
-                    <?php self::render_field( 'num_affiliation', $club, __( 'N° d\'affiliation', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                    <?php self::render_field( 'quota_licences', $club, __( 'Quota licences', 'ufsc-clubs' ), 'number', false, $is_admin ); ?>
-                    <?php self::render_field( 'date_creation', $club, __( 'Date de création', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
-                    <?php self::render_field( 'date_affiliation', $club, __( 'Date d\'affiliation', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
-                    <?php self::render_field( 'responsable_id', $club, __( 'ID responsable', 'ufsc-clubs' ), 'number', true, false ); ?>
+
+                    <div class="ufsc-grid">
+                        <?php self::render_field( 'num_affiliation', $club, __( 'N° d\'affiliation', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'quota_licences', $club, __( 'Quota licences', 'ufsc-clubs' ), 'number', false, $is_admin ); ?>
+                        <?php self::render_field( 'date_creation', $club, __( 'Date de création', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
+                        <?php self::render_field( 'date_affiliation', $club, __( 'Date d\'affiliation', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
+                        <?php self::render_field( 'responsable_id', $club, __( 'ID responsable', 'ufsc-clubs' ), 'number', true, false ); ?>
+                    </div>
                 </fieldset>
 
                 <!-- Distribution Section -->
                 <fieldset class="ufsc-form-section">
                     <legend><?php esc_html_e( 'Distribution', 'ufsc-clubs' ); ?></legend>
-                    
-                    <?php self::render_field( 'precision_distribution', $club, __( 'Précision distribution', 'ufsc-clubs' ), 'textarea', false, $is_admin ); ?>
+
+                    <div class="ufsc-grid">
+                        <?php self::render_field( 'precision_distribution', $club, __( 'Précision distribution', 'ufsc-clubs' ), 'textarea', false, $is_admin ); ?>
+                    </div>
                 </fieldset>
 
                 <!-- // UFSC: Documents Section - 6 mandatory documents -->
