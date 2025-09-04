@@ -28,9 +28,11 @@ class UFSC_Unified_Handlers {
 
 
         
-        // Club handlers  
+        // Club handlers
         add_action( 'admin_post_ufsc_save_club', array( __CLASS__, 'handle_save_club' ) );
         add_action( 'admin_post_nopriv_ufsc_save_club', array( __CLASS__, 'handle_save_club' ) );
+        add_action( 'admin_post_ufsc_club_affiliation_submit', array( __CLASS__, 'handle_club_affiliation_submit' ) );
+        add_action( 'admin_post_nopriv_ufsc_club_affiliation_submit', array( __CLASS__, 'handle_club_affiliation_submit' ) );
         
         // AJAX alternatives
         add_action( 'wp_ajax_ufsc_save_licence', array( __CLASS__, 'ajax_save_licence' ) );
@@ -344,6 +346,99 @@ class UFSC_Unified_Handlers {
     }
 
     /**
+     * Handle club affiliation form submission.
+     *
+     * Validates nonce and user capability, processes form data and required
+     * documents, persists the club record and routes the user to WooCommerce
+     * checkout with appropriate notices.
+     */
+    public static function handle_club_affiliation_submit() {
+        if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( $_POST['_wpnonce'], 'ufsc_club_affiliation_submit' ) ) {
+            wp_die( __( 'Nonce verification failed', 'ufsc-clubs' ) );
+        }
+
+        if ( ! is_user_logged_in() ) {
+            self::redirect_with_error( __( 'Vous devez être connecté', 'ufsc-clubs' ) );
+            return;
+        }
+
+        // Validate and sanitize club data
+        $data = self::validate_club_data( $_POST );
+        if ( is_wp_error( $data ) ) {
+            self::redirect_with_error( $data->get_error_message() );
+            return;
+        }
+
+        // Handle required document uploads
+        $doc_result = array();
+        if ( class_exists( 'UFSC_Uploads' ) ) {
+            $doc_result = UFSC_Uploads::handle_required_docs( $_FILES );
+            if ( is_wp_error( $doc_result ) ) {
+                self::redirect_with_error( $doc_result->get_error_message() );
+                return;
+            }
+        }
+
+        $data = array_merge( $data, $doc_result );
+
+        // Persist club record
+        global $wpdb;
+        $settings    = UFSC_SQL::get_settings();
+        $insert_data = array_merge( $data, array(
+            'responsable_id' => get_current_user_id(),
+            'date_creation'  => current_time( 'mysql' ),
+            'statut'         => 'en_attente'
+        ) );
+
+        $result = $wpdb->insert( $settings['table_clubs'], $insert_data );
+        if ( false === $result ) {
+            self::redirect_with_error( __( 'Erreur lors de la création du club', 'ufsc-clubs' ) );
+            return;
+        }
+
+        $club_id = (int) $wpdb->insert_id;
+
+        // WooCommerce integration: add product to cart or create order
+        $checkout_url = function_exists( 'wc_get_checkout_url' ) ? wc_get_checkout_url() : home_url();
+
+        $added = false;
+        if ( function_exists( 'WC' ) ) {
+            function_exists( 'wc_load_cart' ) && wc_load_cart();
+            $added = WC()->cart->add_to_cart( 4823, 1, 0, array(), array( 'club_id' => $club_id ) );
+        }
+
+        if ( $added ) {
+            if ( function_exists( 'wc_add_notice' ) ) {
+                wc_add_notice( __( 'Produit d\'affiliation ajouté au panier.', 'ufsc-clubs' ), 'success' );
+            }
+            wp_safe_redirect( $checkout_url );
+            exit;
+        }
+
+        if ( function_exists( 'wc_create_order' ) ) {
+            $order = wc_create_order( array( 'status' => 'pending' ) );
+            if ( ! is_wp_error( $order ) ) {
+                $product = wc_get_product( 4823 );
+                if ( $product ) {
+                    $order->add_product( $product, 1 );
+                    $order->calculate_totals();
+                    if ( function_exists( 'wc_add_notice' ) ) {
+                        wc_add_notice( __( 'Commande d\'affiliation créée.', 'ufsc-clubs' ), 'success' );
+                    }
+                    wp_safe_redirect( $order->get_checkout_payment_url() );
+                    exit;
+                }
+            }
+        }
+
+        if ( function_exists( 'wc_add_notice' ) ) {
+            wc_add_notice( __( 'Impossible d\'ajouter le produit au panier.', 'ufsc-clubs' ), 'error' );
+        }
+        wp_safe_redirect( $checkout_url );
+        exit;
+    }
+
+    /**
      * Process licence add/update request
      */
     private static function process_licence_request( $licence_id ) {
@@ -384,6 +479,41 @@ class UFSC_Unified_Handlers {
         }
 
         $new_id = $result;
+
+        // Quota check: if club has exceeded included licences, add licence product to cart
+        global $wpdb;
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+        $current_count  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d", $club_id ) );
+
+        $wc_settings    = ufsc_get_woocommerce_settings();
+        $included_quota = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
+
+        if ( $current_count > $included_quota && function_exists( 'WC' ) ) {
+            function_exists( 'wc_load_cart' ) && wc_load_cart();
+            $product_id     = $wc_settings['product_license_id'];
+            $cart_item_data = array(
+                'licence_id' => $new_id,
+                'club_id'    => $club_id,
+                'season'     => $wc_settings['season'],
+                'category'   => isset( $data['categorie'] ) ? sanitize_text_field( $data['categorie'] ) : '',
+            );
+            $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
+
+            if ( ! $added ) {
+                self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+            }
+
+            self::update_licence_status_db( $new_id, 'pending' );
+            if ( function_exists( 'wc_add_notice' ) ) {
+                wc_add_notice( __( 'Quota de licences dépassé : licence ajoutée au panier.', 'ufsc-clubs' ), 'notice' );
+            }
+            if ( function_exists( 'wc_get_cart_url' ) ) {
+                wp_safe_redirect( wc_get_cart_url() );
+                exit;
+            }
+        }
+
         if ( isset( $_POST['ufsc_submit_action'] ) && 'add_to_cart' === $_POST['ufsc_submit_action'] ) {
 
             $wc_settings = ufsc_get_woocommerce_settings();

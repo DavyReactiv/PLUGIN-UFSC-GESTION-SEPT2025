@@ -7,6 +7,27 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 
 /**
+ * Helper to log WooCommerce events with audit trail fallback.
+ *
+ * @param string $action  Action performed.
+ * @param array  $context Context information.
+ * @param string $level   Log level (info|error).
+ */
+function ufsc_wc_log( $action, $context = array(), $level = 'info' ) {
+    if ( class_exists( 'UFSC_Audit_Logger' ) ) {
+        UFSC_Audit_Logger::log( $action, $context );
+    } elseif ( function_exists( 'wc_get_logger' ) ) {
+        $logger  = wc_get_logger();
+        $context = array_merge( array( 'source' => 'ufsc-gestion' ), $context );
+        if ( 'error' === $level ) {
+            $logger->error( $action, $context );
+        } else {
+            $logger->info( $action, $context );
+        }
+    }
+}
+
+/**
  * Initialize WooCommerce hooks
  */
 function ufsc_init_woocommerce_hooks() {
@@ -94,8 +115,15 @@ function ufsc_handle_affiliation_pack_payment( $order, $item, $quantity ) {
         ufsc_quota_add_included( $club_id, $total_licenses, $season );
         
         // Log the action
-        error_log( sprintf( 'UFSC: Affiliation pack processed for club %d, season %s, licenses credited: %d', 
-            $club_id, $season, $total_licenses ) );
+        ufsc_wc_log(
+            'Affiliation pack processed',
+            array(
+                'order_id'          => $order->get_id(),
+                'club_id'           => $club_id,
+                'season'            => $season,
+                'licenses_credited' => $total_licenses,
+            )
+        );
     }
 }
 
@@ -109,24 +137,39 @@ function ufsc_handle_affiliation_pack_payment( $order, $item, $quantity ) {
 function ufsc_handle_additional_license_payment( $order, $item, $quantity ) {
     $user_id = $order->get_user_id();
     $season = ufsc_get_woocommerce_settings()['season'];
-    
+    $club_id = ufsc_get_user_club_id( $user_id );
+
     // Check if specific license IDs are attached to this line item
     $license_ids = $item->get_meta( '_ufsc_licence_ids' );
-    
+
     if ( ! empty( $license_ids ) && is_array( $license_ids ) ) {
         // Mark specific licenses as paid
         foreach ( $license_ids as $license_id ) {
             ufsc_mark_licence_paid( $license_id, $season );
         }
-        
-        error_log( sprintf( 'UFSC: Specific licenses marked as paid: %s', implode( ', ', $license_ids ) ) );
+        ufsc_wc_log(
+            'Specific licenses marked as paid',
+            array(
+                'order_id'    => $order->get_id(),
+                'club_id'     => $club_id,
+                'license_ids' => implode( ', ', $license_ids ),
+                'season'      => $season,
+            )
+        );
     } else {
         // Credit prepaid licenses for future use
-        $club_id = ufsc_get_user_club_id( $user_id );
         if ( $club_id ) {
             ufsc_quota_add_paid( $club_id, $quantity, $season );
-            
-            error_log( sprintf( 'UFSC: Prepaid licenses credited for club %d: %d licenses', $club_id, $quantity ) );
+
+            ufsc_wc_log(
+                'Prepaid licenses credited',
+                array(
+                    'order_id' => $order->get_id(),
+                    'club_id'  => $club_id,
+                    'quantity' => $quantity,
+                    'season'   => $season,
+                )
+            );
         }
     }
 }

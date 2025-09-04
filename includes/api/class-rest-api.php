@@ -350,6 +350,77 @@ class UFSC_REST_API {
         return new WP_REST_Response( $response_data, 201 );
     }
 
+    /**
+     * Update existing licence
+     */
+    public static function handle_licence_update( $request ) {
+        $licence_id = (int) $request->get_param( 'id' );
+        $data       = $request->get_json_params();
+
+        if ( empty( $data ) || ! is_array( $data ) ) {
+            return new WP_Error( 'no_data', __( 'Aucune donnée fournie.', 'ufsc-clubs' ), array( 'status' => 400 ) );
+        }
+
+        global $wpdb;
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        // Ensure licence exists
+        $exists = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$licences_table} WHERE id = %d", $licence_id ) );
+        if ( ! $exists ) {
+            return new WP_Error( 'licence_not_found', __( 'Licence non trouvée.', 'ufsc-clubs' ), array( 'status' => 404 ) );
+        }
+
+        // Allow only known fields
+        $allowed_fields = array_keys( $settings['licence_fields'] );
+        $sanitized      = array();
+        foreach ( $data as $key => $value ) {
+            if ( ! in_array( $key, $allowed_fields, true ) ) {
+                continue;
+            }
+            if ( 'email' === $key ) {
+                $value = sanitize_email( $value );
+                if ( ! is_email( $value ) ) {
+                    return new WP_Error( 'invalid_email', __( 'Adresse email invalide.', 'ufsc-clubs' ), array( 'status' => 400 ) );
+                }
+                $sanitized[ $key ] = $value;
+            } else {
+                $sanitized[ $key ] = sanitize_text_field( $value );
+            }
+        }
+
+        if ( empty( $sanitized ) ) {
+            return new WP_Error( 'no_valid_fields', __( 'Aucun champ valide fourni.', 'ufsc-clubs' ), array( 'status' => 400 ) );
+        }
+
+        $updated = $wpdb->update(
+            $licences_table,
+            $sanitized,
+            array( 'id' => $licence_id ),
+            array_fill( 0, count( $sanitized ), '%s' ),
+            array( '%d' )
+        );
+
+        if ( false === $updated ) {
+            return new WP_Error( 'update_failed', __( 'Échec de la mise à jour de la licence.', 'ufsc-clubs' ), array( 'status' => 500 ) );
+        }
+
+        $club_id = self::get_licence_club_id( $licence_id );
+        ufsc_audit_log( 'licence_updated', array(
+            'licence_id'     => $licence_id,
+            'club_id'        => $club_id,
+            'user_id'        => get_current_user_id(),
+            'updated_fields' => array_keys( $sanitized ),
+        ) );
+
+        ufsc_invalidate_stats_cache( $club_id );
+
+        return new WP_REST_Response( array(
+            'message'        => __( 'Licence mise à jour avec succès.', 'ufsc-clubs' ),
+            'updated_fields' => array_keys( $sanitized ),
+        ), 200 );
+    }
+
     // STUB METHODS - To be implemented according to database schema
 
     /**
@@ -458,6 +529,62 @@ class UFSC_REST_API {
         return new WP_REST_Response( array(
             'message' => __( 'Club mis à jour avec succès.', 'ufsc-clubs' ),
             'updated_fields' => array_keys( $sanitized_data )
+        ), 200 );
+    }
+
+    /**
+     * Handle club logo upload
+     */
+    public static function handle_logo_upload( $request ) {
+        $files = $request->get_file_params();
+        $file  = $files['logo'] ?? null;
+
+        if ( ! $file ) {
+            return new WP_Error( 'no_file', __( 'Aucun fichier fourni.', 'ufsc-clubs' ), array( 'status' => 400 ) );
+        }
+
+        if ( ! class_exists( 'UFSC_CL_Uploads' ) ) {
+            require_once UFSC_CL_DIR . 'includes/core/class-uploads.php';
+        }
+
+        $upload = UFSC_CL_Uploads::ufsc_safe_handle_upload(
+            $file,
+            UFSC_CL_Uploads::get_logo_mime_types(),
+            UFSC_CL_Uploads::get_logo_max_size()
+        );
+
+        if ( is_wp_error( $upload ) ) {
+            return $upload;
+        }
+
+        $user_id = get_current_user_id();
+        $club_id = ufsc_get_user_club_id( $user_id );
+
+        global $wpdb;
+        $settings    = UFSC_SQL::get_settings();
+        $clubs_table = $settings['table_clubs'];
+
+        $wpdb->update(
+            $clubs_table,
+            array( 'logo_url' => sanitize_text_field( $upload['url'] ) ),
+            array( 'id' => $club_id ),
+            array( '%s' ),
+            array( '%d' )
+        );
+
+        update_option( 'ufsc_club_logo_' . $club_id, $upload['attachment_id'] );
+
+        // Invalidate cache and log
+        delete_transient( "ufsc_club_info_{$club_id}" );
+        ufsc_audit_log( 'club_logo_uploaded', array(
+            'club_id'       => $club_id,
+            'user_id'       => $user_id,
+            'attachment_id' => $upload['attachment_id'],
+        ) );
+
+        return new WP_REST_Response( array(
+            'message'  => __( 'Logo mis à jour.', 'ufsc-clubs' ),
+            'logo_url' => $upload['url'],
         ), 200 );
     }
 
@@ -714,6 +841,88 @@ class UFSC_REST_API {
             error_log( 'UFSC: Error creating additional license order: ' . $e->getMessage() );
             return false;
         }
+    }
+
+    /**
+     * Export licences in requested format
+     */
+    public static function handle_export( $request ) {
+        $user_id = get_current_user_id();
+        $club_id = ufsc_get_user_club_id( $user_id );
+        $format  = $request->get_param( 'format' );
+
+        $filters = array();
+        if ( $status = $request->get_param( 'status' ) ) {
+            $filters['status'] = sanitize_text_field( $status );
+        }
+        if ( $season = $request->get_param( 'season' ) ) {
+            $filters['season'] = sanitize_text_field( $season );
+        }
+
+        if ( ! class_exists( 'UFSC_Import_Export' ) ) {
+            require_once UFSC_CL_DIR . 'includes/core/class-import-export.php';
+        }
+
+        $result = 'xlsx' === $format
+            ? UFSC_Import_Export::export_licences_xlsx( $club_id, $filters )
+            : UFSC_Import_Export::export_licences_csv( $club_id, $filters );
+
+        if ( empty( $result['success'] ) ) {
+            $message = $result['message'] ?? __( 'Échec de l\'export.', 'ufsc-clubs' );
+            return new WP_Error( 'export_failed', $message, array( 'status' => 500 ) );
+        }
+
+        return new WP_REST_Response( $result, 200 );
+    }
+
+    /**
+     * Preview CSV import
+     */
+    public static function handle_import_preview( $request ) {
+        $files = $request->get_file_params();
+        $file  = $files['file'] ?? $files['csv'] ?? null;
+
+        if ( ! $file ) {
+            return new WP_Error( 'no_file', __( 'Aucun fichier fourni.', 'ufsc-clubs' ), array( 'status' => 400 ) );
+        }
+
+        if ( ! class_exists( 'UFSC_Import_Export' ) ) {
+            require_once UFSC_CL_DIR . 'includes/core/class-import-export.php';
+        }
+
+        $result = UFSC_Import_Export::parse_csv_for_import( $file );
+        if ( empty( $result['success'] ) ) {
+            $message = $result['message'] ?? __( 'Erreur lors de l\'analyse du fichier.', 'ufsc-clubs' );
+            return new WP_Error( 'import_preview_failed', $message, array( 'status' => 400 ) );
+        }
+
+        return new WP_REST_Response( $result, 200 );
+    }
+
+    /**
+     * Commit CSV import
+     */
+    public static function handle_import_commit( $request ) {
+        $user_id = get_current_user_id();
+        $club_id = ufsc_get_user_club_id( $user_id );
+        $data    = $request->get_json_params();
+        $rows    = $data['data'] ?? null;
+
+        if ( empty( $rows ) || ! is_array( $rows ) ) {
+            return new WP_Error( 'invalid_data', __( 'Données d\'import invalides.', 'ufsc-clubs' ), array( 'status' => 400 ) );
+        }
+
+        if ( ! class_exists( 'UFSC_Import_Export' ) ) {
+            require_once UFSC_CL_DIR . 'includes/core/class-import-export.php';
+        }
+
+        $result = UFSC_Import_Export::import_csv_data( $rows, $club_id );
+
+        if ( empty( $result['success'] ) ) {
+            return new WP_Error( 'import_failed', __( 'Échec de l\'import.', 'ufsc-clubs' ), array( 'status' => 500 ) );
+        }
+
+        return new WP_REST_Response( $result, 200 );
     }
 
     private static function get_cached_club_stats( $club_id, $season ) {
