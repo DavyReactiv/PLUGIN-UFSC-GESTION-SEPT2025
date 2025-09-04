@@ -18,6 +18,8 @@ class UFSC_Unified_Handlers {
         add_action( 'admin_post_nopriv_ufsc_add_licence', array( __CLASS__, 'handle_add_licence' ) );
         add_action( 'admin_post_ufsc_update_licence', array( __CLASS__, 'handle_update_licence' ) );
         add_action( 'admin_post_nopriv_ufsc_update_licence', array( __CLASS__, 'handle_update_licence' ) );
+        add_action( 'admin_post_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
+        add_action( 'admin_post_nopriv_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
 
         add_action( 'admin_post_ufsc_delete_licence', array( __CLASS__, 'handle_delete_licence' ) );
         add_action( 'admin_post_nopriv_ufsc_delete_licence', array( __CLASS__, 'handle_delete_licence' ) );

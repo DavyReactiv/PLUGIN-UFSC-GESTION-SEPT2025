@@ -931,21 +931,12 @@ class UFSC_Frontend_Shortcodes {
 
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-form">
 
-
-                <input type="hidden" name="action" value="ufsc_add_licence">
-                <?php wp_nonce_field( 'ufsc_add_licence', 'ufsc_nonce' ); ?>
-
-
-                <input type="hidden" name="action" value="ufsc_add_licence">
+                <input type="hidden" name="action" value="ufsc_save_licence">
+                <?php wp_nonce_field( 'ufsc_save_licence' ); ?>
                 <input type="hidden" name="ufsc_submit_action" id="ufsc_submit_action" value="save">
 
-
                 <div class="ufsc-notices" aria-live="polite"></div>
-                <input type="hidden" name="action" value="ufsc_save_licence">
 
-                <?php wp_nonce_field( 'ufsc_save_licence', '_wpnonce' ); ?>
-
-                
                 <!-- // UFSC: Enhanced form structure with conditional fields -->
                 <div class="ufsc-grid">
                     <div class="ufsc-card ufsc-form-section">
