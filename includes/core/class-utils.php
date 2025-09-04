@@ -196,7 +196,7 @@ class UFSC_CL_Utils {
      */
     public static function log( $message, $level = 'info' ) {
         if ( defined('WP_DEBUG') && WP_DEBUG ) {
-            error_log('[UFSC Plugin] [' . strtoupper($level) . '] ' . $message);
+            UFSC_Audit_Logger::log('[UFSC Plugin] [' . strtoupper($level) . '] ' . $message);
         }
     }
 }
