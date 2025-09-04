@@ -74,6 +74,8 @@
 .ufsc-club-profile .ufsc-card h4,
 .ufsc-club-profile fieldset legend {
     font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.4;
     margin-bottom: var(--ufsc-spacing-sm);
     color: var(--ufsc-secondary);
 }
@@ -81,13 +83,14 @@
 .ufsc-club-profile fieldset {
     margin-bottom: var(--ufsc-spacing-lg);
     padding: var(--ufsc-spacing-md);
+    background: #ffffff;
     border: 1px solid #e1e5e9;
     border-radius: 8px;
 }
 
 /* Field */
-.ufsc-field {
-    margin-bottom: var(--ufsc-spacing-sm);
+.ufsc-club-profile .ufsc-field {
+    margin-bottom: var(--ufsc-spacing-md);
 }
 .ufsc-field label {
     display: block;
