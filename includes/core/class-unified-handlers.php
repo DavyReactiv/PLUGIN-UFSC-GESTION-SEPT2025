@@ -386,7 +386,14 @@ class UFSC_Unified_Handlers {
         $new_id = $result;
         if ( isset( $_POST['ufsc_submit_action'] ) && 'add_to_cart' === $_POST['ufsc_submit_action'] ) {
             if ( function_exists( 'WC' ) && defined( 'PRODUCT_ID_LICENCE' ) ) {
-                WC()->cart->add_to_cart( PRODUCT_ID_LICENCE, 1, 0, array(), array( 'licence_id' => $new_id, 'club_id' => $club_id ) );
+                $cart_item_data = array(
+                    'licence_id'         => $new_id,
+                    'club_id'            => $club_id,
+                    'ufsc_nom'           => sanitize_text_field( $data['nom'] ),
+                    'ufsc_prenom'        => sanitize_text_field( $data['prenom'] ),
+                    'ufsc_date_naissance' => isset( $data['date_naissance'] ) ? sanitize_text_field( $data['date_naissance'] ) : '',
+                );
+                WC()->cart->add_to_cart( PRODUCT_ID_LICENCE, 1, 0, array(), $cart_item_data );
             }
             self::update_licence_status_db( $new_id, 'pending' );
             if ( function_exists( 'wc_get_cart_url' ) ) {
