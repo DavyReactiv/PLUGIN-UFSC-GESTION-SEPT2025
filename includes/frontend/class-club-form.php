@@ -518,10 +518,11 @@ class UFSC_CL_Club_Form {
             $message = sanitize_text_field( $_GET['ufsc_success'] );
             echo '<div class="ufsc-alert success">' . esc_html( $message ) . '</div>';
         }
-        
+
         if ( isset( $_GET['ufsc_error'] ) ) {
             $message = sanitize_text_field( $_GET['ufsc_error'] );
             echo '<div class="ufsc-alert error">' . esc_html( $message ) . '</div>';
+            echo '<script>if(window.history.replaceState){const url=new URL(window.location);url.searchParams.delete("ufsc_error");window.history.replaceState({},document.title,url.pathname+url.search+url.hash);}</script>';
         }
     }
 }
