@@ -6,11 +6,11 @@
 :root {
     --ufsc-primary: #2271b1;      /* Bleu UFSC */
     --ufsc-secondary: #135e96;    /* Bleu foncé */
-    --ufsc-success: #059669;      /* Vert validation */
-    --ufsc-warning: #f59e0b;      /* Orange attention */
-    --ufsc-danger: #ef4444;       /* Rouge erreur */
-    --ufsc-info: #3b82f6;         /* Bleu information */
-    --ufsc-neutral: #6b7280;      /* Gris neutre */
+    --ufsc-success: #047857;      /* Vert validation */
+    --ufsc-warning: #b45309;      /* Orange attention */
+    --ufsc-danger: #b91c1c;       /* Rouge erreur */
+    --ufsc-info: #1d4ed8;         /* Bleu information */
+    --ufsc-neutral: #374151;      /* Gris neutre */
 
     --ufsc-spacing-xs: 8px;
     --ufsc-spacing-sm: 16px;
@@ -61,6 +61,35 @@
     }
 }
 
+/* Licence cards grid */
+.ufsc-licence-cards {
+    display: grid;
+    gap: var(--ufsc-spacing-md);
+    grid-template-columns: 1fr;
+}
+@media (min-width: var(--tablet)) {
+    .ufsc-licence-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Documents status grid */
+.ufsc-documents-status {
+    display: grid;
+    gap: var(--ufsc-spacing-md);
+    grid-template-columns: 1fr;
+}
+@media (min-width: var(--tablet)) {
+    .ufsc-documents-status {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (min-width: var(--desktop)) {
+    .ufsc-documents-status {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
 /* Card */
 .ufsc-card {
     background: #ffffff;
@@ -73,6 +102,14 @@
 .ufsc-card:hover {
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     transform: translateY(-2px);
+}
+
+.ufsc-card:focus,
+.ufsc-card:focus-within,
+.ufsc-licence-card:focus,
+.ufsc-document-item:focus {
+    outline: 3px solid var(--ufsc-info);
+    outline-offset: 2px;
 }
 
 /* Club profile grids */

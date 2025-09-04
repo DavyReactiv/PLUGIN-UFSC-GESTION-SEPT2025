@@ -16,7 +16,9 @@ function ufsc_get_default_woocommerce_settings() {
         'product_affiliation_id' => 4823,
         'product_license_id' => 2934,
         'included_licenses' => 10,
-        'season' => '2025-2026'
+        'season' => '2025-2026',
+        'max_profile_photo_size' => 2,
+        'auto_consume_included' => 1,
     );
 }
 
@@ -53,9 +55,17 @@ function ufsc_save_woocommerce_settings( $settings ) {
     if ( isset( $settings['included_licenses'] ) ) {
         $sanitized['included_licenses'] = absint( $settings['included_licenses'] );
     }
-    
+
     if ( isset( $settings['season'] ) ) {
         $sanitized['season'] = sanitize_text_field( $settings['season'] );
+    }
+
+    if ( isset( $settings['max_profile_photo_size'] ) ) {
+        $sanitized['max_profile_photo_size'] = absint( $settings['max_profile_photo_size'] );
+    }
+
+    if ( isset( $settings['auto_consume_included'] ) ) {
+        $sanitized['auto_consume_included'] = ! empty( $settings['auto_consume_included'] ) ? 1 : 0;
     }
     
     return update_option( 'ufsc_woocommerce_settings', $sanitized );
