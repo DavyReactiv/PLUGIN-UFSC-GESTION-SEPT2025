@@ -338,8 +338,8 @@ class UFSC_Unified_Handlers {
         }
         
         // Success redirect
-        $redirect_url = add_query_arg( 'updated', 1, wp_get_referer() );
-        wp_redirect( $redirect_url );
+        $redirect_url = esc_url_raw( add_query_arg( 'updated', 1, wp_get_referer() ) );
+        wp_safe_redirect( $redirect_url );
         exit;
     }
 
@@ -418,14 +418,14 @@ class UFSC_Unified_Handlers {
             }
         }
 
-        $redirect_url = add_query_arg(
+        $redirect_url = esc_url_raw( add_query_arg(
             array(
                 'updated'    => 1,
                 'licence_id' => $new_id,
             ),
             wp_get_referer()
-        );
-        wp_redirect( $redirect_url );
+        ) );
+        wp_safe_redirect( $redirect_url );
         exit;
     }
 
