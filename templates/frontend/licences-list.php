@@ -1,6 +1,11 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 ?>
+<?php if ( isset( $quota_info['remaining'] ) ) : ?>
+    <p class="ufsc-quota-remaining">
+        <?php printf( esc_html__( 'Quota restant : %d', 'ufsc-clubs' ), intval( $quota_info['remaining'] ) ); ?>
+    </p>
+<?php endif; ?>
 <table class="ufsc-table ufsc-licences-table">
     <thead>
         <tr>
@@ -18,6 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                 <td><?php echo esc_html( $licence->role ?? '' ); ?></td>
                 <td>
                     <?php echo UFSC_Badges::render_licence_badge( $licence->statut ?? '', array( 'custom_class' => 'ufsc-badge' ) ); ?>
+                    <?php if ( ! empty( $licence->is_included ) ) : ?>
+                        <span class="ufsc-badge badge-success ufsc-badge-included"><?php esc_html_e( 'Incluse', 'ufsc-clubs' ); ?></span>
+                    <?php endif; ?>
                 </td>
                 <td>
                     <div class="ufsc-actions">

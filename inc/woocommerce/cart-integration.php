@@ -259,9 +259,66 @@ function ufsc_add_affiliation_to_cart( $club_id ) {
     );
     
     $cart_item_key = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
-    
+
     return $cart_item_key !== false;
 }
+
+/**
+ * Apply included licence quota to cart items.
+ *
+ * Sets licence product price to zero when the club still has included
+ * licences available. Flagged items receive the ufsc_consumes_included
+ * marker so the quota can be updated on successful order.
+ *
+ * @param WC_Cart $cart Cart object.
+ */
+function ufsc_apply_included_quota_to_cart( $cart ) {
+    if ( is_admin() && ! defined( 'DOING_AJAX' ) ) {
+        return;
+    }
+
+    if ( ! ufsc_is_woocommerce_active() ) {
+        return;
+    }
+
+    $settings           = ufsc_get_woocommerce_settings();
+    $licence_product_id = (int) $settings['product_license_id'];
+    $club_remaining     = array();
+
+    foreach ( $cart->get_cart() as $key => $item ) {
+        if ( (int) $item['product_id'] !== $licence_product_id ) {
+            continue;
+        }
+
+        $club_id = $item['ufsc_club_id'] ?? ufsc_get_user_club_id( get_current_user_id() );
+        if ( ! $club_id ) {
+            continue;
+        }
+
+        if ( ! isset( $club_remaining[ $club_id ] ) ) {
+            $club_remaining[ $club_id ] = 0;
+            if ( function_exists( 'ufsc_get_clubs_table' ) ) {
+                global $wpdb;
+                $clubs_table = ufsc_get_clubs_table();
+                $quota = (int) $wpdb->get_var(
+                    $wpdb->prepare( "SELECT included_quota FROM {$clubs_table} WHERE id = %d", $club_id )
+                );
+                $used  = (int) $wpdb->get_var(
+                    $wpdb->prepare( "SELECT included_quota_used FROM {$clubs_table} WHERE id = %d", $club_id )
+                );
+                $club_remaining[ $club_id ] = max( 0, $quota - $used );
+            }
+        }
+
+        if ( $club_remaining[ $club_id ] > 0 ) {
+            $item['data']->set_price( 0 );
+            $cart->cart_contents[ $key ]['ufsc_consumes_included'] = 1;
+            $club_remaining[ $club_id ]--;
+        }
+    }
+}
+
+add_action( 'woocommerce_before_calculate_totals', 'ufsc_apply_included_quota_to_cart', 10, 1 );
 
 // Initialize cart integration if WooCommerce is active
 add_action( 'plugins_loaded', 'ufsc_init_cart_integration' );

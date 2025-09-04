@@ -246,10 +246,9 @@ class UFSC_Frontend_Shortcodes {
         $total_count = self::get_club_licences_count( $atts['club_id'], $atts );
         $total_pages = ceil( $total_count / $atts['per_page'] );
 
-        $club_name = self::get_club_name( $atts['club_id'] );
-
+        $club_name  = self::get_club_name( $atts['club_id'] );
         $wc_settings = ufsc_get_woocommerce_settings();
-
+        $quota_info = self::get_club_quota_info( $atts['club_id'] );
 
         ob_start();
         ?>
