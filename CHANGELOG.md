@@ -1,5 +1,10 @@
 # UFSC Clubs & Licences Plugin - Changelog
 
+## Version 1.5.7 - Mise à jour mineure (Septembre 2025)
+
+- Mise à jour du numéro de version du plugin.
+- Harmonisation de la constante `UFSC_CL_VERSION`.
+
 ## Version 1.5.3ff - Refactoring Majeur (Septembre 2024)
 
 ### 🎯 Objectifs

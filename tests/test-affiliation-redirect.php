@@ -7,7 +7,8 @@ use PHPUnit\Framework\TestCase;
 class UFSC_Affiliation_Redirect_Test extends TestCase {
 
     public function setUp(): void {
-        // Load class file
+        // Load required files
+        require_once __DIR__ . '/../includes/common/functions.php';
         require_once __DIR__ . '/../includes/frontend/class-club-form-handler.php';
 
         if ( ! function_exists( 'ufsc_add_affiliation_to_cart' ) ) {
@@ -34,6 +35,18 @@ class UFSC_Affiliation_Redirect_Test extends TestCase {
                 return $value;
             }
         }
+
+        if ( ! function_exists( 'add_query_arg' ) ) {
+            function add_query_arg( $key, $value, $url ) {
+                return $url . '?' . urlencode( $key ) . '=' . urlencode( $value );
+            }
+        }
+
+        if ( ! function_exists( 'sanitize_key' ) ) {
+            function sanitize_key( $key ) {
+                return preg_replace( '/[^a-z0-9_]/', '', strtolower( $key ) );
+            }
+        }
     }
 
     public function test_redirects_to_cart_with_product() {
@@ -51,6 +64,6 @@ class UFSC_Affiliation_Redirect_Test extends TestCase {
         }
 
         $this->assertSame( array( 42 ), $GLOBALS['ufsc_cart'] );
-        $this->assertSame( 'https://example.com/cart', $GLOBALS['redirect_url'] );
+        $this->assertSame( 'https://example.com/cart?ufsc_notice=affiliation_added', $GLOBALS['redirect_url'] );
     }
 }

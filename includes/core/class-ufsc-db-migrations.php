@@ -56,9 +56,9 @@ class UFSC_DB_Migrations {
                     $result = $wpdb->query( $sql );
                     
                     if ( $result === false ) {
-                        error_log( "UFSC_DB_Migrations: Failed to convert {$table} to InnoDB: " . $wpdb->last_error );
+                        UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to convert {$table} to InnoDB: " . $wpdb->last_error );
                     } else {
-                        error_log( "UFSC_DB_Migrations: Successfully converted {$table} to InnoDB" );
+                        UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Successfully converted {$table} to InnoDB" );
                     }
                 }
             }
@@ -186,7 +186,7 @@ class UFSC_DB_Migrations {
         dbDelta( $sql );
 
         if ( $wpdb->last_error ) {
-            error_log( "UFSC_DB_Migrations: Failed to create events table: " . $wpdb->last_error );
+            UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to create events table: " . $wpdb->last_error );
         }
     }
 
@@ -235,7 +235,7 @@ class UFSC_DB_Migrations {
                 $result = $wpdb->query( $sql );
                 
                 if ( $result === false ) {
-                    error_log( "UFSC_DB_Migrations: Failed to create index {$index_name} on {$table_name}: " . $wpdb->last_error );
+                    UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to create index {$index_name} on {$table_name}: " . $wpdb->last_error );
                 }
             }
         }
@@ -268,7 +268,7 @@ class UFSC_DB_Migrations {
             $result = $wpdb->query( $sql );
             
             if ( $result === false ) {
-                error_log( "UFSC_DB_Migrations: Failed to create unique constraint {$constraint_name} on {$table_name}: " . $wpdb->last_error );
+                UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to create unique constraint {$constraint_name} on {$table_name}: " . $wpdb->last_error );
             }
         }
     }
@@ -324,7 +324,7 @@ class UFSC_DB_Migrations {
         $result = $wpdb->insert( $table, $data );
         
         if ( $result === false ) {
-            error_log( "UFSC_DB_Migrations: Failed to record event {$event_key}: " . $wpdb->last_error );
+            UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to record event {$event_key}: " . $wpdb->last_error );
             return false;
         }
 
