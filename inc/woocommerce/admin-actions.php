@@ -6,6 +6,29 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Handles creation of orders for additional licenses
  */
 
+if ( ! function_exists( 'ufsc_wc_log' ) ) {
+    /**
+     * Helper to log WooCommerce events with audit trail fallback.
+     *
+     * @param string $action  Action performed.
+     * @param array  $context Context information.
+     * @param string $level   Log level (info|error).
+     */
+    function ufsc_wc_log( $action, $context = array(), $level = 'info' ) {
+        if ( class_exists( 'UFSC_Audit_Logger' ) ) {
+            UFSC_Audit_Logger::log( $action, $context );
+        } elseif ( function_exists( 'wc_get_logger' ) ) {
+            $logger  = wc_get_logger();
+            $context = array_merge( array( 'source' => 'ufsc-gestion' ), $context );
+            if ( 'error' === $level ) {
+                $logger->error( $action, $context );
+            } else {
+                $logger->info( $action, $context );
+            }
+        }
+    }
+}
+
 /**
  * Check if a club has exhausted its licence quota.
  *
@@ -118,7 +141,16 @@ function ufsc_create_additional_license_order( $club_id, $license_ids = array(),
         return $order->get_id();
         
     } catch ( Exception $e ) {
-        error_log( 'UFSC: Error creating additional license order: ' . $e->getMessage() );
+        ufsc_wc_log(
+            'Error creating additional license order',
+            array(
+                'club_id'     => $club_id,
+                'user_id'     => $user_id,
+                'license_ids' => implode( ', ', $license_ids ),
+                'error'       => $e->getMessage(),
+            ),
+            'error'
+        );
         return false;
     }
 }
