@@ -144,3 +144,41 @@ class UFSC_CL_Uploads {
         return 5242880; // 5MB
     }
 }
+
+/**
+ * Wrapper class providing required document handling
+ */
+class UFSC_Uploads extends UFSC_CL_Uploads {
+
+    /**
+     * Handle uploads for required club documents.
+     *
+     * Loops through known document fields and uploads any files present
+     * using the secure upload helper. Returns an associative array of
+     * field => URL pairs on success or WP_Error on failure.
+     *
+     * @param array $files $_FILES array
+     * @return array|WP_Error
+     */
+    public static function handle_required_docs( $files ) {
+        $doc_fields    = array( 'doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer' );
+        $uploads       = array();
+        $allowed_mimes = self::get_document_mime_types();
+        $max_size      = self::get_document_max_size();
+
+        foreach ( $doc_fields as $field ) {
+            if ( empty( $files[ $field ]['name'] ) ) {
+                continue;
+            }
+
+            $result = self::ufsc_safe_handle_upload( $files[ $field ], $allowed_mimes, $max_size );
+            if ( is_wp_error( $result ) ) {
+                return $result;
+            }
+
+            $uploads[ $field ] = $result['url'];
+        }
+
+        return $uploads;
+    }
+}
