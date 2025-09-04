@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.0.0';
+    const MIGRATION_VERSION = '1.1.0';
 
     /**
      * Option key for tracking migration version
@@ -75,25 +75,39 @@ class UFSC_DB_Migrations {
         
         // Licences table indexes
         $licences_indexes = array(
-            'idx_licences_statut' => 'statut',
-            'idx_licences_payment_status' => 'payment_status',
-            'idx_licences_date_creation' => 'date_creation',
-            'idx_licences_nom_licence' => 'nom_licence',
-            'idx_licences_club_id' => 'club_id',
-            'idx_licences_numero_licence_delegataire' => 'numero_licence_delegataire'
+            'idx_licences_statut'                   => 'statut',
+            'idx_licences_payment_status'          => 'payment_status',
+            'idx_licences_date_creation'           => 'date_creation',
+            'idx_licences_nom_licence'             => 'nom_licence',
+            'idx_licences_club_id'                 => 'club_id',
+            'idx_licences_numero_licence_delegataire' => 'numero_licence_delegataire',
+            // New indexes for performant stats queries
+            'idx_licences_status'                  => 'status',
+            'idx_licences_paid'                    => 'paid',
+            'idx_licences_gender'                  => 'gender',
+            'idx_licences_practice'                => 'practice',
+            'idx_licences_birthdate'               => 'birthdate',
         );
 
         self::create_table_indexes( $settings['table_licences'], $licences_indexes );
 
         // Clubs table indexes
         $clubs_indexes = array(
-            'idx_clubs_statut' => 'statut',
-            'idx_clubs_region' => 'region',
+            'idx_clubs_statut'        => 'statut',
+            'idx_clubs_region'        => 'region',
             'idx_clubs_date_creation' => 'date_creation',
-            'idx_clubs_responsable_id' => 'responsable_id'
+            'idx_clubs_responsable_id'=> 'responsable_id'
         );
 
         self::create_table_indexes( $settings['table_clubs'], $clubs_indexes );
+
+        // Club documents table indexes
+        $club_docs_table   = $wpdb->prefix . 'ufsc_club_docs';
+        $club_docs_indexes = array(
+            'idx_club_docs_club_id' => 'club_id',
+        );
+
+        self::create_table_indexes( $club_docs_table, $club_docs_indexes );
     }
 
     /**
