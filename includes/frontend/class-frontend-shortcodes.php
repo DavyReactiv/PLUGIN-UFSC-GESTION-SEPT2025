@@ -396,14 +396,15 @@ class UFSC_Frontend_Shortcodes {
                                             if ( in_array( $licence_status, array( 'brouillon', 'non_payee' ), true ) ) :
                                                 if ( 'brouillon' === $licence_status ) :
                                                     ?>
-                                                    <a href="<?php echo esc_url( add_query_arg( array(
-                                                        'ufsc_add_to_cart' => $wc_settings['product_license_id'],
-                                                        'ufsc_license_ids' => $licence->id ?? 0,
-                                                    ), '' ) ); ?>"
-                                                       class="ufsc-btn ufsc-btn-small"
-                                                       aria-label="<?php esc_attr_e( 'Envoyer la licence au panier', 'ufsc-clubs' ); ?>">
-                                                        <?php esc_html_e( 'Envoyer au panier', 'ufsc-clubs' ); ?>
-                                                    </a>
+                                                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+                                                        <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
+                                                        <input type="hidden" name="action" value="ufsc_add_to_cart">
+                                                        <input type="hidden" name="product_id" value="<?php echo esc_attr( $wc_settings['product_license_id'] ); ?>">
+                                                        <input type="hidden" name="ufsc_license_ids" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
+                                                        <button type="submit" class="ufsc-btn ufsc-btn-small" aria-label="<?php esc_attr_e( 'Envoyer la licence au panier', 'ufsc-clubs' ); ?>">
+                                                            <?php esc_html_e( 'Envoyer au panier', 'ufsc-clubs' ); ?>
+                                                        </button>
+                                                    </form>
                                                     <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"
                                                        class="ufsc-btn ufsc-btn-small"
                                                        aria-label="<?php esc_attr_e( 'Modifier la licence', 'ufsc-clubs' ); ?>">
@@ -540,12 +541,15 @@ class UFSC_Frontend_Shortcodes {
                 $licence_status = $licence->statut ?? '';
                 if ( 'non_payee' === $licence_status ) :
                     ?>
-                    <a href="<?php echo esc_url( add_query_arg( array(
-                        'ufsc_add_to_cart' => $wc_settings['product_license_id'],
-                        'ufsc_license_ids' => $licence->id ?? 0,
-                    ), '' ) ); ?>" class="ufsc-btn ufsc-btn-small">
-                        <?php esc_html_e( 'Payer la licence', 'ufsc-clubs' ); ?>
-                    </a>
+                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+                        <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
+                        <input type="hidden" name="action" value="ufsc_add_to_cart">
+                        <input type="hidden" name="product_id" value="<?php echo esc_attr( $wc_settings['product_license_id'] ); ?>">
+                        <input type="hidden" name="ufsc_license_ids" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
+                        <button type="submit" class="ufsc-btn ufsc-btn-small">
+                            <?php esc_html_e( 'Payer la licence', 'ufsc-clubs' ); ?>
+                        </button>
+                    </form>
                 <?php endif; ?>
 
                 <?php if ( in_array( $licence_status, array( 'brouillon', 'non_payee' ), true ) ) : ?>

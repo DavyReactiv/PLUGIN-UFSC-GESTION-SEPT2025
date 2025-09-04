@@ -368,6 +368,10 @@ class UFSC_SQL_Admin {
     }
 
     public static function handle_save_club(){
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
         check_admin_referer('ufsc_sql_save_club');
 
         $user_id = get_current_user_id();
@@ -674,6 +678,9 @@ class UFSC_SQL_Admin {
     }
 
     public static function handle_delete_club(){
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
         if ( ! current_user_can('manage_options') ) wp_die('Accès refusé');
         check_admin_referer('ufsc_sql_delete_club');
 
@@ -1173,6 +1180,10 @@ class UFSC_SQL_Admin {
     }
 
     public static function handle_save_licence(){
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
         check_admin_referer('ufsc_sql_save_licence');
 
         $user_id   = get_current_user_id();
@@ -1269,8 +1280,11 @@ class UFSC_SQL_Admin {
      * Handle sending license to payment
      */
     public static function handle_send_license_payment(){
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
         if ( ! current_user_can('manage_options') ) wp_die('Accès refusé');
-        
+
         $license_id = isset($_GET['license_id']) ? (int) $_GET['license_id'] : 0;
         check_admin_referer('ufsc_send_license_payment_'.$license_id);
 
@@ -1496,6 +1510,10 @@ class UFSC_SQL_Admin {
     }
 
     public static function handle_delete_licence(){
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
         check_admin_referer('ufsc_sql_delete_licence');
 
         global $wpdb;
@@ -1704,6 +1722,9 @@ class UFSC_SQL_Admin {
      * Handle export data request
      */
     public static function handle_export_data() {
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
         if (!current_user_can('manage_options')) {
             wp_die('Accès refusé');
         }

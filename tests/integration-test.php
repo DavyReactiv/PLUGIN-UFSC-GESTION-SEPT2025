@@ -68,14 +68,14 @@ class UFSC_Club_Form_Integration_Test {
      * Test upload utility
      */
     public static function test_upload_utility() {
-        if (!class_exists('UFSC_CL_Uploads')) {
-            echo "✗ UFSC_CL_Uploads class not available\n";
+        if (!class_exists('UFSC_Uploads')) {
+            echo "✗ UFSC_Uploads class not available\n";
             return false;
         }
         
         // Test MIME type configurations
-        $logo_types = UFSC_CL_Uploads::get_logo_mime_types();
-        $doc_types = UFSC_CL_Uploads::get_document_mime_types();
+        $logo_types = UFSC_Uploads::get_logo_mime_types();
+        $doc_types = UFSC_Uploads::get_document_mime_types();
         
         if (isset($logo_types['jpg']) && isset($doc_types['pdf'])) {
             echo "✓ Upload utility MIME types configured\n";
