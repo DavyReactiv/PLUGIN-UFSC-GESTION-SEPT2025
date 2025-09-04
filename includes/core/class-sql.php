@@ -62,6 +62,7 @@ class UFSC_SQL {
                 'rna_number'=>array('RNA','text'),
                 'iban'=>array('IBAN','text'),
                 'logo_url'=>array('Logo URL','text'),
+                'profile_photo_url'=>array('Photo de profil','text'),
                 'doc_statuts'=>array('Document Statuts','number'),
                 'doc_recepisse'=>array('Document Récépissé','number'),
                 'doc_jo'=>array('Document JO','number'),

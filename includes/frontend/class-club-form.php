@@ -146,7 +146,22 @@ class UFSC_CL_Club_Form {
                 <!-- General Information Section -->
                 <fieldset class="ufsc-form-section ufsc-grid">
                     <legend><?php esc_html_e( 'Informations générales', 'ufsc-clubs' ); ?></legend>
-                    
+
+                    <div class="ufsc-field">
+                        <label for="profile_photo" class="ufsc-label"><?php esc_html_e( 'Photo du club', 'ufsc-clubs' ); ?></label>
+                        <?php if ( ! empty( $club_data['profile_photo_url'] ) ) : ?>
+                            <div class="ufsc-profile-photo-preview">
+                                <img src="<?php echo esc_url( $club_data['profile_photo_url'] ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
+                            </div>
+                            <div class="ufsc-upload-actions">
+                                <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp" />
+                                <button type="submit" name="remove_profile_photo" value="1" class="ufsc-btn ufsc-btn-secondary"><?php esc_html_e( 'Supprimer la photo', 'ufsc-clubs' ); ?></button>
+                            </div>
+                        <?php else : ?>
+                            <input type="file" id="profile_photo" name="profile_photo" accept="image/jpeg,image/png,image/webp" />
+                        <?php endif; ?>
+                    <div class="ufsc-field-error" aria-live="polite"></div></div>
+
                     <div class="ufsc-field">
                         <label for="nom" class="ufsc-label required"><?php esc_html_e( 'Nom du club', 'ufsc-clubs' ); ?></label>
                         <input type="text" id="nom" name="nom" value="<?php echo esc_attr( $club_data['nom'] ?? '' ); ?>" required />

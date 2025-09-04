@@ -214,18 +214,29 @@ class UFSC_CL_Club_Form_Handler {
         // Handle logo upload
         if ( ! empty( $_FILES['logo_upload']['name'] ) ) {
             $logo_id = UFSC_Uploads::handle_single_upload_field( 'logo_upload', $club_id, UFSC_Uploads::get_logo_mime_types(), UFSC_Uploads::get_logo_max_size() );
-            
+
             if ( is_wp_error( $logo_id ) ) {
                 return $logo_id;
             }
-            
+
             $logo_url = wp_get_attachment_url( $logo_id );
             $upload_results['logo_url'] = $logo_url;
             if ( $club_id ) {
                 update_post_meta( $club_id, 'logo_url', $logo_id );
             }
         }
-        
+
+        // Handle profile photo upload
+        if ( ! empty( $_FILES['profile_photo']['name'] ) ) {
+            $photo_url = UFSC_Media::handle_profile_photo_upload( 'profile_photo', $club_id );
+            if ( is_wp_error( $photo_url ) ) {
+                return $photo_url;
+            }
+            $upload_results['profile_photo_url'] = $photo_url;
+        } elseif ( ! empty( $_POST['remove_profile_photo'] ) ) {
+            $upload_results['profile_photo_url'] = '';
+        }
+
         // Handle required document uploads
         $doc_results = UFSC_Uploads::handle_required_docs( $club_id );
         if ( is_wp_error( $doc_results ) ) {
