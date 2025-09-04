@@ -351,7 +351,18 @@ jQuery(document).ready(function($) {
                     document.body.removeChild(a);
                     URL.revokeObjectURL(downloadUrl);
                 } else {
-                    alert(ufsc_frontend_vars.strings.ajax_error);
+                    if (xhr.response && typeof xhr.response.text === 'function') {
+                        xhr.response
+                            .text()
+                            .then(function(text) {
+                                alert(text);
+                            })
+                            .catch(function() {
+                                alert(ufsc_frontend_vars.strings.ajax_error);
+                            });
+                    } else {
+                        alert(xhr.responseText || xhr.response || ufsc_frontend_vars.strings.ajax_error);
+                    }
                 }
 
                 $btn.removeClass('ufsc-loading').prop('disabled', false);
