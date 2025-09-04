@@ -268,3 +268,56 @@ add_action( 'plugins_loaded', 'ufsc_init_cart_integration' );
 
 // Hook to display cart item data
 add_filter( 'woocommerce_get_item_data', 'ufsc_display_cart_item_data', 10, 2 );
+
+if ( ! function_exists( 'ufsc_redirect_with_notice' ) ) {
+    /**
+     * Redirect helper that appends notice query args.
+     *
+     * @param string $message      Message to show.
+     * @param string $type         Notice type: success|error.
+     * @param string $redirect_url Optional redirect URL.
+     */
+    function ufsc_redirect_with_notice( $message, $type = 'success', $redirect_url = '' ) {
+        $redirect_url = $redirect_url ?: ( wp_get_referer() ?: home_url() );
+        $key          = ( 'error' === $type ) ? 'ufsc_error' : 'ufsc_message';
+        $redirect_url = add_query_arg( $key, rawurlencode( $message ), $redirect_url );
+        wp_safe_redirect( $redirect_url );
+        exit;
+    }
+}
+
+/**
+ * Handle club affiliation form submission.
+ *
+ * Processes required documents and adds the affiliation product to cart.
+ */
+function ufsc_club_affiliation_submit() {
+    check_admin_referer( 'ufsc_club_affiliation_submit' );
+
+    if ( ! current_user_can( 'read' ) ) {
+        ufsc_redirect_with_notice( __( 'Vous devez être connecté', 'ufsc-clubs' ), 'error' );
+    }
+
+    $club_id = isset( $_POST['club_id'] ) ? absint( $_POST['club_id'] ) : 0;
+
+    $uploads = UFSC_Uploads::handle_required_docs( $_FILES );
+    if ( is_wp_error( $uploads ) ) {
+        ufsc_redirect_with_notice( $uploads->get_error_message(), 'error' );
+    }
+
+    $added = false;
+    if ( function_exists( 'WC' ) ) {
+        function_exists( 'wc_load_cart' ) && wc_load_cart();
+        $added = WC()->cart->add_to_cart( 4823, 1, 0, array(), array( 'ufsc_club_id' => $club_id ) );
+    }
+
+    if ( ! $added ) {
+        ufsc_redirect_with_notice( __( 'Impossible d\'ajouter le produit au panier.', 'ufsc-clubs' ), 'error' );
+    }
+
+    $cart_url = function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : home_url();
+    ufsc_redirect_with_notice( __( 'Produit d\'affiliation ajouté au panier.', 'ufsc-clubs' ), 'success', $cart_url );
+}
+
+add_action( 'admin_post_ufsc_club_affiliation_submit', 'ufsc_club_affiliation_submit' );
+add_action( 'admin_post_nopriv_ufsc_club_affiliation_submit', 'ufsc_club_affiliation_submit' );

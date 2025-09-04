@@ -31,8 +31,6 @@ class UFSC_Unified_Handlers {
         // Club handlers
         add_action( 'admin_post_ufsc_save_club', array( __CLASS__, 'handle_save_club' ) );
         add_action( 'admin_post_nopriv_ufsc_save_club', array( __CLASS__, 'handle_save_club' ) );
-        add_action( 'admin_post_ufsc_club_affiliation_submit', array( __CLASS__, 'handle_club_affiliation_submit' ) );
-        add_action( 'admin_post_nopriv_ufsc_club_affiliation_submit', array( __CLASS__, 'handle_club_affiliation_submit' ) );
         
         // AJAX alternatives
         add_action( 'wp_ajax_ufsc_save_licence', array( __CLASS__, 'ajax_save_licence' ) );
@@ -362,6 +360,7 @@ class UFSC_Unified_Handlers {
     }
 
     /**
+
      * Handle club affiliation form submission.
      *
      * Validates nonce and user capability, processes form data and required
@@ -459,6 +458,7 @@ class UFSC_Unified_Handlers {
     }
 
     /**
+
      * Process licence add/update request
      */
     private static function process_licence_request( $licence_id ) {
