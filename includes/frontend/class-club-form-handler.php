@@ -18,10 +18,11 @@ class UFSC_CL_Club_Form_Handler {
      * Handle club form submission
      */
     public static function handle_save_club() {
-        // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['ufsc_club_nonce'] ?? '', 'ufsc_save_club' ) ) {
-            wp_die( __( 'Erreur de sécurité. Veuillez réessayer.', 'ufsc-clubs' ) );
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
+
+        check_admin_referer( 'ufsc_save_club', 'ufsc_club_nonce' );
         
         $club_id = (int) ( $_POST['club_id'] ?? 0 );
         $affiliation = (bool) ( $_POST['affiliation'] ?? false );

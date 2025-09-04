@@ -435,7 +435,13 @@ class UFSC_User_Club_Admin {
      * Handle user-club association
      */
     public static function handle_user_club_association() {
-        if ( ! current_user_can( 'manage_options' ) || ! wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_associate_user_club' ) ) {
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        check_admin_referer( 'ufsc_associate_user_club', 'ufsc_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( __( 'Sécurité échouée', 'ufsc-clubs' ) );
         }
 
@@ -461,7 +467,13 @@ class UFSC_User_Club_Admin {
      * Handle club region update
      */
     public static function handle_club_region_update() {
-        if ( ! current_user_can( 'manage_options' ) || ! wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_update_club_region' ) ) {
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        check_admin_referer( 'ufsc_update_club_region', 'ufsc_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( __( 'Sécurité échouée', 'ufsc-clubs' ) );
         }
 

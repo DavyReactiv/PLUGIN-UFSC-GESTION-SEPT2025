@@ -259,9 +259,11 @@ class UFSC_Affiliation_Form {
      * Handle non-AJAX affiliation payment form
      */
     public static function handle_affiliation_pay() {
-        if ( ! isset( $_POST['ufsc_affiliation_nonce'] ) || ! wp_verify_nonce( $_POST['ufsc_affiliation_nonce'], 'ufsc_affiliation_pay' ) ) {
-            wp_die( esc_html__( 'Erreur de sécurité. Veuillez réessayer.', 'ufsc-clubs' ) );
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
         }
+
+        check_admin_referer( 'ufsc_affiliation_pay', 'ufsc_affiliation_nonce' );
 
         if ( function_exists( 'ufsc_is_woocommerce_active' ) && ufsc_is_woocommerce_active() ) {
             $settings   = ufsc_get_woocommerce_settings();
@@ -280,10 +282,11 @@ class UFSC_Affiliation_Form {
      * Handle form submission
      */
     public static function handle_form_submission() {
-        // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_create_club' ) ) {
-            wp_die( esc_html__( 'Erreur de sécurité. Veuillez réessayer.', 'ufsc-clubs' ) );
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
         }
+
+        check_admin_referer( 'ufsc_create_club', 'ufsc_nonce' );
 
         if ( ! is_user_logged_in() ) {
             wp_die( esc_html__( 'Vous devez être connecté pour créer un club.', 'ufsc-clubs' ) );

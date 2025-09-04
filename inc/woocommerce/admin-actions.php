@@ -225,6 +225,10 @@ L\'équipe UFSC', 'ufsc-clubs' ),
  * This function should be called from admin interface
  */
 function ufsc_handle_admin_send_to_payment() {
+    if ( ! current_user_can( 'read' ) ) {
+        wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+    }
+
     // Verify nonce and capabilities
     if ( ! check_admin_referer( 'ufsc_send_to_payment' ) || ! current_user_can( 'manage_options' ) ) {
         wp_die( __( 'Erreur de sécurité', 'ufsc-clubs' ) );
