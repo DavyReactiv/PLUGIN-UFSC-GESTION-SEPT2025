@@ -18,10 +18,11 @@ class UFSC_CL_Club_Form_Handler {
      * Handle club form submission
      */
     public static function handle_save_club() {
-        // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['ufsc_club_nonce'] ?? '', 'ufsc_save_club' ) ) {
-            wp_die( __( 'Erreur de sécurité. Veuillez réessayer.', 'ufsc-clubs' ) );
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
+
+        check_admin_referer( 'ufsc_save_club', 'ufsc_club_nonce' );
         
         $club_id = (int) ( $_POST['club_id'] ?? 0 );
         $affiliation = (bool) ( $_POST['affiliation'] ?? false );
@@ -153,7 +154,7 @@ class UFSC_CL_Club_Form_Handler {
         $redirect_url = apply_filters( 'ufsc_club_affiliation_redirect_url', $redirect_url, $club_id, $affiliation );
 
         if ( $redirect_url ) {
-            wp_safe_redirect( $redirect_url );
+            wp_safe_redirect( ufsc_redirect_with_notice( $redirect_url, 'affiliation_added' ) );
             exit;
         }
     }
@@ -212,27 +213,31 @@ class UFSC_CL_Club_Form_Handler {
 
         // Handle logo upload
         if ( ! empty( $_FILES['logo_upload']['name'] ) ) {
-            $logo_result = UFSC_CL_Uploads::ufsc_safe_handle_upload(
-                $_FILES['logo_upload'],
-                UFSC_CL_Uploads::get_logo_mime_types(),
-                UFSC_CL_Uploads::get_logo_max_size()
-            );
+            $logo_id = UFSC_Uploads::handle_single_upload_field( 'logo_upload', $club_id, UFSC_Uploads::get_logo_mime_types(), UFSC_Uploads::get_logo_max_size() );
             
-            if ( is_wp_error( $logo_result ) ) {
-                return $logo_result;
+            if ( is_wp_error( $logo_id ) ) {
+                return $logo_id;
             }
             
-            $upload_results['logo_url'] = $logo_result['url'];
+            $logo_url = wp_get_attachment_url( $logo_id );
+            $upload_results['logo_url'] = $logo_url;
             if ( $club_id ) {
-                update_post_meta( $club_id, 'logo_url', $logo_result['url'] );
+                update_post_meta( $club_id, 'logo_url', $logo_id );
             }
         }
         
         // Handle required document uploads
-        $doc_results = UFSC_CL_Uploads::handle_required_docs( $club_id );
+        $doc_results = UFSC_Uploads::handle_required_docs( $club_id );
         if ( is_wp_error( $doc_results ) ) {
             return $doc_results;
         }
+        foreach ( $doc_results as $meta => $attach_id ) {
+            if ( $club_id ) {
+                update_post_meta( $club_id, $meta, $attach_id );
+                update_post_meta( $club_id, $meta . '_status', 'pending' );
+            }
+        }
+
 
         $upload_results = array_merge( $upload_results, $doc_results );
 

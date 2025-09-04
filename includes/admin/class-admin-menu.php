@@ -91,7 +91,9 @@ class UFSC_CL_Admin_Menu {
         $t_lics  = isset($opts['table_licences']) ? $opts['table_licences'] : 'licences';
         
         echo '<div class="wrap">';
-        
+
+        include UFSC_CL_DIR . 'templates/partials/notice.php';
+
         // Header moderne
         echo '<div class="ufsc-header">';
         echo '<div style="display: flex; justify-content: space-between; align-items: center;">';
@@ -296,7 +298,7 @@ class UFSC_CL_Admin_Menu {
             $data['recent_licenses'] = $recent_licenses;
             
         } catch (Exception $e) {
-            error_log('UFSC Dashboard data error: ' . $e->getMessage());
+            UFSC_Audit_Logger::log('UFSC Dashboard data error: ' . $e->getMessage());
             // Return default empty data
             $data = array(
                 'clubs_total' => 0,

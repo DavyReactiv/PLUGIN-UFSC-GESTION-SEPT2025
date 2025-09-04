@@ -580,7 +580,7 @@ class UFSC_Import_Export {
         $result = $wpdb->insert( $licences_table, $insert_data );
 
         if ( false === $result ) {
-            error_log( 'UFSC: Failed to insert licence - ' . $wpdb->last_error );
+            UFSC_Audit_Logger::log( 'UFSC: Failed to insert licence - ' . $wpdb->last_error );
             return 0;
         }
 

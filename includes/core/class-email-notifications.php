@@ -290,7 +290,7 @@ class UFSC_Email_Notifications {
         $sent = wp_mail( $to, $subject, $message, $headers );
 
         if ( ! $sent ) {
-            error_log( "UFSC Email failed to send to: {$to}, Subject: {$subject}" );
+            UFSC_Audit_Logger::log( "UFSC Email failed to send to: {$to}, Subject: {$subject}" );
         }
 
         return $sent;

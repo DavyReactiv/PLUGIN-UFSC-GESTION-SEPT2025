@@ -16,6 +16,14 @@ class UFSC_User_Club_Admin {
         add_action( 'admin_post_ufsc_update_club_region', array( __CLASS__, 'handle_club_region_update' ) );
         add_action( 'wp_ajax_ufsc_search_users', array( __CLASS__, 'ajax_search_users' ) );
         add_action( 'wp_ajax_ufsc_search_clubs', array( __CLASS__, 'ajax_search_clubs' ) );
+        add_action('admin_enqueue_scripts', function($hook){
+            wp_enqueue_style(
+                'ufsc-admin-user-club',
+                plugins_url('assets/admin/css/user-club-admin.css', __FILE__),
+                [],
+                '1.0'
+            );
+        });
     }
 
     /**
@@ -76,75 +84,6 @@ class UFSC_User_Club_Admin {
                 ?>
             </div>
         </div>
-
-        <style>
-        .ufsc-admin-section {
-            background: #fff;
-            border: 1px solid #c3c4c7;
-            box-shadow: 0 1px 1px rgba(0,0,0,.04);
-            margin: 20px 0;
-            padding: 20px;
-        }
-        .ufsc-form-table {
-            background: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin: 15px 0;
-        }
-        .ufsc-form-table th {
-            text-align: left;
-            padding-right: 20px;
-            vertical-align: top;
-            width: 150px;
-        }
-        .ufsc-form-table td {
-            padding-bottom: 10px;
-        }
-        .ufsc-search-input {
-            width: 300px;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .ufsc-results-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-top: 5px;
-            display: none;
-        }
-        .ufsc-result-item {
-            padding: 8px 12px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-        }
-        .ufsc-result-item:hover {
-            background: #f0f0f0;
-        }
-        .ufsc-result-item.selected {
-            background: #0073aa;
-            color: white;
-        }
-        .ufsc-associations-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .ufsc-associations-table th,
-        .ufsc-associations-table td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-        .ufsc-associations-table th {
-            background: #f1f1f1;
-            font-weight: bold;
-        }
-        .ufsc-associations-table tr:nth-child(even) {
-            background: #f9f9f9;
-        }
-        </style>
         <?php
     }
 
@@ -435,7 +374,13 @@ class UFSC_User_Club_Admin {
      * Handle user-club association
      */
     public static function handle_user_club_association() {
-        if ( ! current_user_can( 'manage_options' ) || ! wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_associate_user_club' ) ) {
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        check_admin_referer( 'ufsc_associate_user_club', 'ufsc_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( __( 'Sécurité échouée', 'ufsc-clubs' ) );
         }
 
@@ -461,7 +406,13 @@ class UFSC_User_Club_Admin {
      * Handle club region update
      */
     public static function handle_club_region_update() {
-        if ( ! current_user_can( 'manage_options' ) || ! wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_update_club_region' ) ) {
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        check_admin_referer( 'ufsc_update_club_region', 'ufsc_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( __( 'Sécurité échouée', 'ufsc-clubs' ) );
         }
 

@@ -86,7 +86,7 @@ This document outlines the implementation of the UFSC Gestion plugin enhancement
   - `ufsc_quota_add_paid()`
 
 #### Cart Integration (`inc/woocommerce/cart-integration.php`)
-- URL-based add to cart: `?ufsc_add_to_cart=product_id&ufsc_club_id=123&ufsc_license_ids=1,2,3`
+- Add to cart via secure form posting to `admin-post.php` with action `ufsc_add_to_cart`
 - Meta data transfer from cart to order
 - Cart item display enhancements
 - `ufsc_add_affiliation_to_cart()` function for programmatic use

@@ -2,13 +2,13 @@
 /**
  * Plugin Name: UFSC – Clubs & Licences (SQL)
  * Description: Gestion Clubs/Licences connectée aux tables SQL existantes (mapping complet), formulaires complets (admin & front), documents PDF/JPG/PNG, exports CSV, badges colorés, mini-dashboard, shortcodes.
- * Version: 1.5.4
+ * Version: 1.5.7
  * Author: Davy – Studio REACTIV (pour l'UFSC)
  * Text Domain: ufsc-clubs
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'UFSC_CL_VERSION', '1.5.4' );
+define( 'UFSC_CL_VERSION', '1.5.7' );
 define( 'UFSC_CL_DIR', plugin_dir_path( __FILE__ ) );
 define( 'UFSC_CL_URL', plugin_dir_url( __FILE__ ) );
 
@@ -30,6 +30,7 @@ require_once UFSC_CL_DIR.'includes/core/class-cache-manager.php';
 
 // New UFSC Gestion enhancement classes
 require_once UFSC_CL_DIR.'includes/common/class-ufsc-utils.php';
+require_once UFSC_CL_DIR.'includes/common/functions.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-transaction.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-db-migrations.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-affiliation-form.php';
@@ -59,14 +60,16 @@ require_once UFSC_CL_DIR.'inc/woocommerce/admin-actions.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/cart-integration.php';
 // require_once UFSC_CL_DIR.'inc/admin/menu.php'; // Removed - using unified menu system in includes/admin/class-admin-menu.php
 
+add_action('init', function () {
+    load_plugin_textdomain('ufsc-clubs', false, dirname(plugin_basename(__FILE__)) . '/languages');
+});
+
 final class UFSC_CL_Bootstrap {
     private static $instance = null;
     public static function instance(){ if ( null === self::$instance ) self::$instance = new self(); return self::$instance; }
     private function __construct(){
         register_activation_hook( __FILE__, array( $this, 'on_activate' ) );
         register_deactivation_hook( __FILE__, array( $this, 'on_deactivate' ) );
-
-        add_action( 'plugins_loaded', [ $this, 'load_textdomain' ] );
 
         add_action( 'admin_menu', array( 'UFSC_CL_Admin_Menu', 'register' ) );
         add_action( 'admin_enqueue_scripts', array( 'UFSC_CL_Admin_Menu', 'enqueue_admin' ) );
@@ -106,13 +109,6 @@ final class UFSC_CL_Bootstrap {
     }
     public function on_activate(){ flush_rewrite_rules(); }
     public function on_deactivate(){ flush_rewrite_rules(); }
-
-    /**
-     * Load plugin textdomain for translations
-     */
-    public function load_textdomain() {
-        load_plugin_textdomain( 'ufsc-clubs', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
-    }
 
     /**
      * Enqueue frontend assets

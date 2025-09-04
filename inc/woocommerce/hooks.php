@@ -34,10 +34,27 @@ function ufsc_init_woocommerce_hooks() {
     if ( ! ufsc_is_woocommerce_active() ) {
         return;
     }
-    
+
+    add_action(
+        'woocommerce_checkout_create_order_line_item',
+        function ( $item, $cart_key, $values ) {
+            foreach ( $values as $k => $v ) {
+                if ( strpos( $k, 'ufsc_' ) === 0 ) {
+                    $item->add_meta_data( $k, $v, true );
+                }
+            }
+        },
+        10,
+        3
+    );
+
     // Hook into order processing
     add_action( 'woocommerce_order_status_processing', 'ufsc_handle_order_processing' );
     add_action( 'woocommerce_order_status_completed', 'ufsc_handle_order_completed' );
+
+    // Validate paid items when order is processed or completed
+    add_action( 'woocommerce_order_status_processing', 'ufsc_wc_validate_paid_items' );
+    add_action( 'woocommerce_order_status_completed', 'ufsc_wc_validate_paid_items' );
 }
 
 /**
@@ -56,6 +73,58 @@ function ufsc_handle_order_processing( $order_id ) {
  */
 function ufsc_handle_order_completed( $order_id ) {
     ufsc_process_order_items( $order_id );
+}
+
+/**
+ * Validate paid items for an order once payment is confirmed.
+ *
+ * @param int $order_id Order ID.
+ */
+function ufsc_wc_validate_paid_items( $order_id ) {
+    if ( ! ufsc_is_woocommerce_active() ) {
+        return;
+    }
+
+    $order = wc_get_order( $order_id );
+    if ( ! $order ) {
+        return;
+    }
+
+    $settings               = ufsc_get_woocommerce_settings();
+    $season                 = $settings['season'];
+    $affiliation_product_id = $settings['product_affiliation_id'];
+    $license_product_id     = $settings['product_license_id'];
+
+    foreach ( $order->get_items() as $item ) {
+        $product_id = $item->get_product_id();
+
+        if ( $product_id == $license_product_id ) {
+            $license_ids = $item->get_meta( '_ufsc_licence_ids' );
+            if ( empty( $license_ids ) ) {
+                $license_ids = $item->get_meta( 'ufsc_licence_ids' );
+            }
+            if ( ! empty( $license_ids ) && is_array( $license_ids ) ) {
+                foreach ( $license_ids as $license_id ) {
+                    if ( class_exists( 'UFSC_SQL' ) ) {
+                        UFSC_SQL::mark_licence_as_paid_and_validated( $license_id, $season );
+                    }
+                }
+            }
+        }
+
+        if ( $product_id == $affiliation_product_id ) {
+            $club_id = $item->get_meta( '_ufsc_club_id' );
+            if ( empty( $club_id ) ) {
+                $club_id = $item->get_meta( 'ufsc_club_id' );
+            }
+            if ( ! $club_id ) {
+                $club_id = ufsc_get_user_club_id( $order->get_user_id() );
+            }
+            if ( $club_id && class_exists( 'UFSC_SQL' ) ) {
+                UFSC_SQL::mark_club_affiliation_active( $club_id, $season );
+            }
+        }
+    }
 }
 
 /**
@@ -141,6 +210,13 @@ function ufsc_handle_additional_license_payment( $order, $item, $quantity ) {
 
     // Check if specific license IDs are attached to this line item
     $license_ids = $item->get_meta( '_ufsc_licence_ids' );
+
+    if ( empty( $license_ids ) ) {
+        $single_id = $item->get_meta( '_ufsc_licence_id' );
+        if ( $single_id ) {
+            $license_ids = array( $single_id );
+        }
+    }
 
     if ( ! empty( $license_ids ) && is_array( $license_ids ) ) {
         // Mark specific licenses as paid

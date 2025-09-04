@@ -28,7 +28,7 @@ class UFSC_Transaction {
         global $wpdb;
 
         if ( ! is_callable( $callback ) ) {
-            error_log( 'UFSC_Transaction: Invalid callback provided' );
+            UFSC_Audit_Logger::log( 'UFSC_Transaction: Invalid callback provided' );
             return false;
         }
 
@@ -66,18 +66,18 @@ class UFSC_Transaction {
                 // Check if this is a retryable error
                 if ( self::is_retryable_error( $e, $wpdb ) && $retry_count < self::MAX_RETRIES ) {
                     $retry_count++;
-                    error_log( sprintf( 
-                        'UFSC_Transaction: Retryable error (attempt %d/%d): %s', 
-                        $retry_count, 
-                        self::MAX_RETRIES, 
-                        $e->getMessage() 
+                    UFSC_Audit_Logger::log( sprintf(
+                        'UFSC_Transaction: Retryable error (attempt %d/%d): %s',
+                        $retry_count,
+                        self::MAX_RETRIES,
+                        $e->getMessage()
                     ) );
 
                     // Wait before retry (exponential backoff)
                     usleep( pow( 2, $retry_count ) * 100000 ); // 0.2s, 0.4s, 0.8s
                     continue;
                 } else {
-                    error_log( 'UFSC_Transaction: Non-retryable error or max retries exceeded: ' . $e->getMessage() );
+                    UFSC_Audit_Logger::log( 'UFSC_Transaction: Non-retryable error or max retries exceeded: ' . $e->getMessage() );
                     return false;
                 }
             }
@@ -161,7 +161,7 @@ class UFSC_Transaction {
         global $wpdb;
 
         if ( ! is_callable( $callback ) ) {
-            error_log( 'UFSC_Transaction: Invalid callback provided' );
+            UFSC_Audit_Logger::log( 'UFSC_Transaction: Invalid callback provided' );
             return false;
         }
 
@@ -172,7 +172,7 @@ class UFSC_Transaction {
             return $result;
         } catch ( Exception $e ) {
             $wpdb->query( 'ROLLBACK' );
-            error_log( 'UFSC_Transaction: Transaction failed: ' . $e->getMessage() );
+            UFSC_Audit_Logger::log( 'UFSC_Transaction: Transaction failed: ' . $e->getMessage() );
             return false;
         }
     }
@@ -208,7 +208,7 @@ class UFSC_Transaction {
             $wpdb->query( "SELECT RELEASE_ALL_LOCKS()" );
             return true;
         } catch ( Exception $e ) {
-            error_log( 'UFSC_Transaction: Failed to release all locks: ' . $e->getMessage() );
+            UFSC_Audit_Logger::log( 'UFSC_Transaction: Failed to release all locks: ' . $e->getMessage() );
             return false;
         }
     }
