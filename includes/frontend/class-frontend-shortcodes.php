@@ -234,6 +234,14 @@ class UFSC_Frontend_Shortcodes {
             return self::render_single_licence( $licence_id );
         }
 
+        if ( isset( $_GET['edit_licence'] ) ) {
+            $licence_id = intval( $_GET['edit_licence'] );
+            return self::render_add_licence( array(
+                'club_id'    => $atts['club_id'],
+                'licence_id' => $licence_id,
+            ) );
+        }
+
         $licences = self::get_club_licences( $atts['club_id'], $atts );
         $total_count = self::get_club_licences_count( $atts['club_id'], $atts );
         $total_pages = ceil( $total_count / $atts['per_page'] );
