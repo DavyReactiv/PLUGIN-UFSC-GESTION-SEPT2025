@@ -321,13 +321,13 @@ class UFSC_Unified_Handlers {
             return;
         }
         
-        // Handle file uploads
-        $upload_result = self::handle_club_uploads();
+        // Handle required document uploads
+        $upload_result = UFSC_CL_Uploads::handle_required_docs( $club_id );
         if ( is_wp_error( $upload_result ) ) {
             self::redirect_with_error( $upload_result->get_error_message() );
             return;
         }
-        
+
         $data = array_merge( $data, $upload_result );
         
         // Save club data
@@ -648,52 +648,6 @@ class UFSC_Unified_Handlers {
     /**
      * Handle club document uploads
      */
-    private static function handle_club_uploads() {
-        $upload_results = array();
-        
-        // Document types
-        $document_fields = array(
-            'doc_statuts' => 'statuts_upload',
-            'doc_recepisse' => 'recepisse_upload', 
-            'doc_jo' => 'jo_upload',
-            'doc_pv_ag' => 'pv_ag_upload',
-            'doc_cer' => 'cer_upload',
-            'doc_attestation_cer' => 'attestation_cer_upload'
-        );
-        
-        foreach ( $document_fields as $db_field => $upload_field ) {
-            if ( ! empty( $_FILES[$upload_field]['name'] ) ) {
-                $upload_result = wp_handle_upload( $_FILES[$upload_field], array(
-                    'test_form' => false,
-                    'mimes' => array(
-                        'pdf' => 'application/pdf',
-                        'jpg' => 'image/jpeg',
-                        'jpeg' => 'image/jpeg', 
-                        'png' => 'image/png'
-                    )
-                ) );
-                
-                if ( is_wp_error( $upload_result ) || isset( $upload_result['error'] ) ) {
-                    return new WP_Error( 'upload_failed', 
-                        sprintf( __( 'Erreur upload %s: %s', 'ufsc-clubs' ), 
-                            $upload_field, 
-                            isset( $upload_result['error'] ) ? $upload_result['error'] : 'Erreur inconnue' 
-                        ) 
-                    );
-                }
-                
-                // Check file size (5MB max)
-                if ( $_FILES[$upload_field]['size'] > 5 * 1024 * 1024 ) {
-                    return new WP_Error( 'file_too_large', __( 'Fichier trop volumineux (max 5MB)', 'ufsc-clubs' ) );
-                }
-                
-                $upload_results[$db_field] = $upload_result['url'];
-            }
-        }
-        
-        return $upload_results;
-    }
-
     /**
      * Save license data to database
      */

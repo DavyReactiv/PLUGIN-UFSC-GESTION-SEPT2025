@@ -125,6 +125,57 @@ class UFSC_CL_Uploads {
             'png' => 'image/png'
         );
     }
+
+    /**
+     * Handle upload of required club documents
+     *
+     * Validates and stores uploaded files for statutory documents.
+     * Returns attachment IDs keyed by document field name.
+     *
+     * @param int $club_id Club identifier for meta association
+     * @return array|WP_Error Array of attachment IDs or WP_Error on failure
+     */
+    public static function handle_required_docs( int $club_id ) {
+        $allowed_mimes = self::get_document_mime_types();
+        $max_size      = self::get_document_max_size();
+
+        $document_fields = array(
+            'doc_statuts'        => 'statuts_upload',
+            'doc_recepisse'      => 'recepisse_upload',
+            'doc_jo'             => 'jo_upload',
+            'doc_pv_ag'          => 'pv_ag_upload',
+            'doc_cer'            => 'cer_upload',
+            'doc_attestation_cer'=> 'attestation_cer_upload',
+        );
+
+        $results = array();
+
+        foreach ( $document_fields as $db_field => $upload_field ) {
+            if ( empty( $_FILES[ $upload_field ]['name'] ) ) {
+                continue;
+            }
+
+            $upload = self::ufsc_safe_handle_upload(
+                $_FILES[ $upload_field ],
+                $allowed_mimes,
+                $max_size
+            );
+
+            if ( is_wp_error( $upload ) ) {
+                return $upload;
+            }
+
+            $attachment_id        = $upload['attachment_id'];
+            $results[ $db_field ] = $attachment_id;
+
+            if ( $club_id ) {
+                update_post_meta( $club_id, $db_field, $attachment_id );
+                update_post_meta( $club_id, $db_field . '_status', 'pending' );
+            }
+        }
+
+        return $results;
+    }
     
     /**
      * Get maximum file size for logos (2MB)

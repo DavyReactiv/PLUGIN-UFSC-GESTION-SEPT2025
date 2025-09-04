@@ -228,45 +228,13 @@ class UFSC_CL_Club_Form_Handler {
             }
         }
         
-        // Handle document uploads
-
-        $allowed_mimes = UFSC_CL_Uploads::get_document_mime_types();
-        $max_size      = UFSC_CL_Uploads::get_document_max_size();
-
-
-        $documents = array(
-            'statuts_upload'      => 'doc_statuts',
-            'recepisse_upload'    => 'doc_recepisse',
-            'jo_upload'           => 'doc_jo',
-            'pv_ag_upload'        => 'doc_pv_ag',
-            'cer_upload'          => 'doc_cer',
-            'attestation_cer_upload' => 'doc_attestation_cer',
-        );
-
-        foreach ( $documents as $upload_key => $db_field ) {
-            if ( ! empty( $_FILES[ $upload_key ]['name'] ) ) {
-                $doc_result = UFSC_CL_Uploads::ufsc_safe_handle_upload(
-                    $_FILES[ $upload_key ],
-                    $allowed_mimes,
-                    $max_size
-                );
-
-                if ( is_wp_error( $doc_result ) ) {
-                    return $doc_result;
-                }
-
-                
-                $upload_results[$db_field] = $doc_result['url'];
-                if ( $club_id ) {
-                    update_post_meta( $club_id, $db_field, $doc_result['url'] );
-                    update_post_meta( $club_id, $db_field . '_status', 'pending' );
-                }
-
-
-                $upload_results[ $db_field ] = $doc_result['url'];
-
-            }
+        // Handle required document uploads
+        $doc_results = UFSC_CL_Uploads::handle_required_docs( $club_id );
+        if ( is_wp_error( $doc_results ) ) {
+            return $doc_results;
         }
+
+        $upload_results = array_merge( $upload_results, $doc_results );
 
         return $upload_results;
     }

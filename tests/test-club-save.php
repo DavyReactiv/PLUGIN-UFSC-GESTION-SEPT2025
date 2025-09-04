@@ -28,6 +28,7 @@ function sanitize_email( $str ) { return $str; }
 function is_email( $email ) { return strpos( $email, '@' ) !== false; }
 function __($text, $domain = 'default') { return $text; }
 function wp_handle_upload( $file, $args ) { return array( 'url' => 'http://example.com/file.pdf' ); }
+function esc_url_raw( $url ) { return $url; }
 function delete_transient( $key ) {}
 class WP_Error {
     private $message;
@@ -38,6 +39,8 @@ function is_wp_error( $thing ) { return $thing instanceof WP_Error; }
 class WPDB_Stub { public function update( $table, $data, $where ) { $GLOBALS['db_update'] = compact('table','data','where'); return 1; } }
 $wpdb = new WPDB_Stub();
 class UFSC_SQL { public static function get_settings() { return array( 'table_clubs' => 'wp_clubs' ); } }
+
+require_once __DIR__ . '/../includes/core/class-uploads.php';
 
 // Simulate POST and FILES data for a valid club form
 $_POST = array(
