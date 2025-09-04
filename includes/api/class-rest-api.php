@@ -543,22 +543,20 @@ class UFSC_REST_API {
             return new WP_Error( 'no_file', __( 'Aucun fichier fourni.', 'ufsc-clubs' ), array( 'status' => 400 ) );
         }
 
-        if ( ! class_exists( 'UFSC_CL_Uploads' ) ) {
+        if ( ! class_exists( 'UFSC_Uploads' ) ) {
             require_once UFSC_CL_DIR . 'includes/core/class-uploads.php';
-        }
-
-        $upload = UFSC_CL_Uploads::ufsc_safe_handle_upload(
-            $file,
-            UFSC_CL_Uploads::get_logo_mime_types(),
-            UFSC_CL_Uploads::get_logo_max_size()
-        );
-
-        if ( is_wp_error( $upload ) ) {
-            return $upload;
         }
 
         $user_id = get_current_user_id();
         $club_id = ufsc_get_user_club_id( $user_id );
+
+        $attach_id = UFSC_Uploads::handle_single_upload_field( 'logo', $club_id, UFSC_Uploads::get_logo_mime_types(), UFSC_Uploads::get_logo_max_size() );
+        if ( is_wp_error( $attach_id ) ) {
+            return $attach_id;
+        }
+
+        $logo_url = wp_get_attachment_url( $attach_id );
+
 
         global $wpdb;
         $settings    = UFSC_SQL::get_settings();
@@ -566,25 +564,25 @@ class UFSC_REST_API {
 
         $wpdb->update(
             $clubs_table,
-            array( 'logo_url' => sanitize_text_field( $upload['url'] ) ),
+            array( 'logo_url' => sanitize_text_field( $logo_url ) ),
             array( 'id' => $club_id ),
             array( '%s' ),
             array( '%d' )
         );
 
-        update_option( 'ufsc_club_logo_' . $club_id, $upload['attachment_id'] );
+        update_option( 'ufsc_club_logo_' . $club_id, $attach_id );
 
         // Invalidate cache and log
         delete_transient( "ufsc_club_info_{$club_id}" );
         ufsc_audit_log( 'club_logo_uploaded', array(
             'club_id'       => $club_id,
             'user_id'       => $user_id,
-            'attachment_id' => $upload['attachment_id'],
+            'attachment_id' => $attach_id,
         ) );
 
         return new WP_REST_Response( array(
             'message'  => __( 'Logo mis à jour.', 'ufsc-clubs' ),
-            'logo_url' => $upload['url'],
+            'logo_url' => $logo_url,
         ), 200 );
     }
 
