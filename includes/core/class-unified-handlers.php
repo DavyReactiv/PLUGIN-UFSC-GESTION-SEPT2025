@@ -398,7 +398,7 @@ class UFSC_Unified_Handlers {
                 return;
             }
 
-            $attachment_id               = $upload['attachment_id'];
+            $attachment_id               = (int) $upload['attachment_id'];
             $upload_results[ $db_field ] = $attachment_id;
         }
 
