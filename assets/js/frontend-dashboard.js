@@ -241,6 +241,7 @@
 
         // // UFSC: Update recent licenses display
         updateRecentLicences: function(licences) {
+            var self = this;
             var container = $('#ufsc-recent-licences');
             
             if (!licences || licences.length === 0) {
