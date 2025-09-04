@@ -48,6 +48,7 @@ require_once UFSC_CL_DIR.'includes/front/class-ufsc-stats.php';
 // New frontend layer components
 require_once UFSC_CL_DIR.'includes/frontend/class-frontend-shortcodes.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-auth-shortcodes.php';
+require_once UFSC_CL_DIR.'includes/front/class-ufsc-documents.php';
 require_once UFSC_CL_DIR.'includes/api/class-rest-api.php';
 require_once UFSC_CL_DIR.'includes/core/class-audit-logger.php';
 require_once UFSC_CL_DIR.'includes/core/class-email-notifications.php';
@@ -105,7 +106,11 @@ final class UFSC_CL_Bootstrap {
         // Initialize new UFSC Gestion enhancement components
         add_action( 'init', array( 'UFSC_Affiliation_Form', 'init' ) );
         add_action( 'init', array( 'UFSC_CL_Club_Form', 'init' ) );
+
+        add_action( 'init', array( 'UFSC_Documents', 'init' ) );
+
         add_action( 'init', array( 'UFSC_Media', 'init' ) );
+
         add_action( 'init', array( 'UFSC_Unified_Handlers', 'init' ) );
         add_action( 'init', array( 'UFSC_Cache_Manager', 'init' ) );
         add_action( 'plugins_loaded', array( 'UFSC_DB_Migrations', 'run_migrations' ) );
