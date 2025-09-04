@@ -1,3 +1,4 @@
+
 <?php
 /**
  * Club Dashboard Template
@@ -5,6 +6,12 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+require_once UFSC_CL_DIR . 'includes/front/class-ufsc-stats.php';
+$ufsc_stats    = new UFSC_Stats();
+$stats_gender  = $ufsc_stats->get_gender_counts();
+$stats_practice = $ufsc_stats->get_practice_counts();
+$stats_age     = $ufsc_stats->get_age_group_counts();
 
 ?>
 
@@ -261,24 +268,59 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
     <!-- 7. Graphiques visuels -->
     <div class="ufsc-dashboard-section ufsc-charts-section">
         <h2><?php echo esc_html__( 'Graphiques visuels', 'ufsc-clubs' ); ?></h2>
-        
+
         <div class="ufsc-charts-grid">
             <div class="ufsc-chart-container">
                 <h3><?php echo esc_html__( 'Répartition par sexe', 'ufsc-clubs' ); ?></h3>
-                <canvas id="chart-sexe" width="300" height="300"></canvas>
+                <div class="ufsc-chart-wrapper" style="position:relative;height:300px;">
+                    <canvas id="chart-gender"></canvas>
+                </div>
             </div>
-            
+
             <div class="ufsc-chart-container">
-                <h3><?php echo esc_html__( 'Tranches d\'âge', 'ufsc-clubs' ); ?></h3>
-                <canvas id="chart-age" width="400" height="300"></canvas>
+                <h3><?php echo esc_html__( 'Répartition par pratique', 'ufsc-clubs' ); ?></h3>
+                <div class="ufsc-chart-wrapper" style="position:relative;height:300px;">
+                    <canvas id="chart-practice"></canvas>
+                </div>
             </div>
-            
+
             <div class="ufsc-chart-container ufsc-chart-wide">
-                <h3><?php echo esc_html__( 'Évolution mensuelle', 'ufsc-clubs' ); ?></h3>
-                <canvas id="chart-evolution" width="600" height="300"></canvas>
+                <h3><?php echo esc_html__( 'Tranches d\'âge', 'ufsc-clubs' ); ?></h3>
+                <div class="ufsc-chart-wrapper" style="position:relative;height:300px;">
+                    <canvas id="chart-age"></canvas>
+                </div>
             </div>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    (function(){
+        const genderData = <?php echo wp_json_encode( $stats_gender ); ?>;
+        const practiceData = <?php echo wp_json_encode( $stats_practice ); ?>;
+        const ageData = <?php echo wp_json_encode( $stats_age ); ?>;
+
+        function buildPie(el, dataset, key) {
+            const labels = dataset.map(d => d[key] || '<?php echo esc_js__( 'Inconnu', 'ufsc-clubs' ); ?>');
+            const values = dataset.map(d => parseInt(d.total, 10));
+            return new Chart(el.getContext('2d'), {
+                type: 'pie',
+                data: { labels: labels, datasets: [{ data: values }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        buildPie(document.getElementById('chart-gender'), genderData, 'gender');
+        buildPie(document.getElementById('chart-practice'), practiceData, 'practice');
+
+        const ageLabels = ageData.map(d => d.age_group);
+        const ageValues = ageData.map(d => parseInt(d.total, 10));
+        new Chart(document.getElementById('chart-age').getContext('2d'), {
+            type: 'bar',
+            data: { labels: ageLabels, datasets: [{ data: ageValues }] },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    })();
+    </script>
 
     <!-- 8. Notifications et Alertes -->
     <div class="ufsc-dashboard-section ufsc-notifications-section">
