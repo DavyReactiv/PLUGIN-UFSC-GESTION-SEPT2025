@@ -504,7 +504,8 @@ class UFSC_Unified_Handlers {
         $included_quota = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
         $current_included = UFSC_SQL::count_included_licences( $club_id );
 
-        if ( $current_included < $included_quota ) {
+        $auto_consume = ! empty( $wc_settings['auto_consume_included'] );
+        if ( $auto_consume && $current_included < $included_quota ) {
             UFSC_SQL::mark_licence_as_included( $new_id );
             $redirect_url = esc_url_raw( add_query_arg(
                 array(

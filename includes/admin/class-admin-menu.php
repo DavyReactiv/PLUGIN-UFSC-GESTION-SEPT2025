@@ -51,13 +51,13 @@ class UFSC_CL_Admin_Menu {
             array( 'UFSC_SQL_Admin', 'render_exports' ) 
         );
         
-        add_submenu_page( 
-            'ufsc-dashboard', 
-            __('Paramètres','ufsc-clubs'), 
-            __('Paramètres','ufsc-clubs'), 
-            'manage_options', 
-            'ufsc-settings', 
-            array( 'UFSC_SQL_Admin', 'render_settings' ) 
+        add_submenu_page(
+            'ufsc-dashboard',
+            __('Paramètres','ufsc-clubs'),
+            __('Paramètres','ufsc-clubs'),
+            'manage_options',
+            'ufsc-settings',
+            array( 'UFSC_Settings_Page', 'render' )
         );
         
         add_submenu_page( 
