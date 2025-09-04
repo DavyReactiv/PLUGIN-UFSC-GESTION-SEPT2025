@@ -43,6 +43,18 @@
 .ufsc-grid.-wide {
     grid-template-columns: 1fr;
 }
+
+/* Licence cards grid */
+.ufsc-licence-grid {
+    display: grid;
+    gap: var(--ufsc-spacing-md);
+    grid-template-columns: 1fr;
+}
+@media (min-width: var(--tablet)) {
+    .ufsc-licence-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
 @media (min-width: var(--tablet)) {
     .ufsc-grid.-wide {
         grid-template-columns: repeat(2, 1fr);
@@ -179,6 +191,24 @@
     color: #fff;
 }
 .ufsc-badge-doc-missing {
+    background: var(--ufsc-danger);
+    color: #fff;
+}
+
+/* Licence status badges */
+.ufsc-badge-pending {
+    background: var(--ufsc-info);
+    color: #fff;
+}
+.ufsc-badge-validated {
+    background: var(--ufsc-success);
+    color: #fff;
+}
+.ufsc-badge-expired {
+    background: var(--ufsc-warning);
+    color: #fff;
+}
+.ufsc-badge-rejected {
     background: var(--ufsc-danger);
     color: #fff;
 }
