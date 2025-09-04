@@ -59,7 +59,7 @@ class UFSC_Unified_Handlers {
      * Handle licence creation.
      */
     public static function handle_add_licence() {
-        if ( ! wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_add_licence' ) ) {
+        if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'ufsc_add_licence' ) ) {
             wp_die( __( 'Nonce verification failed', 'ufsc-clubs' ) );
         }
 
@@ -107,7 +107,7 @@ class UFSC_Unified_Handlers {
      * Handle licence update
      */
     public static function handle_update_licence() {
-        if ( ! wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_update_licence' ) ) {
+        if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'ufsc_update_licence' ) ) {
             wp_die( __( 'Nonce verification failed', 'ufsc-clubs' ) );
         }
 
@@ -195,7 +195,7 @@ class UFSC_Unified_Handlers {
      * Handle licence deletion
      */
     public static function handle_delete_licence() {
-        if ( ! wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_delete_licence' ) ) {
+        if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'ufsc_delete_licence' ) ) {
             wp_die( __( 'Nonce verification failed', 'ufsc-clubs' ) );
         }
 
@@ -234,7 +234,7 @@ class UFSC_Unified_Handlers {
      * Handle licence status update
      */
     public static function handle_update_licence_status() {
-        if ( ! wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_update_licence_status' ) ) {
+        if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'ufsc_update_licence_status' ) ) {
             wp_die( __( 'Nonce verification failed', 'ufsc-clubs' ) );
         }
 
