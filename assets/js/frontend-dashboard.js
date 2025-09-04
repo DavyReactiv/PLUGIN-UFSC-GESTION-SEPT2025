@@ -353,7 +353,7 @@
             var cacheKey = 'notifications_' + this.config.club_id;
 
             if (this.isCacheValid(cacheKey)) {
-                this.updateNotifications(this.cache[cacheKey]);
+                this.updateNotifications(this.cache[cacheKey].data);
                 return;
             }
 
@@ -395,7 +395,7 @@
             var cacheKey = 'audit_' + this.config.club_id;
 
             if (this.isCacheValid(cacheKey)) {
-                this.updateAuditLog(this.cache[cacheKey]);
+                this.updateAuditLog(this.cache[cacheKey].data);
                 return;
             }
 
