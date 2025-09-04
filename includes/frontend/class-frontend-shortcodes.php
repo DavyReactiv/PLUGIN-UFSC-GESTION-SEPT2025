@@ -717,6 +717,32 @@ class UFSC_Frontend_Shortcodes {
                     </p>
                 <?php endif; ?>
             </div>
+            <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
+                <div class="ufsc-club-photo">
+                    <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
+                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-remove-photo-form">
+                        <?php wp_nonce_field( 'ufsc_remove_profile_photo', 'ufsc_remove_profile_photo_nonce' ); ?>
+                        <input type="hidden" name="action" value="ufsc_remove_profile_photo" />
+                        <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
+                        <button type="submit" class="button ufsc-remove-photo"><?php esc_html_e( 'Supprimer la photo', 'ufsc-clubs' ); ?></button>
+                    </form>
+                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-change-photo-form">
+                        <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
+                        <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
+                        <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
+                        <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" />
+                        <button type="submit" class="button ufsc-upload-photo"><?php esc_html_e( 'Changer la photo', 'ufsc-clubs' ); ?></button>
+                    </form>
+                </div>
+            <?php else : ?>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-upload-photo-form">
+                    <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
+                    <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
+                    <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
+                    <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" />
+                    <button type="submit" class="button ufsc-upload-photo"><?php esc_html_e( 'Ajouter une photo', 'ufsc-clubs' ); ?></button>
+                </form>
+            <?php endif; ?>
 
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-club-form ufsc-club-profile">
                 <div class="ufsc-notices" aria-live="polite"></div>
