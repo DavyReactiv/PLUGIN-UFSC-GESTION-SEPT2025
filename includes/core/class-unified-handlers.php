@@ -424,7 +424,7 @@ class UFSC_Unified_Handlers {
         $added = false;
         if ( function_exists( 'WC' ) ) {
             function_exists( 'wc_load_cart' ) && wc_load_cart();
-            $added = WC()->cart->add_to_cart( 4823, 1, 0, array(), array( 'club_id' => $club_id ) );
+            $added = WC()->cart->add_to_cart( 4823, 1, 0, array(), array( 'ufsc_club_id' => $club_id ) );
         }
 
         if ( $added ) {
@@ -513,10 +513,10 @@ class UFSC_Unified_Handlers {
             function_exists( 'wc_load_cart' ) && wc_load_cart();
             $product_id     = $wc_settings['product_license_id'];
             $cart_item_data = array(
-                'licence_id' => $new_id,
-                'club_id'    => $club_id,
-                'season'     => $wc_settings['season'],
-                'category'   => isset( $data['categorie'] ) ? sanitize_text_field( $data['categorie'] ) : '',
+                'ufsc_licence_id' => $new_id,
+                'ufsc_club_id'    => $club_id,
+                'season'          => $wc_settings['season'],
+                'category'        => isset( $data['categorie'] ) ? sanitize_text_field( $data['categorie'] ) : '',
             );
             $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
 
@@ -542,7 +542,7 @@ class UFSC_Unified_Handlers {
 
             if ( function_exists( 'WC' ) ) {
                 function_exists( 'wc_load_cart' ) && wc_load_cart();
-                $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), array( 'licence_id' => $new_id, 'club_id' => $club_id ) );
+                $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), array( 'ufsc_licence_id' => $new_id, 'ufsc_club_id' => $club_id ) );
             }
 
             if ( ! $added ) {
@@ -551,10 +551,10 @@ class UFSC_Unified_Handlers {
 
             if ( function_exists( 'WC' ) && defined( 'PRODUCT_ID_LICENCE' ) ) {
                 $cart_item_data = array(
-                    'licence_id'         => $new_id,
-                    'club_id'            => $club_id,
-                    'ufsc_nom'           => sanitize_text_field( $data['nom'] ),
-                    'ufsc_prenom'        => sanitize_text_field( $data['prenom'] ),
+                    'ufsc_licence_id'     => $new_id,
+                    'ufsc_club_id'        => $club_id,
+                    'ufsc_nom'            => sanitize_text_field( $data['nom'] ),
+                    'ufsc_prenom'         => sanitize_text_field( $data['prenom'] ),
                     'ufsc_date_naissance' => isset( $data['date_naissance'] ) ? sanitize_text_field( $data['date_naissance'] ) : '',
                 );
                 WC()->cart->add_to_cart( PRODUCT_ID_LICENCE, 1, 0, array(), $cart_item_data );

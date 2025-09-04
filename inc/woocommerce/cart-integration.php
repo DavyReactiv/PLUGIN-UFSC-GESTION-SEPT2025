@@ -110,6 +110,11 @@ function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $orde
         $item->add_meta_data( '_ufsc_club_id', $values['ufsc_club_id'] );
     }
 
+    // Transfer single licence ID
+    if ( isset( $values['ufsc_licence_id'] ) ) {
+        $item->add_meta_data( '_ufsc_licence_id', absint( $values['ufsc_licence_id'] ) );
+    }
+
     // Transfer license IDs
     if ( isset( $values['ufsc_license_ids'] ) && is_array( $values['ufsc_license_ids'] ) ) {
         $item->add_meta_data( '_ufsc_licence_ids', $values['ufsc_license_ids'] );
@@ -154,6 +159,14 @@ function ufsc_display_cart_item_data( $item_data, $cart_item ) {
         $item_data[] = array(
             'key'   => __( 'Licences', 'ufsc-clubs' ),
             'value' => sprintf( __( '%d licence(s) spécifique(s)', 'ufsc-clubs' ), $license_count ),
+        );
+    }
+
+    // Display single licence ID
+    if ( isset( $cart_item['ufsc_licence_id'] ) ) {
+        $item_data[] = array(
+            'key'   => __( 'Licence', 'ufsc-clubs' ),
+            'value' => '#' . intval( $cart_item['ufsc_licence_id'] ),
         );
     }
 
