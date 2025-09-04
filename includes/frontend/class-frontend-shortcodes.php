@@ -479,54 +479,58 @@ class UFSC_Frontend_Shortcodes {
             </div>
             <table class="ufsc-table ufsc-licence-info">
                 <tbody>
-                    <tr>
-                        <th><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo esc_html( $licence->prenom ?? '' ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo esc_html( $licence->nom ?? '' ); ?></td>
-                    </tr>
-                    <tr>
-                        <th>Email</th>
-                        <td><?php echo esc_html( $licence->email ?? '' ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Date de naissance', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo esc_html( $licence->date_naissance ?? '' ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Rôle', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo esc_html( $licence->role ?? '' ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Réduction postier', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo $licence->reduction_postier ? esc_html__( 'Oui', 'ufsc-clubs' ) : esc_html__( 'Non', 'ufsc-clubs' ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Identifiant La Poste', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo esc_html( $licence->identifiant_laposte ?? '' ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Réduction bénévole', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo $licence->reduction_benevole ? esc_html__( 'Oui', 'ufsc-clubs' ) : esc_html__( 'Non', 'ufsc-clubs' ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Licence délégataire', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo $licence->licence_delegataire ? esc_html__( 'Oui', 'ufsc-clubs' ) : esc_html__( 'Non', 'ufsc-clubs' ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Numéro de licence délégataire', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo esc_html( $licence->numero_licence_delegataire ?? '' ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Note', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo esc_html( $licence->note ?? '' ); ?></td>
-                    </tr>
-                    <tr>
-                        <th><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo esc_html( self::get_licence_status_label( $licence->statut ?? 'brouillon' ) ); ?></td>
-                    </tr>
+                    <?php
+                    $fields = UFSC_SQL::get_licence_fields();
+                    if ( property_exists( $licence, 'payment_status' ) && ! isset( $fields['payment_status'] ) ) {
+                        $fields['payment_status'] = array( __( 'Statut de paiement', 'ufsc-clubs' ), 'payment_status' );
+                    }
+
+                    $exclude = array( 'club_id', 'responsable_id' );
+                    foreach ( $fields as $field_key => $field_info ) {
+                        if ( in_array( $field_key, $exclude, true ) ) {
+                            continue;
+                        }
+
+                        list( $label, $type ) = $field_info;
+
+                        if ( ! property_exists( $licence, $field_key ) ) {
+                            continue;
+                        }
+
+                        $value = $licence->{$field_key};
+
+                        if ( $value === null || $value === '' ) {
+                            if ( 'bool' !== $type && 'licence_status' !== $type && 'payment_status' !== $type ) {
+                                continue;
+                            }
+                        }
+
+                        switch ( $type ) {
+                            case 'bool':
+                                $formatted = $value ? esc_html__( 'Oui', 'ufsc-clubs' ) : esc_html__( 'Non', 'ufsc-clubs' );
+                                break;
+                            case 'date':
+                                $formatted = $value ? esc_html( date_i18n( 'd/m/Y', strtotime( $value ) ) ) : '';
+                                break;
+                            case 'licence_status':
+                                $label_value = self::get_licence_status_label( $value );
+                                $class = self::get_licence_status_badge_class( $value );
+                                $formatted = '<span class="ufsc-badge ' . esc_attr( $class ) . '">' . esc_html( $label_value ) . '</span>';
+                                break;
+                            case 'payment_status':
+                                $formatted = self::render_payment_status_badge( $value );
+                                break;
+                            default:
+                                $formatted = esc_html( $value );
+                                break;
+                        }
+
+                        if ( '' === $formatted ) {
+                            continue;
+                        }
+                        echo '<tr><th>' . esc_html( $label ) . '</th><td>' . $formatted . '</td></tr>';
+                    }
+                    ?>
                 </tbody>
             </table>
             <p>
@@ -1659,6 +1663,22 @@ class UFSC_Frontend_Shortcodes {
         );
 
         return $classes[ $status ] ?? '-draft';
+    }
+
+    /**
+     * Render payment status badge
+     */
+    private static function render_payment_status_badge( $status ) {
+        $badge_classes = array(
+            'paid'              => 'badge-success',
+            'pending'           => 'badge-warning',
+            'awaiting_transfer' => 'badge-info',
+            'failed'            => 'badge-danger',
+            'refunded'          => 'badge-secondary',
+        );
+
+        $class = isset( $badge_classes[ $status ] ) ? $badge_classes[ $status ] : 'badge-secondary';
+        return '<span class="ufsc-badge ' . esc_attr( $class ) . '">' . esc_html( $status ) . '</span>';
     }
 
     /**
