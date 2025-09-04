@@ -631,15 +631,15 @@
 
         // // UFSC: New action handlers
         handleAddLicence: function() {
-            window.location.href = '?add_licence=1';
+            window.location.href = $('#btn-ajouter-licence').attr('href');
         },
 
         handleUpdateClub: function() {
-            window.location.href = '?edit_club=1';
+            window.location.href = $('#btn-mettre-a-jour-club').attr('href');
         },
 
         handleUploadDocument: function() {
-            window.location.href = '?upload_documents=1';
+            window.location.href = $('#btn-televerser-document').attr('href');
         },
 
         // // UFSC: CSV Export with filters

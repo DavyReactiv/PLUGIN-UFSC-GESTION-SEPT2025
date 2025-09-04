@@ -195,19 +195,19 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
         <h2><?php echo esc_html__( 'Actions rapides', 'ufsc-clubs' ); ?></h2>
         <div class="ufsc-grid ufsc-actions-grid">
             <div class="ufsc-card">
-                <a href="#" class="ufsc-btn ufsc-btn-primary" id="btn-ajouter-licence">
+                <a href="<?php echo esc_url( add_query_arg( 'add_licence', '1' ) ); ?>" class="ufsc-btn ufsc-btn-primary" id="btn-ajouter-licence">
                     <span class="dashicons dashicons-plus-alt2" aria-hidden="true"></span>
                     <?php echo esc_html__( 'Ajouter une licence', 'ufsc-clubs' ); ?>
                 </a>
             </div>
             <div class="ufsc-card">
-                <a href="#" class="ufsc-btn ufsc-btn-secondary" id="btn-mettre-a-jour-club">
+                <a href="<?php echo esc_url( add_query_arg( 'edit_club', '1' ) ); ?>" class="ufsc-btn ufsc-btn-secondary" id="btn-mettre-a-jour-club">
                     <span class="dashicons dashicons-admin-settings" aria-hidden="true"></span>
                     <?php echo esc_html__( 'Mettre à jour infos club', 'ufsc-clubs' ); ?>
                 </a>
             </div>
             <div class="ufsc-card">
-                <a href="#" class="ufsc-btn ufsc-btn-secondary" id="btn-televerser-document">
+                <a href="<?php echo esc_url( add_query_arg( 'upload_documents', '1' ) ); ?>" class="ufsc-btn ufsc-btn-secondary" id="btn-televerser-document">
                     <span class="dashicons dashicons-upload" aria-hidden="true"></span>
                     <?php echo esc_html__( 'Téléverser un document', 'ufsc-clubs' ); ?>
                 </a>
