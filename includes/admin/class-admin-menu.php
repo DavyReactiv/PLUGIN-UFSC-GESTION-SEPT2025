@@ -342,8 +342,8 @@ class UFSC_CL_Admin_Menu {
      * Enqueue dashboard scripts and data
      */
     private static function enqueue_dashboard_scripts($dashboard_data) {
-        // Enqueue Chart.js from CDN
-        wp_enqueue_script('chartjs', 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js', array(), '3.9.1', true);
+        // Enqueue Chart.js from CDN (unified version 4.4.0)
+        wp_enqueue_script('chartjs', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', array(), '4.4.0', true);
         
         // Enqueue our dashboard script
         wp_add_inline_script('chartjs', self::get_dashboard_js($dashboard_data));

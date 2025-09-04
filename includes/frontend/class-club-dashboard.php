@@ -206,8 +206,8 @@ class UFSC_Club_Dashboard {
      * Enqueue dashboard assets
      */
     private static function enqueue_dashboard_assets() {
-        // Enqueue Chart.js from CDN or local
-        wp_enqueue_script( 'chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js', array(), '3.9.1', true );
+        // Enqueue Chart.js from CDN (unified version 4.4.0)
+        wp_enqueue_script( 'chart-js', 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', array(), '4.4.0', true );
         
         // Enqueue custom dashboard CSS
         wp_enqueue_style( 'ufsc-dashboard', UFSC_CL_URL . 'assets/css/frontend-dashboard.css', array(), UFSC_CL_VERSION );
