@@ -335,13 +335,13 @@
             
             docTypes.forEach(function(docType) {
                 var item = $('.ufsc-document-item[data-doc="' + docType + '"]');
-                var status = item.find('.ufsc-document-status');
-                
+                var status = item.children('.ufsc-document-status');
+
                 if (documents && documents[docType]) {
-                    status.text('✅');
+                    status.removeClass('-pending').addClass('-transmitted').text('✅');
                     item.addClass('-transmitted');
                 } else {
-                    status.text('⏳');
+                    status.removeClass('-transmitted').addClass('-pending').text('⏳');
                     item.removeClass('-transmitted');
                 }
             });

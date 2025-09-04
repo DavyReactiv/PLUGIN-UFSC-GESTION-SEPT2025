@@ -130,60 +130,48 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Statuts', 'ufsc-clubs' ); ?></span>
 
-                    <span class="ufsc-badge ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
-                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
 
                 </div>
                 <div class="ufsc-document-item" data-doc="recepisse">
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Récépissé', 'ufsc-clubs' ); ?></span>
 
-                    <span class="ufsc-badge ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
-                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
 
                 </div>
                 <div class="ufsc-document-item" data-doc="jo">
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Journal Officiel', 'ufsc-clubs' ); ?></span>
 
-                    <span class="ufsc-badge ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
-                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
 
                 </div>
                 <div class="ufsc-document-item" data-doc="pv_ag">
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'PV Assemblée Générale', 'ufsc-clubs' ); ?></span>
 
-                    <span class="ufsc-badge ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
-                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
 
                 </div>
                 <div class="ufsc-document-item" data-doc="cer">
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'CER', 'ufsc-clubs' ); ?></span>
 
-                    <span class="ufsc-badge ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
-                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
 
                 </div>
                 <div class="ufsc-document-item" data-doc="attestation_cer">
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Attestation CER', 'ufsc-clubs' ); ?></span>
 
-                    <span class="ufsc-badge ufsc-document-status">⏳</span>
+                    <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
-                    <span class="ufsc-badge ufsc-document-status -pending"><span aria-hidden="true">⏳</span> <?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></span>
 
                 </div>
             </div>
