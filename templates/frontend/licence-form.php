@@ -1,5 +1,6 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
+include UFSC_CL_DIR . 'templates/partials/notice.php';
 ?>
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-form">
     <input type="hidden" name="action" value="ufsc_save_licence" />

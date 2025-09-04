@@ -30,6 +30,7 @@ require_once UFSC_CL_DIR.'includes/core/class-cache-manager.php';
 
 // New UFSC Gestion enhancement classes
 require_once UFSC_CL_DIR.'includes/common/class-ufsc-utils.php';
+require_once UFSC_CL_DIR.'includes/common/functions.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-transaction.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-db-migrations.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-affiliation-form.php';
