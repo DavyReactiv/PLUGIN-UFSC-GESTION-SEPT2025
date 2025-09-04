@@ -403,7 +403,7 @@ class UFSC_Frontend_Shortcodes {
                                                     </a>
                                                 <?php endif; ?>
                                                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-delete-licence-form" style="display:inline">
-                                                    <?php wp_nonce_field( 'ufsc_delete_licence', 'ufsc_delete_licence_nonce' ); ?>
+                                                    <?php wp_nonce_field( 'ufsc_delete_licence' ); ?>
                                                     <input type="hidden" name="action" value="ufsc_delete_licence">
                                                     <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
                                                     <button type="submit" class="ufsc-btn ufsc-btn-small ufsc-btn-danger" aria-label="<?php esc_attr_e( 'Supprimer la licence', 'ufsc-clubs' ); ?>">
@@ -919,7 +919,7 @@ class UFSC_Frontend_Shortcodes {
 
 
         // Handle form submission
-        if ( isset( $_POST['ufsc_add_licence'] ) && wp_verify_nonce( $_POST['ufsc_nonce'], 'ufsc_add_licence' ) ) {
+        if ( isset( $_POST['ufsc_add_licence'] ) && wp_verify_nonce( $_POST['_wpnonce'], 'ufsc_add_licence' ) ) {
             $result = self::handle_licence_creation( $atts['club_id'], $_POST );
             if ( $result['success'] ) {
                 echo '<div class="ufsc-message ufsc-success">' . esc_html( $result['message'] ) . '</div>';

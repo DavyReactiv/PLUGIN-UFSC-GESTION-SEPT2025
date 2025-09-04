@@ -211,7 +211,7 @@ class UFSC_Frontend_Test extends PHPUnit\Framework\TestCase {
         $output = $this->simulate_shortcode_output();
         
         $this->assertStringContainsString( 'wp_nonce_field', $output );
-        $this->assertStringContainsString( 'ufsc_nonce', $output );
+        $this->assertStringContainsString( '_wpnonce', $output );
     }
 
     /**
@@ -263,7 +263,7 @@ class UFSC_Frontend_Test extends PHPUnit\Framework\TestCase {
                     <form>
                         <label for="test">Test Field</label>
                         <input type="text" id="test" name="test">
-                        ' . wp_nonce_field( 'ufsc_nonce', 'ufsc_nonce', true, false ) . '
+                        ' . wp_nonce_field( 'ufsc_save_licence', '_wpnonce', true, false ) . '
                     </form>
                 </div>
             </div>

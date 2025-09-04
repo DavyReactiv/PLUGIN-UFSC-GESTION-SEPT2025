@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-inline-form">
                                     <input type="hidden" name="action" value="ufsc_delete_licence" />
                                     <input type="hidden" name="licence_id" value="<?php echo intval( $licence->id ); ?>" />
-                                    <?php wp_nonce_field( 'ufsc_delete_licence_' . $licence->id ); ?>
+                                    <?php wp_nonce_field( 'ufsc_delete_licence' ); ?>
                                     <button type="submit" class="ufsc-action ufsc-delete">
                                         <?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?>
                                     </button>
