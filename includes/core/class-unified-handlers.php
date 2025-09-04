@@ -282,8 +282,16 @@ class UFSC_Unified_Handlers {
      * // UFSC: Handle club save (profile/documents)
      */
     public static function handle_save_club() {
-        // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['_wpnonce'], 'ufsc_save_club' ) ) {
+        // Verify nonce - accept custom or default nonce field
+        $has_valid_nonce = false;
+        if ( isset( $_POST['ufsc_club_nonce'] ) ) {
+            $has_valid_nonce = wp_verify_nonce( $_POST['ufsc_club_nonce'], 'ufsc_save_club' );
+        }
+        if ( ! $has_valid_nonce && isset( $_POST['_wpnonce'] ) ) {
+            $has_valid_nonce = wp_verify_nonce( $_POST['_wpnonce'], 'ufsc_save_club' );
+        }
+
+        if ( ! $has_valid_nonce ) {
             wp_die( __( 'Nonce verification failed', 'ufsc-clubs' ) );
         }
 
