@@ -15,12 +15,14 @@ define( 'UFSC_CL_URL', plugin_dir_url( __FILE__ ) );
 require_once UFSC_CL_DIR.'includes/core/class-utils.php';
 require_once UFSC_CL_DIR.'includes/core/column-map.php';
 require_once UFSC_CL_DIR.'includes/admin/class-admin-menu.php';
+require_once UFSC_CL_DIR.'includes/admin/class-ufsc-settings-page.php';
 require_once UFSC_CL_DIR.'includes/core/class-sql.php';
 require_once UFSC_CL_DIR.'includes/admin/class-sql-admin.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-sql-shortcodes.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-club-form.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-club-form-handler.php';
 require_once UFSC_CL_DIR.'includes/core/class-uploads.php';
+require_once UFSC_CL_DIR.'includes/front/class-ufsc-media.php';
 require_once UFSC_CL_DIR.'includes/core/class-permissions.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-badges.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-pdf-attestations.php';
@@ -37,6 +39,11 @@ require_once UFSC_CL_DIR.'includes/core/class-ufsc-db-migrations.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-affiliation-form.php';
 require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-licences-list-table.php';
 require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-clubs-list-table.php';
+
+require_once UFSC_CL_DIR.'includes/admin/class-ufsc-club-metaboxes.php';
+
+require_once UFSC_CL_DIR.'includes/front/class-ufsc-stats.php';
+
 
 // New frontend layer components
 require_once UFSC_CL_DIR.'includes/frontend/class-frontend-shortcodes.php';
@@ -97,6 +104,7 @@ final class UFSC_CL_Bootstrap {
         // Initialize new UFSC Gestion enhancement components
         add_action( 'init', array( 'UFSC_Affiliation_Form', 'init' ) );
         add_action( 'init', array( 'UFSC_CL_Club_Form', 'init' ) );
+        add_action( 'init', array( 'UFSC_Media', 'init' ) );
         add_action( 'init', array( 'UFSC_Unified_Handlers', 'init' ) );
         add_action( 'init', array( 'UFSC_Cache_Manager', 'init' ) );
         add_action( 'plugins_loaded', array( 'UFSC_DB_Migrations', 'run_migrations' ) );
@@ -109,6 +117,7 @@ final class UFSC_CL_Bootstrap {
         add_action( 'wp_enqueue_scripts', array( $this, 'localize_frontend_scripts' ) );
     }
     public function on_activate(){
+
         if ( ! wp_next_scheduled( 'ufsc_daily' ) ) {
             wp_schedule_event( time(), 'daily', 'ufsc_daily' );
         }
@@ -121,6 +130,11 @@ final class UFSC_CL_Bootstrap {
         }
         flush_rewrite_rules();
     }
+
+        UFSC_DB_Migrations::run_migrations();
+        flush_rewrite_rules();
+    }
+    public function on_deactivate(){ flush_rewrite_rules(); }
 
     /**
      * Enqueue frontend assets
