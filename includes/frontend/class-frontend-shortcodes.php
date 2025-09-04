@@ -645,30 +645,28 @@ class UFSC_Frontend_Shortcodes {
                 <input type="hidden" name="action" value="ufsc_save_club">
                 <?php wp_nonce_field( 'ufsc_save_club', 'ufsc_club_nonce' ); ?>
                 
-                <div class="ufsc-grid">
-                    <!-- // UFSC: Identité du club -->
-                    <div class="ufsc-card ufsc-section">
-                        <h4><?php esc_html_e( 'Identité du club', 'ufsc-clubs' ); ?></h4>
+                <!-- // UFSC: Identité du club -->
+                <div class="ufsc-card ufsc-section">
+                    <h4><?php esc_html_e( 'Identité du club', 'ufsc-clubs' ); ?></h4>
 
-                        <div class="ufsc-grid">
-                            <?php self::render_field( 'nom', $club, __( 'Nom du club', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
-                            <?php self::render_field( 'region', $club, __( 'Région', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
-                            <?php self::render_field( 'num_affiliation', $club, __( 'N° d\'affiliation', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                            <?php self::render_field( 'statut', $club, __( 'Statut', 'ufsc-clubs' ), 'text', true, false ); ?>
-                        </div>
+                    <div class="ufsc-grid">
+                        <?php self::render_field( 'nom', $club, __( 'Nom du club', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
+                        <?php self::render_field( 'region', $club, __( 'Région', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
+                        <?php self::render_field( 'num_affiliation', $club, __( 'N° d\'affiliation', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'statut', $club, __( 'Statut', 'ufsc-clubs' ), 'text', true, false ); ?>
                     </div>
+                </div>
 
-                    <!-- // UFSC: Coordonnées -->
-                    <div class="ufsc-card ufsc-section">
-                        <h4><?php esc_html_e( 'Coordonnées', 'ufsc-clubs' ); ?></h4>
+                <!-- // UFSC: Coordonnées -->
+                <div class="ufsc-card ufsc-section">
+                    <h4><?php esc_html_e( 'Coordonnées', 'ufsc-clubs' ); ?></h4>
 
-                        <div class="ufsc-grid">
-                            <?php self::render_field( 'adresse', $club, __( 'Adresse', 'ufsc-clubs' ), 'textarea', false, $is_admin ); ?>
-                            <?php self::render_field( 'code_postal', $club, __( 'Code postal', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                            <?php self::render_field( 'ville', $club, __( 'Ville', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                            <?php self::render_field( 'email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, true ); ?>
-                            <?php self::render_field( 'telephone', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, true ); ?>
-                        </div>
+                    <div class="ufsc-grid">
+                        <?php self::render_field( 'adresse', $club, __( 'Adresse', 'ufsc-clubs' ), 'textarea', false, $is_admin ); ?>
+                        <?php self::render_field( 'code_postal', $club, __( 'Code postal', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'ville', $club, __( 'Ville', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                        <?php self::render_field( 'email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, true ); ?>
+                        <?php self::render_field( 'telephone', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, true ); ?>
                     </div>
                 </div>
 
