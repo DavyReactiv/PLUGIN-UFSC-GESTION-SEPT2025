@@ -397,6 +397,7 @@ class UFSC_Unified_Handlers {
 
             if ( ! $added ) {
                 self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+            }
 
             if ( function_exists( 'WC' ) && defined( 'PRODUCT_ID_LICENCE' ) ) {
                 $cart_item_data = array(
