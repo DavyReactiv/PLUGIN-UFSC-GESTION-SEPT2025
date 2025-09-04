@@ -384,6 +384,41 @@ class UFSC_Unified_Handlers {
         }
 
         $new_id = $result;
+
+        // Quota check: if club has exceeded included licences, add licence product to cart
+        global $wpdb;
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+        $current_count  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d", $club_id ) );
+
+        $wc_settings    = ufsc_get_woocommerce_settings();
+        $included_quota = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
+
+        if ( $current_count > $included_quota && function_exists( 'WC' ) ) {
+            function_exists( 'wc_load_cart' ) && wc_load_cart();
+            $product_id     = $wc_settings['product_license_id'];
+            $cart_item_data = array(
+                'licence_id' => $new_id,
+                'club_id'    => $club_id,
+                'season'     => $wc_settings['season'],
+                'category'   => isset( $data['categorie'] ) ? sanitize_text_field( $data['categorie'] ) : '',
+            );
+            $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
+
+            if ( ! $added ) {
+                self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+            }
+
+            self::update_licence_status_db( $new_id, 'pending' );
+            if ( function_exists( 'wc_add_notice' ) ) {
+                wc_add_notice( __( 'Quota de licences dépassé : licence ajoutée au panier.', 'ufsc-clubs' ), 'notice' );
+            }
+            if ( function_exists( 'wc_get_cart_url' ) ) {
+                wp_safe_redirect( wc_get_cart_url() );
+                exit;
+            }
+        }
+
         if ( isset( $_POST['ufsc_submit_action'] ) && 'add_to_cart' === $_POST['ufsc_submit_action'] ) {
 
             $wc_settings = ufsc_get_woocommerce_settings();
