@@ -369,17 +369,40 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        // Handle required document uploads
-        $doc_result = array();
-        if ( class_exists( 'UFSC_Uploads' ) ) {
-            $doc_result = UFSC_Uploads::handle_required_docs( $_FILES );
-            if ( is_wp_error( $doc_result ) ) {
-                self::redirect_with_error( $doc_result->get_error_message() );
+        // Handle required document uploads using secure handler
+        $upload_results  = array();
+        $allowed_mimes   = UFSC_CL_Uploads::get_document_mime_types();
+        $max_size        = UFSC_CL_Uploads::get_document_max_size();
+        $document_fields = array(
+            'doc_statuts'         => 'statuts_upload',
+            'doc_recepisse'       => 'recepisse_upload',
+            'doc_jo'              => 'jo_upload',
+            'doc_pv_ag'           => 'pv_ag_upload',
+            'doc_cer'             => 'cer_upload',
+            'doc_attestation_cer' => 'attestation_cer_upload',
+        );
+
+        foreach ( $document_fields as $db_field => $upload_field ) {
+            if ( empty( $_FILES[ $upload_field ]['name'] ) ) {
+                continue;
+            }
+
+            $upload = UFSC_CL_Uploads::ufsc_safe_handle_upload(
+                $_FILES[ $upload_field ],
+                $allowed_mimes,
+                $max_size
+            );
+
+            if ( is_wp_error( $upload ) ) {
+                self::redirect_with_error( $upload->get_error_message() );
                 return;
             }
+
+            $attachment_id               = $upload['attachment_id'];
+            $upload_results[ $db_field ] = $attachment_id;
         }
 
-        $data = array_merge( $data, $doc_result );
+        $data = array_merge( $data, $upload_results );
 
         // Persist club record
         global $wpdb;
@@ -397,6 +420,11 @@ class UFSC_Unified_Handlers {
         }
 
         $club_id = (int) $wpdb->insert_id;
+
+        foreach ( $upload_results as $db_field => $attachment_id ) {
+            update_post_meta( $club_id, $db_field, $attachment_id );
+            update_post_meta( $club_id, $db_field . '_status', 'pending' );
+        }
 
         // WooCommerce integration: add product to cart or create order
         $checkout_url = function_exists( 'wc_get_checkout_url' ) ? wc_get_checkout_url() : home_url();
