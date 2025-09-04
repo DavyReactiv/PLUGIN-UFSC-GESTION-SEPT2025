@@ -55,6 +55,10 @@ function ufsc_init_woocommerce_hooks() {
     // Validate paid items when order is processed or completed
     add_action( 'woocommerce_order_status_processing', 'ufsc_wc_validate_paid_items' );
     add_action( 'woocommerce_order_status_completed', 'ufsc_wc_validate_paid_items' );
+
+    // Track consumption of included licences
+    add_action( 'woocommerce_order_status_processing', 'ufsc_wc_increment_included_quota' );
+    add_action( 'woocommerce_order_status_completed', 'ufsc_wc_increment_included_quota' );
 }
 
 /**
@@ -123,6 +127,51 @@ function ufsc_wc_validate_paid_items( $order_id ) {
             if ( $club_id && class_exists( 'UFSC_SQL' ) ) {
                 UFSC_SQL::mark_club_affiliation_active( $club_id, $season );
             }
+        }
+    }
+}
+
+/**
+ * Increment included quota usage for licences marked as consuming it.
+ *
+ * @param int $order_id Order identifier.
+ */
+function ufsc_wc_increment_included_quota( $order_id ) {
+    if ( ! ufsc_is_woocommerce_active() ) {
+        return;
+    }
+
+    $order = wc_get_order( $order_id );
+    if ( ! $order ) {
+        return;
+    }
+
+    foreach ( $order->get_items() as $item ) {
+        if ( ! $item->get_meta( 'ufsc_consumes_included' ) ) {
+            continue;
+        }
+
+        $club_id = $item->get_meta( '_ufsc_club_id' );
+        if ( ! $club_id ) {
+            $club_id = ufsc_get_user_club_id( $order->get_user_id() );
+        }
+
+        if ( ! $club_id ) {
+            continue;
+        }
+
+        $qty = max( 1, $item->get_quantity() );
+
+        if ( function_exists( 'ufsc_get_clubs_table' ) ) {
+            global $wpdb;
+            $clubs_table = ufsc_get_clubs_table();
+            $wpdb->query(
+                $wpdb->prepare(
+                    "UPDATE {$clubs_table} SET included_quota_used = COALESCE(included_quota_used,0) + %d WHERE id = %d",
+                    $qty,
+                    $club_id
+                )
+            );
         }
     }
 }
