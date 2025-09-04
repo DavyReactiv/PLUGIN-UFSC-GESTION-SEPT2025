@@ -67,6 +67,19 @@
 }
 
 /* Table improvements */
+.wrap {
+    overflow-x: auto;
+}
+
+.wp-list-table {
+    table-layout: fixed;
+}
+
+.wp-list-table th,
+.wp-list-table td {
+    word-break: break-word;
+}
+
 .wp-list-table.ufsc-enhanced {
     border-collapse: collapse;
     width: 100%;
@@ -99,19 +112,15 @@
 
 /* Actions column improvements */
 .wp-list-table .column-actions {
-    width: 150px;
-    white-space: nowrap;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
 }
 
 .wp-list-table .column-actions .button {
-    margin-right: 4px;
     padding: 4px 8px;
     font-size: 12px;
     line-height: 1.2;
-}
-
-.wp-list-table .column-actions .button:last-child {
-    margin-right: 0;
 }
 
 /* Quick status dropdown styling */

@@ -340,7 +340,7 @@ class UFSC_Licences_List_Table {
         echo '<th>' . esc_html__( 'Paiement', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Médical', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . self::get_sortable_header( 'date_creation', __( 'Créé le', 'ufsc-clubs' ), $sorting ) . '</th>';
-        echo '<th>' . esc_html__( 'Actions', 'ufsc-clubs' ) . '</th>';
+        echo '<th class="column-actions">' . esc_html__( 'Actions', 'ufsc-clubs' ) . '</th>';
         echo '</tr>';
         echo '</thead>';
         echo '<tbody>';
@@ -405,7 +405,7 @@ class UFSC_Licences_List_Table {
         echo '<td>' . esc_html( mysql2date( 'd/m/Y', $licence->date_creation ) ) . '</td>';
         
         // Actions
-        echo '<td>';
+        echo '<td class="column-actions">';
         $view_url = admin_url( 'admin.php?page=ufsc-sql-licences&action=view&id=' . $licence->id );
         $edit_url = admin_url( 'admin.php?page=ufsc-sql-licences&action=edit&id=' . $licence->id );
         echo '<a href="' . esc_url( $view_url ) . '" class="button button-small">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a> ';
