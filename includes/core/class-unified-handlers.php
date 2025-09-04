@@ -381,8 +381,8 @@ class UFSC_Unified_Handlers {
                 WC()->cart->add_to_cart( PRODUCT_ID_LICENCE, 1, 0, array(), array( 'licence_id' => $new_id, 'club_id' => $club_id ) );
             }
             self::update_licence_status_db( $new_id, 'pending' );
-            if ( function_exists( 'wc_get_checkout_url' ) ) {
-                wp_safe_redirect( wc_get_checkout_url() );
+            if ( function_exists( 'wc_get_cart_url' ) ) {
+                wp_safe_redirect( wc_get_cart_url() );
                 exit;
             }
         }
