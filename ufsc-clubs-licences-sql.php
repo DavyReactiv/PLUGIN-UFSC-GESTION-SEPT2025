@@ -15,6 +15,7 @@ define( 'UFSC_CL_URL', plugin_dir_url( __FILE__ ) );
 require_once UFSC_CL_DIR.'includes/core/class-utils.php';
 require_once UFSC_CL_DIR.'includes/core/column-map.php';
 require_once UFSC_CL_DIR.'includes/admin/class-admin-menu.php';
+require_once UFSC_CL_DIR.'includes/admin/class-ufsc-settings-page.php';
 require_once UFSC_CL_DIR.'includes/core/class-sql.php';
 require_once UFSC_CL_DIR.'includes/admin/class-sql-admin.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-sql-shortcodes.php';
