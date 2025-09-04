@@ -313,7 +313,7 @@ jQuery(document).ready(function($) {
                 return $(this).val();
             }).get();
             if (selectedIds.length) {
-                url.searchParams.set('ids', selectedIds.join(','));
+                selectedIds.forEach(id => url.searchParams.append('ids[]', id));
             }
 
             // UI feedback
