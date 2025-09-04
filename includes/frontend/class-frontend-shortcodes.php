@@ -472,16 +472,48 @@ class UFSC_Frontend_Shortcodes {
             <table class="ufsc-table ufsc-licence-info">
                 <tbody>
                     <tr>
-                        <th><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
-                        <td><?php echo esc_html( $licence->nom ?? '' ); ?></td>
-                    </tr>
-                    <tr>
                         <th><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></th>
                         <td><?php echo esc_html( $licence->prenom ?? '' ); ?></td>
                     </tr>
                     <tr>
+                        <th><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo esc_html( $licence->nom ?? '' ); ?></td>
+                    </tr>
+                    <tr>
                         <th>Email</th>
                         <td><?php echo esc_html( $licence->email ?? '' ); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php esc_html_e( 'Date de naissance', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo esc_html( $licence->date_naissance ?? '' ); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php esc_html_e( 'Rôle', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo esc_html( $licence->role ?? '' ); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php esc_html_e( 'Réduction postier', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo $licence->reduction_postier ? esc_html__( 'Oui', 'ufsc-clubs' ) : esc_html__( 'Non', 'ufsc-clubs' ); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php esc_html_e( 'Identifiant La Poste', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo esc_html( $licence->identifiant_laposte ?? '' ); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php esc_html_e( 'Réduction bénévole', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo $licence->reduction_benevole ? esc_html__( 'Oui', 'ufsc-clubs' ) : esc_html__( 'Non', 'ufsc-clubs' ); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php esc_html_e( 'Licence délégataire', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo $licence->licence_delegataire ? esc_html__( 'Oui', 'ufsc-clubs' ) : esc_html__( 'Non', 'ufsc-clubs' ); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php esc_html_e( 'Numéro de licence délégataire', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo esc_html( $licence->numero_licence_delegataire ?? '' ); ?></td>
+                    </tr>
+                    <tr>
+                        <th><?php esc_html_e( 'Note', 'ufsc-clubs' ); ?></th>
+                        <td><?php echo esc_html( $licence->note ?? '' ); ?></td>
                     </tr>
                     <tr>
                         <th><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></th>
