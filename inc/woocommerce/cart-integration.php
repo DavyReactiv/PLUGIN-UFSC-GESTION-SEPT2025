@@ -29,12 +29,23 @@ function ufsc_handle_add_to_cart_url() {
     if ( ! isset( $_GET['ufsc_add_to_cart'] ) ) {
         return;
     }
-    
+
     $product_id = absint( $_GET['ufsc_add_to_cart'] );
     if ( ! $product_id ) {
         return;
     }
-    
+
+    $nonce = isset( $_GET['_ufsc_nonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_ufsc_nonce'] ) ) : '';
+    if ( ! $nonce || ! wp_verify_nonce( $nonce, 'ufsc_add_to_cart' ) ) {
+        wc_add_notice( __( 'Action non autorisée', 'ufsc-clubs' ), 'error' );
+        return;
+    }
+
+    if ( ! is_user_logged_in() || ! current_user_can( 'read' ) ) {
+        wc_add_notice( __( 'Vous devez être connecté pour effectuer cette action', 'ufsc-clubs' ), 'error' );
+        return;
+    }
+
     // Verify product exists
     $product = wc_get_product( $product_id );
     if ( ! $product || ! $product->exists() ) {
