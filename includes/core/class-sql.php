@@ -177,7 +177,9 @@ class UFSC_SQL {
             array( '%d' ),
             array( '%d' )
         );
+    }
 
+    /**
      * Mark a licence as paid and validated.
      *
      * @param int    $licence_id Licence ID.
