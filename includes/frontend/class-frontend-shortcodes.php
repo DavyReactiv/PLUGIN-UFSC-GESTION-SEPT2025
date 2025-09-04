@@ -262,6 +262,10 @@ class UFSC_Frontend_Shortcodes {
             <div class="ufsc-section-header">
                 <h3><?php printf( 'Mes Licences – %s', esc_html( $club_name ) ); ?></h3>
                 <div class="ufsc-section-actions">
+                    <a href="<?php echo esc_url( add_query_arg( 'edit_licence', 0 ) ); ?>"
+                       class="ufsc-btn ufsc-btn-primary">
+                        <?php esc_html_e( 'Ajouter une licence', 'ufsc-clubs' ); ?>
+                    </a>
                     <a href="<?php echo esc_url( add_query_arg( 'ufsc_export', 'csv' ) ); ?>"
                        class="ufsc-btn ufsc-btn-secondary">
                         <?php esc_html_e( 'Exporter CSV', 'ufsc-clubs' ); ?>
