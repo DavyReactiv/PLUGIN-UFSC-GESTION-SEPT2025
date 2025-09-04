@@ -296,7 +296,7 @@ class UFSC_CL_Admin_Menu {
             $data['recent_licenses'] = $recent_licenses;
             
         } catch (Exception $e) {
-            error_log('UFSC Dashboard data error: ' . $e->getMessage());
+            UFSC_Audit_Logger::log('UFSC Dashboard data error: ' . $e->getMessage());
             // Return default empty data
             $data = array(
                 'clubs_total' => 0,

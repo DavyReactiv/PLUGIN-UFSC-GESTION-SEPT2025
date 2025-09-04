@@ -838,7 +838,7 @@ class UFSC_REST_API {
 
             return $order->get_id();
         } catch ( Exception $e ) {
-            error_log( 'UFSC: Error creating additional license order: ' . $e->getMessage() );
+            UFSC_Audit_Logger::log( 'UFSC: Error creating additional license order: ' . $e->getMessage() );
             return false;
         }
     }
