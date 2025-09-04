@@ -30,6 +30,7 @@
             // Get club ID from dashboard configuration
             var dashboardConfig = window.ufsc_dashboard_vars || {};
             this.config.club_id = dashboardConfig.club_id || this.config.club_id;
+            this.config.rest_url = dashboardConfig.rest_url || this.config.rest_url;
             
             if (!this.config.club_id) {
                 console.warn('UFSC Dashboard: No club ID provided');

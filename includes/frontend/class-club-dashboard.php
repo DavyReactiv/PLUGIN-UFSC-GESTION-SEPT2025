@@ -218,8 +218,9 @@ class UFSC_Club_Dashboard {
         // Localize script for AJAX
         wp_localize_script( 'ufsc-dashboard', 'ufsc_dashboard_vars', array(
             'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce' => wp_create_nonce( 'ufsc_club_dashboard' ),
+            'nonce'   => wp_create_nonce( 'ufsc_club_dashboard' ),
             'club_id' => self::get_user_club_id( get_current_user_id() ),
+            'rest_url' => rest_url( 'ufsc/v1/' ),
             'strings' => array(
                 'loading' => __( 'Chargement...', 'ufsc-clubs' ),
                 'error' => __( 'Erreur lors du chargement', 'ufsc-clubs' ),
