@@ -1529,70 +1529,18 @@ class UFSC_Frontend_Shortcodes {
      */
     private static function get_club_stats( $club_id, $season ) {
         $cache_key = "ufsc_stats_{$club_id}_{$season}";
-        $stats = get_transient( $cache_key );
-        
-        if ( false === $stats ) {
-            global $wpdb;
+        $stats     = get_transient( $cache_key );
 
-            if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
-                $stats = array( 'total_licences' => 0, 'paid_licences' => 0, 'validated_licences' => 0, 'quota_remaining' => 10 );
+        if ( false === $stats ) {
+            if ( class_exists( 'UFSC_Stats' ) ) {
+                $stats = UFSC_Stats::get_club_stats( $club_id, $season );
             } else {
-                $licences_table = ufsc_get_licences_table();
-                
-                // Get table columns for dynamic detection
-                $columns = $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
-                
-                // Total licences
-                $total_licences = (int) $wpdb->get_var( $wpdb->prepare(
-                    "SELECT COUNT(*) FROM `{$licences_table}` WHERE club_id = %d",
-                    $club_id
-                ) );
-                
-                // Paid licences with dynamic column detection
-                $paid_licences = 0;
-                $paid_where = array();
-                
-                if ( in_array( 'paid_season', $columns ) ) {
-                    $paid_where[] = $wpdb->prepare( "paid_season = %s", $season );
-                }
-                if ( in_array( 'is_paid', $columns ) ) {
-                    $paid_where[] = "is_paid = 1";
-                }
-                
-                if ( ! empty( $paid_where ) ) {
-                    $paid_query = "SELECT COUNT(*) FROM `{$licences_table}` WHERE club_id = %d AND (" . implode( ' OR ', $paid_where ) . ")";
-                    $paid_licences = (int) $wpdb->get_var( $wpdb->prepare( $paid_query, $club_id ) );
-                }
-                
-                // Validated licences with dynamic column detection
-                $validated_licences = 0;
-                $status_column = null;
-                foreach ( ['status', 'statut'] as $col ) {
-                    if ( in_array( $col, $columns ) ) {
-                        $status_column = $col;
-                        break;
-                    }
-                }
-                
-                if ( $status_column ) {
-                    $validated_statuses = ['valide', 'validée', 'validé', 'validated', 'approved'];
-                    $status_placeholders = implode( ',', array_fill( 0, count( $validated_statuses ), '%s' ) );
-                    $validated_query = "SELECT COUNT(*) FROM `{$licences_table}` WHERE club_id = %d AND `{$status_column}` IN ({$status_placeholders})";
-                    $validated_licences = (int) $wpdb->get_var( $wpdb->prepare( $validated_query, array_merge( [$club_id], $validated_statuses ) ) );
-                }
-                
-                $stats = array(
-                    'total_licences' => $total_licences,
-                    'paid_licences' => $paid_licences,
-                    'validated_licences' => $validated_licences,
-                    'quota_remaining' => max( 0, 50 - $total_licences ) // Default quota of 50
-                );
+                $stats = array( 'total_licences' => 0, 'paid_licences' => 0, 'validated_licences' => 0, 'quota_remaining' => 10 );
             }
-            
-            // Cache for 1 hour
+
             set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
         }
-        
+
         return $stats;
     }
 

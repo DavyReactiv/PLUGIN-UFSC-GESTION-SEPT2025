@@ -36,6 +36,7 @@ require_once UFSC_CL_DIR.'includes/core/class-ufsc-db-migrations.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-affiliation-form.php';
 require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-licences-list-table.php';
 require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-clubs-list-table.php';
+require_once UFSC_CL_DIR.'includes/front/class-ufsc-stats.php';
 
 // New frontend layer components
 require_once UFSC_CL_DIR.'includes/frontend/class-frontend-shortcodes.php';
@@ -107,7 +108,10 @@ final class UFSC_CL_Bootstrap {
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'localize_frontend_scripts' ) );
     }
-    public function on_activate(){ flush_rewrite_rules(); }
+    public function on_activate(){
+        UFSC_DB_Migrations::run_migrations();
+        flush_rewrite_rules();
+    }
     public function on_deactivate(){ flush_rewrite_rules(); }
 
     /**
