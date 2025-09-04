@@ -397,6 +397,7 @@ class UFSC_Unified_Handlers {
 
             if ( ! $added ) {
                 self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+            }
 
             if ( function_exists( 'WC' ) && defined( 'PRODUCT_ID_LICENCE' ) ) {
                 $cart_item_data = array(
@@ -462,22 +463,39 @@ class UFSC_Unified_Handlers {
      */
     public static function handle_export_stats() {
         // Verify nonce
-        if ( ! wp_verify_nonce( $_POST['nonce'], 'ufsc_frontend_nonce' ) ) {
+        if ( ! isset( $_POST['nonce'] ) ) {
+            wp_die( __( 'Missing nonce', 'ufsc-clubs' ) );
+        }
+
+        $nonce = sanitize_text_field( wp_unslash( $_POST['nonce'] ) );
+        if ( ! wp_verify_nonce( $nonce, 'ufsc_frontend_nonce' ) ) {
             wp_die( __( 'Nonce verification failed', 'ufsc-clubs' ) );
         }
 
         if ( ! is_user_logged_in() ) {
             wp_die( __( 'Vous devez être connecté', 'ufsc-clubs' ) );
         }
-        
+
+        if ( ! isset( $_POST['club_id'] ) ) {
+            wp_die( __( 'Missing club ID', 'ufsc-clubs' ) );
+        }
+
         $user_id = get_current_user_id();
-        $club_id = intval( $_POST['club_id'] );
-        
+        $club_id = absint( wp_unslash( $_POST['club_id'] ) );
+
         if ( ufsc_get_user_club_id( $user_id ) !== $club_id ) {
             wp_die( __( 'Permissions insuffisantes', 'ufsc-clubs' ) );
         }
-        
-        $filters = json_decode( stripslashes( $_POST['filters'] ), true );
+
+        if ( ! isset( $_POST['filters'] ) ) {
+            wp_die( __( 'Missing filters', 'ufsc-clubs' ) );
+        }
+
+        $filters_raw = wp_unslash( $_POST['filters'] );
+        $filters     = json_decode( $filters_raw, true );
+        if ( ! is_array( $filters ) ) {
+            $filters = array();
+        }
         
         // Generate CSV
         $csv_data = self::generate_stats_csv( $club_id, $filters );
