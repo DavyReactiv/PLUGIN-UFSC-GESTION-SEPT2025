@@ -385,9 +385,19 @@ class UFSC_Unified_Handlers {
 
         $new_id = $result;
         if ( isset( $_POST['ufsc_submit_action'] ) && 'add_to_cart' === $_POST['ufsc_submit_action'] ) {
-            if ( function_exists( 'WC' ) && defined( 'PRODUCT_ID_LICENCE' ) ) {
-                WC()->cart->add_to_cart( PRODUCT_ID_LICENCE, 1, 0, array(), array( 'licence_id' => $new_id, 'club_id' => $club_id ) );
+            $wc_settings = ufsc_get_woocommerce_settings();
+            $product_id  = $wc_settings['product_license_id'];
+            $added       = false;
+
+            if ( function_exists( 'WC' ) ) {
+                function_exists( 'wc_load_cart' ) && wc_load_cart();
+                $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), array( 'licence_id' => $new_id, 'club_id' => $club_id ) );
             }
+
+            if ( ! $added ) {
+                self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+            }
+
             self::update_licence_status_db( $new_id, 'pending' );
             if ( function_exists( 'wc_get_cart_url' ) ) {
                 wp_safe_redirect( wc_get_cart_url() );
