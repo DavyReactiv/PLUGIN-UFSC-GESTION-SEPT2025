@@ -324,12 +324,17 @@ class UFSC_Unified_Handlers {
         }
         
         // Handle required document uploads
-        $upload_result = UFSC_CL_Uploads::handle_required_docs( $club_id );
+        $upload_result = UFSC_Uploads::handle_required_docs( $club_id );
         if ( is_wp_error( $upload_result ) ) {
             self::redirect_with_error( $upload_result->get_error_message() );
             return;
         }
-
+        foreach ( $upload_result as $meta => $attach_id ) {
+            if ( $club_id ) {
+                update_post_meta( $club_id, $meta, $attach_id );
+                update_post_meta( $club_id, $meta . '_status', 'pending' );
+            }
+        }
         $data = array_merge( $data, $upload_result );
         
         // Save club data
@@ -370,36 +375,10 @@ class UFSC_Unified_Handlers {
         }
 
         // Handle required document uploads using secure handler
-        $upload_results  = array();
-        $allowed_mimes   = UFSC_CL_Uploads::get_document_mime_types();
-        $max_size        = UFSC_CL_Uploads::get_document_max_size();
-        $document_fields = array(
-            'doc_statuts'         => 'statuts_upload',
-            'doc_recepisse'       => 'recepisse_upload',
-            'doc_jo'              => 'jo_upload',
-            'doc_pv_ag'           => 'pv_ag_upload',
-            'doc_cer'             => 'cer_upload',
-            'doc_attestation_cer' => 'attestation_cer_upload',
-        );
-
-        foreach ( $document_fields as $db_field => $upload_field ) {
-            if ( empty( $_FILES[ $upload_field ]['name'] ) ) {
-                continue;
-            }
-
-            $upload = UFSC_CL_Uploads::ufsc_safe_handle_upload(
-                $_FILES[ $upload_field ],
-                $allowed_mimes,
-                $max_size
-            );
-
-            if ( is_wp_error( $upload ) ) {
-                self::redirect_with_error( $upload->get_error_message() );
-                return;
-            }
-
-            $attachment_id               = (int) $upload['attachment_id'];
-            $upload_results[ $db_field ] = $attachment_id;
+        $upload_results = UFSC_Uploads::handle_required_docs();
+        if ( is_wp_error( $upload_results ) ) {
+            self::redirect_with_error( $upload_results->get_error_message() );
+            return;
         }
 
         $data = array_merge( $data, $upload_results );
