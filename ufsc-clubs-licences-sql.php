@@ -33,6 +33,7 @@ require_once UFSC_CL_DIR.'includes/core/class-cache-manager.php';
 // New UFSC Gestion enhancement classes
 require_once UFSC_CL_DIR.'includes/common/class-ufsc-utils.php';
 require_once UFSC_CL_DIR.'includes/common/functions.php';
+require_once UFSC_CL_DIR.'includes/common/class-ufsc-cron.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-transaction.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-db-migrations.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-affiliation-form.php';
@@ -116,6 +117,20 @@ final class UFSC_CL_Bootstrap {
         add_action( 'wp_enqueue_scripts', array( $this, 'localize_frontend_scripts' ) );
     }
     public function on_activate(){
+
+        if ( ! wp_next_scheduled( 'ufsc_daily' ) ) {
+            wp_schedule_event( time(), 'daily', 'ufsc_daily' );
+        }
+        flush_rewrite_rules();
+    }
+    public function on_deactivate(){
+        $timestamp = wp_next_scheduled( 'ufsc_daily' );
+        if ( $timestamp ) {
+            wp_unschedule_event( $timestamp, 'ufsc_daily' );
+        }
+        flush_rewrite_rules();
+    }
+
         UFSC_DB_Migrations::run_migrations();
         flush_rewrite_rules();
     }
