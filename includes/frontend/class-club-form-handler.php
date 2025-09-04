@@ -153,7 +153,7 @@ class UFSC_CL_Club_Form_Handler {
         $redirect_url = apply_filters( 'ufsc_club_affiliation_redirect_url', $redirect_url, $club_id, $affiliation );
 
         if ( $redirect_url ) {
-            wp_safe_redirect( $redirect_url );
+            wp_safe_redirect( ufsc_redirect_with_notice( $redirect_url, 'affiliation_added' ) );
             exit;
         }
     }

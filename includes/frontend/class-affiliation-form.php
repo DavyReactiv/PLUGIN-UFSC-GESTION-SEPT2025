@@ -294,7 +294,7 @@ class UFSC_Affiliation_Form {
 
         // Check if user already has a club
         if ( self::user_has_club( $user_id ) ) {
-            wp_safe_redirect( add_query_arg( 'error', urlencode( __( 'Vous avez déjà un club associé.', 'ufsc-clubs' ) ), $redirect_url ) );
+            wp_safe_redirect( ufsc_redirect_with_notice( $redirect_url, 'club_exists' ) );
             exit;
         }
 
@@ -302,7 +302,7 @@ class UFSC_Affiliation_Form {
         $club_data = self::validate_and_sanitize_input( $_POST );
         
         if ( is_wp_error( $club_data ) ) {
-            wp_safe_redirect( add_query_arg( 'error', urlencode( $club_data->get_error_message() ), $redirect_url ) );
+            wp_safe_redirect( ufsc_redirect_with_notice( $redirect_url, 'club_error' ) );
             exit;
         }
 
@@ -313,9 +313,9 @@ class UFSC_Affiliation_Form {
 
         if ( $result ) {
             $success_url = ! empty( $_POST['redirect_to'] ) ? $_POST['redirect_to'] : $redirect_url;
-            wp_safe_redirect( add_query_arg( 'created', '1', $success_url ) );
+            wp_safe_redirect( ufsc_redirect_with_notice( $success_url, 'club_created' ) );
         } else {
-            wp_safe_redirect( add_query_arg( 'error', urlencode( __( 'Erreur lors de la création du club. Veuillez réessayer.', 'ufsc-clubs' ) ), $redirect_url ) );
+            wp_safe_redirect( ufsc_redirect_with_notice( $redirect_url, 'club_creation_error' ) );
         }
         exit;
     }
