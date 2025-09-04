@@ -785,10 +785,13 @@ class UFSC_Unified_Handlers {
 
     private static function redirect_with_error( $message, $licence_id = null ) {
         $redirect_url = wp_get_referer() ?: home_url();
-        $args         = array( 'ufsc_error' => urlencode( $message ) );
+        $redirect_url = remove_query_arg( 'ufsc_error', $redirect_url );
+
+        $args = array( 'ufsc_error' => rawurlencode( $message ) );
         if ( $licence_id ) {
             $args['licence_id'] = $licence_id;
         }
+
         wp_safe_redirect( add_query_arg( $args, $redirect_url ) );
         exit;
     }
