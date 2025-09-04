@@ -198,6 +198,12 @@
     border-bottom: 1px solid #e1e1e1;
 }
 
+.ufsc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
 .ufsc-form-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -205,19 +211,24 @@
     margin-bottom: 20px;
 }
 
-.ufsc-form-field {
+.ufsc-form-field,
+.ufsc-field {
     display: flex;
     flex-direction: column;
 }
 
-.ufsc-form-field label {
+.ufsc-form-field label,
+.ufsc-field label {
     font-weight: 600;
     margin-bottom: 5px;
 }
 
 .ufsc-form-field input,
 .ufsc-form-field select,
-.ufsc-form-field textarea {
+.ufsc-form-field textarea,
+.ufsc-field input,
+.ufsc-field select,
+.ufsc-field textarea {
     padding: 8px;
     border: 1px solid #c3c4c7;
     border-radius: 4px;
@@ -226,13 +237,17 @@
 
 .ufsc-form-field input:focus,
 .ufsc-form-field select:focus,
-.ufsc-form-field textarea:focus {
+.ufsc-form-field textarea:focus,
+.ufsc-field input:focus,
+.ufsc-field select:focus,
+.ufsc-field textarea:focus {
     border-color: #2271b1;
     box-shadow: 0 0 0 1px #2271b1;
     outline: none;
 }
 
-.ufsc-form-field.required label::after {
+.ufsc-form-field.required label::after,
+.ufsc-field.required label::after {
     content: " *";
     color: #dc3232;
 }
@@ -240,12 +255,16 @@
 /* Validation error styling */
 .ufsc-form-field.error input,
 .ufsc-form-field.error select,
-.ufsc-form-field.error textarea {
+.ufsc-form-field.error textarea,
+.ufsc-field.error input,
+.ufsc-field.error select,
+.ufsc-field.error textarea {
     border-color: #dc3232;
     box-shadow: 0 0 0 1px #dc3232;
 }
 
-.ufsc-form-field .error-message {
+.ufsc-form-field .error-message,
+.ufsc-field .error-message {
     color: #dc3232;
     font-size: 12px;
     margin-top: 4px;
