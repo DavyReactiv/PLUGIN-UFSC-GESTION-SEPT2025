@@ -251,6 +251,7 @@ class UFSC_Frontend_Shortcodes {
                     <div class="ufsc-message ufsc-success"><?php echo esc_html( $_GET['ufsc_message'] ); ?></div>
                 <?php elseif ( isset( $_GET['ufsc_error'] ) ) : ?>
                     <div class="ufsc-message ufsc-error"><?php echo esc_html( $_GET['ufsc_error'] ); ?></div>
+                    <script>if(window.history.replaceState){const url=new URL(window.location);url.searchParams.delete('ufsc_error');window.history.replaceState({},document.title,url.pathname+url.search+url.hash);}</script>
                 <?php endif; ?>
             </div>
             <div class="ufsc-section-header">

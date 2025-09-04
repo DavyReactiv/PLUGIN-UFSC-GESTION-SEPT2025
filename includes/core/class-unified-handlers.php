@@ -785,7 +785,7 @@ class UFSC_Unified_Handlers {
 
     private static function redirect_with_error( $message, $licence_id = null ) {
         $redirect_url = wp_get_referer() ?: home_url();
-        $args = array( 'error' => urlencode( $message ) );
+        $args         = array( 'ufsc_error' => urlencode( $message ) );
         if ( $licence_id ) {
             $args['licence_id'] = $licence_id;
         }
