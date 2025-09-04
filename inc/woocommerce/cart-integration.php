@@ -103,10 +103,21 @@ function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $orde
     if ( isset( $values['ufsc_club_id'] ) ) {
         $item->add_meta_data( '_ufsc_club_id', $values['ufsc_club_id'] );
     }
-    
+
     // Transfer license IDs
     if ( isset( $values['ufsc_license_ids'] ) && is_array( $values['ufsc_license_ids'] ) ) {
         $item->add_meta_data( '_ufsc_licence_ids', $values['ufsc_license_ids'] );
+    }
+
+    // Transfer personal data
+    if ( isset( $values['ufsc_nom'] ) ) {
+        $item->add_meta_data( '_ufsc_nom', sanitize_text_field( $values['ufsc_nom'] ) );
+    }
+    if ( isset( $values['ufsc_prenom'] ) ) {
+        $item->add_meta_data( '_ufsc_prenom', sanitize_text_field( $values['ufsc_prenom'] ) );
+    }
+    if ( isset( $values['ufsc_date_naissance'] ) ) {
+        $item->add_meta_data( '_ufsc_date_naissance', sanitize_text_field( $values['ufsc_date_naissance'] ) );
     }
 }
 
@@ -139,7 +150,27 @@ function ufsc_display_cart_item_data( $item_data, $cart_item ) {
             'value' => sprintf( __( '%d licence(s) spécifique(s)', 'ufsc-clubs' ), $license_count ),
         );
     }
-    
+
+    // Display personal data
+    if ( isset( $cart_item['ufsc_nom'] ) ) {
+        $item_data[] = array(
+            'key'   => __( 'Nom', 'ufsc-clubs' ),
+            'value' => sanitize_text_field( $cart_item['ufsc_nom'] ),
+        );
+    }
+    if ( isset( $cart_item['ufsc_prenom'] ) ) {
+        $item_data[] = array(
+            'key'   => __( 'Prénom', 'ufsc-clubs' ),
+            'value' => sanitize_text_field( $cart_item['ufsc_prenom'] ),
+        );
+    }
+    if ( isset( $cart_item['ufsc_date_naissance'] ) && $cart_item['ufsc_date_naissance'] ) {
+        $item_data[] = array(
+            'key'   => __( 'Date de naissance', 'ufsc-clubs' ),
+            'value' => sanitize_text_field( $cart_item['ufsc_date_naissance'] ),
+        );
+    }
+
     return $item_data;
 }
 
@@ -180,9 +211,7 @@ function ufsc_get_club_name( $club_id ) {
     );
 
 
-    return $club_name !== null ? $club_name : false;
-
-    return $club_name ? $club_name : false;
+    return ! empty( $club_name ) ? $club_name : false;
 
 }
 

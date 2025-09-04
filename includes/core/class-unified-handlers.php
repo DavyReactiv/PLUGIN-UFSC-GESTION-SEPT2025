@@ -385,6 +385,7 @@ class UFSC_Unified_Handlers {
 
         $new_id = $result;
         if ( isset( $_POST['ufsc_submit_action'] ) && 'add_to_cart' === $_POST['ufsc_submit_action'] ) {
+
             $wc_settings = ufsc_get_woocommerce_settings();
             $product_id  = $wc_settings['product_license_id'];
             $added       = false;
@@ -396,6 +397,17 @@ class UFSC_Unified_Handlers {
 
             if ( ! $added ) {
                 self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+
+            if ( function_exists( 'WC' ) && defined( 'PRODUCT_ID_LICENCE' ) ) {
+                $cart_item_data = array(
+                    'licence_id'         => $new_id,
+                    'club_id'            => $club_id,
+                    'ufsc_nom'           => sanitize_text_field( $data['nom'] ),
+                    'ufsc_prenom'        => sanitize_text_field( $data['prenom'] ),
+                    'ufsc_date_naissance' => isset( $data['date_naissance'] ) ? sanitize_text_field( $data['date_naissance'] ) : '',
+                );
+                WC()->cart->add_to_cart( PRODUCT_ID_LICENCE, 1, 0, array(), $cart_item_data );
+
             }
 
             self::update_licence_status_db( $new_id, 'pending' );
