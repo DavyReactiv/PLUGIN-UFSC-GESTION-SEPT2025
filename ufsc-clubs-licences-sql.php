@@ -32,7 +32,6 @@ require_once UFSC_CL_DIR.'includes/core/class-cache-manager.php';
 require_once UFSC_CL_DIR.'includes/common/class-ufsc-utils.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-transaction.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-db-migrations.php';
-require_once UFSC_CL_DIR.'includes/frontend/class-club-dashboard.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-affiliation-form.php';
 require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-licences-list-table.php';
 require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-clubs-list-table.php';
@@ -91,7 +90,6 @@ final class UFSC_CL_Bootstrap {
         add_action( 'init', array( 'UFSC_Auth_Shortcodes', 'register' ) );
         
         // Initialize new UFSC Gestion enhancement components
-        add_action( 'init', array( 'UFSC_Club_Dashboard', 'init' ) );
         add_action( 'init', array( 'UFSC_Affiliation_Form', 'init' ) );
         add_action( 'init', array( 'UFSC_CL_Club_Form', 'init' ) );
         add_action( 'init', array( 'UFSC_Unified_Handlers', 'init' ) );
