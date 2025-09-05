@@ -1,7 +1,7 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-class UFSC_Export_Licences {
+class UFSC_Export_Licences extends UFSC_Export_Base {
     public static function init() {
         add_action( 'admin_post_ufsc_export_licences', array( __CLASS__, 'handle_export' ) );
     }
@@ -89,17 +89,6 @@ class UFSC_Export_Licences {
         $rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
 
         nocache_headers();
-        header( 'Content-Type: text/csv; charset=utf-8' );
-        header( 'Content-Disposition: attachment; filename="licences.csv"' );
-        $out = fopen( 'php://output', 'w' );
-        fputs( $out, "\xEF\xBB\xBF" );
-        fputcsv( $out, $cols );
-        if ( $rows ) {
-            foreach ( $rows as $r ) {
-                fputcsv( $out, $r );
-            }
-        }
-        fclose( $out );
-        exit;
+        self::output_csv( 'licences.csv', $cols, $rows );
     }
 }
