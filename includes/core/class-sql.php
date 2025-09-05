@@ -8,12 +8,20 @@ class UFSC_SQL {
             'table_licences'  => 'licences',
             'pk_club'         => 'id',
             'pk_licence'      => 'id',
-            // Supported licence statuses
+            // Supported statuses
             'status_values'   => array(
+
+                'valide'      => 'Validé',
+                'en_attente'  => 'En attente',
+                'rejete'      => 'Rejeté',
+                'paye'        => 'Payé',
+                'refuse'      => 'Refusé',
+
                 'en_attente' => 'En attente',
                 'a_regler'   => 'À régler',
                 'valide'     => 'Validé',
                 'desactive'  => 'Désactivé',
+
             ),
             'club_fields' => array(
                 'nom'=>array('Nom du club','text'),
@@ -57,7 +65,7 @@ class UFSC_SQL {
                 'num_affiliation'=>array('N° Affiliation','text'),
                 'quota_licences'=>array('Quota licences','number'),
                 // Status selector for clubs
-                'statut'=>array('Status','licence_status'),
+                'statut'=>array('Status','club_status'),
                 'date_creation'=>array('Date création','date'),
                 'responsable_id'=>array('User ID responsable','number'),
                 'precision_distribution'=>array('Précision distribution','text'),
