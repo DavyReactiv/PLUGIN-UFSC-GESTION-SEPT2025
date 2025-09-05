@@ -101,7 +101,8 @@ class UFSC_Media {
             wp_die( $result->get_error_message() );
         }
 
-        wp_safe_redirect( wp_get_referer() );
+        $redirect = ufsc_redirect_with_notice( wp_get_referer(), 'profile_photo_updated' );
+        wp_safe_redirect( $redirect );
         exit;
     }
 
@@ -121,7 +122,8 @@ class UFSC_Media {
         check_admin_referer( 'ufsc_remove_profile_photo', 'ufsc_remove_profile_photo_nonce' );
 
         self::remove_profile_photo( $club_id );
-        wp_safe_redirect( wp_get_referer() );
+        $redirect = ufsc_redirect_with_notice( wp_get_referer(), 'profile_photo_removed' );
+        wp_safe_redirect( $redirect );
         exit;
     }
 
