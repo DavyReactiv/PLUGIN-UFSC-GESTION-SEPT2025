@@ -273,14 +273,15 @@
                 'non_payee': 'pending',
                 'payee': 'pending',
                 'validee': 'active',
-                'rejected': 'expired'
+                'rejected': 'rejected'
             };
             statut = map[statut] || statut;
             var badges = {
                 'draft': '<span class="ufsc-badge -draft">draft</span>',
                 'pending': '<span class="ufsc-badge -pending">pending</span>',
                 'active': '<span class="ufsc-badge -ok">active</span>',
-                'expired': '<span class="ufsc-badge -expired">expired</span>'
+                'expired': '<span class="ufsc-badge -expired">expired</span>',
+                'rejected': '<span class="ufsc-badge -rejected">rejected</span>'
             };
             return badges[statut] || '<span class="ufsc-badge">' + statut + '</span>';
         },
@@ -291,7 +292,7 @@
             var statusMap = {
                 'brouillon': 'draft',
                 'non_payee': 'pending',
-                'rejected': 'expired'
+                'rejected': 'rejected'
             };
             var status = statusMap[licence.statut] || licence.statut;
             var editableStatuses = ['draft', 'pending', 'expired'];

@@ -50,8 +50,11 @@ class UFSC_Export_Clubs {
             wp_die( 'Accès refusé' );
         }
         check_admin_referer( 'ufsc_export_clubs' );
+        set_time_limit( 0 );
 
-        $cols = isset( $_POST['columns'] ) ? array_map( 'sanitize_key', (array) $_POST['columns'] ) : array();
+        $allowed_cols   = self::get_columns();
+        $selected_cols  = isset( $_POST['columns'] ) ? array_map( 'sanitize_key', (array) $_POST['columns'] ) : array();
+        $cols           = array_values( array_intersect( $allowed_cols, $selected_cols ) );
         if ( empty( $cols ) ) {
             wp_die( __( 'Aucune colonne sélectionnée', 'ufsc-clubs' ) );
         }
@@ -84,6 +87,7 @@ class UFSC_Export_Clubs {
         header( 'Content-Type: text/csv; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="clubs.csv"' );
         $out = fopen( 'php://output', 'w' );
+        fputs( $out, "\xEF\xBB\xBF" );
         fputcsv( $out, $cols );
         if ( $rows ) {
             foreach ( $rows as $r ) {
