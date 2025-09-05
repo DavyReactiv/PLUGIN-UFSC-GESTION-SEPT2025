@@ -169,7 +169,29 @@ class UFSC_CL_Admin_Menu {
         }
         
         echo '</div>';
-        
+
+        // Mini charts for gender, practice, and creations
+        echo '<div class="ufsc-mini-charts" style="display:flex; gap:30px; margin-top:30px;">';
+        if (!empty($dashboard_data['gender_data'])) {
+            echo '<div style="flex:1;">';
+            echo '<h3>'.esc_html__('Répartition par Sexe','ufsc-clubs').'</h3>';
+            echo '<canvas id="ufsc-gender-chart" height="200"></canvas>';
+            echo '</div>';
+        }
+        if (!empty($dashboard_data['practice_data'])) {
+            echo '<div style="flex:1;">';
+            echo '<h3>'.esc_html__('Pratique','ufsc-clubs').'</h3>';
+            echo '<canvas id="ufsc-practice-chart" height="200"></canvas>';
+            echo '</div>';
+        }
+        if (!empty($dashboard_data['creation_data'])) {
+            echo '<div style="flex:1;">';
+            echo '<h3>'.esc_html__('Créations (30j)','ufsc-clubs').'</h3>';
+            echo '<canvas id="ufsc-creation-chart" height="200"></canvas>';
+            echo '</div>';
+        }
+        echo '</div>';
+
         // Regional breakdown chart
         if (!empty($dashboard_data['regions_data'])) {
             echo '<div class="ufsc-chart-section" style="margin-top: 30px;">';
@@ -179,9 +201,9 @@ class UFSC_CL_Admin_Menu {
             echo '</div>';
             echo '</div>';
         }
-        
+
         // License evolution chart
-        if (!empty($dashboard_data['evolution_data'])) {
+        if (!empty($dashboard_data['creation_data'])) {
             echo '<div class="ufsc-chart-section" style="margin-top: 30px;">';
             echo '<h2>'.esc_html__('Évolution des Licences (30 derniers jours)','ufsc-clubs').'</h2>';
             echo '<div class="ufsc-chart-container">';
@@ -265,19 +287,31 @@ class UFSC_CL_Admin_Menu {
                 ));
             }
             
-            // Regional breakdown
-            $regions_query = "SELECT region, COUNT(*) as count FROM `$t_lics` WHERE region IS NOT NULL AND region != '' GROUP BY region ORDER BY count DESC LIMIT 10";
+            // Gender distribution
+            $gender_query = "SELECT sexe, COUNT(*) as count FROM `$t_lics` WHERE sexe IS NOT NULL AND sexe != '' GROUP BY sexe";
+            $data['gender_data'] = $wpdb->get_results($gender_query);
+
+            // Practice split (competition flag)
+            $practice_query = "SELECT competition, COUNT(*) as count FROM `$t_lics` GROUP BY competition";
+            $data['practice_data'] = $wpdb->get_results($practice_query);
+
+            // Regional breakdown (top 5 with percentages)
+            $regions_query = "SELECT region, COUNT(*) as count FROM `$t_lics` WHERE region IS NOT NULL AND region != '' GROUP BY region ORDER BY count DESC LIMIT 5";
             $regions_data = $wpdb->get_results($regions_query);
+            $total_licenses = max($data['licenses_total'], 1);
+            foreach ($regions_data as $region) {
+                $region->percentage = ($region->count / $total_licenses) * 100;
+            }
             $data['regions_data'] = $regions_data;
-            
-            // License evolution (last 30 days)
-            $evolution_query = "SELECT DATE(date_inscription) as date, COUNT(*) as count 
-                               FROM `$t_lics` 
-                               WHERE date_inscription >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) 
-                               GROUP BY DATE(date_inscription) 
+
+            // License creations (last 30 days)
+            $creation_query = "SELECT DATE(date_inscription) as date, COUNT(*) as count
+                               FROM `$t_lics`
+                               WHERE date_inscription >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                               GROUP BY DATE(date_inscription)
                                ORDER BY date ASC";
-            $evolution_data = $wpdb->get_results($evolution_query);
-            $data['evolution_data'] = $evolution_data;
+            $creation_data = $wpdb->get_results($creation_query);
+            $data['creation_data'] = $creation_data;
             
             // Recent licenses (last 10)
             $recent_query = "SELECT prenom, nom, statut, date_inscription 
@@ -297,8 +331,10 @@ class UFSC_CL_Admin_Menu {
                 'licenses_valid' => 0,
                 'licenses_pending' => 0,
                 'licenses_rejected' => 0,
+                'gender_data' => array(),
+                'practice_data' => array(),
                 'regions_data' => array(),
-                'evolution_data' => array(),
+                'creation_data' => array(),
                 'recent_licenses' => array()
             );
         }
@@ -347,28 +383,48 @@ class UFSC_CL_Admin_Menu {
     private static function get_dashboard_js($dashboard_data) {
         $regions_labels = array();
         $regions_values = array();
-        
+
         if (!empty($dashboard_data['regions_data'])) {
             foreach ($dashboard_data['regions_data'] as $region) {
                 $regions_labels[] = $region->region;
-                $regions_values[] = (int) $region->count;
+                $regions_values[] = round($region->percentage, 2);
             }
         }
-        
-        $evolution_labels = array();
-        $evolution_values = array();
-        
-        if (!empty($dashboard_data['evolution_data'])) {
-            foreach ($dashboard_data['evolution_data'] as $evolution) {
-                $evolution_labels[] = date('d/m', strtotime($evolution->date));
-                $evolution_values[] = (int) $evolution->count;
+
+        $gender_labels = array();
+        $gender_values = array();
+
+        if (!empty($dashboard_data['gender_data'])) {
+            foreach ($dashboard_data['gender_data'] as $gender) {
+                $gender_labels[] = $gender->sexe;
+                $gender_values[] = (int) $gender->count;
+            }
+        }
+
+        $practice_labels = array();
+        $practice_values = array();
+
+        if (!empty($dashboard_data['practice_data'])) {
+            foreach ($dashboard_data['practice_data'] as $practice) {
+                $practice_labels[] = $practice->competition ? 'Compétition' : 'Loisir';
+                $practice_values[] = (int) $practice->count;
+            }
+        }
+
+        $creation_labels = array();
+        $creation_values = array();
+
+        if (!empty($dashboard_data['creation_data'])) {
+            foreach ($dashboard_data['creation_data'] as $creation) {
+                $creation_labels[] = date('d/m', strtotime($creation->date));
+                $creation_values[] = (int) $creation->count;
             }
         }
         
         ob_start();
         ?>
         document.addEventListener('DOMContentLoaded', function() {
-            // Regions donut chart
+            // Regions donut chart (percentages)
             const regionsCanvas = document.getElementById('ufsc-regions-chart');
             if (regionsCanvas && <?php echo json_encode($regions_labels); ?>.length > 0) {
                 new Chart(regionsCanvas, {
@@ -393,23 +449,95 @@ class UFSC_CL_Admin_Menu {
                             },
                             title: {
                                 display: true,
-                                text: 'Licences par Région'
+                                text: 'Licences par Région (%)'
                             }
                         }
                     }
                 });
             }
 
+            // Gender chart
+            const genderCanvas = document.getElementById('ufsc-gender-chart');
+            if (genderCanvas && <?php echo json_encode($gender_labels); ?>.length > 0) {
+                new Chart(genderCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: <?php echo json_encode($gender_labels); ?>,
+                        datasets: [{
+                            data: <?php echo json_encode($gender_values); ?>,
+                            backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+
+            // Practice chart
+            const practiceCanvas = document.getElementById('ufsc-practice-chart');
+            if (practiceCanvas && <?php echo json_encode($practice_labels); ?>.length > 0) {
+                new Chart(practiceCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: <?php echo json_encode($practice_labels); ?>,
+                        datasets: [{
+                            data: <?php echo json_encode($practice_values); ?>,
+                            backgroundColor: ['#4BC0C0', '#FF9F40']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+
+            // Creation mini chart
+            const creationCanvas = document.getElementById('ufsc-creation-chart');
+            if (creationCanvas && <?php echo json_encode($creation_labels); ?>.length > 0) {
+                new Chart(creationCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: <?php echo json_encode($creation_labels); ?>,
+                        datasets: [{
+                            data: <?php echo json_encode($creation_values); ?>,
+                            borderColor: '#2271b1',
+                            backgroundColor: 'rgba(34, 113, 177, 0.1)',
+                            tension: 0.1,
+                            fill: true,
+                            pointRadius: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { display: false },
+                            x: { display: false }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+
             // Evolution line chart
             const evolutionCanvas = document.getElementById('ufsc-evolution-chart');
-            if (evolutionCanvas && <?php echo json_encode($evolution_labels); ?>.length > 0) {
+            if (evolutionCanvas && <?php echo json_encode($creation_labels); ?>.length > 0) {
                 new Chart(evolutionCanvas, {
                     type: 'line',
                     data: {
-                        labels: <?php echo json_encode($evolution_labels); ?>,
+                        labels: <?php echo json_encode($creation_labels); ?>,
                         datasets: [{
                             label: 'Nouvelles Licences',
-                            data: <?php echo json_encode($evolution_values); ?>,
+                            data: <?php echo json_encode($creation_values); ?>,
                             borderColor: '#2271b1',
                             backgroundColor: 'rgba(34, 113, 177, 0.1)',
                             tension: 0.1,

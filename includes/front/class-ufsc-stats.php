@@ -44,12 +44,21 @@ class UFSC_Stats {
      * @return array[] Array of [ gender => string, total => int ].
      */
     public function get_gender_counts() {
+        $cache_key = 'ufsc_gender_counts';
+        $cached    = get_transient( $cache_key );
+        if ( false !== $cached ) {
+            return $cached;
+        }
+
         $sql = "SELECT gender, COUNT(*) AS total FROM {$this->table}
                 WHERE status = %s
                 GROUP BY gender";
 
         $prepared = $this->wpdb->prepare( $sql, 'active' );
-        return $this->wpdb->get_results( $prepared, ARRAY_A );
+        $results  = $this->wpdb->get_results( $prepared, ARRAY_A );
+        set_transient( $cache_key, $results, 10 * MINUTE_IN_SECONDS );
+
+        return $results;
     }
 
     /**
@@ -60,12 +69,21 @@ class UFSC_Stats {
      * @return array[] Array of [ practice => string, total => int ].
      */
     public function get_practice_counts() {
+        $cache_key = 'ufsc_practice_counts';
+        $cached    = get_transient( $cache_key );
+        if ( false !== $cached ) {
+            return $cached;
+        }
+
         $sql = "SELECT practice, COUNT(*) AS total FROM {$this->table}
                 WHERE status = %s
                 GROUP BY practice";
 
         $prepared = $this->wpdb->prepare( $sql, 'active' );
-        return $this->wpdb->get_results( $prepared, ARRAY_A );
+        $results  = $this->wpdb->get_results( $prepared, ARRAY_A );
+        set_transient( $cache_key, $results, 10 * MINUTE_IN_SECONDS );
+
+        return $results;
     }
 
     /**
@@ -76,23 +94,102 @@ class UFSC_Stats {
      * @return array[] Array of [ age_group => string, total => int ].
      */
     public function get_age_group_counts() {
+        $cache_key = 'ufsc_age_group_counts';
+        $cached    = get_transient( $cache_key );
+        if ( false !== $cached ) {
+            return $cached;
+        }
+
         $sql = "SELECT age_group, COUNT(*) AS total FROM (
                     SELECT CASE
-                        WHEN TIMESTAMPDIFF( YEAR, birthdate, CURDATE() ) < 18 THEN '0-17'
-                        WHEN TIMESTAMPDIFF( YEAR, birthdate, CURDATE() ) BETWEEN 18 AND 25 THEN '18-25'
-                        WHEN TIMESTAMPDIFF( YEAR, birthdate, CURDATE() ) BETWEEN 26 AND 35 THEN '26-35'
-                        WHEN TIMESTAMPDIFF( YEAR, birthdate, CURDATE() ) BETWEEN 36 AND 45 THEN '36-45'
-                        WHEN TIMESTAMPDIFF( YEAR, birthdate, CURDATE() ) BETWEEN 46 AND 60 THEN '46-60'
-                        ELSE '60+'
+                        WHEN TIMESTAMPDIFF( YEAR, birthdate, CURDATE() ) BETWEEN 5 AND 11 THEN '5-11'
+                        WHEN TIMESTAMPDIFF( YEAR, birthdate, CURDATE() ) BETWEEN 12 AND 15 THEN '12-15'
+                        WHEN TIMESTAMPDIFF( YEAR, birthdate, CURDATE() ) BETWEEN 16 AND 17 THEN '16-17'
+                        WHEN TIMESTAMPDIFF( YEAR, birthdate, CURDATE() ) BETWEEN 18 AND 34 THEN '18-34'
+                        WHEN TIMESTAMPDIFF( YEAR, birthdate, CURDATE() ) BETWEEN 35 AND 49 THEN '35-49'
+                        ELSE '50+'
                     END AS age_group
                     FROM {$this->table}
                     WHERE status = %s
                       AND birthdate IS NOT NULL
+                      AND TIMESTAMPDIFF( YEAR, birthdate, CURDATE() ) >= 5
                 ) AS derived
                 GROUP BY age_group";
 
         $prepared = $this->wpdb->prepare( $sql, 'active' );
-        return $this->wpdb->get_results( $prepared, ARRAY_A );
+        $results  = $this->wpdb->get_results( $prepared, ARRAY_A );
+        set_transient( $cache_key, $results, 10 * MINUTE_IN_SECONDS );
+
+        return $results;
+    }
+
+    /**
+     * Get counts of active licences by region.
+     *
+     * Relies on an index for the region column when available.
+     *
+     * @return array[] Array of [ region => string, total => int ].
+     */
+    public function get_region_counts() {
+        $cache_key = 'ufsc_region_counts';
+        $cached    = get_transient( $cache_key );
+        if ( false !== $cached ) {
+            return $cached;
+        }
+
+        $sql = "SELECT region, COUNT(*) AS total FROM {$this->table}
+                WHERE status = %s
+                  AND region IS NOT NULL
+                  AND region != ''
+                GROUP BY region";
+
+        $prepared = $this->wpdb->prepare( $sql, 'active' );
+        $results  = $this->wpdb->get_results( $prepared, ARRAY_A );
+        set_transient( $cache_key, $results, 10 * MINUTE_IN_SECONDS );
+
+        return $results;
+    }
+
+    /**
+     * Get weekly licence creation counts for the last 12 weeks.
+     *
+     * @return array[] Array of [ week_start => string, total => int ].
+     */
+    public function get_12_week_licence_evolution() {
+        $cache_key = 'ufsc_12_week_licence_evolution';
+        $cached    = get_transient( $cache_key );
+        if ( false !== $cached ) {
+            return $cached;
+        }
+
+        $sql = "SELECT DATE_FORMAT(date_creation, '%x%v') AS week, COUNT(*) AS total
+                FROM {$this->table}
+                WHERE status = %s
+                  AND date_creation >= DATE_SUB(CURDATE(), INTERVAL 12 WEEK)
+                GROUP BY week
+                ORDER BY week ASC";
+
+        $prepared = $this->wpdb->prepare( $sql, 'active' );
+        $rows     = $this->wpdb->get_results( $prepared, ARRAY_A );
+
+        $counts = array();
+        foreach ( $rows as $row ) {
+            $counts[ $row['week'] ] = (int) $row['total'];
+        }
+
+        $evolution = array();
+        for ( $i = 11; $i >= 0; $i-- ) {
+            $week_key   = gmdate( 'oW', strtotime( "-{$i} week" ) );
+            $week_start = gmdate( 'Y-m-d', strtotime( "-{$i} week Monday" ) );
+            $evolution[] = array(
+                'week_start' => $week_start,
+                'total'      => isset( $counts[ $week_key ] ) ? $counts[ $week_key ] : 0,
+            );
+        }
+
+        set_transient( $cache_key, $evolution, 10 * MINUTE_IN_SECONDS );
+
+        return $evolution;
     }
 
     /**
