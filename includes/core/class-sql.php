@@ -8,7 +8,13 @@ class UFSC_SQL {
             'table_licences'  => 'licences',
             'pk_club'         => 'id',
             'pk_licence'      => 'id',
-            'status_values'   => array('en_attente'=>'En attente','valide'=>'Validée','a_regler'=>'À régler','desactive'=>'Désactivée'),
+            // Supported licence statuses
+            'status_values'   => array(
+                'draft'   => 'Draft',
+                'pending' => 'Pending',
+                'active'  => 'Active',
+                'expired' => 'Expired',
+            ),
             'club_fields' => array(
                 'nom'=>array('Nom du club','text'),
                 'region'=>array('Région','region'),
@@ -50,7 +56,8 @@ class UFSC_SQL {
                 'doc_attestation_affiliation'=>array('Attestation UFSC','text'),
                 'num_affiliation'=>array('N° Affiliation','text'),
                 'quota_licences'=>array('Quota licences','number'),
-                'statut'=>array('Statut','licence_status'),
+                // Status selector for clubs
+                'statut'=>array('Status','licence_status'),
                 'date_creation'=>array('Date création','date'),
                 'responsable_id'=>array('User ID responsable','number'),
                 'precision_distribution'=>array('Précision distribution','text'),
@@ -104,7 +111,11 @@ class UFSC_SQL {
                 'assurance_assistance'=>array('Assurance assistance','bool'),
                 'note'=>array('Note','textarea'),
                 'region'=>array('Région','region'),
-                'statut'=>array('Statut','licence_status'),
+                // Licence status selector
+                'statut'=>array('Status','licence_status'),
+                // Whether the licence has been paid
+                'paid'=>array('Payée','bool'),
+                // Flag to mark licence as consuming included quota
                 'is_included'=>array('Incluse dans quota','bool'),
                 'date_inscription'=>array('Date inscription','date'),
                 'responsable_id'=>array('User ID responsable','number'),

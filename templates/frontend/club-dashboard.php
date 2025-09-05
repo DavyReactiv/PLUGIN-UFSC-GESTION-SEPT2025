@@ -35,7 +35,8 @@ $stats_age     = $ufsc_stats->get_age_group_counts();
                             <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
                             <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
                             <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
-                            <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" />
+                            <input type="hidden" name="MAX_FILE_SIZE" value="5242880" />
+                            <input type="file" name="profile_photo" accept=".jpg,.png,.webp" />
                             <button type="submit" class="button ufsc-upload-photo"><?php esc_html_e( 'Changer la photo', 'ufsc-clubs' ); ?></button>
                         </form>
                     <?php endif; ?>
@@ -45,7 +46,8 @@ $stats_age     = $ufsc_stats->get_age_group_counts();
                     <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
                     <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
                     <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
-                    <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" />
+                    <input type="hidden" name="MAX_FILE_SIZE" value="5242880" />
+                    <input type="file" name="profile_photo" accept=".jpg,.png,.webp" />
                     <button type="submit" class="button ufsc-upload-photo"><?php esc_html_e( 'Ajouter une photo', 'ufsc-clubs' ); ?></button>
                 </form>
             <?php endif; ?>
@@ -104,10 +106,6 @@ $stats_age     = $ufsc_stats->get_age_group_counts();
                     <option value="1"><?php echo esc_html__( 'Compétition', 'ufsc-clubs' ); ?></option>
                     <option value="0"><?php echo esc_html__( 'Loisir', 'ufsc-clubs' ); ?></option>
                 </select>
-                <label class="ufsc-filter-checkbox-label">
-                    <input type="checkbox" id="filter-drafts" class="ufsc-filter-checkbox" />
-                    <?php echo esc_html__( 'Afficher seulement les brouillons', 'ufsc-clubs' ); ?>
-                </label>
                 <button id="btn-export-csv" class="ufsc-btn ufsc-btn-secondary">
                     <span class="dashicons dashicons-download" aria-hidden="true"></span>
                     <?php echo esc_html__( 'Export CSV', 'ufsc-clubs' ); ?>
@@ -115,31 +113,32 @@ $stats_age     = $ufsc_stats->get_age_group_counts();
             </div>
         </div>
 
-        <!-- // UFSC: KPIs selon les exigences (Validées, Payées, En attente, Refusées) -->
+                
+        <!-- Updated KPI grid -->
         <div class="ufsc-grid ufsc-kpi-grid" id="ufsc-kpi-grid" aria-live="polite" role="region" aria-label="<?php echo esc_attr__( 'Statistiques des licences', 'ufsc-clubs' ); ?>">
-            <div class="ufsc-card ufsc-kpi-card -validees">
-                <div class="ufsc-kpi-value" id="kpi-licences-validees" aria-live="polite">
+            <div class="ufsc-card ufsc-kpi-card -active">
+                <div class="ufsc-kpi-value" id="kpi-licences-active" aria-live="polite">
                     <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
                 </div>
-                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Licences Validées', 'ufsc-clubs' ); ?></div>
+                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Active', 'ufsc-clubs' ); ?></div>
             </div>
-            <div class="ufsc-card ufsc-kpi-card -payees">
-                <div class="ufsc-kpi-value" id="kpi-licences-payees" aria-live="polite">
+            <div class="ufsc-card ufsc-kpi-card -pending">
+                <div class="ufsc-kpi-value" id="kpi-licences-pending" aria-live="polite">
                     <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
                 </div>
-                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Payées (en cours)', 'ufsc-clubs' ); ?></div>
+                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Pending', 'ufsc-clubs' ); ?></div>
             </div>
-            <div class="ufsc-card ufsc-kpi-card -attente">
-                <div class="ufsc-kpi-value" id="kpi-licences-attente" aria-live="polite">
+            <div class="ufsc-card ufsc-kpi-card -draft">
+                <div class="ufsc-kpi-value" id="kpi-licences-draft" aria-live="polite">
                     <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
                 </div>
-                <div class="ufsc-kpi-label"><?php echo esc_html__( 'En attente', 'ufsc-clubs' ); ?></div>
+                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Draft', 'ufsc-clubs' ); ?></div>
             </div>
-            <div class="ufsc-card ufsc-kpi-card -rejected">
-                <div class="ufsc-kpi-value" id="kpi-licences-rejected" aria-live="polite">
+            <div class="ufsc-card ufsc-kpi-card -expired">
+                <div class="ufsc-kpi-value" id="kpi-licences-expired" aria-live="polite">
                     <div class="ufsc-loading"><?php echo esc_html__( 'Chargement...', 'ufsc-clubs' ); ?></div>
                 </div>
-                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Refusées', 'ufsc-clubs' ); ?></div>
+                <div class="ufsc-kpi-label"><?php echo esc_html__( 'Expired', 'ufsc-clubs' ); ?></div>
             </div>
         </div>
     </div>
