@@ -47,6 +47,7 @@ require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-clubs-list-table
 require_once UFSC_CL_DIR.'includes/admin/class-ufsc-club-metaboxes.php';
 
 require_once UFSC_CL_DIR.'includes/front/class-ufsc-stats.php';
+require_once UFSC_CL_DIR.'includes/front/class-ufsc-licence-form.php';
 
 
 // New frontend layer components
