@@ -158,10 +158,10 @@
 
         // // UFSC: Update KPI displays according to new status structure
         updateKPIs: function(data) {
-            $('#kpi-licences-validees').text(data.licences_validees || '-');
-            $('#kpi-licences-payees').text(data.licences_payees || '-');
-            $('#kpi-licences-attente').text(data.licences_attente || '-');
-            $('#kpi-licences-rejected').text(data.licences_rejected || '-');
+            $('#kpi-licences-active').text(data.licences_active || '-');
+            $('#kpi-licences-pending').text(data.licences_pending || '-');
+            $('#kpi-licences-draft').text(data.licences_draft || '-');
+            $('#kpi-licences-expired').text(data.licences_expired || '-');
 
             var kpiGrid = $('#ufsc-kpi-grid');
             // Remove previously generated KPI cards for sex and age
@@ -218,7 +218,6 @@
         loadRecentLicences: function() {
             var self = this;
             var filters = this.getCurrentFilters();
-            filters.drafts_only = $('#filter-drafts').is(':checked') ? 1 : 0;
             var cacheKey = 'recent_licences_' + this.config.club_id + '_' + JSON.stringify(filters);
 
             if (this.isCacheValid(cacheKey)) {
@@ -264,18 +263,24 @@
             });
 
             html += '</tbody></table>';
-            html += '<p class="ufsc-table-note">Utilisez le filtre « Afficher seulement les brouillons » pour ne voir que ces licences.</p>';
             container.html(html);
         },
 
         // // UFSC: Render status badge
         renderStatusBadge: function(statut) {
+            var map = {
+                'brouillon': 'draft',
+                'non_payee': 'pending',
+                'payee': 'pending',
+                'validee': 'active',
+                'rejected': 'expired'
+            };
+            statut = map[statut] || statut;
             var badges = {
-                'brouillon': '<span class="ufsc-badge -draft">Brouillon</span>',
-                'non_payee': '<span class="ufsc-badge -pending">En attente</span>',
-                'payee': '<span class="ufsc-badge -pending">⏳ Payée (en cours)</span>',
-                'validee': '<span class="ufsc-badge -ok">✅ Validée</span>',
-                'rejected': '<span class="ufsc-badge -rejected">Refusée</span>'
+                'draft': '<span class="ufsc-badge -draft">draft</span>',
+                'pending': '<span class="ufsc-badge -pending">pending</span>',
+                'active': '<span class="ufsc-badge -ok">active</span>',
+                'expired': '<span class="ufsc-badge -expired">expired</span>'
             };
             return badges[statut] || '<span class="ufsc-badge">' + statut + '</span>';
         },
@@ -283,20 +288,26 @@
         // // UFSC: Render license actions based on status
         renderLicenceActions: function(licence) {
             var actions = [];
-            var editableStatuses = ['brouillon', 'non_payee', 'rejected'];
-            var deletableStatuses = ['brouillon', 'non_payee'];
+            var statusMap = {
+                'brouillon': 'draft',
+                'non_payee': 'pending',
+                'rejected': 'expired'
+            };
+            var status = statusMap[licence.statut] || licence.statut;
+            var editableStatuses = ['draft', 'pending', 'expired'];
+            var deletableStatuses = ['draft', 'pending'];
             var adminPostUrl = this.config.ajax_url ? this.config.ajax_url.replace('admin-ajax.php', 'admin-post.php') : 'admin-post.php';
 
             // View action (always available)
             actions.push('<a href="?view_licence=' + licence.id + '" class="ufsc-btn ufsc-btn-small">Consulter</a>');
 
             // Edit action (conditionally available)
-            if (editableStatuses.includes(licence.statut)) {
+            if (editableStatuses.includes(status)) {
                 actions.push('<a href="?edit_licence=' + licence.id + '" class="ufsc-btn ufsc-btn-small">Modifier</a>');
             }
 
             // Delete action (conditionally available)
-            if (deletableStatuses.includes(licence.statut)) {
+            if (deletableStatuses.includes(status)) {
                 actions.push(
                     '<form method="post" action="' + adminPostUrl + '" class="ufsc-delete-licence-form" style="display:inline">' +
                     '<input type="hidden" name="action" value="ufsc_delete_licence">' +
@@ -741,16 +752,16 @@
             if (stats.evolution) {
                 var evolHtml = '';
                 evolHtml += '<div class="ufsc-evolution-item">';
-                evolHtml += '<span class="ufsc-evolution-label">Nouveaux brouillons</span>';
-                evolHtml += '<span class="ufsc-evolution-value">' + (stats.evolution.nouveaux_brouillons || 0) + '</span>';
+                evolHtml += '<span class="ufsc-evolution-label">New draft</span>';
+                evolHtml += '<span class="ufsc-evolution-value">' + (stats.evolution.draft || 0) + '</span>';
                 evolHtml += '</div>';
                 evolHtml += '<div class="ufsc-evolution-item">';
-                evolHtml += '<span class="ufsc-evolution-label">Nouveaux payés</span>';
-                evolHtml += '<span class="ufsc-evolution-value">' + (stats.evolution.nouveaux_payes || 0) + '</span>';
+                evolHtml += '<span class="ufsc-evolution-label">New pending</span>';
+                evolHtml += '<span class="ufsc-evolution-value">' + (stats.evolution.pending || 0) + '</span>';
                 evolHtml += '</div>';
                 evolHtml += '<div class="ufsc-evolution-item">';
-                evolHtml += '<span class="ufsc-evolution-label">Nouveaux validés</span>';
-                evolHtml += '<span class="ufsc-evolution-value">' + (stats.evolution.nouveaux_valides || 0) + '</span>';
+                evolHtml += '<span class="ufsc-evolution-label">New active</span>';
+                evolHtml += '<span class="ufsc-evolution-value">' + (stats.evolution.active || 0) + '</span>';
                 evolHtml += '</div>';
                 $('#stats-evolution').html(evolHtml);
             }
