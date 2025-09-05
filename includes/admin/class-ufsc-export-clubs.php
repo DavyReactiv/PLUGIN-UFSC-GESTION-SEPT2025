@@ -91,7 +91,7 @@ class UFSC_Export_Clubs {
         fputcsv( $out, $cols );
         if ( $rows ) {
             foreach ( $rows as $r ) {
-                fputcsv( $out, $r );
+                fputcsv( $out, array_map( fn( $c ) => $r[ $c ] ?? '', $cols ) );
             }
         }
         fclose( $out );
