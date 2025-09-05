@@ -493,6 +493,13 @@ class UFSC_Unified_Handlers {
             self::store_form_and_redirect( $_POST, array( $data->get_error_message() ), $licence_id );
         }
 
+        if ( isset( $_POST['ufsc_submit_action'] ) && 'add_to_cart' === $_POST['ufsc_submit_action'] ) {
+            $validation = UFSC_Licence_Form::validate_names_for_cart( $data );
+            if ( is_wp_error( $validation ) ) {
+                self::store_form_and_redirect( $_POST, array( $validation->get_error_message() ), $licence_id );
+            }
+        }
+
         $result = self::save_licence_data( $licence_id, $club_id, $data );
         if ( is_wp_error( $result ) ) {
             self::store_form_and_redirect( $_POST, array( $result->get_error_message() ), $licence_id );
@@ -674,7 +681,7 @@ class UFSC_Unified_Handlers {
         $data = array();
         
         // Required fields
-        $required_fields = array( 'prenom', 'nom', 'email' );
+        $required_fields = array( 'email' );
         foreach ( $required_fields as $field ) {
             if ( empty( $post_data[$field] ) ) {
                 $errors[] = sprintf( __( 'Le champ %s est requis', 'ufsc-clubs' ), $field );
@@ -692,6 +699,8 @@ class UFSC_Unified_Handlers {
         
         // Optional fields with sanitization
         $optional_fields = array(
+            'prenom' => 'sanitize_text_field',
+            'nom' => 'sanitize_text_field',
             'telephone' => 'sanitize_text_field',
             'adresse' => 'sanitize_textarea_field',
             'date_naissance' => 'sanitize_text_field',
@@ -722,7 +731,8 @@ class UFSC_Unified_Handlers {
             'infos_partenaires',
             'honorabilite',
             'assurance_dommage_corporel',
-            'assurance_assistance'
+            'assurance_assistance',
+            'is_included'
         );
 
         foreach ( $boolean_fields as $field ) {

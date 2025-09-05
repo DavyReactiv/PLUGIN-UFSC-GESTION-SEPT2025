@@ -6,15 +6,23 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
     <input type="hidden" name="action" value="ufsc_save_licence" />
     <?php wp_nonce_field( 'ufsc_save_licence' ); ?>
     <input type="hidden" name="licence_id" value="<?php echo isset( $licence->id ) ? intval( $licence->id ) : 0; ?>" />
+    <?php
+    $wc_settings    = ufsc_get_woocommerce_settings();
+    $included_limit = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
+    $included_count = UFSC_Licence_Form::get_included_count();
+    ?>
+    <input type="hidden" id="included_count" value="<?php echo esc_attr( $included_count ); ?>" />
+    <input type="hidden" id="included_limit" value="<?php echo esc_attr( $included_limit ); ?>" />
+    <input type="hidden" name="ufsc_submit_action" id="ufsc_submit_action" value="save" />
 
     <div class="ufsc-grid">
         <div class="ufsc-field">
             <label for="prenom"><?php esc_html_e( 'Pr\u00e9nom', 'ufsc-clubs' ); ?></label>
-            <input type="text" id="prenom" name="prenom" value="<?php echo esc_attr( $licence->prenom ?? '' ); ?>" required />
+            <input type="text" id="prenom" name="prenom" value="<?php echo esc_attr( $licence->prenom ?? '' ); ?>" />
         </div>
         <div class="ufsc-field">
             <label for="nom"><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></label>
-            <input type="text" id="nom" name="nom" value="<?php echo esc_attr( $licence->nom ?? '' ); ?>" required />
+            <input type="text" id="nom" name="nom" value="<?php echo esc_attr( $licence->nom ?? '' ); ?>" />
         </div>
         <div class="ufsc-field">
             <label for="email">Email</label>
@@ -56,10 +64,16 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
             <label for="note"><?php esc_html_e( 'Note', 'ufsc-clubs' ); ?></label>
             <textarea id="note" name="note" rows="3"><?php echo esc_textarea( $licence->note ?? '' ); ?></textarea>
         </div>
+        <div class="ufsc-field">
+            <label class="ufsc-checkbox"><input type="checkbox" id="is_included" name="is_included" value="1" <?php checked( $licence->is_included ?? 0, 1 ); ?> /> <?php esc_html_e( 'Inclure dans quota', 'ufsc-clubs' ); ?></label>
+        </div>
     </div>
     <div class="ufsc-form-actions">
-        <button type="submit" class="ufsc-btn ufsc-btn-primary">
-            <?php echo isset( $licence->id ) && $licence->id ? esc_html__( 'Mettre \u00e0 jour', 'ufsc-clubs' ) : esc_html__( 'Cr\u00e9er', 'ufsc-clubs' ); ?>
+        <button type="submit" class="ufsc-btn ufsc-btn-primary" onclick="document.getElementById('ufsc_submit_action').value='save';">
+            <?php esc_html_e( 'Enregistrer', 'ufsc-clubs' ); ?>
+        </button>
+        <button type="submit" class="ufsc-btn ufsc-btn-secondary" onclick="document.getElementById('ufsc_submit_action').value='add_to_cart';">
+            <?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?>
         </button>
     </div>
 </form>
