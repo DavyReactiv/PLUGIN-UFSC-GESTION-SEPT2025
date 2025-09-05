@@ -10,10 +10,10 @@ class UFSC_SQL {
             'pk_licence'      => 'id',
             // Supported licence statuses
             'status_values'   => array(
-                'draft'   => 'Draft',
-                'pending' => 'Pending',
-                'active'  => 'Active',
-                'expired' => 'Expired',
+                'en_attente' => 'En attente',
+                'a_regler'   => 'À régler',
+                'valide'     => 'Validé',
+                'desactive'  => 'Désactivé',
             ),
             'club_fields' => array(
                 'nom'=>array('Nom du club','text'),
@@ -163,7 +163,7 @@ class UFSC_SQL {
         $settings       = self::get_settings();
         $licences_table = $settings['table_licences'];
 
-        $statuses      = array( 'draft', 'pending', 'active' );
+        $statuses      = array( 'en_attente', 'a_regler', 'valide' );
         $placeholders  = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
         $query_args    = array_merge( array( $club_id ), $statuses );
         $query         = $wpdb->prepare(

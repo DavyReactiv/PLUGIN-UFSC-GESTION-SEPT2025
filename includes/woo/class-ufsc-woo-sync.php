@@ -161,8 +161,13 @@ class UFSC_Woo_Sync {
 
         global $wpdb;
         $licences_table = ufsc_get_licences_table();
+        $status_col     = function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'statut' ) : 'statut';
+        $paid_col       = function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'paid' ) : 'paid';
 
-        $licence = $wpdb->get_row( $wpdb->prepare( "SELECT club_id, is_included, status FROM {$licences_table} WHERE id = %d", $licence_id ), ARRAY_A );
+        $licence = $wpdb->get_row(
+            $wpdb->prepare( "SELECT club_id, is_included, {$status_col} AS statut FROM {$licences_table} WHERE id = %d", $licence_id ),
+            ARRAY_A
+        );
         if ( ! $licence ) {
             return;
         }
@@ -170,8 +175,8 @@ class UFSC_Woo_Sync {
         $wpdb->update(
             $licences_table,
             array(
-                'status' => 'active',
-                'paid'   => 1,
+                $status_col => 'valide',
+                $paid_col   => 1,
             ),
             array( 'id' => $licence_id ),
             array( '%s', '%d' ),
@@ -180,7 +185,7 @@ class UFSC_Woo_Sync {
 
         $club_id     = (int) $licence['club_id'];
         $is_included = ! empty( $licence['is_included'] );
-        $was_active  = ( 'active' === $licence['status'] );
+        $was_active  = ( 'valide' === $licence['statut'] );
 
         if ( $club_id && $is_included && ! $was_active ) {
             $clubs_table = ufsc_get_clubs_table();
@@ -200,15 +205,20 @@ class UFSC_Woo_Sync {
 
         global $wpdb;
         $licences_table = ufsc_get_licences_table();
+        $status_col     = function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'statut' ) : 'statut';
+        $paid_col       = function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'paid' ) : 'paid';
 
-        $licence = $wpdb->get_row( $wpdb->prepare( "SELECT club_id, is_included, status FROM {$licences_table} WHERE id = %d", $licence_id ), ARRAY_A );
+        $licence = $wpdb->get_row(
+            $wpdb->prepare( "SELECT club_id, is_included, {$status_col} AS statut FROM {$licences_table} WHERE id = %d", $licence_id ),
+            ARRAY_A
+        );
         if ( ! $licence ) {
             return;
         }
 
         $wpdb->update(
             $licences_table,
-            array( 'status' => 'pending', 'paid' => 0 ),
+            array( $status_col => 'en_attente', $paid_col => 0 ),
             array( 'id' => $licence_id ),
             array( '%s', '%d' ),
             array( '%d' )
@@ -216,7 +226,7 @@ class UFSC_Woo_Sync {
 
         $club_id     = (int) $licence['club_id'];
         $is_included = ! empty( $licence['is_included'] );
-        $was_active  = ( 'active' === $licence['status'] );
+        $was_active  = ( 'valide' === $licence['statut'] );
 
         if ( $club_id && $is_included && $was_active ) {
             $clubs_table = ufsc_get_clubs_table();
