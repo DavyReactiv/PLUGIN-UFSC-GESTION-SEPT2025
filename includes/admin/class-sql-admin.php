@@ -264,11 +264,11 @@ class UFSC_SQL_Admin {
                 echo '<option value="'.esc_attr($r).'" '.selected($val,$r,false).'>'.esc_html($r).'</option>';
             }
             echo '</select>';
-        } elseif ( $type === 'licence_status' ){
+        } elseif ( in_array( $type, array( 'licence_status', 'club_status' ), true ) ) {
             $st = UFSC_SQL::statuses();
-            echo '<select name="'.esc_attr($k).'" '.$disabled_attr.'>';
-            foreach( $st as $sv=>$sl ){
-                echo '<option value="'.esc_attr($sv).'" '.selected($val,$sv,false).'>'.esc_html($sl).'</option>';
+            echo '<select name="' . esc_attr( $k ) . '" ' . $disabled_attr . '>';
+            foreach ( $st as $sv => $sl ) {
+                echo '<option value="' . esc_attr( $sv ) . '" ' . selected( $val, $sv, false ) . '>' . esc_html( $sl ) . '</option>';
             }
             echo '</select>';
         } else {
@@ -396,10 +396,12 @@ class UFSC_SQL_Admin {
         $fields = UFSC_SQL::get_club_fields();
 
         $data = array();
-        foreach( $fields as $k=>$conf ){
-            $data[$k] = isset($_POST[$k]) ? sanitize_text_field($_POST[$k]) : null;
+        foreach ( $fields as $k => $conf ) {
+            $data[ $k ] = isset( $_POST[ $k ] ) ? sanitize_text_field( $_POST[ $k ] ) : null;
         }
-        if ( empty($data['statut']) ){
+
+        $allowed_statuses = array_keys( UFSC_SQL::statuses() );
+        if ( ! in_array( $data['statut'], $allowed_statuses, true ) ) {
             $data['statut'] = 'en_attente';
         }
 
