@@ -1006,6 +1006,7 @@ class UFSC_SQL_Admin {
         $pk = $s['pk_licence'];
         $fields = UFSC_SQL::get_licence_fields();
         $row = $id ? $wpdb->get_row( $wpdb->prepare("SELECT * FROM `$t` WHERE `$pk`=%d", $id) ) : null;
+        $current_club_id = $row ? (int) $row->club_id : 0;
 
         if ( $readonly ) {
             echo '<h1>'.( $id ? esc_html__('Consulter la licence','ufsc-clubs') : esc_html__('Nouvelle licence','ufsc-clubs') ).'</h1>';
@@ -1051,7 +1052,7 @@ class UFSC_SQL_Admin {
         echo '<div class="ufsc-grid">';
         foreach ( $fields as $k=>$conf ){
             $val = $row ? ( isset($row->$k) ? $row->$k : '' ) : '';
-            self::render_field_licence($k,$conf,$val, $readonly);
+            self::render_field_licence( $k, $conf, $val, $readonly, $current_club_id );
         }
         echo '</div>';
         
@@ -1079,11 +1080,15 @@ class UFSC_SQL_Admin {
         }
     }
 
-    private static function render_field_licence($k,$conf,$val, $readonly = false){
+    private static function render_field_licence( $k, $conf, $val, $readonly = false, $club_id = 0 ){
         $label = $conf[0];
         $type  = $conf[1];
         $readonly_attr = $readonly ? 'readonly disabled' : '';
         $disabled_attr = $readonly ? 'disabled' : '';
+        if ( $readonly && current_user_can( 'manage_options' ) ) {
+            $readonly_attr = '';
+            $disabled_attr = '';
+        }
         
         echo '<div class="ufsc-field"><label>'.esc_html($label).'</label>';
         
@@ -1137,6 +1142,15 @@ class UFSC_SQL_Admin {
             echo '</select>';
         } elseif ( $type === 'bool' ){
             echo '<select name="'.esc_attr($k).'" '.$disabled_attr.'><option value="0" '.selected($val,'0',false).'>Non</option><option value="1" '.selected($val,'1',false).'>Oui</option></select>';
+            if ( 'is_included' === $k && $club_id ) {
+                global $wpdb;
+                $settings    = UFSC_SQL::get_settings();
+                $clubs_table = $settings['table_clubs'];
+                $quota_col   = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'quota_licences' ) : 'quota_licences';
+                $included    = UFSC_SQL::count_included_licences( $club_id );
+                $quota_total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT {$quota_col} FROM `{$clubs_table}` WHERE id = %d", $club_id ) );
+                echo '<span class="description"> ' . esc_html( $included . ' / ' . $quota_total ) . '</span>';
+            }
         } elseif ( $type === 'sex' ){
             if ( $readonly ) {
                 echo '<span>'.esc_html($val === 'M' ? 'M' : ($val === 'F' ? 'F' : '')).'</span>';
@@ -1216,7 +1230,29 @@ class UFSC_SQL_Admin {
             }
         }
         if ( empty($data['statut']) ){
-            $data['statut'] = 'en_attente';
+            $data['statut'] = 'draft';
+        }
+
+        // Validate included quota if checkbox is set
+        if ( ! empty( $data['is_included'] ) ) {
+            $current_included = UFSC_SQL::count_included_licences( $club_id );
+            $clubs_table = $s['table_clubs'];
+            $quota_col   = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'quota_licences' ) : 'quota_licences';
+            $quota_total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT {$quota_col} FROM `{$clubs_table}` WHERE id = %d", $club_id ) );
+            if ( $quota_total > 0 ) {
+                // exclude current licence if already included
+                if ( $id ) {
+                    $was_included = (int) $wpdb->get_var( $wpdb->prepare( "SELECT is_included FROM `{$t}` WHERE `{$pk}` = %d", $id ) );
+                    if ( $was_included ) {
+                        $current_included--;
+                    }
+                }
+                if ( $current_included >= $quota_total ) {
+                    $error_message = __( 'Quota de licences incluses atteint', 'ufsc-clubs' );
+                    wp_safe_redirect( admin_url( 'admin.php?page=ufsc-sql-licences&action=' . ( $id ? 'edit&id=' . $id : 'new' ) . '&error=' . urlencode( $error_message ) ) );
+                    exit;
+                }
+            }
         }
 
         // Validation des données
