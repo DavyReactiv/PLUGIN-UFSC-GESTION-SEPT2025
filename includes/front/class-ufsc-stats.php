@@ -45,10 +45,10 @@ class UFSC_Stats {
      */
     public function get_gender_counts() {
         $sql = "SELECT gender, COUNT(*) AS total FROM {$this->table}
-                WHERE ( status = %s OR paid = %d )
+                WHERE status = %s
                 GROUP BY gender";
 
-        $prepared = $this->wpdb->prepare( $sql, 'active', 1 );
+        $prepared = $this->wpdb->prepare( $sql, 'active' );
         return $this->wpdb->get_results( $prepared, ARRAY_A );
     }
 
@@ -61,10 +61,10 @@ class UFSC_Stats {
      */
     public function get_practice_counts() {
         $sql = "SELECT practice, COUNT(*) AS total FROM {$this->table}
-                WHERE ( status = %s OR paid = %d )
+                WHERE status = %s
                 GROUP BY practice";
 
-        $prepared = $this->wpdb->prepare( $sql, 'active', 1 );
+        $prepared = $this->wpdb->prepare( $sql, 'active' );
         return $this->wpdb->get_results( $prepared, ARRAY_A );
     }
 
@@ -86,12 +86,12 @@ class UFSC_Stats {
                         ELSE '60+'
                     END AS age_group
                     FROM {$this->table}
-                    WHERE ( status = %s OR paid = %d )
+                    WHERE status = %s
                       AND birthdate IS NOT NULL
                 ) AS derived
                 GROUP BY age_group";
 
-        $prepared = $this->wpdb->prepare( $sql, 'active', 1 );
+        $prepared = $this->wpdb->prepare( $sql, 'active' );
         return $this->wpdb->get_results( $prepared, ARRAY_A );
     }
 
@@ -133,11 +133,11 @@ class UFSC_Stats {
         // Paid distribution
         $paid_rows = $wpdb->get_results( "SELECT paid, COUNT(*) AS count FROM `{$table}` WHERE {$where} GROUP BY paid" );
         $paid_counts = array();
-        $paid_licences = 0;
+        $paid = 0;
         foreach ( $paid_rows as $row ) {
             $paid_counts[ $row->paid ] = (int) $row->count;
             if ( '1' == $row->paid || 1 === (int) $row->paid ) {
-                $paid_licences = (int) $row->count;
+                $paid = (int) $row->count;
             }
         }
 
@@ -162,20 +162,23 @@ class UFSC_Stats {
             $birth_year_counts[ $row->year ] = (int) $row->count;
         }
 
-        // Determine validated licences based on status
-        $validated_statuses = array( 'validated', 'valide', 'validée', 'validé', 'approved' );
-        $validated_licences = 0;
-        foreach ( $validated_statuses as $status ) {
-            if ( isset( $status_counts[ $status ] ) ) {
-                $validated_licences += $status_counts[ $status ];
-            }
-        }
+        // Determine validated licences based on canonical status
+        $validated = isset( $status_counts['active'] ) ? (int) $status_counts['active'] : 0;
+
+        // Quota remaining based on included active licences
+        $included_active = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM `{$table}` WHERE {$where} AND is_included = %d AND status = %s",
+            1,
+            'active'
+        ) );
+
+        $quota_remaining = max( 0, 10 - $included_active );
 
         return array(
-            'total_licences'     => $total_licences,
-            'paid_licences'      => $paid_licences,
-            'validated_licences' => $validated_licences,
-            'quota_remaining'    => max( 0, 50 - $total_licences ),
+            'total_licences'  => $total_licences,
+            'paid'            => $paid,
+            'validated'       => $validated,
+            'quota_remaining' => $quota_remaining,
             'by_status'          => $status_counts,
             'by_paid'            => $paid_counts,
             'by_gender'          => $gender_counts,
