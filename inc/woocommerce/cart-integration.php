@@ -17,9 +17,21 @@ function ufsc_init_cart_integration() {
     // Handle secure add to cart requests
     add_action( 'admin_post_ufsc_add_to_cart', 'ufsc_handle_add_to_cart_secure' );
     add_action( 'admin_post_nopriv_ufsc_add_to_cart', 'ufsc_handle_add_to_cart_secure' );
-    
+
     // Transfer meta data from cart to order
     add_action( 'woocommerce_checkout_create_order_line_item', 'ufsc_transfer_cart_meta_to_order', 10, 4 );
+
+    // Enforce single quantity for licence product
+    add_filter( 'woocommerce_quantity_input_args', 'ufsc_limit_licence_quantity', 10, 2 );
+
+    // Validate licence items on add to cart
+    add_filter( 'woocommerce_add_to_cart_validation', 'ufsc_validate_licence_cart_item', 10, 6 );
+
+    // Validate quantity changes in cart
+    add_filter( 'woocommerce_update_cart_validation', 'ufsc_validate_cart_update_quantity', 10, 4 );
+
+    // Inform users that each licence is nominative on product page
+    add_action( 'woocommerce_single_product_summary', 'ufsc_licence_nominative_notice', 25 );
 }
 
 /**
@@ -97,6 +109,82 @@ function ufsc_handle_add_to_cart_secure() {
 }
 
 /**
+ * Limit quantity input for licence product 2934 to 1.
+ *
+ * @param array      $args    Quantity input arguments.
+ * @param WC_Product $product Product object.
+ * @return array Modified arguments.
+ */
+function ufsc_limit_licence_quantity( $args, $product ) {
+    if ( $product && (int) $product->get_id() === 2934 ) {
+        $args['max_value']   = 1;
+        $args['min_value']   = 1;
+        $args['input_value'] = 1;
+    }
+    return $args;
+}
+
+/**
+ * Validate licence cart item before it is added to the cart.
+ *
+ * Ensures product 2934 is limited to quantity 1 and that ufsc_licence_id is
+ * unique in the cart.
+ *
+ * @param bool  $passed         Whether validation passed.
+ * @param int   $product_id     Product ID being added.
+ * @param int   $quantity       Quantity requested.
+ * @param int   $variation_id   Variation ID.
+ * @param array $variations     Variation data.
+ * @param array $cart_item_data Additional cart item data.
+ * @return bool Validation result.
+ */
+function ufsc_validate_licence_cart_item( $passed, $product_id, $quantity, $variation_id = 0, $variations = array(), $cart_item_data = array() ) {
+    if ( (int) $product_id === 2934 && $quantity > 1 ) {
+        wc_add_notice( __( 'Chaque licence est nominative. Vous ne pouvez en ajouter qu\'une seule à la fois.', 'ufsc-clubs' ), 'error' );
+        return false;
+    }
+
+    if ( isset( $cart_item_data['ufsc_licence_id'] ) ) {
+        $new_id = (int) $cart_item_data['ufsc_licence_id'];
+        foreach ( WC()->cart->get_cart() as $item ) {
+            if ( isset( $item['ufsc_licence_id'] ) && (int) $item['ufsc_licence_id'] === $new_id ) {
+                wc_add_notice( __( 'Chaque licence est nominative. Cette licence est déjà dans votre panier.', 'ufsc-clubs' ), 'error' );
+                return false;
+            }
+        }
+    }
+
+    return $passed;
+}
+
+/**
+ * Validate quantity updates directly in the cart.
+ *
+ * @param bool  $passed        Whether validation passed.
+ * @param string $cart_item_key Cart item key.
+ * @param array $values         Cart item values.
+ * @param int   $quantity       New quantity.
+ * @return bool
+ */
+function ufsc_validate_cart_update_quantity( $passed, $cart_item_key, $values, $quantity ) {
+    if ( (int) $values['product_id'] === 2934 && $quantity > 1 ) {
+        wc_add_notice( __( 'Chaque licence est nominative. Vous ne pouvez en ajouter qu\'une seule à la fois.', 'ufsc-clubs' ), 'error' );
+        return false;
+    }
+    return $passed;
+}
+
+/**
+ * Display UX notice on product page for licence product.
+ */
+function ufsc_licence_nominative_notice() {
+    global $product;
+    if ( $product && (int) $product->get_id() === 2934 ) {
+        echo '<p class="ufsc-licence-note">' . esc_html__( 'Chaque licence est nominative. Ajoutez-les une par une.', 'ufsc-clubs' ) . '</p>';
+    }
+}
+
+/**
  * Transfer custom meta from cart to order line items
  * 
  * @param WC_Order_Item_Product $item Order line item
@@ -170,18 +258,17 @@ function ufsc_display_cart_item_data( $item_data, $cart_item ) {
         );
     }
 
-    // Display personal data
-    if ( isset( $cart_item['ufsc_nom'] ) ) {
-        $item_data[] = array(
-            'key'   => __( 'Nom', 'ufsc-clubs' ),
-            'value' => sanitize_text_field( $cart_item['ufsc_nom'] ),
-        );
-    }
-    if ( isset( $cart_item['ufsc_prenom'] ) ) {
-        $item_data[] = array(
-            'key'   => __( 'Prénom', 'ufsc-clubs' ),
-            'value' => sanitize_text_field( $cart_item['ufsc_prenom'] ),
-        );
+    // Display holder full name
+    if ( isset( $cart_item['ufsc_nom'] ) || isset( $cart_item['ufsc_prenom'] ) ) {
+        $nom    = isset( $cart_item['ufsc_nom'] ) ? sanitize_text_field( $cart_item['ufsc_nom'] ) : '';
+        $prenom = isset( $cart_item['ufsc_prenom'] ) ? sanitize_text_field( $cart_item['ufsc_prenom'] ) : '';
+        $full   = trim( $nom . ' ' . $prenom );
+        if ( $full ) {
+            $item_data[] = array(
+                'key'   => __( 'Titulaire', 'ufsc-clubs' ),
+                'value' => $full,
+            );
+        }
     }
     if ( isset( $cart_item['ufsc_date_naissance'] ) && $cart_item['ufsc_date_naissance'] ) {
         $item_data[] = array(
@@ -281,40 +368,21 @@ function ufsc_apply_included_quota_to_cart( $cart ) {
         return;
     }
 
-    $settings           = ufsc_get_woocommerce_settings();
-    $licence_product_id = (int) $settings['product_license_id'];
-    $club_remaining     = array();
-
+    $count = 0;
     foreach ( $cart->get_cart() as $key => $item ) {
-        if ( (int) $item['product_id'] !== $licence_product_id ) {
+        if ( empty( $item['is_included'] ) ) {
             continue;
         }
 
-        $club_id = $item['ufsc_club_id'] ?? ufsc_get_user_club_id( get_current_user_id() );
-        if ( ! $club_id ) {
-            continue;
-        }
-
-        if ( ! isset( $club_remaining[ $club_id ] ) ) {
-            $club_remaining[ $club_id ] = 0;
-            if ( function_exists( 'ufsc_get_clubs_table' ) ) {
-                global $wpdb;
-                $clubs_table = ufsc_get_clubs_table();
-                $quota = (int) $wpdb->get_var(
-                    $wpdb->prepare( "SELECT included_quota FROM {$clubs_table} WHERE id = %d", $club_id )
-                );
-                $used  = (int) $wpdb->get_var(
-                    $wpdb->prepare( "SELECT included_quota_used FROM {$clubs_table} WHERE id = %d", $club_id )
-                );
-                $club_remaining[ $club_id ] = max( 0, $quota - $used );
-            }
-        }
-
-        if ( $club_remaining[ $club_id ] > 0 ) {
-            $item['data']->set_price( 0 );
+        $product = $item['data'];
+        if ( $count < 10 ) {
+            $product->set_price( 0 );
             $cart->cart_contents[ $key ]['ufsc_consumes_included'] = 1;
-            $club_remaining[ $club_id ]--;
+        } else {
+            $product->set_price( $product->get_regular_price() );
+            $cart->cart_contents[ $key ]['ufsc_consumes_included'] = 0;
         }
+        $count++;
     }
 }
 
