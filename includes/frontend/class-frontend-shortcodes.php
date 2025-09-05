@@ -200,7 +200,6 @@ class UFSC_Frontend_Shortcodes {
             'club_id' => 0,
             'per_page' => 20,
             'page' => 1,
-            'status' => '',
             'search' => '',
             'sort' => 'created_desc'
         ), $atts );
@@ -218,9 +217,6 @@ class UFSC_Frontend_Shortcodes {
         // Handle pagination and filters from URL
         if ( isset( $_GET['ufsc_page'] ) ) {
             $atts['page'] = max( 1, intval( $_GET['ufsc_page'] ) );
-        }
-        if ( isset( $_GET['ufsc_status'] ) ) {
-            $atts['status'] = sanitize_text_field( $_GET['ufsc_status'] );
         }
         if ( isset( $_GET['ufsc_search'] ) ) {
             $atts['search'] = sanitize_text_field( $_GET['ufsc_search'] );
@@ -296,28 +292,9 @@ class UFSC_Frontend_Shortcodes {
                     <div class="ufsc-notices" aria-live="polite"></div>
                     <div class="ufsc-filter-group">
                         <label for="ufsc_search"><?php esc_html_e( 'Recherche:', 'ufsc-clubs' ); ?></label>
-                        <input type="text" id="ufsc_search" name="ufsc_search" 
+                        <input type="text" id="ufsc_search" name="ufsc_search"
                                value="<?php echo esc_attr( $atts['search'] ); ?>"
                                placeholder="<?php esc_attr_e( 'Nom, prénom, email...', 'ufsc-clubs' ); ?>">
-                    </div>
-                    
-                    <div class="ufsc-filter-group">
-                        <label for="ufsc_status"><?php esc_html_e( 'Statut:', 'ufsc-clubs' ); ?></label>
-                        <select id="ufsc_status" name="ufsc_status">
-                            <option value=""><?php esc_html_e( 'Tous', 'ufsc-clubs' ); ?></option>
-                            <option value="brouillon" <?php selected( $atts['status'], 'brouillon' ); ?>>
-                                <?php esc_html_e( 'Brouillon', 'ufsc-clubs' ); ?>
-                            </option>
-                            <option value="paid" <?php selected( $atts['status'], 'paid' ); ?>>
-                                <?php esc_html_e( 'Payée', 'ufsc-clubs' ); ?>
-                            </option>
-                            <option value="validated" <?php selected( $atts['status'], 'validated' ); ?>>
-                                <?php esc_html_e( 'Validée', 'ufsc-clubs' ); ?>
-                            </option>
-                            <option value="applied" <?php selected( $atts['status'], 'applied' ); ?>>
-                                <?php esc_html_e( 'Appliquée', 'ufsc-clubs' ); ?>
-                            </option>
-                        </select>
                     </div>
 
                     <div class="ufsc-filter-group">
@@ -341,7 +318,7 @@ class UFSC_Frontend_Shortcodes {
                     <button type="submit" class="ufsc-btn ufsc-btn-primary">
                         <?php esc_html_e( 'Filtrer', 'ufsc-clubs' ); ?>
                     </button>
-                    
+
                     <a href="?" class="ufsc-btn ufsc-btn-secondary">
                         <?php esc_html_e( 'Réinitialiser', 'ufsc-clubs' ); ?>
                     </a>
@@ -386,7 +363,11 @@ class UFSC_Frontend_Shortcodes {
                             <div class="ufsc-card ufsc-licence-card">
                                 <div class="ufsc-licence-card-header">
                                     <h4 class="ufsc-licence-name"><?php echo esc_html( $full_name ); ?></h4>
-                                    <?php echo UFSC_Badges::render_licence_badge( $licence->statut ?? '', array( 'custom_class' => 'ufsc-badge ufsc-badge-' . ( $licence->statut ?? 'pending' ) ) ); ?>
+                                    <?php
+                                    $badge_label = self::get_licence_status_label( $licence->statut ?? '' );
+                                    $badge_class = self::get_licence_status_badge_class( $licence->statut ?? '' );
+                                    ?>
+                                    <span class="ufsc-badge <?php echo esc_attr( $badge_class ); ?>"><?php echo esc_html( $badge_label ); ?></span>
                                 </div>
                                 <div class="ufsc-licence-meta">
                                     <?php if ( $gender ) : ?><span><?php echo esc_html( $gender ); ?></span><?php endif; ?>
@@ -395,7 +376,7 @@ class UFSC_Frontend_Shortcodes {
                                 </div>
                                 <div class="ufsc-licence-actions">
                                     <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
-                                    <?php if ( 'pending' === ( $licence->statut ?? '' ) ) : ?>
+                                    <?php if ( in_array( $licence->statut ?? '', array( 'draft', 'pending' ), true ) ) : ?>
                                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
                                     <?php endif; ?>
                                 </div>
@@ -410,7 +391,6 @@ class UFSC_Frontend_Shortcodes {
                 <div class="ufsc-pagination">
                     <?php 
                     echo self::render_pagination( $atts['page'], $total_pages, array(
-                        'ufsc_status' => $atts['status'],
                         'ufsc_search' => $atts['search'],
                         'ufsc_sort' => $atts['sort']
                     ) );
@@ -515,7 +495,7 @@ class UFSC_Frontend_Shortcodes {
             <div class="ufsc-row-actions">
                 <?php
                 $licence_status = $licence->statut ?? '';
-                if ( 'non_payee' === $licence_status ) :
+                if ( 'pending' === $licence_status ) :
                     ?>
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
                         <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
@@ -528,7 +508,7 @@ class UFSC_Frontend_Shortcodes {
                     </form>
                 <?php endif; ?>
 
-                <?php if ( in_array( $licence_status, array( 'brouillon', 'non_payee' ), true ) ) : ?>
+                <?php if ( in_array( $licence_status, array( 'draft', 'pending' ), true ) ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>" class="ufsc-btn ufsc-btn-small">
                         <?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?>
                     </a>
@@ -1374,7 +1354,6 @@ class UFSC_Frontend_Shortcodes {
 
         $defaults = array(
             'search'   => '',
-            'status'   => '',
             'season'   => '',
             'page'     => 1,
             'per_page' => 20,
@@ -1405,17 +1384,6 @@ class UFSC_Frontend_Shortcodes {
             }
         }
 
-        // Statut
-        if ( ! empty( $args['status'] ) ) {
-            $status_col = null;
-            foreach ( array( 'status', 'statut' ) as $col ) {
-                if ( in_array( $col, $columns, true ) ) { $status_col = $col; break; }
-            }
-            if ( $status_col ) {
-                $clauses[] = "`{$status_col}` = %s";
-                $values[]  = $args['status'];
-            }
-        }
 
         // Saison
         if ( ! empty( $args['season'] ) ) {
@@ -1470,7 +1438,6 @@ class UFSC_Frontend_Shortcodes {
 
         $defaults = array(
             'search' => '',
-            'status' => '',
             'season' => '',
         );
         $args = wp_parse_args( $args, $defaults );
@@ -1496,17 +1463,6 @@ class UFSC_Frontend_Shortcodes {
             }
         }
 
-        // Statut
-        if ( ! empty( $args['status'] ) ) {
-            $status_col = null;
-            foreach ( array( 'status', 'statut' ) as $col ) {
-                if ( in_array( $col, $columns, true ) ) { $status_col = $col; break; }
-            }
-            if ( $status_col ) {
-                $clauses[] = "`{$status_col}` = %s";
-                $values[]  = $args['status'];
-            }
-        }
 
         // Saison
         if ( ! empty( $args['season'] ) ) {
@@ -1622,12 +1578,25 @@ class UFSC_Frontend_Shortcodes {
      * Get licence status label
      */
     private static function get_licence_status_label( $status ) {
+        $map = array(
+            'brouillon' => 'draft',
+            'non_payee' => 'pending',
+            'paid'      => 'pending',
+            'validated' => 'active',
+            'applied'   => 'active',
+            'rejected'  => 'expired',
+        );
+
+        $status = strtolower( $status );
+        if ( isset( $map[ $status ] ) ) {
+            $status = $map[ $status ];
+        }
+
         $labels = array(
-            'brouillon' => __( 'Brouillon', 'ufsc-clubs' ),
-            'paid' => __( 'Payée', 'ufsc-clubs' ),
-            'validated' => __( 'Validée', 'ufsc-clubs' ),
-            'applied' => __( 'Appliquée', 'ufsc-clubs' ),
-            'rejected' => __( 'Refusée', 'ufsc-clubs' )
+            'draft'   => __( 'draft', 'ufsc-clubs' ),
+            'pending' => __( 'pending', 'ufsc-clubs' ),
+            'active'  => __( 'active', 'ufsc-clubs' ),
+            'expired' => __( 'expired', 'ufsc-clubs' ),
         );
 
         return $labels[ $status ] ?? $status;
@@ -1637,12 +1606,25 @@ class UFSC_Frontend_Shortcodes {
      * Map licence status to badge class
      */
     private static function get_licence_status_badge_class( $status ) {
+        $map = array(
+            'brouillon' => 'draft',
+            'non_payee' => 'pending',
+            'paid'      => 'pending',
+            'validated' => 'active',
+            'applied'   => 'active',
+            'rejected'  => 'expired',
+        );
+
+        $status = strtolower( $status );
+        if ( isset( $map[ $status ] ) ) {
+            $status = $map[ $status ];
+        }
+
         $classes = array(
-            'brouillon' => '-draft',
-            'paid'      => '-pending',
-            'validated' => '-ok',
-            'applied'   => '-ok',
-            'rejected'  => '-rejected',
+            'draft'   => '-draft',
+            'pending' => '-pending',
+            'active'  => '-ok',
+            'expired' => '-expired',
         );
 
         return $classes[ $status ] ?? '-draft';
@@ -2048,7 +2030,7 @@ class UFSC_Frontend_Shortcodes {
             'adresse'        => $sanitized['adresse'] ?? '',
             'ville'          => $sanitized['ville'] ?? '',
             'code_postal'    => $sanitized['code_postal'] ?? '',
-            'statut'         => 'brouillon',
+            'statut'         => 'draft',
             'date_inscription' => current_time( 'mysql' )
         );
 
