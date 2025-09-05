@@ -152,10 +152,15 @@ class UFSC_SQL {
         $settings       = self::get_settings();
         $licences_table = $settings['table_licences'];
 
-        $count = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d AND is_included = 1",
-            $club_id
-        ) );
+        $statuses      = array( 'draft', 'pending', 'active' );
+        $placeholders  = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+        $query_args    = array_merge( array( $club_id ), $statuses );
+        $query         = $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d AND is_included = 1 AND statut IN ($placeholders)",
+            $query_args
+        );
+
+        $count = (int) $wpdb->get_var( $query );
 
         return $count;
     }
