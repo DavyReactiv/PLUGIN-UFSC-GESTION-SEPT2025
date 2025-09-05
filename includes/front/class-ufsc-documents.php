@@ -37,11 +37,31 @@ class UFSC_Documents {
             wp_die( __( 'Aucun fichier fourni.', 'ufsc-clubs' ) );
         }
 
-        $file = wp_handle_upload( $_FILES['ufsc_document'], array( 'test_form' => false ) );
+        $uploaded_file = $_FILES['ufsc_document'];
+
+        $allowed_mimes = array(
+            'application/pdf',
+            'image/jpeg',
+            'image/png',
+        );
+        $max_size = 5 * 1024 * 1024; // 5MB
+
+        if ( $uploaded_file['size'] > $max_size ) {
+            wp_die( __( 'Fichier trop volumineux.', 'ufsc-clubs' ) );
+        }
+
+        $file_type = wp_check_filetype( $uploaded_file['name'] );
+        if ( empty( $file_type['type'] ) || ! in_array( $file_type['type'], $allowed_mimes, true ) ) {
+            wp_die( __( 'Type de fichier non autorisé.', 'ufsc-clubs' ) );
+        }
+
+        $file = wp_handle_upload( $uploaded_file, array( 'test_form' => false ) );
 
         if ( isset( $file['error'] ) ) {
             wp_die( esc_html( $file['error'] ) );
         }
+
+        $file_size = (int) $uploaded_file['size'];
 
         global $wpdb;
         $table = $wpdb->prefix . 'ufsc_club_docs';
@@ -53,10 +73,12 @@ class UFSC_Documents {
                 'file_name'   => basename( $file['file'] ),
                 'file_path'   => $file['file'],
                 'file_url'    => $file['url'],
-                'mime_type'   => $file['type'],
+                'file_size'   => $file_size,
+                'mime_type'   => $file_type['type'],
+                'status'      => 'pending',
                 'uploaded_at' => current_time( 'mysql' ),
             ),
-            array( '%d', '%s', '%s', '%s', '%s', '%s' )
+            array( '%d', '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
         );
 
         wp_safe_redirect( wp_get_referer() );
@@ -94,6 +116,10 @@ class UFSC_Documents {
             wp_die( __( 'Fichier introuvable.', 'ufsc-clubs' ) );
         }
 
+        while ( ob_get_level() ) {
+            ob_end_clean();
+        }
+
         header( 'Content-Type: ' . $doc->mime_type );
         header( 'Content-Disposition: attachment; filename="' . basename( $doc->file_name ) . '"' );
         readfile( $doc->file_path );
@@ -118,9 +144,12 @@ class UFSC_Documents {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
 
+        wp_raise_memory_limit( 'admin' );
+        set_time_limit( 0 );
+
         $documents = self::get_club_documents( $club_id );
 
-        if ( ob_get_level() ) {
+        while ( ob_get_level() ) {
             ob_end_clean();
         }
 
@@ -153,7 +182,10 @@ class UFSC_Documents {
         $table = $wpdb->prefix . 'ufsc_club_docs';
 
         return $wpdb->get_results(
-            $wpdb->prepare( "SELECT * FROM {$table} WHERE club_id = %d ORDER BY uploaded_at DESC", $club_id )
+            $wpdb->prepare(
+                "SELECT id, file_name, file_url, mime_type, uploaded_at FROM {$table} WHERE club_id = %d ORDER BY uploaded_at DESC",
+                $club_id
+            )
         );
     }
 
