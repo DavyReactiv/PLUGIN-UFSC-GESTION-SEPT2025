@@ -2,7 +2,38 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $documents = UFSC_Documents::get_club_documents( $club_id );
+
+// Get club info to display profile photo.
+global $wpdb;
+$settings = UFSC_SQL::get_settings();
+$table    = $settings['table_clubs'];
+$club     = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d", $club_id ) );
 ?>
+
+<div class="ufsc-dashboard-header">
+    <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
+        <div class="ufsc-club-photo">
+            <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-remove-photo-form">
+                <?php wp_nonce_field( 'ufsc_remove_profile_photo', 'ufsc_remove_profile_photo_nonce' ); ?>
+                <input type="hidden" name="action" value="ufsc_remove_profile_photo" />
+                <input type="hidden" name="club_id" value="<?php echo esc_attr( $club_id ); ?>" />
+                <button type="submit" class="button ufsc-remove-photo"><?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?></button>
+            </form>
+        </div>
+    <?php endif; ?>
+    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-upload-photo-form">
+        <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
+        <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
+        <input type="hidden" name="club_id" value="<?php echo esc_attr( $club_id ); ?>" />
+        <input type="hidden" name="MAX_FILE_SIZE" value="5242880" />
+        <input type="file" name="profile_photo" accept=".jpg,.png,.webp" />
+        <button type="submit" class="button ufsc-upload-photo">
+            <?php echo ! empty( $club->profile_photo_url ) ? esc_html__( 'Changer la photo', 'ufsc-clubs' ) : esc_html__( 'Ajouter une photo', 'ufsc-clubs' ); ?>
+        </button>
+    </form>
+</div>
+
 <div class="ufsc-documents-grid">
     <?php if ( ! empty( $documents ) ) : ?>
         <?php foreach ( $documents as $doc ) :
@@ -64,5 +95,20 @@ $documents = UFSC_Documents::get_club_documents( $club_id );
 }
 .ufsc-doc-item:hover .ufsc-doc-actions{
     display:block;
+}
+.ufsc-dashboard-header{
+    margin-bottom:20px;
+    display:flex;
+    align-items:center;
+    gap:20px;
+}
+.ufsc-club-photo img{
+    max-width:150px;
+    height:auto;
+    display:block;
+}
+.ufsc-upload-photo-form,
+.ufsc-remove-photo-form{
+    margin-top:10px;
 }
 </style>

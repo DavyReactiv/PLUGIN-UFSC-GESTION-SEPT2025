@@ -686,7 +686,8 @@ class UFSC_Frontend_Shortcodes {
                         <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
                         <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
                         <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
-                        <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" />
+                        <input type="hidden" name="MAX_FILE_SIZE" value="5242880" />
+                        <input type="file" name="profile_photo" accept=".jpg,.png,.webp" />
                         <button type="submit" class="button ufsc-upload-photo"><?php esc_html_e( 'Changer la photo', 'ufsc-clubs' ); ?></button>
                     </form>
                 </div>
@@ -695,7 +696,8 @@ class UFSC_Frontend_Shortcodes {
                     <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
                     <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
                     <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
-                    <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" />
+                    <input type="hidden" name="MAX_FILE_SIZE" value="5242880" />
+                    <input type="file" name="profile_photo" accept=".jpg,.png,.webp" />
                     <button type="submit" class="button ufsc-upload-photo"><?php esc_html_e( 'Ajouter une photo', 'ufsc-clubs' ); ?></button>
                 </form>
             <?php endif; ?>
