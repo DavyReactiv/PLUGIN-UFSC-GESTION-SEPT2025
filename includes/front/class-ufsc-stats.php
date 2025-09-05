@@ -93,10 +93,8 @@ class UFSC_Stats {
 
         $prepared = $this->wpdb->prepare( $sql, 'active', 1 );
         return $this->wpdb->get_results( $prepared, ARRAY_A );
+    }
 
-if ( ! defined( 'ABSPATH' ) ) { exit; }
-
-class UFSC_Stats {
     /**
      * Get aggregated statistics for a club's licences.
      * Utilises indexed columns and GROUP BY queries for performance.
@@ -184,6 +182,5 @@ class UFSC_Stats {
             'by_practice'        => $practice_counts,
             'by_birth_year'      => $birth_year_counts,
         );
-
     }
 }
