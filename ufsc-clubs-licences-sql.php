@@ -128,6 +128,7 @@ final class UFSC_CL_Bootstrap {
         if ( ! wp_next_scheduled( 'ufsc_daily' ) ) {
             wp_schedule_event( time(), 'daily', 'ufsc_daily' );
         }
+        UFSC_DB_Migrations::run_migrations();
         flush_rewrite_rules();
     }
     public function on_deactivate(){
@@ -137,11 +138,6 @@ final class UFSC_CL_Bootstrap {
         }
         flush_rewrite_rules();
     }
-
-        UFSC_DB_Migrations::run_migrations();
-        flush_rewrite_rules();
-    }
-    public function on_deactivate(){ flush_rewrite_rules(); }
 
     /**
      * Enqueue frontend assets
