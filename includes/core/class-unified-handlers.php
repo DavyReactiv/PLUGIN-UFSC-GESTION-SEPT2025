@@ -96,6 +96,8 @@ class UFSC_Unified_Handlers {
             return;
         }
 
+        set_transient( 'ufsc_admin_save', time(), 10 );
+
         if ( wp_doing_ajax() ) {
             return array( 'licence_id' => $result );
         }
@@ -168,7 +170,7 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $non_editable_statuses = array( 'payee', 'validee' );
+        $non_editable_statuses = array( 'active', 'expired' );
         if ( in_array( $licence_status, $non_editable_statuses ) ) {
             wp_safe_redirect( add_query_arg( 'view_licence', $licence_id, wp_get_referer() ) );
             exit;
@@ -185,6 +187,8 @@ class UFSC_Unified_Handlers {
             self::redirect_with_error( $result->get_error_message(), $licence_id );
             return;
         }
+
+        set_transient( 'ufsc_admin_save', time(), 10 );
 
         if ( wp_doing_ajax() ) {
             return array( 'licence_id' => $licence_id );
@@ -272,8 +276,8 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $valid_statuses = array_keys( UFSC_SQL::statuses() );
-        if ( ! in_array( $new_status, $valid_statuses ) ) {
+        $valid_statuses = array( 'draft', 'pending', 'active', 'expired' );
+        if ( ! in_array( $new_status, $valid_statuses, true ) ) {
             self::redirect_with_error( 'Statut invalide', $licence_id );
             return;
         }
@@ -282,7 +286,13 @@ class UFSC_Unified_Handlers {
         $settings = UFSC_SQL::get_settings();
         $table    = $settings['table_licences'];
 
-        $wpdb->update( $table, array( 'statut' => $new_status ), array( 'id' => $licence_id, 'club_id' => $club_id ) );
+        error_log( 'UFSC update licence status: ' . wp_json_encode( array( 'id' => $licence_id, 'status' => $new_status ) ) );
+        $result = $wpdb->update( $table, array( 'status' => $new_status ), array( 'id' => $licence_id, 'club_id' => $club_id ) );
+        error_log( 'UFSC DB update result: ' . $result . ' error: ' . $wpdb->last_error );
+        if ( function_exists( 'update_post_meta' ) ) {
+            update_post_meta( $licence_id, 'status', $new_status );
+        }
+        set_transient( 'ufsc_admin_save', time(), 10 );
 
         $redirect_url = add_query_arg( array(
             'updated_status' => 1,
@@ -401,16 +411,24 @@ class UFSC_Unified_Handlers {
         $insert_data = array_merge( $data, array(
             'responsable_id' => get_current_user_id(),
             'date_creation'  => current_time( 'mysql' ),
-            'statut'         => 'en_attente'
+            'status'         => 'pending'
         ) );
 
+        error_log( 'UFSC insert club: ' . wp_json_encode( $insert_data ) );
         $result = $wpdb->insert( $settings['table_clubs'], $insert_data );
+        error_log( 'UFSC DB insert result: ' . $result . ' error: ' . $wpdb->last_error );
         if ( false === $result ) {
             self::redirect_with_error( __( 'Erreur lors de la création du club', 'ufsc-clubs' ) );
             return;
         }
 
+        set_transient( 'ufsc_admin_save', time(), 10 );
         $club_id = (int) $wpdb->insert_id;
+        if ( function_exists( 'update_post_meta' ) ) {
+            foreach ( $insert_data as $meta_key => $meta_value ) {
+                update_post_meta( $club_id, $meta_key, $meta_value );
+            }
+        }
 
         foreach ( $upload_results as $db_field => $attachment_id ) {
             update_post_meta( $club_id, $db_field, $attachment_id );
@@ -482,7 +500,7 @@ class UFSC_Unified_Handlers {
                 self::store_form_and_redirect( $_POST, array( __( 'Licence non trouvée', 'ufsc-clubs' ) ), $licence_id );
             }
 
-            $non_editable_statuses = array( 'payee', 'validee' );
+            $non_editable_statuses = array( 'active', 'expired' );
             if ( in_array( $licence_status, $non_editable_statuses, true ) ) {
                 self::store_form_and_redirect( $_POST, array( __( 'Modification non autorisée', 'ufsc-clubs' ) ), $licence_id );
             }
@@ -514,6 +532,7 @@ class UFSC_Unified_Handlers {
                 ),
                 wp_get_referer()
             ) );
+            set_transient( 'ufsc_admin_save', time(), 10 );
             wp_safe_redirect( $redirect_url );
             exit;
         }
@@ -539,6 +558,7 @@ class UFSC_Unified_Handlers {
                 wc_add_notice( __( 'Quota de licences dépassé : licence ajoutée au panier.', 'ufsc-clubs' ), 'notice' );
             }
             if ( function_exists( 'wc_get_cart_url' ) ) {
+                set_transient( 'ufsc_admin_save', time(), 10 );
                 wp_safe_redirect( wc_get_cart_url() );
                 exit;
             }
@@ -573,6 +593,7 @@ class UFSC_Unified_Handlers {
 
             self::update_licence_status_db( $new_id, 'pending' );
             if ( function_exists( 'wc_get_cart_url' ) ) {
+                set_transient( 'ufsc_admin_save', time(), 10 );
                 wp_safe_redirect( wc_get_cart_url() );
                 exit;
             }
@@ -585,6 +606,7 @@ class UFSC_Unified_Handlers {
             ),
             wp_get_referer()
         ) );
+        set_transient( 'ufsc_admin_save', time(), 10 );
         wp_safe_redirect( $redirect_url );
         exit;
     }
@@ -611,10 +633,18 @@ class UFSC_Unified_Handlers {
      * Update licence status directly in database
      */
     private static function update_licence_status_db( $licence_id, $status ) {
+        if ( get_transient( 'ufsc_admin_save' ) ) {
+            return;
+        }
         global $wpdb;
         $settings       = UFSC_SQL::get_settings();
         $licences_table = $settings['table_licences'];
-        $wpdb->update( $licences_table, array( 'statut' => $status ), array( 'id' => $licence_id ), array( '%s' ), array( '%d' ) );
+        error_log( 'UFSC update licence status DB: ' . wp_json_encode( array( 'id' => $licence_id, 'status' => $status ) ) );
+        $result = $wpdb->update( $licences_table, array( 'status' => $status ), array( 'id' => $licence_id ), array( '%s' ), array( '%d' ) );
+        error_log( 'UFSC DB update result: ' . $result . ' error: ' . $wpdb->last_error );
+        if ( function_exists( 'update_post_meta' ) ) {
+            update_post_meta( $licence_id, 'status', $status );
+        }
     }
 
 
@@ -698,7 +728,7 @@ class UFSC_Unified_Handlers {
             'sexe' => 'sanitize_text_field',
             'role' => 'sanitize_text_field',
             'competition' => 'absint',
-            'statut' => 'sanitize_text_field',
+            'status' => 'sanitize_text_field',
             'note' => 'sanitize_textarea_field'
         );
 
@@ -820,20 +850,35 @@ class UFSC_Unified_Handlers {
         if ( $licence_id > 0 ) {
             // Update
             $data['date_modification'] = current_time( 'mysql' );
+            error_log( 'UFSC update licence: ' . wp_json_encode( array( 'id' => $licence_id, 'data' => $data ) ) );
             $result = $wpdb->update( $licences_table, $data, array( 'id' => $licence_id ) );
+            error_log( 'UFSC DB update result: ' . $result . ' error: ' . $wpdb->last_error );
             if ( $result === false ) {
                 return new WP_Error( 'update_failed', __( 'Erreur lors de la mise à jour', 'ufsc-clubs' ) );
+            }
+            if ( function_exists( 'update_post_meta' ) ) {
+                foreach ( $data as $meta_key => $meta_value ) {
+                    update_post_meta( $licence_id, $meta_key, $meta_value );
+                }
             }
             return $licence_id;
         } else {
             // Create
             $data['date_creation'] = current_time( 'mysql' );
-            $data['statut'] = 'brouillon';
+            $data['status'] = 'draft';
+            error_log( 'UFSC insert licence: ' . wp_json_encode( $data ) );
             $result = $wpdb->insert( $licences_table, $data );
+            error_log( 'UFSC DB insert result: ' . $result . ' error: ' . $wpdb->last_error );
             if ( $result === false ) {
                 return new WP_Error( 'insert_failed', __( 'Erreur lors de la création', 'ufsc-clubs' ) );
             }
-            return $wpdb->insert_id;
+            $new_id = (int) $wpdb->insert_id;
+            if ( function_exists( 'update_post_meta' ) ) {
+                foreach ( $data as $meta_key => $meta_value ) {
+                    update_post_meta( $new_id, $meta_key, $meta_value );
+                }
+            }
+            return $new_id;
         }
     }
 
@@ -845,14 +890,22 @@ class UFSC_Unified_Handlers {
         $settings = UFSC_SQL::get_settings();
         $clubs_table = $settings['table_clubs'];
         
+        error_log( 'UFSC update club: ' . wp_json_encode( array( 'id' => $club_id, 'data' => $data ) ) );
         $result = $wpdb->update( $clubs_table, $data, array( 'id' => $club_id ) );
+        error_log( 'UFSC DB update result: ' . $result . ' error: ' . $wpdb->last_error );
         if ( $result === false ) {
             return new WP_Error( 'update_failed', __( 'Erreur lors de la mise à jour du club', 'ufsc-clubs' ) );
         }
-        
+        if ( function_exists( 'update_post_meta' ) ) {
+            foreach ( $data as $meta_key => $meta_value ) {
+                update_post_meta( $club_id, $meta_key, $meta_value );
+            }
+        }
+        set_transient( 'ufsc_admin_save', time(), 10 );
+
         // Clear cache
         delete_transient( "ufsc_club_info_{$club_id}" );
-        
+
         return true;
     }
 
@@ -891,7 +944,7 @@ class UFSC_Unified_Handlers {
         $where_clause = " WHERE " . implode( " AND ", $where_conditions );
         
         // Get data
-        $sql = "SELECT prenom, nom, email, telephone, sexe, date_naissance, role, statut, 
+        $sql = "SELECT prenom, nom, email, telephone, sexe, date_naissance, role, status,
                        competition, date_creation
                 FROM {$licences_table}
                 {$where_clause}
@@ -931,7 +984,7 @@ class UFSC_Unified_Handlers {
         $licences_table = $settings['table_licences'];
         
         return $wpdb->get_var( $wpdb->prepare(
-            "SELECT statut FROM {$licences_table} WHERE id = %d AND club_id = %d",
+            "SELECT status FROM {$licences_table} WHERE id = %d AND club_id = %d",
             $licence_id, $club_id
         ) );
     }
