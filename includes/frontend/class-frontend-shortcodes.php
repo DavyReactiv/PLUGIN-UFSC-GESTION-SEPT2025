@@ -1662,7 +1662,7 @@ class UFSC_Frontend_Shortcodes {
             'paid'      => 'pending',
             'validated' => 'active',
             'applied'   => 'active',
-            'rejected'  => 'expired',
+            'rejected'  => 'rejected',
         );
 
         $status = strtolower( $status );
@@ -1671,18 +1671,11 @@ class UFSC_Frontend_Shortcodes {
         }
 
         $labels = array(
-
-            'draft'   => __( 'Brouillon', 'ufsc-clubs' ),
-            'pending' => __( 'En attente', 'ufsc-clubs' ),
-            'active'  => __( 'Active', 'ufsc-clubs' ),
-            'expired' => __( 'Expirée', 'ufsc-clubs' ),
-            'rejected' => __( 'Refusée', 'ufsc-clubs' )
-
-            'draft'   => __( 'draft', 'ufsc-clubs' ),
-            'pending' => __( 'pending', 'ufsc-clubs' ),
-            'active'  => __( 'active', 'ufsc-clubs' ),
-            'expired' => __( 'expired', 'ufsc-clubs' ),
-
+            'draft'    => __( 'Brouillon', 'ufsc-clubs' ),
+            'pending'  => __( 'En attente', 'ufsc-clubs' ),
+            'active'   => __( 'Active', 'ufsc-clubs' ),
+            'expired'  => __( 'Expirée', 'ufsc-clubs' ),
+            'rejected' => __( 'Refusée', 'ufsc-clubs' ),
         );
 
         return $labels[ $status ] ?? $status;
@@ -1698,7 +1691,7 @@ class UFSC_Frontend_Shortcodes {
             'paid'      => 'pending',
             'validated' => 'active',
             'applied'   => 'active',
-            'rejected'  => 'expired',
+            'rejected'  => 'rejected',
         );
 
         $status = strtolower( $status );
@@ -1707,15 +1700,11 @@ class UFSC_Frontend_Shortcodes {
         }
 
         $classes = array(
-            'draft'   => '-draft',
-            'pending' => '-pending',
-            'active'  => '-ok',
-
-            'expired' => '-warning',
-            'rejected'  => '-rejected',
-
-            'expired' => '-expired',
-
+            'draft'    => '-draft',
+            'pending'  => '-pending',
+            'active'   => '-ok',
+            'expired'  => '-expired',
+            'rejected' => '-rejected',
         );
 
         return $classes[ $status ] ?? '-draft';
