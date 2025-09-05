@@ -6,26 +6,23 @@ class UFSC_Export_Licences extends UFSC_Export_Base {
         add_action( 'admin_post_ufsc_export_licences', array( __CLASS__, 'handle_export' ) );
     }
 
-    private static function sensitive_columns() {
-        return array( 'password', 'pass', 'secret', 'token', 'activation_key', 'user_pass' );
-    }
-
-    private static function get_columns() {
-        global $wpdb;
-        $s = UFSC_SQL::get_settings();
-        $table = $s['table_licences'];
-        $cols = $wpdb->get_col( $wpdb->prepare(
-            "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s",
-            $table
-        ) );
-        if ( ! $cols ) {
-            return array();
-        }
-        return array_values( array_diff( $cols, self::sensitive_columns() ) );
+    private static function allowed_columns() {
+        return array(
+            'ID licence'       => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'id' ) : 'id',
+            'ID club'          => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'club_id' ) : 'club_id',
+            'Prénom'           => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'prenom' ) : 'prenom',
+            'Nom'              => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'nom' ) : 'nom',
+            'Email'            => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'email' ) : 'email',
+            'Statut'           => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'statut' ) : 'statut',
+            'Saison'           => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'season' ) : 'season',
+            'Payé ?'           => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'is_paid' ) : 'is_paid',
+            'Saison payée'     => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'paid_season' ) : 'paid_season',
+            'Date inscription' => function_exists( 'ufsc_lic_col' ) ? ufsc_lic_col( 'date_inscription' ) : 'date_inscription',
+        );
     }
 
     public static function render_form() {
-        $cols = self::get_columns();
+        $cols = self::allowed_columns();
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         wp_nonce_field( 'ufsc_export_licences' );
         echo '<input type="hidden" name="action" value="ufsc_export_licences" />';
@@ -38,8 +35,8 @@ class UFSC_Export_Licences extends UFSC_Export_Base {
         echo '</p>';
 
         echo '<div class="ufsc-export-cols" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;">';
-        foreach ( $cols as $c ) {
-            echo '<label><input type="checkbox" name="columns[]" value="' . esc_attr( $c ) . '" checked> ' . esc_html( $c ) . '</label>';
+        foreach ( $cols as $label => $col ) {
+            echo '<label><input type="checkbox" name="columns[]" value="' . esc_attr( $label ) . '" checked> ' . esc_html( $label ) . '</label>';
         }
         echo '</div>';
         submit_button( __( 'Exporter CSV', 'ufsc-clubs' ) );
@@ -53,12 +50,19 @@ class UFSC_Export_Licences extends UFSC_Export_Base {
         check_admin_referer( 'ufsc_export_licences' );
         set_time_limit( 0 );
 
-        $allowed_cols   = self::get_columns();
-        $selected_cols  = isset( $_POST['columns'] ) ? array_map( 'sanitize_key', (array) $_POST['columns'] ) : array();
-        $cols           = array_values( array_intersect( $allowed_cols, $selected_cols ) );
-        if ( empty( $cols ) ) {
+        $allowed    = self::allowed_columns();
+        $selected   = isset( $_POST['columns'] ) ? array_map( 'sanitize_text_field', (array) $_POST['columns'] ) : array();
+        $mapped     = array();
+        foreach ( $selected as $label ) {
+            if ( isset( $allowed[ $label ] ) ) {
+                $mapped[ $label ] = $allowed[ $label ];
+            }
+        }
+        if ( empty( $mapped ) ) {
             wp_die( __( 'Aucune colonne sélectionnée', 'ufsc-clubs' ) );
         }
+        $headers = array_keys( $mapped );
+        $cols    = array_values( $mapped );
         global $wpdb;
         $s     = UFSC_SQL::get_settings();
         $table = $s['table_licences'];
@@ -97,7 +101,7 @@ class UFSC_Export_Licences extends UFSC_Export_Base {
         header( 'Content-Disposition: attachment; filename="licences.csv"' );
         $out = fopen( 'php://output', 'w' );
         fputs( $out, "\xEF\xBB\xBF" );
-        fputcsv( $out, $cols );
+        fputcsv( $out, $headers );
         if ( $rows ) {
             foreach ( $rows as $r ) {
                 fputcsv( $out, array_map( fn( $c ) => $r[ $c ] ?? '', $cols ) );
@@ -105,8 +109,6 @@ class UFSC_Export_Licences extends UFSC_Export_Base {
         }
         fclose( $out );
         exit;
-
-        self::output_csv( 'licences.csv', $cols, $rows );
 
     }
 }
