@@ -37,7 +37,7 @@ $club     = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d"
 <div class="ufsc-documents-grid">
     <?php if ( ! empty( $documents ) ) : ?>
         <?php foreach ( $documents as $doc ) :
-            $nonce = wp_create_nonce( 'ufsc_download_doc_' . $doc->id );
+            $nonce        = wp_create_nonce( 'ufsc_download_doc_' . $doc->id );
             $download_url = add_query_arg(
                 array(
                     'ufsc_doc' => $doc->id,
@@ -45,16 +45,18 @@ $club     = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d"
                 ),
                 home_url( '/' )
             );
+            $extension    = strtoupper( pathinfo( $doc->file_name, PATHINFO_EXTENSION ) );
+            $size         = size_format( (int) $doc->file_size );
+            $status_text  = ( 'pending' === $doc->status ) ? '⏳ En cours' : '✅ Transmis';
+            $status_class = ( 'pending' === $doc->status ) ? 'ufsc-status-pending' : 'ufsc-status-sent';
         ?>
             <div class="ufsc-doc-item">
-                <a href="<?php echo esc_url( $download_url ); ?>" class="ufsc-doc-link">
-                    <span class="dashicons <?php echo esc_attr( UFSC_Documents::get_file_icon( $doc->mime_type ) ); ?> ufsc-doc-icon" aria-hidden="true"></span>
-                    <span class="ufsc-doc-title"><?php echo esc_html( $doc->file_name ); ?></span>
-                </a>
-                <div class="ufsc-doc-actions">
-                    <a href="<?php echo esc_url( $download_url ); ?>" class="ufsc-action" title="<?php esc_attr_e( 'Télécharger', 'ufsc-clubs' ); ?>">
-                        <span class="dashicons dashicons-download" aria-hidden="true"></span>
-                    </a>
+                <span class="dashicons <?php echo esc_attr( UFSC_Documents::get_file_icon( $doc->mime_type ) ); ?> ufsc-doc-icon" aria-hidden="true"></span>
+                <span class="ufsc-doc-title"><?php echo esc_html( $doc->file_name ); ?></span>
+                <span class="ufsc-doc-meta"><?php echo esc_html( $size . ' - ' . $extension ); ?></span>
+                <div class="ufsc-doc-footer">
+                    <span class="ufsc-doc-status <?php echo esc_attr( $status_class ); ?>"><?php echo esc_html( $status_text ); ?></span>
+                    <a href="<?php echo esc_url( $download_url ); ?>" class="button ufsc-doc-download"><?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?></a>
                 </div>
             </div>
         <?php endforeach; ?>
@@ -76,26 +78,33 @@ $club     = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d"
     .ufsc-documents-grid{grid-template-columns:1fr;}
 }
 .ufsc-doc-item{
-    position:relative;
     padding:20px;
     border:1px solid #ddd;
     border-radius:4px;
     text-align:center;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
 }
 .ufsc-doc-icon{
     font-size:40px;
     display:block;
-    margin-bottom:10px;
+    margin:0 auto 10px;
 }
-.ufsc-doc-actions{
-    position:absolute;
-    top:10px;
-    right:10px;
-    display:none;
+.ufsc-doc-meta{font-size:13px;color:#555;}
+.ufsc-doc-footer{
+    margin-top:auto;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
 }
-.ufsc-doc-item:hover .ufsc-doc-actions{
-    display:block;
+.ufsc-doc-status{
+    padding:2px 6px;
+    border-radius:4px;
+    font-size:12px;
 }
+.ufsc-status-sent{background:#d4edda;color:#155724;}
+.ufsc-status-pending{background:#fff3cd;color:#856404;}
 .ufsc-dashboard-header{
     margin-bottom:20px;
     display:flex;
