@@ -81,7 +81,10 @@ class UFSC_Export_Clubs {
         if ( $where ) {
             $sql .= ' WHERE ' . implode( ' AND ', $where );
         }
-        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
+        if ( $params ) {
+            $sql = $wpdb->prepare( $sql, $params );
+        }
+        $rows = $wpdb->get_results( $sql, ARRAY_A );
 
         nocache_headers();
         header( 'Content-Type: text/csv; charset=utf-8' );
