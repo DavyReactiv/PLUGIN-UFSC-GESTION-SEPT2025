@@ -200,6 +200,10 @@ class UFSC_Frontend_Shortcodes {
             'club_id' => 0,
             'per_page' => 20,
             'page' => 1,
+
+            'status' => '',
+            'paid' => '',
+
             'search' => '',
             'sort' => 'created_desc'
         ), $atts );
@@ -218,6 +222,14 @@ class UFSC_Frontend_Shortcodes {
         if ( isset( $_GET['ufsc_page'] ) ) {
             $atts['page'] = max( 1, intval( $_GET['ufsc_page'] ) );
         }
+
+        if ( isset( $_GET['ufsc_status'] ) ) {
+            $atts['status'] = sanitize_text_field( $_GET['ufsc_status'] );
+        }
+        if ( isset( $_GET['ufsc_paid'] ) ) {
+            $atts['paid'] = (int) $_GET['ufsc_paid'];
+        }
+
         if ( isset( $_GET['ufsc_search'] ) ) {
             $atts['search'] = sanitize_text_field( $_GET['ufsc_search'] );
         }
@@ -295,6 +307,34 @@ class UFSC_Frontend_Shortcodes {
                         <input type="text" id="ufsc_search" name="ufsc_search"
                                value="<?php echo esc_attr( $atts['search'] ); ?>"
                                placeholder="<?php esc_attr_e( 'Nom, prénom, email...', 'ufsc-clubs' ); ?>">
+                    </div>
+
+                    
+                    <div class="ufsc-filter-group">
+                        <label for="ufsc_status"><?php esc_html_e( 'Statut:', 'ufsc-clubs' ); ?></label>
+                        <select id="ufsc_status" name="ufsc_status">
+                            <option value=""><?php esc_html_e( 'Tous', 'ufsc-clubs' ); ?></option>
+                            <option value="draft" <?php selected( $atts['status'], 'draft' ); ?>>
+                                <?php esc_html_e( 'Brouillon', 'ufsc-clubs' ); ?>
+                            </option>
+                            <option value="pending" <?php selected( $atts['status'], 'pending' ); ?>>
+                                <?php esc_html_e( 'En attente', 'ufsc-clubs' ); ?>
+                            </option>
+                            <option value="active" <?php selected( $atts['status'], 'active' ); ?>>
+                                <?php esc_html_e( 'Active', 'ufsc-clubs' ); ?>
+                            </option>
+                            <option value="expired" <?php selected( $atts['status'], 'expired' ); ?>>
+                                <?php esc_html_e( 'Expirée', 'ufsc-clubs' ); ?>
+                            </option>
+                        </select>
+                    </div>
+
+
+                    <div class="ufsc-filter-group">
+                        <label class="ufsc-checkbox-label">
+                            <input type="checkbox" name="ufsc_paid" value="1" <?php checked( $atts['paid'], 1 ); ?>>
+                            <?php esc_html_e( 'Payée', 'ufsc-clubs' ); ?>
+                        </label>
                     </div>
 
                     <div class="ufsc-filter-group">
@@ -391,6 +431,10 @@ class UFSC_Frontend_Shortcodes {
                 <div class="ufsc-pagination">
                     <?php 
                     echo self::render_pagination( $atts['page'], $total_pages, array(
+
+                        'ufsc_status' => $atts['status'],
+                        'ufsc_paid' => $atts['paid'],
+
                         'ufsc_search' => $atts['search'],
                         'ufsc_sort' => $atts['sort']
                     ) );
@@ -1356,6 +1400,10 @@ class UFSC_Frontend_Shortcodes {
 
         $defaults = array(
             'search'   => '',
+
+            'status'   => '',
+            'paid'     => '',
+
             'season'   => '',
             'page'     => 1,
             'per_page' => 20,
@@ -1386,6 +1434,18 @@ class UFSC_Frontend_Shortcodes {
             }
         }
 
+
+        // Paid
+        if ( '' !== $args['paid'] ) {
+            $paid_col = null;
+            foreach ( array( 'paid', 'payment_status' ) as $col ) {
+                if ( in_array( $col, $columns, true ) ) { $paid_col = $col; break; }
+            }
+            if ( $paid_col ) {
+                $clauses[] = "`{$paid_col}` = %d";
+                $values[]  = (int) $args['paid'];
+            }
+        }
 
         // Saison
         if ( ! empty( $args['season'] ) ) {
@@ -1440,6 +1500,10 @@ class UFSC_Frontend_Shortcodes {
 
         $defaults = array(
             'search' => '',
+
+            'status' => '',
+            'paid'   => '',
+
             'season' => '',
         );
         $args = wp_parse_args( $args, $defaults );
@@ -1465,6 +1529,18 @@ class UFSC_Frontend_Shortcodes {
             }
         }
 
+
+        // Paid
+        if ( '' !== $args['paid'] ) {
+            $paid_col = null;
+            foreach ( array( 'paid', 'payment_status' ) as $col ) {
+                if ( in_array( $col, $columns, true ) ) { $paid_col = $col; break; }
+            }
+            if ( $paid_col ) {
+                $clauses[] = "`{$paid_col}` = %d";
+                $values[]  = (int) $args['paid'];
+            }
+        }
 
         // Saison
         if ( ! empty( $args['season'] ) ) {
@@ -1595,10 +1671,18 @@ class UFSC_Frontend_Shortcodes {
         }
 
         $labels = array(
+
+            'draft'   => __( 'Brouillon', 'ufsc-clubs' ),
+            'pending' => __( 'En attente', 'ufsc-clubs' ),
+            'active'  => __( 'Active', 'ufsc-clubs' ),
+            'expired' => __( 'Expirée', 'ufsc-clubs' ),
+            'rejected' => __( 'Refusée', 'ufsc-clubs' )
+
             'draft'   => __( 'draft', 'ufsc-clubs' ),
             'pending' => __( 'pending', 'ufsc-clubs' ),
             'active'  => __( 'active', 'ufsc-clubs' ),
             'expired' => __( 'expired', 'ufsc-clubs' ),
+
         );
 
         return $labels[ $status ] ?? $status;
@@ -1626,7 +1710,12 @@ class UFSC_Frontend_Shortcodes {
             'draft'   => '-draft',
             'pending' => '-pending',
             'active'  => '-ok',
+
+            'expired' => '-warning',
+            'rejected'  => '-rejected',
+
             'expired' => '-expired',
+
         );
 
         return $classes[ $status ] ?? '-draft';
@@ -2226,7 +2315,7 @@ if ( ! function_exists( 'ufsc_is_validated_licence' ) ) {
             return false;
         }
 
-        $valid_statuses = array( 'valide', 'validé', 'validée', 'validated', 'applied', 'approved' );
+        $valid_statuses = array( 'valide', 'validé', 'validée', 'validated', 'active', 'approved' );
         return in_array( strtolower( $status ), $valid_statuses, true );
     }
 }

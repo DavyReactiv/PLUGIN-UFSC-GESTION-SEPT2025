@@ -26,6 +26,7 @@ class UFSC_Badges {
             'desactive' => array('type' => 'danger', 'label' => 'Désactivée'),
             'pending' => array('type' => 'info', 'label' => 'En attente'),
             'validated' => array('type' => 'success', 'label' => 'Validée'),
+            'active' => array('type' => 'success', 'label' => 'Active'),
             'expired' => array('type' => 'warning', 'label' => 'Expirée'),
             'rejected' => array('type' => 'danger', 'label' => 'Rejetée'),
         ),
