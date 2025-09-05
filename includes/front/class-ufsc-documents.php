@@ -12,6 +12,7 @@ class UFSC_Documents {
     public static function init() {
         add_action( 'admin_post_ufsc_upload_document', array( __CLASS__, 'handle_upload' ) );
         add_action( 'template_redirect', array( __CLASS__, 'maybe_download' ) );
+        add_action( 'admin_post_ufsc_export_documents', array( __CLASS__, 'export_documents' ) );
     }
 
     /**
@@ -96,6 +97,48 @@ class UFSC_Documents {
         header( 'Content-Type: ' . $doc->mime_type );
         header( 'Content-Disposition: attachment; filename="' . basename( $doc->file_name ) . '"' );
         readfile( $doc->file_path );
+        exit;
+    }
+
+    /**
+     * Export club documents as CSV.
+     */
+    public static function export_documents() {
+        if ( ! isset( $_GET['club_id'], $_GET['_wpnonce'] ) ) {
+            wp_die( __( 'Requête invalide.', 'ufsc-clubs' ) );
+        }
+
+        $club_id = (int) $_GET['club_id'];
+
+        if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'ufsc_export_documents_' . $club_id ) ) {
+            wp_die( __( 'Nonce invalide.', 'ufsc-clubs' ) );
+        }
+
+        if ( ! UFSC_CL_Permissions::ufsc_user_can_edit_club( $club_id ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        $documents = self::get_club_documents( $club_id );
+
+        if ( ob_get_level() ) {
+            ob_end_clean();
+        }
+
+        header( 'Content-Type: text/csv; charset=UTF-8' );
+        header( 'Content-Disposition: attachment; filename="club-documents-' . $club_id . '.csv"' );
+
+        echo "\xEF\xBB\xBF";
+
+        $output = fopen( 'php://output', 'w' );
+        fputcsv( $output, array( 'ID', 'Nom', 'URL', 'Type', 'Date' ) );
+
+        if ( $documents ) {
+            foreach ( $documents as $doc ) {
+                fputcsv( $output, array( $doc->id, $doc->file_name, $doc->file_url, $doc->mime_type, $doc->uploaded_at ) );
+            }
+        }
+
+        fclose( $output );
         exit;
     }
 

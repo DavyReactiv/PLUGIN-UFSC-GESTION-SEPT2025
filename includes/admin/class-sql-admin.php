@@ -1006,6 +1006,7 @@ class UFSC_SQL_Admin {
         $pk = $s['pk_licence'];
         $fields = UFSC_SQL::get_licence_fields();
         $row = $id ? $wpdb->get_row( $wpdb->prepare("SELECT * FROM `$t` WHERE `$pk`=%d", $id) ) : null;
+        $current_club_id = $row ? (int) $row->club_id : 0;
 
         if ( $readonly ) {
             echo '<h1>'.( $id ? esc_html__('Consulter la licence','ufsc-clubs') : esc_html__('Nouvelle licence','ufsc-clubs') ).'</h1>';
@@ -1051,7 +1052,7 @@ class UFSC_SQL_Admin {
         echo '<div class="ufsc-grid">';
         foreach ( $fields as $k=>$conf ){
             $val = $row ? ( isset($row->$k) ? $row->$k : '' ) : '';
-            self::render_field_licence($k,$conf,$val, $readonly);
+            self::render_field_licence( $k, $conf, $val, $readonly, $current_club_id );
         }
         echo '</div>';
         
@@ -1079,11 +1080,15 @@ class UFSC_SQL_Admin {
         }
     }
 
-    private static function render_field_licence($k,$conf,$val, $readonly = false){
+    private static function render_field_licence( $k, $conf, $val, $readonly = false, $club_id = 0 ){
         $label = $conf[0];
         $type  = $conf[1];
         $readonly_attr = $readonly ? 'readonly disabled' : '';
         $disabled_attr = $readonly ? 'disabled' : '';
+        if ( $readonly && current_user_can( 'manage_options' ) ) {
+            $readonly_attr = '';
+            $disabled_attr = '';
+        }
         
         echo '<div class="ufsc-field"><label>'.esc_html($label).'</label>';
         
@@ -1137,6 +1142,15 @@ class UFSC_SQL_Admin {
             echo '</select>';
         } elseif ( $type === 'bool' ){
             echo '<select name="'.esc_attr($k).'" '.$disabled_attr.'><option value="0" '.selected($val,'0',false).'>Non</option><option value="1" '.selected($val,'1',false).'>Oui</option></select>';
+            if ( 'is_included' === $k && $club_id ) {
+                global $wpdb;
+                $settings    = UFSC_SQL::get_settings();
+                $clubs_table = $settings['table_clubs'];
+                $quota_col   = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'quota_licences' ) : 'quota_licences';
+                $included    = UFSC_SQL::count_included_licences( $club_id );
+                $quota_total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT {$quota_col} FROM `{$clubs_table}` WHERE id = %d", $club_id ) );
+                echo '<span class="description"> ' . esc_html( $included . ' / ' . $quota_total ) . '</span>';
+            }
         } elseif ( $type === 'sex' ){
             if ( $readonly ) {
                 echo '<span>'.esc_html($val === 'M' ? 'M' : ($val === 'F' ? 'F' : '')).'</span>';
@@ -1216,7 +1230,29 @@ class UFSC_SQL_Admin {
             }
         }
         if ( empty($data['statut']) ){
-            $data['statut'] = 'en_attente';
+            $data['statut'] = 'draft';
+        }
+
+        // Validate included quota if checkbox is set
+        if ( ! empty( $data['is_included'] ) ) {
+            $current_included = UFSC_SQL::count_included_licences( $club_id );
+            $clubs_table = $s['table_clubs'];
+            $quota_col   = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'quota_licences' ) : 'quota_licences';
+            $quota_total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT {$quota_col} FROM `{$clubs_table}` WHERE id = %d", $club_id ) );
+            if ( $quota_total > 0 ) {
+                // exclude current licence if already included
+                if ( $id ) {
+                    $was_included = (int) $wpdb->get_var( $wpdb->prepare( "SELECT is_included FROM `{$t}` WHERE `{$pk}` = %d", $id ) );
+                    if ( $was_included ) {
+                        $current_included--;
+                    }
+                }
+                if ( $current_included >= $quota_total ) {
+                    $error_message = __( 'Quota de licences incluses atteint', 'ufsc-clubs' );
+                    wp_safe_redirect( admin_url( 'admin.php?page=ufsc-sql-licences&action=' . ( $id ? 'edit&id=' . $id : 'new' ) . '&error=' . urlencode( $error_message ) ) );
+                    exit;
+                }
+            }
         }
 
         // Validation des données
@@ -1849,107 +1885,6 @@ class UFSC_SQL_Admin {
      * Render Exports page
      */
     public static function render_exports() {
-        echo '<div class="wrap">';
-        echo '<h1>' . esc_html__('Exports', 'ufsc-clubs') . '</h1>';
-        echo '<p>' . esc_html__('Exportez vos données de clubs et licences avec des filtres personnalisés.', 'ufsc-clubs') . '</p>';
-        
-        // Filters form
-        echo '<div class="ufsc-export-filters" style="background: #f9f9f9; padding: 20px; border-radius: 5px; margin: 20px 0;">';
-        echo '<h3>' . esc_html__('Filtres d\'export', 'ufsc-clubs') . '</h3>';
-        echo '<form method="post" action="' . admin_url('admin-post.php') . '">';
-        wp_nonce_field('ufsc_export_data');
-        echo '<input type="hidden" name="action" value="ufsc_export_data" />';
-        
-        echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 15px 0;">';
-        
-        // Club filter
-        echo '<div>';
-        echo '<label for="filter_club"><strong>' . esc_html__('Club', 'ufsc-clubs') . '</strong></label>';
-        echo '<select name="filter_club" id="filter_club">';
-        echo '<option value="">' . esc_html__('Tous les clubs', 'ufsc-clubs') . '</option>';
-        
-        // Get clubs from database
-        global $wpdb;
-        $s = UFSC_SQL::get_settings();
-        $clubs_table = $s['table_clubs'];
-        $clubs = $wpdb->get_results("SELECT id, nom FROM `{$clubs_table}` ORDER BY nom");
-        foreach ($clubs as $club) {
-            echo '<option value="' . esc_attr($club->id) . '">' . esc_html($club->nom) . '</option>';
-        }
-        
-        echo '</select>';
-        echo '</div>';
-        
-        // Region filter
-        echo '<div>';
-        echo '<label for="filter_region"><strong>' . esc_html__('Région', 'ufsc-clubs') . '</strong></label>';
-        echo '<select name="filter_region" id="filter_region">';
-        echo '<option value="">' . esc_html__('Toutes les régions', 'ufsc-clubs') . '</option>';
-        foreach (UFSC_CL_Utils::regions() as $region) {
-            echo '<option value="' . esc_attr($region) . '">' . esc_html($region) . '</option>';
-        }
-        echo '</select>';
-        echo '</div>';
-        
-        // Status filter
-        echo '<div>';
-        echo '<label for="filter_status"><strong>' . esc_html__('Statut', 'ufsc-clubs') . '</strong></label>';
-        echo '<select name="filter_status" id="filter_status">';
-        echo '<option value="">' . esc_html__('Tous les statuts', 'ufsc-clubs') . '</option>';
-        foreach (UFSC_SQL::statuses() as $status_key => $status_label) {
-            echo '<option value="' . esc_attr($status_key) . '">' . esc_html($status_label) . '</option>';
-        }
-        echo '</select>';
-        echo '</div>';
-        
-        echo '</div>';
-        
-        // Column selection
-        echo '<div style="margin: 20px 0;">';
-        echo '<h4>' . esc_html__('Colonnes à exporter', 'ufsc-clubs') . '</h4>';
-        echo '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">';
-        
-        $export_columns = array(
-            'id' => __('ID', 'ufsc-clubs'),
-            'nom' => __('Nom', 'ufsc-clubs'),
-            'prenom' => __('Prénom', 'ufsc-clubs'),
-            'email' => __('Email', 'ufsc-clubs'),
-            'telephone' => __('Téléphone', 'ufsc-clubs'),
-            'date_naissance' => __('Date de naissance', 'ufsc-clubs'),
-            'sexe' => __('Sexe', 'ufsc-clubs'),
-            'adresse' => __('Adresse', 'ufsc-clubs'),
-            'ville' => __('Ville', 'ufsc-clubs'),
-            'code_postal' => __('Code postal', 'ufsc-clubs'),
-            'statut' => __('Statut', 'ufsc-clubs'),
-            'date_creation' => __('Date de création', 'ufsc-clubs'),
-            'club_nom' => __('Nom du club', 'ufsc-clubs'),
-            'region' => __('Région', 'ufsc-clubs')
-        );
-        
-        foreach ($export_columns as $col_key => $col_label) {
-            echo '<label style="display: flex; align-items: center; gap: 5px;">';
-            echo '<input type="checkbox" name="export_columns[]" value="' . esc_attr($col_key) . '" checked />';
-            echo esc_html($col_label);
-            echo '</label>';
-        }
-        
-        echo '</div>';
-        echo '</div>';
-        
-        // Export buttons
-        echo '<div style="margin: 20px 0;">';
-        echo '<button type="submit" name="export_format" value="csv" class="button button-primary">';
-        echo esc_html__('Exporter CSV', 'ufsc-clubs');
-        echo '</button>';
-        echo ' ';
-        echo '<button type="submit" name="export_format" value="xlsx" class="button button-secondary">';
-        echo esc_html__('Exporter XLSX', 'ufsc-clubs');
-        echo '</button>';
-        echo '</div>';
-        
-        echo '</form>';
-        echo '</div>';
-        
-        echo '</div>';
+        include UFSC_CL_DIR . 'includes/admin/page-ufsc-exports.php';
     }
 } /* end class */

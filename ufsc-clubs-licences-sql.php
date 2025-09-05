@@ -18,6 +18,10 @@ require_once UFSC_CL_DIR.'includes/admin/class-admin-menu.php';
 require_once UFSC_CL_DIR.'includes/admin/class-ufsc-settings-page.php';
 require_once UFSC_CL_DIR.'includes/core/class-sql.php';
 require_once UFSC_CL_DIR.'includes/admin/class-sql-admin.php';
+require_once UFSC_CL_DIR.'includes/admin/class-ufsc-export-clubs.php';
+require_once UFSC_CL_DIR.'includes/admin/class-ufsc-export-licences.php';
+require_once UFSC_CL_DIR.'includes/admin/class-ufsc-import-csv.php';
+require_once UFSC_CL_DIR.'includes/admin/page-ufsc-exports.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-sql-shortcodes.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-club-form.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-club-form-handler.php';
@@ -43,6 +47,7 @@ require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-clubs-list-table
 require_once UFSC_CL_DIR.'includes/admin/class-ufsc-club-metaboxes.php';
 
 require_once UFSC_CL_DIR.'includes/front/class-ufsc-stats.php';
+require_once UFSC_CL_DIR.'includes/front/class-ufsc-licence-form.php';
 
 
 // New frontend layer components
@@ -69,6 +74,9 @@ require_once UFSC_CL_DIR.'inc/woocommerce/admin-actions.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/cart-integration.php';
 // require_once UFSC_CL_DIR.'inc/admin/menu.php'; // Removed - using unified menu system in includes/admin/class-admin-menu.php
 require_once UFSC_CL_DIR.'includes/woo/class-ufsc-woo-sync.php';
+
+UFSC_Export_Clubs::init();
+UFSC_Export_Licences::init();
 
 add_action('init', function () {
     load_plugin_textdomain('ufsc-clubs', false, dirname(plugin_basename(__FILE__)) . '/languages');

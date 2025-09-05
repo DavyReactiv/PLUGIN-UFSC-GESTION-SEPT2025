@@ -10,7 +10,11 @@
     $(document).ready(function() {
         initLicenseFormValidation();
         initClubRegionSync();
+
         initIncludedQuotaLimit();
+
+        initIncludedQuotaCheck();
+
     });
 
     /**
@@ -256,6 +260,22 @@
         });
 
         update();
+    }
+
+    /**
+     * Limit included quota checkbox
+     */
+    function initIncludedQuotaCheck() {
+        const checkbox = $('#is_included');
+        if (!checkbox.length) return;
+        const limit = parseInt($('#included_limit').val(), 10) || 10;
+        const count = parseInt($('#included_count').val(), 10) || 0;
+        checkbox.on('change', function() {
+            if (this.checked && count >= limit) {
+                alert('Quota maximum atteint');
+                this.checked = false;
+            }
+        });
     }
 
     /**

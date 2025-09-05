@@ -43,8 +43,15 @@ class UFSC_Woo_Sync {
      * @return array
      */
     public static function add_cart_item_data( $cart_item_data, $product_id ) {
-        if ( $product_id == self::$license_product_id && isset( $_REQUEST['ufsc_licence_id'] ) ) {
-            $cart_item_data['ufsc_licence_id'] = absint( $_REQUEST['ufsc_licence_id'] );
+        if ( $product_id == self::$license_product_id ) {
+            if ( isset( $_REQUEST['ufsc_licence_id'] ) ) {
+                $cart_item_data['ufsc_licence_id'] = absint( $_REQUEST['ufsc_licence_id'] );
+            } else {
+                if ( function_exists( 'wc_add_notice' ) ) {
+                    wc_add_notice( __( 'Licence ID is required.', 'ufsc-clubs' ), 'error' );
+                }
+                return false;
+            }
         }
 
         if ( $product_id == self::$affiliation_product_id && isset( $_REQUEST['ufsc_club_id'] ) ) {
@@ -77,6 +84,10 @@ class UFSC_Woo_Sync {
      * @param int $order_id Order ID.
      */
     public static function handle_order_activation( $order_id ) {
+        if ( get_transient( 'ufsc_admin_save' ) ) {
+            return;
+        }
+
         $order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
         if ( ! $order ) {
             return;
@@ -110,6 +121,10 @@ class UFSC_Woo_Sync {
      * @param int $order_id Order ID.
      */
     public static function handle_order_refund( $order_id ) {
+        if ( get_transient( 'ufsc_admin_save' ) ) {
+            return;
+        }
+
         $order = function_exists( 'wc_get_order' ) ? wc_get_order( $order_id ) : null;
         if ( ! $order ) {
             return;
@@ -135,7 +150,7 @@ class UFSC_Woo_Sync {
     }
 
     /**
-     * Activate a licence and decrement club quota.
+     * Activate a licence and track included quota usage.
      *
      * @param int $licence_id Licence ID.
      */
@@ -147,26 +162,34 @@ class UFSC_Woo_Sync {
         global $wpdb;
         $licences_table = ufsc_get_licences_table();
 
+        $licence = $wpdb->get_row( $wpdb->prepare( "SELECT club_id, is_included, status FROM {$licences_table} WHERE id = %d", $licence_id ), ARRAY_A );
+        if ( ! $licence ) {
+            return;
+        }
+
         $wpdb->update(
             $licences_table,
             array(
-                'statut'    => 'valide',
-                'paid_date' => current_time( 'mysql' ),
+                'status' => 'active',
+                'paid'   => 1,
             ),
             array( 'id' => $licence_id ),
-            array( '%s', '%s' ),
+            array( '%s', '%d' ),
             array( '%d' )
         );
 
-        $club_id = $wpdb->get_var( $wpdb->prepare( "SELECT club_id FROM {$licences_table} WHERE id = %d", $licence_id ) );
-        if ( $club_id ) {
+        $club_id     = (int) $licence['club_id'];
+        $is_included = ! empty( $licence['is_included'] );
+        $was_active  = ( 'active' === $licence['status'] );
+
+        if ( $club_id && $is_included && ! $was_active ) {
             $clubs_table = ufsc_get_clubs_table();
-            $wpdb->query( $wpdb->prepare( "UPDATE {$clubs_table} SET quota_licences = GREATEST(COALESCE(quota_licences,0)-1,0) WHERE id = %d", $club_id ) );
+            $wpdb->query( $wpdb->prepare( "UPDATE {$clubs_table} SET included_quota_used = COALESCE(included_quota_used,0) + 1 WHERE id = %d", $club_id ) );
         }
     }
 
     /**
-     * Rollback a licence and restore club quota.
+     * Rollback a licence and adjust included quota usage.
      *
      * @param int $licence_id Licence ID.
      */
@@ -178,18 +201,26 @@ class UFSC_Woo_Sync {
         global $wpdb;
         $licences_table = ufsc_get_licences_table();
 
+        $licence = $wpdb->get_row( $wpdb->prepare( "SELECT club_id, is_included, status FROM {$licences_table} WHERE id = %d", $licence_id ), ARRAY_A );
+        if ( ! $licence ) {
+            return;
+        }
+
         $wpdb->update(
             $licences_table,
-            array( 'statut' => 'en_attente' ),
+            array( 'status' => 'pending', 'paid' => 0 ),
             array( 'id' => $licence_id ),
-            array( '%s' ),
+            array( '%s', '%d' ),
             array( '%d' )
         );
 
-        $club_id = $wpdb->get_var( $wpdb->prepare( "SELECT club_id FROM {$licences_table} WHERE id = %d", $licence_id ) );
-        if ( $club_id ) {
+        $club_id     = (int) $licence['club_id'];
+        $is_included = ! empty( $licence['is_included'] );
+        $was_active  = ( 'active' === $licence['status'] );
+
+        if ( $club_id && $is_included && $was_active ) {
             $clubs_table = ufsc_get_clubs_table();
-            $wpdb->query( $wpdb->prepare( "UPDATE {$clubs_table} SET quota_licences = COALESCE(quota_licences,0) + 1 WHERE id = %d", $club_id ) );
+            $wpdb->query( $wpdb->prepare( "UPDATE {$clubs_table} SET included_quota_used = GREATEST(COALESCE(included_quota_used,0)-1,0) WHERE id = %d", $club_id ) );
         }
     }
 
