@@ -4,70 +4,60 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class UFSC_CL_Admin_Menu {
     public static function register(){
         // Menu principal unifié UFSC
-        add_menu_page( 
-            __( 'UFSC Gestion', 'ufsc-clubs' ), 
-            __( 'UFSC Gestion', 'ufsc-clubs' ), 
-            'manage_options', 
-            'ufsc-dashboard', 
-            array( __CLASS__, 'render_dashboard' ), 
-            'dashicons-groups', 
-            58 
+        if ( isset( $_GET['page'] ) && $_GET['page'] === 'ufsc-attestations' ) {
+            wp_safe_redirect( admin_url( 'admin.php?page=ufsc-gestion' ) );
+            exit;
+        }
+
+        add_menu_page(
+            __( 'UFSC Gestion', 'ufsc-clubs' ),
+            __( 'UFSC Gestion', 'ufsc-clubs' ),
+            'manage_options',
+            'ufsc-gestion',
+            array( __CLASS__, 'render_dashboard' ),
+            'dashicons-groups',
+            58
         );
-        
+
         // Sous-menus organisés
-        add_submenu_page( 
-            'ufsc-dashboard', 
-            __('Tableau de bord','ufsc-clubs'), 
-            __('Tableau de bord','ufsc-clubs'), 
-            'manage_options', 
-            'ufsc-dashboard', 
-            array( __CLASS__, 'render_dashboard' ) 
-        );
-        
-        add_submenu_page( 
-            'ufsc-dashboard', 
-            __('Clubs','ufsc-clubs'), 
-            __('Clubs','ufsc-clubs'), 
-            'manage_options', 
-            'ufsc-clubs', 
-            array( 'UFSC_SQL_Admin', 'render_clubs' ) 
-        );
-        
-        add_submenu_page( 
-            'ufsc-dashboard', 
-            __('Licences','ufsc-clubs'), 
-            __('Licences','ufsc-clubs'), 
-            'manage_options', 
-            'ufsc-licences', 
-            array( 'UFSC_SQL_Admin', 'render_licences' ) 
-        );
-        
-        add_submenu_page( 
-            'ufsc-dashboard', 
-            __('Exports','ufsc-clubs'), 
-            __('Exports','ufsc-clubs'), 
-            'manage_options', 
-            'ufsc-exports', 
-            array( 'UFSC_SQL_Admin', 'render_exports' ) 
-        );
-        
         add_submenu_page(
-            'ufsc-dashboard',
-            __('Paramètres','ufsc-clubs'),
-            __('Paramètres','ufsc-clubs'),
+            'ufsc-gestion',
+            __('Clubs','ufsc-clubs'),
+            __('Clubs','ufsc-clubs'),
+            'manage_options',
+            'ufsc-clubs',
+            array( 'UFSC_SQL_Admin', 'render_clubs' )
+        );
+
+        add_submenu_page(
+            'ufsc-gestion',
+            __('Licences','ufsc-clubs'),
+            __('Licences','ufsc-clubs'),
+            'manage_options',
+            'ufsc-licences',
+            array( 'UFSC_SQL_Admin', 'render_licences' )
+        );
+
+        add_submenu_page(
+            'ufsc-gestion',
+            __('Exports/Imports','ufsc-clubs'),
+            __('Exports/Imports','ufsc-clubs'),
+            'manage_options',
+            'ufsc-exports',
+            array( 'UFSC_SQL_Admin', 'render_exports' )
+        );
+
+        add_submenu_page(
+            'ufsc-gestion',
+            __('Réglages','ufsc-clubs'),
+            __('Réglages','ufsc-clubs'),
             'manage_options',
             'ufsc-settings',
             array( 'UFSC_Settings_Page', 'render' )
         );
-        
-        add_submenu_page( 
-            'ufsc-dashboard', 
-            __('WooCommerce','ufsc-clubs'), 
-            __('WooCommerce','ufsc-clubs'), 
-            'manage_options', 
-            'ufsc-woocommerce', 
-            array( 'UFSC_SQL_Admin', 'render_woocommerce_settings' ) 
-        );
+
+        remove_submenu_page( 'ufsc-gestion', 'ufsc-gestion' );
+        remove_menu_page( 'ufsc-attestations' );
     }
     public static function enqueue_admin( $hook ){
         if ( strpos($hook, 'ufsc') !== false ){
@@ -103,7 +93,7 @@ class UFSC_CL_Admin_Menu {
         echo '</div>';
         // Cache refresh button
         if (current_user_can('manage_options')) {
-            $refresh_url = add_query_arg('ufsc_refresh_cache', '1', admin_url('admin.php?page=ufsc-dashboard'));
+            $refresh_url = add_query_arg('ufsc_refresh_cache', '1', admin_url('admin.php?page=ufsc-gestion'));
             $refresh_url = wp_nonce_url($refresh_url, 'ufsc_refresh_cache');
             echo '<a href="'.esc_url($refresh_url).'" class="button" style="color: white; border-color: rgba(255,255,255,0.3);" title="'.esc_attr__('Actualiser les données (cache: 10 min)','ufsc-clubs').'">'.esc_html__('⟳ Actualiser','ufsc-clubs').'</a>';
         }
