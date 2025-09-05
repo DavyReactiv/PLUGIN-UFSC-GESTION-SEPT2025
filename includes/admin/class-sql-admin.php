@@ -402,10 +402,7 @@ class UFSC_SQL_Admin {
 
 
         $allowed_statuses = array_keys( UFSC_SQL::statuses() );
-        if ( ! in_array( $data['statut'], $allowed_statuses, true ) ) {
-
-        $valid_statuses = array_keys( UFSC_SQL::statuses() );
-        if ( empty( $data['statut'] ) || ! in_array( $data['statut'], $valid_statuses, true ) ){
+        if ( empty( $data['statut'] ) || ! in_array( $data['statut'], $allowed_statuses, true ) ) {
 
             $data['statut'] = 'en_attente';
         }
