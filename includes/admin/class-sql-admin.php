@@ -1,6 +1,11 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+// Only load the admin class in the dashboard context.
+if ( ! is_admin() ) {
+    return;
+}
+
 class UFSC_SQL_Admin {
 
     /**
