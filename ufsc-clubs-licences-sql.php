@@ -18,6 +18,7 @@ require_once UFSC_CL_DIR.'includes/admin/class-admin-menu.php';
 require_once UFSC_CL_DIR.'includes/admin/class-ufsc-settings-page.php';
 require_once UFSC_CL_DIR.'includes/core/class-sql.php';
 require_once UFSC_CL_DIR.'includes/admin/class-sql-admin.php';
+require_once UFSC_CL_DIR.'includes/admin/class-ufsc-export-base.php';
 require_once UFSC_CL_DIR.'includes/admin/class-ufsc-export-clubs.php';
 require_once UFSC_CL_DIR.'includes/admin/class-ufsc-export-licences.php';
 require_once UFSC_CL_DIR.'includes/admin/class-ufsc-import-csv.php';

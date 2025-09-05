@@ -1,7 +1,7 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-class UFSC_Export_Clubs {
+class UFSC_Export_Clubs extends UFSC_Export_Base {
     public static function init() {
         add_action( 'admin_post_ufsc_export_clubs', array( __CLASS__, 'handle_export' ) );
     }
@@ -87,17 +87,6 @@ class UFSC_Export_Clubs {
         $rows = $wpdb->get_results( $sql, ARRAY_A );
 
         nocache_headers();
-        header( 'Content-Type: text/csv; charset=utf-8' );
-        header( 'Content-Disposition: attachment; filename="clubs.csv"' );
-        $out = fopen( 'php://output', 'w' );
-        fputs( $out, "\xEF\xBB\xBF" );
-        fputcsv( $out, $cols );
-        if ( $rows ) {
-            foreach ( $rows as $r ) {
-                fputcsv( $out, $r );
-            }
-        }
-        fclose( $out );
-        exit;
+        self::output_csv( 'clubs.csv', $cols, $rows );
     }
 }
