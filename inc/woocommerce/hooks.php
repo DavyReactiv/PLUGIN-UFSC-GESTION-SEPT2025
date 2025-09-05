@@ -380,12 +380,11 @@ if ( ! function_exists( 'ufsc_mark_licence_paid' ) ) {
             $licences_table,
             array(
                 'statut'      => 'en_attente',
-                'is_included' => 0,
                 'paid_season' => $season,
                 'paid_date'   => current_time( 'mysql' ),
             ),
             array( 'id' => $license_id ),
-            array( '%s', '%d', '%s', '%s' ),
+            array( '%s', '%s', '%s' ),
             array( '%d' )
         );
 

@@ -10,7 +10,11 @@
     $(document).ready(function() {
         initLicenseFormValidation();
         initClubRegionSync();
+
+        initIncludedQuotaLimit();
+
         initIncludedQuotaCheck();
+
     });
 
     /**
@@ -219,6 +223,43 @@
                 regionField.val(region);
             });
         }
+    }
+
+    function initIncludedQuotaLimit() {
+        const checkbox = $('#is_included');
+        const counterEl = $('#ufsc-included-counter');
+        const max = 10;
+
+        if (!checkbox.length || !counterEl.length) {
+            return;
+        }
+
+        let count = parseInt(counterEl.data('count'), 10) || 0;
+
+        function update() {
+            counterEl.text(count + '/' + max);
+            if (count >= max && !checkbox.prop('checked')) {
+                checkbox.prop('disabled', true);
+            } else {
+                checkbox.prop('disabled', false);
+            }
+        }
+
+        checkbox.on('change', function() {
+            if (checkbox.prop('checked')) {
+                if (count >= max) {
+                    checkbox.prop('checked', false);
+                    showNotification('Quota maximum de 10 licences atteint', 'error');
+                    return;
+                }
+                count++;
+            } else {
+                count = Math.max(0, count - 1);
+            }
+            update();
+        });
+
+        update();
     }
 
     /**

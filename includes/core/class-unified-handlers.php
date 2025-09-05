@@ -856,6 +856,21 @@ class UFSC_Unified_Handlers {
         $fields = UFSC_SQL::get_licence_fields();
         $data   = array_intersect_key( $data, $fields );
         $data['club_id'] = $club_id;
+
+        // Ensure we don't exceed the quota of included licences
+        if ( ! empty( $data['is_included'] ) ) {
+            $included_count = UFSC_SQL::count_included_licences( $club_id );
+            $existing       = 0;
+
+            if ( $licence_id > 0 ) {
+                $existing = (int) $wpdb->get_var( $wpdb->prepare( "SELECT is_included FROM {$licences_table} WHERE id = %d", $licence_id ) );
+            }
+
+            if ( $included_count - $existing >= 10 ) {
+                $data['is_included'] = 0;
+                return new WP_Error( 'quota_exceeded', __( 'Quota de 10 licences incluses atteint', 'ufsc-clubs' ) );
+            }
+        }
         
         if ( $licence_id > 0 ) {
             // Update
