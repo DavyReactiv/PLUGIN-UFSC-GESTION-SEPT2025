@@ -8,20 +8,22 @@ global $wpdb;
 $settings = UFSC_SQL::get_settings();
 $table    = $settings['table_clubs'];
 $club     = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d", $club_id ) );
+
+include UFSC_CL_DIR . 'templates/partials/notice.php';
 ?>
 
 <div class="ufsc-dashboard-header">
-    <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
-        <div class="ufsc-club-photo">
-            <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
+    <div class="ufsc-club-photo">
+        <img src="<?php echo esc_url( ! empty( $club->profile_photo_url ) ? $club->profile_photo_url : 'https://via.placeholder.com/150?text=Club' ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
+        <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-remove-photo-form">
                 <?php wp_nonce_field( 'ufsc_remove_profile_photo', 'ufsc_remove_profile_photo_nonce' ); ?>
                 <input type="hidden" name="action" value="ufsc_remove_profile_photo" />
                 <input type="hidden" name="club_id" value="<?php echo esc_attr( $club_id ); ?>" />
                 <button type="submit" class="button ufsc-remove-photo"><?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?></button>
             </form>
-        </div>
-    <?php endif; ?>
+        <?php endif; ?>
+    </div>
     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-upload-photo-form">
         <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
         <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
