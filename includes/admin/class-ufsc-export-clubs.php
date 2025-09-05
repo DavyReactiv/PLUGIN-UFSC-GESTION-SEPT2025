@@ -87,6 +87,21 @@ class UFSC_Export_Clubs extends UFSC_Export_Base {
         $rows = $wpdb->get_results( $sql, ARRAY_A );
 
         nocache_headers();
+
+        header( 'Content-Type: text/csv; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="clubs.csv"' );
+        $out = fopen( 'php://output', 'w' );
+        fputs( $out, "\xEF\xBB\xBF" );
+        fputcsv( $out, $cols );
+        if ( $rows ) {
+            foreach ( $rows as $r ) {
+                fputcsv( $out, array_map( fn( $c ) => $r[ $c ] ?? '', $cols ) );
+            }
+        }
+        fclose( $out );
+        exit;
+
         self::output_csv( 'clubs.csv', $cols, $rows );
+
     }
 }
