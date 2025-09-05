@@ -13,27 +13,14 @@ class UFSC_Licences_Table {
      */
     public static function render( $licences, $args = array() ) {
         $status = isset( $_GET['ufsc_status'] ) ? sanitize_text_field( wp_unslash( $_GET['ufsc_status'] ) ) : '';
-        $paid   = isset( $_GET['ufsc_paid'] ) ? (int) $_GET['ufsc_paid'] : '';
 
         $status = isset( $args['status'] ) ? $args['status'] : $status;
-        $paid   = isset( $args['paid'] ) ? $args['paid'] : $paid;
 
-        // Filter licences in-memory if filters provided.
-        if ( $status || $paid !== '' ) {
-            $licences = array_filter( $licences, function( $licence ) use ( $status, $paid ) {
-                if ( $status ) {
-                    $licence_status = $licence->statut ?? ( $licence->status ?? '' );
-                    if ( $licence_status !== $status ) {
-                        return false;
-                    }
-                }
-                if ( $paid !== '' ) {
-                    $paid_val = isset( $licence->paid ) ? (int) $licence->paid : ( isset( $licence->payment_status ) ? (int) $licence->payment_status : 0 );
-                    if ( $paid_val !== (int) $paid ) {
-                        return false;
-                    }
-                }
-                return true;
+        // Filter licences in-memory if a status filter is provided.
+        if ( $status ) {
+            $licences = array_filter( $licences, function( $licence ) use ( $status ) {
+                $licence_status = $licence->statut ?? ( $licence->status ?? '' );
+                return $licence_status === $status;
             } );
         }
 
@@ -44,21 +31,16 @@ class UFSC_Licences_Table {
         echo '<select id="ufsc_status" name="ufsc_status">';
         echo '<option value="">' . esc_html__( 'Tous', 'ufsc-clubs' ) . '</option>';
         $status_options = array(
-            'draft'   => __( 'Brouillon', 'ufsc-clubs' ),
-            'pending' => __( 'En attente', 'ufsc-clubs' ),
-            'active'  => __( 'Active', 'ufsc-clubs' ),
-            'expired' => __( 'Expirée', 'ufsc-clubs' ),
+            'valide'     => __( 'Validée', 'ufsc-clubs' ),
+            'en_attente' => __( 'En attente', 'ufsc-clubs' ),
+            'rejete'     => __( 'Rejetée', 'ufsc-clubs' ),
+            'paye'       => __( 'Payée', 'ufsc-clubs' ),
+            'refuse'     => __( 'Refusée', 'ufsc-clubs' ),
         );
         foreach ( $status_options as $value => $label ) {
             printf( '<option value="%1$s" %2$s>%3$s</option>', esc_attr( $value ), selected( $status, $value, false ), esc_html( $label ) );
         }
         echo '</select>';
-        echo '</div>';
-
-        echo '<div class="ufsc-filter-group">';
-        echo '<label class="ufsc-checkbox-label">';
-        printf( '<input type="checkbox" name="ufsc_paid" value="1" %s> %s', checked( $paid, 1, false ), esc_html__( 'Payée', 'ufsc-clubs' ) );
-        echo '</label>';
         echo '</div>';
 
         echo '<button type="submit" class="ufsc-btn ufsc-btn-primary">' . esc_html__( 'Filtrer', 'ufsc-clubs' ) . '</button>';
@@ -108,7 +90,12 @@ class UFSC_Licences_Table {
                         $age = floor( ( current_time( 'timestamp' ) - $birth ) / YEAR_IN_SECONDS );
                     }
                 }
-                $status_badge = UFSC_Badges::render_licence_badge( $licence->statut ?? ( $licence->status ?? '' ), array( 'custom_class' => 'ufsc-badge' ) );
+                $licence_status = $licence->statut ?? ( $licence->status ?? '' );
+                $badge_options  = array( 'custom_class' => 'ufsc-badge' );
+                if ( isset( $status_options[ $licence_status ] ) ) {
+                    $badge_options['custom_label'] = $status_options[ $licence_status ];
+                }
+                $status_badge = UFSC_Badges::render_licence_badge( $licence_status, $badge_options );
                 $expiration = '';
                 if ( ! empty( $licence->certificat_expiration ) ) {
                     $expiration = mysql2date( get_option( 'date_format' ), $licence->certificat_expiration );
