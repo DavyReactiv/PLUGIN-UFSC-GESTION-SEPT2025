@@ -98,7 +98,7 @@ class UFSC_CL_Club_Form_Handler {
                         continue;
                     }
                     update_post_meta( $result_club_id, $doc_key, $url );
-                    if ( strpos( $doc_key, 'doc_' ) === 0 ) {
+                    if ( strpos( (string) ( $doc_key ?? '' ), 'doc_' ) === 0 ) {
                         update_post_meta( $result_club_id, $doc_key . '_status', 'pending' );
                     }
                 }

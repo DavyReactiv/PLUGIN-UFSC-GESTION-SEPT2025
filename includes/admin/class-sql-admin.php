@@ -1188,7 +1188,7 @@ class UFSC_SQL_Admin {
             echo '<input type="email" name="'.esc_attr($k).'" value="'.esc_attr($val).'" placeholder="'.esc_attr__('exemple@email.com','ufsc-clubs').'" required '.$readonly_attr.' />';
         } elseif ( $k === 'telephone' || $k === 'tel' ){
             echo '<input type="tel" name="'.esc_attr($k).'" value="'.esc_attr($val).'" placeholder="'.esc_attr__('01 23 45 67 89','ufsc-clubs').'" '.$readonly_attr.' />';
-        } elseif ( $k === 'date_naissance' || strpos($k, 'date_') === 0 ){
+        } elseif ( $k === 'date_naissance' || strpos( (string) ( $k ?? '' ), 'date_' ) === 0 ){
             echo '<input type="date" name="'.esc_attr($k).'" value="'.esc_attr($val).'" '.$readonly_attr.' />';
         } elseif ( $k === 'prenom' ){
             echo '<input type="text" name="'.esc_attr($k).'" value="'.esc_attr($val).'" placeholder="'.esc_attr__('Prénom','ufsc-clubs').'" required '.$readonly_attr.' />';

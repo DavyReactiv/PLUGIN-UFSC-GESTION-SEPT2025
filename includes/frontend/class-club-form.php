@@ -318,7 +318,7 @@ class UFSC_CL_Club_Form {
                     );
 
                     foreach ( $documents as $doc_key => $doc_info ):
-                        $upload_key = str_replace( 'doc_', '', $doc_key ) . '_upload';
+                        $upload_key = str_replace( 'doc_', '', (string) ( $doc_key ?? '' ) ) . '_upload';
                     ?>
                         <div class="ufsc-field">
                             <label for="<?php echo esc_attr( $upload_key ); ?>" class="ufsc-label <?php echo $doc_info['required'] ? 'required' : ''; ?>">

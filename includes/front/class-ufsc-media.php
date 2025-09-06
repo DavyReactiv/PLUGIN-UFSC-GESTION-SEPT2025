@@ -76,7 +76,7 @@ class UFSC_Media {
             $settings = UFSC_SQL::get_settings();
             $table    = $settings['table_clubs'];
             $result   = $wpdb->update( $table, array( 'profile_photo_url' => $url ), array( 'id' => $club_id ) );
-            if ( $result === false && $wpdb->last_error && stripos( $wpdb->last_error, 'unknown column' ) !== false ) {
+            if ( $result === false && $wpdb->last_error && stripos( (string) ( $wpdb->last_error ?? '' ), 'unknown column' ) !== false ) {
                 update_option( "ufsc_club_{$club_id}_profile_photo_url", $url, false );
             }
         }
@@ -143,7 +143,7 @@ class UFSC_Media {
         $settings = UFSC_SQL::get_settings();
         $table    = $settings['table_clubs'];
         $result   = $wpdb->update( $table, array( 'profile_photo_url' => '' ), array( 'id' => $club_id ) );
-        if ( $result === false && $wpdb->last_error && stripos( $wpdb->last_error, 'unknown column' ) !== false ) {
+        if ( $result === false && $wpdb->last_error && stripos( (string) ( $wpdb->last_error ?? '' ), 'unknown column' ) !== false ) {
             delete_option( "ufsc_club_{$club_id}_profile_photo_url" );
         }
     }
@@ -165,7 +165,7 @@ class UFSC_Media {
         $table    = $settings['table_clubs'];
 
         $url = $wpdb->get_var( $wpdb->prepare( "SELECT profile_photo_url FROM `{$table}` WHERE id = %d", $club_id ) );
-        if ( $wpdb->last_error && stripos( $wpdb->last_error, 'unknown column' ) !== false ) {
+        if ( $wpdb->last_error && stripos( (string) ( $wpdb->last_error ?? '' ), 'unknown column' ) !== false ) {
             $url = '';
         }
         $url = (string) $url;

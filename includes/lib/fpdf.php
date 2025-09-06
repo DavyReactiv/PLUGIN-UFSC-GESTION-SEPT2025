@@ -34,7 +34,7 @@ class FPDF {
 
     public function Output( $dest, $file_path ) {
         $escape = function( $text ) {
-            return str_replace( array( '\\', '(', ')' ), array( '\\\\', '\\(', '\\)' ), $text );
+            return str_replace( array( '\\', '(', ')' ), array( '\\\\', '\\(', '\\)' ), (string) ( $text ?? '' ) );
         };
 
         $content = "BT\n/F1 16 Tf\n50 780 Td\n";
