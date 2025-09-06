@@ -272,10 +272,13 @@ class UFSC_Stats {
         $quota_remaining = max( 0, 10 - $included_active );
 
         return array(
-            'total_licences'  => $total_licences,
-            'paid'            => $paid,
-            'validated'       => $validated,
-            'quota_remaining' => $quota_remaining,
+            'total_licences'     => $total_licences,
+            'paid_licences'      => $paid,
+            'validated_licences' => $validated,
+            // Legacy keys preserved for backward compatibility.
+            'paid'               => $paid,
+            'validated'          => $validated,
+            'quota_remaining'    => $quota_remaining,
             'by_status'          => $status_counts,
             'by_paid'            => $paid_counts,
             'by_gender'          => $gender_counts,
