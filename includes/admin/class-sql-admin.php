@@ -397,15 +397,19 @@ class UFSC_SQL_Admin {
 
         $data = array();
         foreach ( $fields as $k => $conf ) {
+            if ( 'statut' === $k ) {
+                continue;
+            }
             $data[ $k ] = isset( $_POST[ $k ] ) ? sanitize_text_field( $_POST[ $k ] ) : null;
         }
 
-
+        $status_column    = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'statut' ) : 'statut';
         $allowed_statuses = array_keys( UFSC_SQL::statuses() );
-        if ( empty( $data['statut'] ) || ! in_array( $data['statut'], $allowed_statuses, true ) ) {
-
-            $data['statut'] = 'en_attente';
+        $submitted_status = isset( $_POST['statut'] ) ? sanitize_text_field( $_POST['statut'] ) : '';
+        if ( ! in_array( $submitted_status, $allowed_statuses, true ) ) {
+            $submitted_status = 'en_attente';
         }
+        $data[ $status_column ] = $submitted_status;
 
         // Handle file uploads before validation
         $upload_errors = array();

@@ -69,13 +69,16 @@ class UFSC_Media {
             return $attach_id;
         }
 
-        $url = wp_get_attachment_url( $attach_id );
+        $url = (string) wp_get_attachment_url( $attach_id );
 
         if ( $club_id ) {
             global $wpdb;
             $settings = UFSC_SQL::get_settings();
             $table    = $settings['table_clubs'];
-            $wpdb->update( $table, array( 'profile_photo_url' => $url ), array( 'id' => $club_id ) );
+            $result   = $wpdb->update( $table, array( 'profile_photo_url' => $url ), array( 'id' => $club_id ) );
+            if ( $result === false && $wpdb->last_error && stripos( $wpdb->last_error, 'unknown column' ) !== false ) {
+                update_option( "ufsc_club_{$club_id}_profile_photo_url", $url, false );
+            }
         }
 
         return $url;
@@ -139,6 +142,37 @@ class UFSC_Media {
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
         $table    = $settings['table_clubs'];
-        $wpdb->update( $table, array( 'profile_photo_url' => '' ), array( 'id' => $club_id ) );
+        $result   = $wpdb->update( $table, array( 'profile_photo_url' => '' ), array( 'id' => $club_id ) );
+        if ( $result === false && $wpdb->last_error && stripos( $wpdb->last_error, 'unknown column' ) !== false ) {
+            delete_option( "ufsc_club_{$club_id}_profile_photo_url" );
+        }
+    }
+
+    /**
+     * Retrieve a club's profile photo URL.
+     *
+     * @param int $club_id Club identifier.
+     * @return string
+     */
+    public static function get_profile_photo_url( $club_id ) {
+        $club_id = (int) $club_id;
+        if ( ! $club_id ) {
+            return '';
+        }
+
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $table    = $settings['table_clubs'];
+
+        $url = $wpdb->get_var( $wpdb->prepare( "SELECT profile_photo_url FROM `{$table}` WHERE id = %d", $club_id ) );
+        if ( $wpdb->last_error && stripos( $wpdb->last_error, 'unknown column' ) !== false ) {
+            $url = '';
+        }
+        $url = (string) $url;
+        if ( '' === $url ) {
+            $url = (string) get_option( "ufsc_club_{$club_id}_profile_photo_url", '' );
+        }
+
+        return $url;
     }
 }

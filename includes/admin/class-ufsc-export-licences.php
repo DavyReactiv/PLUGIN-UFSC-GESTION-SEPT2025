@@ -95,19 +95,16 @@ class UFSC_Export_Licences extends UFSC_Export_Base {
         }
         $rows = $wpdb->get_results( $sql, ARRAY_A );
 
-        nocache_headers();
-
-        header( 'Content-Type: text/csv; charset=utf-8' );
-        header( 'Content-Disposition: attachment; filename="licences.csv"' );
-        $out = fopen( 'php://output', 'w' );
-        fputs( $out, "\xEF\xBB\xBF" );
-        fputcsv( $out, $headers );
+        $csv_rows = array();
         if ( $rows ) {
             foreach ( $rows as $r ) {
-                fputcsv( $out, array_map( fn( $c ) => $r[ $c ] ?? '', $cols ) );
+                $csv_rows[] = array_map( fn( $c ) => $r[ $c ] ?? '', $cols );
             }
         }
-        fclose( $out );
+
+        nocache_headers();
+        $filename = 'licences-' . current_time( 'Ymd' ) . '.csv';
+        self::output_csv( $filename, $headers, $csv_rows );
         exit;
 
     }
