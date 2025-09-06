@@ -56,6 +56,14 @@ class UFSC_Frontend_Shortcodes {
                 '4.4.0',
                 true
             );
+
+            wp_enqueue_script(
+                'ufsc-front',
+                UFSC_CL_URL . 'assets/js/ufsc-front.js',
+                array(),
+                UFSC_CL_VERSION,
+                true
+            );
         }
 
         if ( has_shortcode( $content, 'ufsc_licences' ) ) {
@@ -89,12 +97,15 @@ class UFSC_Frontend_Shortcodes {
                    '</div></div>';
         }
 
-        $sections = explode( ',', $atts['show_sections'] );
-        
+        $sections   = explode( ',', $atts['show_sections'] );
+        $dashboard_id = uniqid( 'ufsc-dashboard-' );
+        $tab_prefix   = $dashboard_id . '-tab-';
+        $panel_prefix = $dashboard_id . '-section-';
+
         ob_start();
         ?>
         <div class="ufsc-front ufsc-full">
-        <div class="ufsc-club-dashboard" id="ufsc-dashboard">
+        <div class="ufsc-club-dashboard" id="<?php echo esc_attr( $dashboard_id ); ?>">
             <div class="ufsc-dashboard-header">
                 <h2><?php esc_html_e( 'Tableau de bord - Mon Club', 'ufsc-clubs' ); ?></h2>
                 <p class="ufsc-dashboard-subtitle">
@@ -115,49 +126,49 @@ class UFSC_Frontend_Shortcodes {
             </div>
 
             <div class="ufsc-dashboard-nav" role="tablist">
-                <?php if ( in_array( 'licences', $sections ) ): ?>
-                    <button class="ufsc-nav-btn active" role="tab" id="ufsc-tab-licences" aria-controls="ufsc-section-licences" aria-selected="true" tabindex="0" data-section="licences">
+                <?php if ( in_array( 'licences', $sections ) ) : ?>
+                    <button class="ufsc-nav-btn active" role="tab" id="<?php echo esc_attr( $tab_prefix . 'licences' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'licences' ); ?>" aria-selected="true" tabindex="0" data-section="licences">
                         <?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
-                <?php if ( in_array( 'stats', $sections ) ): ?>
-                    <button class="ufsc-nav-btn" role="tab" id="ufsc-tab-stats" aria-controls="ufsc-section-stats" aria-selected="false" tabindex="-1" data-section="stats">
+                <?php if ( in_array( 'stats', $sections ) ) : ?>
+                    <button class="ufsc-nav-btn" role="tab" id="<?php echo esc_attr( $tab_prefix . 'stats' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'stats' ); ?>" aria-selected="false" tabindex="-1" data-section="stats">
                         <?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
-                <?php if ( in_array( 'profile', $sections ) ): ?>
-                    <button class="ufsc-nav-btn" role="tab" id="ufsc-tab-profile" aria-controls="ufsc-section-profile" aria-selected="false" tabindex="-1" data-section="profile">
+                <?php if ( in_array( 'profile', $sections ) ) : ?>
+                    <button class="ufsc-nav-btn" role="tab" id="<?php echo esc_attr( $tab_prefix . 'profile' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'profile' ); ?>" aria-selected="false" tabindex="-1" data-section="profile">
                         <?php esc_html_e( 'Mon Club', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
-                <?php if ( in_array( 'add_licence', $sections ) ): ?>
-                    <button class="ufsc-nav-btn" role="tab" id="ufsc-tab-add_licence" aria-controls="ufsc-section-add_licence" aria-selected="false" tabindex="-1" data-section="add_licence">
+                <?php if ( in_array( 'add_licence', $sections ) ) : ?>
+                    <button class="ufsc-nav-btn" role="tab" id="<?php echo esc_attr( $tab_prefix . 'add_licence' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'add_licence' ); ?>" aria-selected="false" tabindex="-1" data-section="add_licence">
                         <?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
             </div>
 
             <div class="ufsc-dashboard-content">
-                <?php if ( in_array( 'licences', $sections ) ): ?>
-                    <div id="ufsc-section-licences" class="ufsc-dashboard-section active" role="tabpanel" aria-labelledby="ufsc-tab-licences" tabindex="0">
+                <?php if ( in_array( 'licences', $sections ) ) : ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'licences' ); ?>" class="ufsc-dashboard-section active" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'licences' ); ?>" tabindex="0">
                         <?php echo self::render_club_licences( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
-                <?php if ( in_array( 'stats', $sections ) ): ?>
-                    <div id="ufsc-section-stats" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="ufsc-tab-stats" tabindex="0" hidden>
+                <?php if ( in_array( 'stats', $sections ) ) : ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'stats' ); ?>" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'stats' ); ?>" tabindex="0" hidden>
                         <?php echo self::render_club_stats( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
-                <?php if ( in_array( 'profile', $sections ) ): ?>
-                    <div id="ufsc-section-profile" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="ufsc-tab-profile" tabindex="0" hidden>
+                <?php if ( in_array( 'profile', $sections ) ) : ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'profile' ); ?>" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'profile' ); ?>" tabindex="0" hidden>
                         <?php echo self::render_club_profile( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
-                <?php if ( in_array( 'add_licence', $sections ) ): ?>
-                    <div id="ufsc-section-add_licence" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="ufsc-tab-add_licence" tabindex="0" hidden>
+                <?php if ( in_array( 'add_licence', $sections ) ) : ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'add_licence' ); ?>" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'add_licence' ); ?>" tabindex="0" hidden>
                         <?php echo self::render_add_licence( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
@@ -165,23 +176,6 @@ class UFSC_Frontend_Shortcodes {
         </div>
 
         </div>
-
-        <script>
-        jQuery(document).ready(function($) {
-            $('.ufsc-nav-btn').on('click', function() {
-                var section = $(this).data('section');
-
-                // Update nav
-                $('.ufsc-nav-btn').removeClass('active');
-                $(this).addClass('active');
-
-                // Show section
-                $('.ufsc-dashboard-section').removeClass('active');
-                $('#ufsc-section-' + section).addClass('active');
-            });
-
-        });
-        </script>
 
         <?php
         return ob_get_clean();
