@@ -209,17 +209,22 @@ class UFSC_Stats {
             $table = $wpdb->prefix . 'ufsc_licences';
         }
 
-        $where = $wpdb->prepare( 'club_id = %d', $club_id );
+        $where_clauses = array( 'club_id = %d' );
+        $where_values  = array( $club_id );
         if ( null !== $season ) {
             // Season column optional; only add if exists.
-            $columns = $wpdb->get_col( "DESCRIBE `{$table}`" );
+            $columns = method_exists( $wpdb, 'get_col' ) ? $wpdb->get_col( "DESCRIBE `{$table}`" ) : array();
             if ( in_array( 'season', $columns, true ) ) {
-                $where .= $wpdb->prepare( ' AND season = %d', $season );
+                $where_clauses[] = 'season = %d';
+                $where_values[]  = $season;
             }
         }
 
+        $where_sql = implode( ' AND ', $where_clauses );
+
         // Status distribution
-        $status_rows = $wpdb->get_results( "SELECT status, COUNT(*) AS count FROM `{$table}` WHERE {$where} GROUP BY status" );
+        $status_sql   = "SELECT status, COUNT(*) AS count FROM `{$table}` WHERE {$where_sql} GROUP BY status";
+        $status_rows  = $wpdb->get_results( $wpdb->prepare( $status_sql, $where_values ) );
         $status_counts = array();
         $total_licences = 0;
         foreach ( $status_rows as $row ) {
@@ -228,9 +233,10 @@ class UFSC_Stats {
         }
 
         // Paid distribution
-        $paid_rows = $wpdb->get_results( "SELECT paid, COUNT(*) AS count FROM `{$table}` WHERE {$where} GROUP BY paid" );
+        $paid_sql    = "SELECT paid, COUNT(*) AS count FROM `{$table}` WHERE {$where_sql} GROUP BY paid";
+        $paid_rows   = $wpdb->get_results( $wpdb->prepare( $paid_sql, $where_values ) );
         $paid_counts = array();
-        $paid = 0;
+        $paid        = 0;
         foreach ( $paid_rows as $row ) {
             $paid_counts[ $row->paid ] = (int) $row->count;
             if ( '1' == $row->paid || 1 === (int) $row->paid ) {
@@ -239,21 +245,24 @@ class UFSC_Stats {
         }
 
         // Gender distribution
-        $gender_rows = $wpdb->get_results( "SELECT gender, COUNT(*) AS count FROM `{$table}` WHERE {$where} GROUP BY gender" );
+        $gender_sql   = "SELECT gender, COUNT(*) AS count FROM `{$table}` WHERE {$where_sql} GROUP BY gender";
+        $gender_rows  = $wpdb->get_results( $wpdb->prepare( $gender_sql, $where_values ) );
         $gender_counts = array();
         foreach ( $gender_rows as $row ) {
             $gender_counts[ $row->gender ] = (int) $row->count;
         }
 
         // Practice distribution
-        $practice_rows = $wpdb->get_results( "SELECT practice, COUNT(*) AS count FROM `{$table}` WHERE {$where} GROUP BY practice" );
+        $practice_sql   = "SELECT practice, COUNT(*) AS count FROM `{$table}` WHERE {$where_sql} GROUP BY practice";
+        $practice_rows  = $wpdb->get_results( $wpdb->prepare( $practice_sql, $where_values ) );
         $practice_counts = array();
         foreach ( $practice_rows as $row ) {
             $practice_counts[ $row->practice ] = (int) $row->count;
         }
 
         // Birth year distribution
-        $birth_rows = $wpdb->get_results( "SELECT YEAR(birthdate) AS year, COUNT(*) AS count FROM `{$table}` WHERE {$where} GROUP BY YEAR(birthdate)" );
+        $birth_sql   = "SELECT YEAR(birthdate) AS year, COUNT(*) AS count FROM `{$table}` WHERE {$where_sql} GROUP BY YEAR(birthdate)";
+        $birth_rows  = $wpdb->get_results( $wpdb->prepare( $birth_sql, $where_values ) );
         $birth_year_counts = array();
         foreach ( $birth_rows as $row ) {
             $birth_year_counts[ $row->year ] = (int) $row->count;
@@ -263,11 +272,13 @@ class UFSC_Stats {
         $validated = isset( $status_counts['active'] ) ? (int) $status_counts['active'] : 0;
 
         // Quota remaining based on included active licences
-        $included_active = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM `{$table}` WHERE {$where} AND is_included = %d AND status = %s",
-            1,
-            'active'
-        ) );
+        $included_sql = "SELECT COUNT(*) FROM `{$table}` WHERE {$where_sql} AND is_included = %d AND status = %s";
+        $included_active = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                $included_sql,
+                array_merge( $where_values, array( 1, 'active' ) )
+            )
+        );
 
         $quota_remaining = max( 0, 10 - $included_active );
 
