@@ -308,10 +308,11 @@ class UFSC_Auth_Shortcodes {
                 return admin_url( 'admin.php?page=ufsc-gestion' );
             }
             
-            // Club managers go to club dashboard
+            // Club managers go to club dashboard, licences tab
             $club_id = ufsc_get_user_club_id( $user->ID );
             if ( $club_id ) {
-                return home_url( '/club-dashboard/' );
+                $dashboard_url = home_url( '/club-dashboard/' );
+                return add_query_arg( 'tab', 'licences', $dashboard_url );
             }
             
             // Regular users go to homepage
