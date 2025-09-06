@@ -15,28 +15,51 @@ class UFSC_DB_Migrations {
     /**
      * Option key for tracking migration version
      */
-    const VERSION_OPTION = 'ufsc_db_migration_version';
+    const VERSION_OPTION = 'ufsc_db_version';
 
     /**
-     * Run all pending migrations
+     * Run database migrations and schema upgrades
      */
-    public static function run_migrations() {
+    public static function run() {
         $current_version = get_option( self::VERSION_OPTION, '0.0.0' );
 
         if ( version_compare( $current_version, self::MIGRATION_VERSION, '<' ) ) {
+
+            $settings        = UFSC_SQL::get_settings();
+            $licences_table  = $settings['table_licences'];
+            $clubs_table     = $settings['table_clubs'];
+
+            // Add missing columns to licences table
+            self::maybe_add_column( $licences_table, 'status', "VARCHAR(20) NOT NULL DEFAULT 'en_attente'" );
+            self::maybe_add_column( $licences_table, 'paid', 'TINYINT(1) NOT NULL DEFAULT 0' );
+            self::maybe_add_column( $licences_table, 'gender', 'VARCHAR(1) NULL' );
+            self::maybe_add_column( $licences_table, 'practice', 'VARCHAR(20) NULL' );
+            self::maybe_add_column( $licences_table, 'birthdate', 'DATE NULL' );
+
+            // Add missing column to clubs table
+            self::maybe_add_column( $clubs_table, 'profile_photo_url', 'VARCHAR(255) NULL' );
+
+
             self::add_profile_photo_url_column();
+
             self::migrate_to_innodb();
             self::create_indexes();
             self::create_unique_constraints();
             self::create_events_table();
-            
+
             update_option( self::VERSION_OPTION, self::MIGRATION_VERSION );
-            
+
             add_action( 'admin_notices', array( __CLASS__, 'migration_success_notice' ) );
         }
     }
 
     /**
+
+     * Backwards compatibility wrapper
+     */
+    public static function run_migrations() {
+        self::run();
+
      * Add profile_photo_url column to clubs table if missing.
      */
     public static function add_profile_photo_url_column() {
@@ -62,6 +85,7 @@ class UFSC_DB_Migrations {
                 }
             }
         }
+
     }
 
     /**
@@ -231,6 +255,36 @@ class UFSC_DB_Migrations {
         if ( $wpdb->last_error ) {
             UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to create events table: " . $wpdb->last_error );
         }
+    }
+
+    /**
+     * Helper: Add column if missing
+     */
+    private static function maybe_add_column( $table_name, $column_name, $definition ) {
+        global $wpdb;
+
+        if ( ! self::column_exists( $table_name, $column_name ) ) {
+            $sql    = "ALTER TABLE `{$table_name}` ADD `{$column_name}` {$definition}";
+            $result = $wpdb->query( $sql );
+
+            if ( $result === false ) {
+                UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to add column {$column_name} to {$table_name}: " . $wpdb->last_error );
+            }
+        }
+    }
+
+    /**
+     * Helper: Check if column exists
+     */
+    private static function column_exists( $table_name, $column_name ) {
+        global $wpdb;
+
+        $result = $wpdb->get_var( $wpdb->prepare(
+            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
+            $column_name
+        ) );
+
+        return ! is_null( $result );
     }
 
     /**
