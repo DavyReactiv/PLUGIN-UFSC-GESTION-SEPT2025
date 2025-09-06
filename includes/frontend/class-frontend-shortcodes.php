@@ -516,12 +516,10 @@ class UFSC_Frontend_Shortcodes {
                 $licence_status = $licence->statut ?? '';
                 if ( 'pending' === $licence_status ) :
                     ?>
-                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
-                        <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
-                        <input type="hidden" name="action" value="ufsc_add_to_cart">
-                        <input type="hidden" name="product_id" value="<?php echo esc_attr( $wc_settings['product_license_id'] ); ?>">
-                        <input type="hidden" name="ufsc_license_ids" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
-                        <button type="submit" class="ufsc-btn ufsc-btn-small">
+                    <form method="post" style="display:inline">
+                        <input type="hidden" name="add-to-cart" value="<?php echo esc_attr( $wc_settings['product_license_id'] ); ?>">
+                        <input type="hidden" name="ufsc_licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
+                        <button type="submit" class="ufsc-btn ufsc-btn-small button add_to_cart_button" data-product_id="<?php echo esc_attr( $wc_settings['product_license_id'] ); ?>">
                             <?php esc_html_e( 'Payer la licence', 'ufsc-clubs' ); ?>
                         </button>
                     </form>
