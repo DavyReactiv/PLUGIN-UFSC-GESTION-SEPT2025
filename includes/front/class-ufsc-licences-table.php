@@ -35,8 +35,8 @@ class UFSC_Licences_Table {
     public static function ajax_fetch_licences() {
         check_ajax_referer( 'ufsc_frontend_nonce', 'nonce' );
 
-        if ( ! is_user_logged_in() ) {
-            wp_send_json_error( array( 'message' => __( 'Vous devez être connecté.', 'ufsc-clubs' ) ), 401 );
+        if ( ! current_user_can( 'read' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Accès refusé.', 'ufsc-clubs' ) ), 401 );
         }
 
         $user_id = get_current_user_id();

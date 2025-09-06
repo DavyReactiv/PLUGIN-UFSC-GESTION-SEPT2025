@@ -19,6 +19,10 @@ class UFSC_Documents {
      * Handle document uploads from club dashboard forms.
      */
     public static function handle_upload() {
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
         if ( ! isset( $_POST['club_id'], $_POST['_wpnonce'] ) ) {
             wp_die( __( 'Requête invalide.', 'ufsc-clubs' ) );
         }
@@ -130,6 +134,10 @@ class UFSC_Documents {
      * Export club documents as CSV.
      */
     public static function export_documents() {
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
         if ( ! isset( $_GET['club_id'], $_GET['_wpnonce'] ) ) {
             wp_die( __( 'Requête invalide.', 'ufsc-clubs' ) );
         }
