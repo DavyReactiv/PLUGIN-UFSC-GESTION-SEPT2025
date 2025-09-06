@@ -168,7 +168,7 @@ class UFSC_SQL_Admin {
         
         if ( !$readonly ) {
             echo '<form method="post" enctype="multipart/form-data">';
-            wp_nonce_field('ufsc_sql_save_club');
+            wp_nonce_field('ufsc_save_club');
             echo '<input type="hidden" name="action" value="ufsc_sql_save_club" />';
             echo '<input type="hidden" name="id" value="'.(int)$id.'" />';
             echo '<input type="hidden" name="page" value="ufsc-sql-clubs"/>';
@@ -373,21 +373,13 @@ class UFSC_SQL_Admin {
     }
 
     public static function handle_save_club(){
-        if ( ! current_user_can( 'read' ) ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
 
-        check_admin_referer('ufsc_sql_save_club');
+        check_admin_referer('ufsc_save_club');
 
-        $user_id = get_current_user_id();
-        $id      = isset($_POST['id']) ? (int) $_POST['id'] : 0;
-
-        // Permission check to ensure user can manage this club
-        if ( ! current_user_can( 'manage_options' ) && ufsc_get_user_club_id( $user_id ) !== $id ) {
-            set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
-            wp_safe_redirect( wp_get_referer() );
-            exit; // Abort processing if user lacks rights
-        }
+        $id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
 
         global $wpdb;
         $s      = UFSC_SQL::get_settings();
@@ -1056,7 +1048,7 @@ class UFSC_SQL_Admin {
         
         if ( !$readonly ) {
             echo '<form method="post" enctype="multipart/form-data">';
-            wp_nonce_field('ufsc_sql_save_licence');
+            wp_nonce_field('ufsc_save_licence');
             echo '<input type="hidden" name="action" value="ufsc_sql_save_licence" />';
             echo '<input type="hidden" name="id" value="'.(int)$id.'" />';
             echo '<input type="hidden" name="page" value="ufsc-sql-licences"/>';
@@ -1207,21 +1199,13 @@ class UFSC_SQL_Admin {
     }
 
     public static function handle_save_licence(){
-        if ( ! current_user_can( 'read' ) ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
 
-        check_admin_referer('ufsc_sql_save_licence');
+        check_admin_referer('ufsc_save_licence');
 
-        $user_id   = get_current_user_id();
-        $club_id   = isset( $_POST['club_id'] ) ? (int) $_POST['club_id'] : 0;
-
-        // Ensure the current user has rights to manage the targeted club
-        if ( ! current_user_can( 'manage_options' ) && ufsc_get_user_club_id( $user_id ) !== $club_id ) {
-            set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
-            wp_safe_redirect( wp_get_referer() );
-            exit; // Abort processing on permission failure
-        }
+        $club_id = isset( $_POST['club_id'] ) ? (int) $_POST['club_id'] : 0;
 
         global $wpdb;
         $s      = UFSC_SQL::get_settings();
@@ -1232,7 +1216,7 @@ class UFSC_SQL_Admin {
 
         $data = array();
         foreach( $fields as $k=>$conf ){
-            if ( $k === 'certificat_url' ) continue;
+            if ( $k === 'certificat_url' || $k === 'statut' ) continue;
             $type = $conf[1];
             if ( $type === 'bool' ){
                 $data[$k] = isset($_POST[$k]) ? ( $_POST[$k] == '1' ? 1 : 0 ) : 0;
@@ -1243,10 +1227,12 @@ class UFSC_SQL_Admin {
             }
         }
 
-        $valid_statuses = array_keys( UFSC_SQL::statuses() );
-        if ( empty( $data['statut'] ) || ! in_array( $data['statut'], $valid_statuses, true ) ){
-            $data['statut'] = 'en_attente';
+        $valid_statuses   = array_keys( UFSC_SQL::statuses() );
+        $submitted_status = isset( $_POST['statut'] ) ? sanitize_text_field( $_POST['statut'] ) : '';
+        if ( ! in_array( $submitted_status, $valid_statuses, true ) ) {
+            $submitted_status = 'en_attente';
         }
+        $data['statut'] = $submitted_status;
 
         // Validate included quota if checkbox is set
         if ( ! empty( $data['is_included'] ) ) {
