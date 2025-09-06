@@ -604,7 +604,15 @@ class UFSC_Frontend_Shortcodes {
             $atts['season'] = $wc_settings['season'];
         }
 
-        $stats = self::get_club_stats( $atts['club_id'], $atts['season'] );
+        $stats = wp_parse_args(
+            self::get_club_stats( $atts['club_id'], $atts['season'] ),
+            array(
+                'total_licences'     => 0,
+                'paid_licences'      => 0,
+                'validated_licences' => 0,
+                'quota_remaining'    => 0,
+            )
+        );
 
         $evolution = array();
         if ( class_exists( 'UFSC_Stats' ) ) {
