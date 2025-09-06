@@ -41,11 +41,12 @@ class UFSC_DB_Migrations {
 
         $clubs_sql = "CREATE TABLE {$clubs_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            statut VARCHAR(20) NOT NULL DEFAULT 'inactive',
+            statut VARCHAR(20) NOT NULL DEFAULT 'en_attente',
             profile_photo_url VARCHAR(255) NULL,
             PRIMARY KEY (id)
         ) {$charset_collate};";
         dbDelta( $clubs_sql );
+        self::maybe_add_column( $clubs_table, 'statut', "VARCHAR(20) NOT NULL DEFAULT 'en_attente'" );
 
         self::maybe_upgrade();
 
@@ -70,7 +71,7 @@ class UFSC_DB_Migrations {
         self::maybe_add_column( $licences_table, 'practice', 'VARCHAR(20) NULL' );
         self::maybe_add_column( $licences_table, 'birthdate', 'DATE NULL' );
 
-        self::maybe_add_column( $clubs_table, 'statut', "VARCHAR(20) NOT NULL DEFAULT 'inactive'" );
+        self::maybe_add_column( $clubs_table, 'statut', "VARCHAR(20) NOT NULL DEFAULT 'en_attente'" );
         self::maybe_add_column( $clubs_table, 'profile_photo_url', 'VARCHAR(255) NULL' );
 
         // Ensure indexes for performant queries.
