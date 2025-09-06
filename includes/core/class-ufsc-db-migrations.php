@@ -47,10 +47,9 @@ class UFSC_DB_Migrations {
         ) {$charset_collate};";
         dbDelta( $clubs_sql );
         self::maybe_add_column( $clubs_table, 'statut', "VARCHAR(20) NOT NULL DEFAULT 'en_attente'" );
+        self::ensure_statut_default( $clubs_table );
 
         self::maybe_upgrade();
-
-        update_option( self::OPTION_KEY, self::VERSION );
     }
 
     /**
@@ -58,8 +57,6 @@ class UFSC_DB_Migrations {
      */
     public static function maybe_upgrade() {
         global $wpdb;
-
-        $installed = get_option( self::OPTION_KEY );
 
         $licences_table = $wpdb->prefix . 'ufsc_licences';
         $clubs_table    = $wpdb->prefix . 'ufsc_clubs';
@@ -73,6 +70,7 @@ class UFSC_DB_Migrations {
 
         self::maybe_add_column( $clubs_table, 'statut', "VARCHAR(20) NOT NULL DEFAULT 'en_attente'" );
         self::maybe_add_column( $clubs_table, 'profile_photo_url', 'VARCHAR(255) NULL' );
+        self::ensure_statut_default( $clubs_table );
 
         // Ensure indexes for performant queries.
         self::maybe_add_index( $licences_table, 'club_id' );
@@ -81,9 +79,7 @@ class UFSC_DB_Migrations {
         self::maybe_add_index( $licences_table, 'practice' );
         self::maybe_add_index( $licences_table, 'birthdate' );
 
-        if ( version_compare( $installed, self::VERSION, '<' ) ) {
-            update_option( self::OPTION_KEY, self::VERSION );
-        }
+        update_option( self::OPTION_KEY, self::VERSION );
     }
 
     /**
@@ -106,5 +102,14 @@ class UFSC_DB_Migrations {
         if ( ! $exists ) {
             $wpdb->query( "ALTER TABLE `$table` ADD INDEX `$column` (`$column`)" );
         }
+    }
+
+    /**
+     * Ensure the statut column has the correct default and normalize existing values.
+     */
+    private static function ensure_statut_default( $clubs_table ) {
+        global $wpdb;
+        $wpdb->query( "ALTER TABLE {$clubs_table} MODIFY statut VARCHAR(20) NOT NULL DEFAULT 'en_attente'" );
+        $wpdb->query( "UPDATE {$clubs_table} SET statut='en_attente' WHERE statut='inactive' OR statut IS NULL" );
     }
 }
