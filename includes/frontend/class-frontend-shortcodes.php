@@ -910,7 +910,7 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_field( 'nom', $club, __( 'Nom du club', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
                         <?php self::render_field( 'region', $club, __( 'Région', 'ufsc-clubs' ), 'text', true, $is_admin ); ?>
                         <?php self::render_field( 'num_affiliation', $club, __( 'N° d\'affiliation', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                        <?php self::render_field( 'statut', $club, __( 'Statut', 'ufsc-clubs' ), 'text', true, false ); ?>
+                        <?php self::render_field( 'statut', $club, __( 'Statut', 'ufsc-clubs' ), 'select', false, $is_admin, UFSC_SQL::statuses() ); ?>
                     </div>
                 </div>
 
@@ -2371,20 +2371,31 @@ class UFSC_Frontend_Shortcodes {
      * @param string $type Input type
      * @param bool $readonly Force readonly
      * @param bool $editable Whether field is editable for current user
+     * @param array $options Options for select fields
      */
-    private static function render_field( $field_key, $club, $label, $type = 'text', $readonly = false, $editable = false ) {
+    private static function render_field( $field_key, $club, $label, $type = 'text', $readonly = false, $editable = false, $options = array() ) {
         $value = isset( $club->{$field_key} ) ? $club->{$field_key} : '';
         $field_readonly = $readonly || ! $editable;
-        
+
         echo '<div class="ufsc-field">';
         echo '<label for="' . esc_attr( $field_key ) . '">' . esc_html( $label ) . '</label>';
-        
+
         if ( $type === 'textarea' ) {
             echo '<textarea id="' . esc_attr( $field_key ) . '" name="' . esc_attr( $field_key ) . '"';
             if ( $field_readonly ) {
                 echo ' readonly';
             }
             echo '>' . esc_textarea( $value ) . '</textarea>';
+        } elseif ( $type === 'select' ) {
+            echo '<select id="' . esc_attr( $field_key ) . '" name="' . esc_attr( $field_key ) . '"';
+            if ( $field_readonly ) {
+                echo ' disabled';
+            }
+            echo '>';
+            foreach ( $options as $option_value => $option_label ) {
+                echo '<option value="' . esc_attr( $option_value ) . '"' . selected( $value, $option_value, false ) . '>' . esc_html( $option_label ) . '</option>';
+            }
+            echo '</select>';
         } else {
             echo '<input type="' . esc_attr( $type ) . '" id="' . esc_attr( $field_key ) . '" name="' . esc_attr( $field_key ) . '"';
             echo ' value="' . esc_attr( $value ) . '"';
@@ -2393,7 +2404,7 @@ class UFSC_Frontend_Shortcodes {
             }
             echo '>';
         }
-        
+
         echo '<span class="ufsc-field-error" aria-live="polite"></span></div>';
     }
 }
