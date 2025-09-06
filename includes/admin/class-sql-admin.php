@@ -1900,6 +1900,7 @@ class UFSC_SQL_Admin {
      * Render Exports page
      */
     public static function render_exports() {
-        include UFSC_CL_DIR . 'includes/admin/page-ufsc-exports.php';
+        require_once UFSC_CL_DIR . 'includes/admin/page-ufsc-exports.php';
+        ufsc_render_exports_page();
     }
 } /* end class */
