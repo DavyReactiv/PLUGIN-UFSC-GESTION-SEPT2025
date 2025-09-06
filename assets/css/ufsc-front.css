@@ -44,6 +44,10 @@
     grid-template-columns: 1fr;
 }
 
+.ufsc-front .ufsc-grid-full{
+    grid-column: 1 / -1;
+}
+
 /* Licence cards grid */
 .ufsc-front .ufsc-licence-grid{
     display: grid;
@@ -138,6 +142,9 @@
 }
 
 /* Field */
+.ufsc-front .ufsc-field{
+    margin-bottom: var(--ufsc-spacing-sm);
+}
 .ufsc-front .ufsc-club-profile .ufsc-field{
     margin-bottom: var(--ufsc-spacing-md);
 }
@@ -154,6 +161,25 @@
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
+}
+.ufsc-front .ufsc-field-help{
+    font-size: 12px;
+    color: #666;
+    margin-top: 4px;
+}
+.ufsc-front .ufsc-field-error,
+.ufsc-front .ufsc-error-message{
+    color: var(--ufsc-danger);
+    font-size: 12px;
+    margin-top: 4px;
+}
+.ufsc-front .ufsc-remember{
+    display: flex;
+    align-items: center;
+}
+.ufsc-front .ufsc-remember label{
+    margin-left: 5px;
+    font-weight: normal;
 }
 
 /* Buttons */
@@ -301,7 +327,8 @@
     box-shadow: 0 0 0 2px rgba(34,113,177,0.2);
 }
 .ufsc-front .ufsc-form-links{
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
     margin-top: 10px;
 }
 .ufsc-front .ufsc-form-links a{
@@ -311,6 +338,13 @@
 }
 .ufsc-front .ufsc-form-links a:hover{
     text-decoration: underline;
+}
+.ufsc-front .ufsc-form-links a:focus{
+    outline: 2px solid #005a87;
+    outline-offset: 2px;
+}
+.ufsc-front .ufsc-login-form .ufsc-btn-primary{
+    width: 100%;
 }
 
 /* User status */

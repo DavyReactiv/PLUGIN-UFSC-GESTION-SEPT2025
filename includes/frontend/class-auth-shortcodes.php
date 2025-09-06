@@ -38,14 +38,7 @@ class UFSC_Auth_Shortcodes {
             wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
         }
 
-        if ( $has_login ) {
-            wp_enqueue_style(
-                'ufsc-login-form',
-                UFSC_CL_URL . 'assets/css/ufsc-login-form.css',
-                array( 'ufsc-front' ),
-                UFSC_CL_VERSION
-            );
-        }
+        // Login form styles are included in ufsc-front.css
     }
 
     /**
