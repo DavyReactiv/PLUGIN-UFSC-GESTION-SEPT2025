@@ -68,6 +68,38 @@ jQuery(document).ready(function($) {
 
         $triggers.on('click', function(e) {
             e.preventDefault();
+
+
+            var section = $(this).data('section');
+
+            // Update nav buttons
+            $('.ufsc-nav-btn').removeClass('active');
+            $(this).addClass('active');
+
+            // Show corresponding section
+            $('.ufsc-dashboard-section').removeClass('active');
+            $('#ufsc-section-' + section).addClass('active');
+
+            // Update URL with hash and tab parameter
+            if (history.pushState) {
+                var url = new URL(window.location.href);
+                url.hash = section;
+                url.searchParams.set('tab', section);
+                history.pushState(null, '', url.toString());
+            }
+
+            // Focus management for accessibility
+            $('#ufsc-section-' + section).focus();
+        });
+
+        // Handle URL hash or tab parameter on page load
+        var params = new URLSearchParams(window.location.search);
+        var tab = params.get('tab');
+        var hash = window.location.hash.substring(1);
+        var target = tab || hash;
+        if (target && $('.ufsc-nav-btn[data-section="' + target + '"]').length) {
+            $('.ufsc-nav-btn[data-section="' + target + '"]').click();
+
             activateTab($(this).data('section'), true);
         });
 
@@ -100,6 +132,7 @@ jQuery(document).ready(function($) {
         var initial = params.get('tab') || window.location.hash.substring(1);
         if (!initial || !$tabs.filter('[data-section="' + initial + '"]').length) {
             initial = $tabs.first().data('section');
+
         }
 
         activateTab(initial, false, false);
