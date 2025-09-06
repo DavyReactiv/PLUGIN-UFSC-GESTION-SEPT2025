@@ -39,7 +39,7 @@ function ufsc_init_woocommerce_hooks() {
         'woocommerce_checkout_create_order_line_item',
         function ( $item, $cart_key, $values ) {
             foreach ( $values as $k => $v ) {
-                if ( strpos( $k, 'ufsc_' ) === 0 ) {
+                if ( strpos( (string) ( $k ?? '' ), 'ufsc_' ) === 0 ) {
                     $item->add_meta_data( $k, $v, true );
                 }
             }

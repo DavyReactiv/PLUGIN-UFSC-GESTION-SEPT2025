@@ -49,7 +49,7 @@ class UFSC_Frontend_Test extends PHPUnit\Framework\TestCase {
 
         if ( ! function_exists( 'sanitize_text_field' ) ) {
             function sanitize_text_field( $str ) {
-                return trim( strip_tags( $str ) );
+                return trim( strip_tags( (string) ( $str ?? '' ) ) );
             }
         }
 

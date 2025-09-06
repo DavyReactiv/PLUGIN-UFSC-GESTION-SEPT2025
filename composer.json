@@ -1,0 +1,12 @@
+{
+    "name": "ufsc/gestion",
+    "require": {},
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.7",
+        "phpstan/phpstan": "^1.10"
+    },
+    "scripts": {
+        "phpcs": "phpcs --standard=PSR12",
+        "phpstan": "phpstan analyse --no-progress"
+    }
+}

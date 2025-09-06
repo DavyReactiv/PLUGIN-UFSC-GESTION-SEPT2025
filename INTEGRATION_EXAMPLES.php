@@ -70,7 +70,7 @@ function ufsc_mark_affiliation_paid( $club_id, $season ) {
     
     /* Option 2: If you store in the clubs table with season-specific columns
     $clubs_table = ufsc_get_clubs_table();
-    $season_column = 'affiliation_paid_' . str_replace( '-', '_', $season );
+    $season_column = 'affiliation_paid_' . str_replace( '-', '_', (string) ( $season ?? '' ) );
     
     $wpdb->update(
         $clubs_table,

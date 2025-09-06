@@ -25,7 +25,7 @@ function add_query_arg( ...$args ) {
 function sanitize_text_field( $str ) { return $str; }
 function sanitize_textarea_field( $str ) { return $str; }
 function sanitize_email( $str ) { return $str; }
-function is_email( $email ) { return strpos( $email, '@' ) !== false; }
+function is_email( $email ) { return strpos( (string) ( $email ?? '' ), '@' ) !== false; }
 function __($text, $domain = 'default') { return $text; }
 function wp_handle_upload( $file, $args ) { return array( 'url' => 'http://example.com/file.pdf' ); }
 function esc_url_raw( $url ) { return $url; }

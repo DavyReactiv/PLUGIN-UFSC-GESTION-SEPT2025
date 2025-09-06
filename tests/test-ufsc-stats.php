@@ -9,7 +9,7 @@ class UFSC_StatsKeysTest extends TestCase {
         $wpdb = new class {
             public $prefix = 'wp_';
             public function prepare($query, ...$args) {
-                $query = str_replace(array('%d','%s'), '%s', $query);
+                $query = str_replace(array('%d','%s'), '%s', (string) ( $query ?? '' ));
                 return vsprintf($query, $args);
             }
             public function get_results($query) {

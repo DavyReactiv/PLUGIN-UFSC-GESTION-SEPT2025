@@ -28,7 +28,7 @@ if (!function_exists('__')) { function __($t, $d = 'default') { return $t; } }
 if (!function_exists('sanitize_text_field')) { function sanitize_text_field($s){ return $s; } }
 if (!function_exists('sanitize_textarea_field')) { function sanitize_textarea_field($s){ return $s; } }
 if (!function_exists('sanitize_email')) { function sanitize_email($s){ return $s; } }
-if (!function_exists('is_email')) { function is_email($e){ return strpos($e,'@') !== false; } }
+if (!function_exists('is_email')) { function is_email($e){ return strpos((string)($e ?? ''),'@') !== false; } }
 if (!function_exists('current_time')) { function current_time($t){ return date('Y-m-d H:i:s'); } }
 if (!function_exists('ufsc_audit_log')) { function ufsc_audit_log(...$args) {} }
 if (!function_exists('wp_upload_dir')) { function wp_upload_dir(){ return ['path'=>sys_get_temp_dir(),'url'=>'http://example.com']; } }
@@ -45,7 +45,7 @@ class WPDB_Stub {
     public $licences = [];
 
     public function prepare( $query, ...$args ) {
-        $query = str_replace( array( '%d', '%s' ), '%s', $query );
+        $query = str_replace( array( '%d', '%s' ), '%s', (string) ( $query ?? '' ) );
         return vsprintf( $query, $args );
     }
 

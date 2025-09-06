@@ -16,7 +16,7 @@ class UFSC_Simple_PDF {
      */
     public static function generate( $file_path, $lines, $title = '' ) {
         $escape = function( $text ) {
-            return str_replace( [ '\\', '(', ')' ], [ '\\\\', '\\(', '\\)' ], $text );
+            return str_replace( [ '\\', '(', ')' ], [ '\\\\', '\\(', '\\)' ], (string) ( $text ?? '' ) );
         };
 
         $content = "BT\n/F1 16 Tf\n50 780 Td\n";

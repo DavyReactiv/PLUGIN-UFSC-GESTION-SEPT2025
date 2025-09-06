@@ -196,16 +196,16 @@ class UFSC_Documents {
      * @return string
      */
     public static function get_file_icon( $mime ) {
-        if ( strpos( $mime, 'pdf' ) !== false ) {
+        if ( strpos( (string) ( $mime ?? '' ), 'pdf' ) !== false ) {
             return 'dashicons-media-document';
         }
-        if ( strpos( $mime, 'image/' ) === 0 ) {
+        if ( strpos( (string) ( $mime ?? '' ), 'image/' ) === 0 ) {
             return 'dashicons-format-image';
         }
-        if ( strpos( $mime, 'spreadsheet' ) !== false || strpos( $mime, 'excel' ) !== false ) {
+        if ( strpos( (string) ( $mime ?? '' ), 'spreadsheet' ) !== false || strpos( (string) ( $mime ?? '' ), 'excel' ) !== false ) {
             return 'dashicons-media-spreadsheet';
         }
-        if ( strpos( $mime, 'word' ) !== false || strpos( $mime, 'text' ) !== false ) {
+        if ( strpos( (string) ( $mime ?? '' ), 'word' ) !== false || strpos( (string) ( $mime ?? '' ), 'text' ) !== false ) {
             return 'dashicons-media-text';
         }
         return 'dashicons-media-default';
