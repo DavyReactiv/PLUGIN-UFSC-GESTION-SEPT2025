@@ -607,11 +607,14 @@ class UFSC_Frontend_Shortcodes {
 
         if ( empty( $atts['season'] ) ) {
             $wc_settings   = ufsc_get_woocommerce_settings();
-            $atts['season'] = isset( $wc_settings['season'] ) ? $wc_settings['season'] : '';
+            $atts['season'] = isset( $wc_settings['season'] ) ? (int) $wc_settings['season'] : 0;
         }
 
+        $club_id = (int) $atts['club_id'];
+        $season  = isset( $atts['season'] ) ? (int) $atts['season'] : 0;
+
         $stats = wp_parse_args(
-            self::get_club_stats( $atts['club_id'], $atts['season'] ),
+            self::get_club_stats( $club_id, $season ),
             array(
                 'total_licences'     => 0,
                 'paid_licences'      => 0,
@@ -1768,6 +1771,8 @@ class UFSC_Frontend_Shortcodes {
      * Get club statistics
      */
     private static function get_club_stats( $club_id, $season ) {
+        $club_id   = (int) $club_id;
+        $season    = (int) $season;
         $cache_key = "ufsc_stats_{$club_id}_{$season}";
         $stats     = get_transient( $cache_key );
 
