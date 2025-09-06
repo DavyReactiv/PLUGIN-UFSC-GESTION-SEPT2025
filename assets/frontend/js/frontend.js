@@ -94,14 +94,10 @@ jQuery(document).ready(function($) {
 
         // Handle URL hash or tab parameter on page load
         var params = new URLSearchParams(window.location.search);
-        var tab = params.get('tab');
-        var hash = window.location.hash.substring(1);
-        var target = tab || hash;
+        var target = params.get('tab') || window.location.hash.substring(1);
         if (target && $('.ufsc-nav-btn[data-section="' + target + '"]').length) {
-            $('.ufsc-nav-btn[data-section="' + target + '"]').click();
-
-            activateTab($(this).data('section'), true);
-        });
+            activateTab(target, true, false);
+        }
 
         $tabs.on('keydown', function(e) {
             var index = $tabs.index(this);

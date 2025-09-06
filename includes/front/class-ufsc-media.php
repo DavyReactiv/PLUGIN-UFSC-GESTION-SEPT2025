@@ -104,8 +104,15 @@ class UFSC_Media {
             wp_die( $result->get_error_message() );
         }
 
-        $redirect = ufsc_redirect_with_notice( wp_get_referer(), 'profile_photo_updated' );
-        wp_safe_redirect( $redirect );
+        $dashboard_page = get_option( 'ufsc_dashboard_page' );
+        if ( $dashboard_page ) {
+            $dashboard_url = get_permalink( $dashboard_page );
+        } else {
+            $dashboard_url = home_url( '/club-dashboard/' );
+        }
+
+        $redirect = add_query_arg( 'tab', 'club', $dashboard_url );
+        wp_safe_redirect( ufsc_redirect_with_notice( $redirect, 'profile_photo_updated' ) );
         exit;
     }
 

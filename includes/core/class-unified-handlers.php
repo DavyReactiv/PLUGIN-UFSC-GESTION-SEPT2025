@@ -459,15 +459,15 @@ class UFSC_Unified_Handlers {
             }
         }
 
-        $redirect_url = esc_url_raw( add_query_arg(
-            array(
-                'updated'    => 1,
-                'licence_id' => $new_id,
-            ),
-            wp_get_referer()
-        ) );
+        $dashboard_page = get_option( 'ufsc_dashboard_page' );
+        if ( $dashboard_page ) {
+            $dashboard_url = get_permalink( $dashboard_page );
+        } else {
+            $dashboard_url = home_url( '/club-dashboard/' );
+        }
+
         set_transient( 'ufsc_admin_save', time(), 10 );
-        UFSC_Licence_Form::redirect_with_notice( $redirect_url, 'licence_saved' );
+        UFSC_Licence_Form::redirect_with_notice( $dashboard_url, 'licence_saved', 'licences' );
     }
 
     /**

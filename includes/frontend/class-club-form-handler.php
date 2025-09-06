@@ -112,18 +112,9 @@ class UFSC_CL_Club_Form_Handler {
                 self::handle_affiliation_redirect( $result_club_id, $affiliation );
             }
 
-            // Build success message
-            $success_message = $is_edit
-                ? __( 'Club mis à jour avec succès.', 'ufsc-clubs' )
-                : __( 'Club créé avec succès.', 'ufsc-clubs' );
-
-            // Append cart link if WooCommerce is active and not in affiliation mode
-            if ( ! $affiliation && function_exists( 'wc_get_cart_url' ) ) {
-                $cart_url = wc_get_cart_url();
-                $success_message .= ' <a href="' . esc_url( $cart_url ) . '" class="button ufsc-view-cart">' . __( 'Voir le panier', 'ufsc-clubs' ) . '</a>';
-            }
-
-            self::redirect_with_success( $success_message, $result_club_id, $affiliation );
+            // Redirect to dashboard with success notice
+            $notice_slug = $is_edit ? 'club_updated' : 'club_created';
+            self::redirect_with_success( $notice_slug );
 
         } catch ( Exception $e ) {
             UFSC_CL_Utils::log( 'Erreur lors de la sauvegarde du club: ' . $e->getMessage(), 'error' );
@@ -461,26 +452,22 @@ class UFSC_CL_Club_Form_Handler {
     }
     
     /**
-     * Redirect with success message
-     * 
-     * @param string $message Success message
-     * @param int $club_id Club ID
-     * @param bool $affiliation Affiliation mode
+     * Redirect to dashboard with success notice
+     *
+     * @param string $notice_slug Notice slug to display.
+     * @param string $tab         Dashboard tab to activate.
      */
-    private static function redirect_with_success( $message, $club_id, $affiliation ) {
-        $redirect_url = wp_get_referer() ?: home_url();
-        $tab          = self::get_referrer_tab( $redirect_url );
-        $redirect_url = add_query_arg(
-            array(
-                'ufsc_success' => urlencode( $message ),
-            ),
-            $redirect_url
-        );
-        if ( $tab ) {
-            $redirect_url = add_query_arg( 'tab', $tab, $redirect_url );
+    private static function redirect_with_success( $notice_slug, $tab = 'club' ) {
+        $dashboard_page = get_option( 'ufsc_dashboard_page' );
+
+        if ( $dashboard_page ) {
+            $dashboard_url = get_permalink( $dashboard_page );
+        } else {
+            $dashboard_url = home_url( '/club-dashboard/' );
         }
 
-        wp_safe_redirect( $redirect_url );
+        $redirect_url = add_query_arg( 'tab', sanitize_key( $tab ), $dashboard_url );
+        wp_safe_redirect( ufsc_redirect_with_notice( $redirect_url, $notice_slug ) );
         exit;
     }
 
