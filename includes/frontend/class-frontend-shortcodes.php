@@ -1577,6 +1577,13 @@ class UFSC_Frontend_Shortcodes {
             set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
         }
 
+        if ( isset( $stats['paid'] ) && ! isset( $stats['paid_licences'] ) ) {
+            $stats['paid_licences'] = $stats['paid'];
+        }
+        if ( isset( $stats['validated'] ) && ! isset( $stats['validated_licences'] ) ) {
+            $stats['validated_licences'] = $stats['validated'];
+        }
+
         return $stats;
     }
 
