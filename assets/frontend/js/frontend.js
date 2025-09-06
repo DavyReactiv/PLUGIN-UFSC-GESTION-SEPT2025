@@ -21,8 +21,54 @@ jQuery(document).ready(function($) {
      * Initialize dashboard navigation
      */
     function initDashboardNavigation() {
-        $('.ufsc-nav-btn').on('click', function(e) {
+        var $tabs = $('.ufsc-nav-btn');
+        var $triggers = $('.ufsc-nav-btn, .ufsc-tab-trigger');
+
+        function updateRedirectFields() {
+            var currentUrl = window.location.href;
+            $('input[name="redirect_to"]').val(currentUrl);
+        }
+
+        function activateTab(section, focusPanel, updateUrl) {
+            focusPanel = focusPanel !== false;
+            updateUrl = updateUrl !== false;
+
+            var $tab = $tabs.filter('[data-section="' + section + '"]');
+            var $panel = $('#ufsc-section-' + section);
+
+            if (!$tab.length || !$panel.length) {
+                return;
+            }
+
+            $tabs.removeClass('active')
+                 .attr({'aria-selected': 'false', tabindex: -1});
+            $tab.addClass('active')
+                .attr({'aria-selected': 'true', tabindex: 0});
+
+            $('.ufsc-dashboard-section')
+                .removeClass('active')
+                .attr('hidden', true);
+            $panel.addClass('active').removeAttr('hidden');
+
+            if (focusPanel) {
+                $panel.focus();
+            } else {
+                $tab.focus();
+            }
+
+            if (updateUrl) {
+                var url = new URL(window.location.href);
+                url.searchParams.set('tab', section);
+                url.hash = section;
+                history.replaceState(null, '', url.toString());
+            }
+
+            updateRedirectFields();
+        }
+
+        $triggers.on('click', function(e) {
             e.preventDefault();
+
 
             var section = $(this).data('section');
 
@@ -53,7 +99,51 @@ jQuery(document).ready(function($) {
         var target = tab || hash;
         if (target && $('.ufsc-nav-btn[data-section="' + target + '"]').length) {
             $('.ufsc-nav-btn[data-section="' + target + '"]').click();
+
+            activateTab($(this).data('section'), true);
+        });
+
+        $tabs.on('keydown', function(e) {
+            var index = $tabs.index(this);
+            var newIndex;
+
+            switch (e.key) {
+                case 'ArrowRight':
+                    newIndex = (index + 1) % $tabs.length;
+                    break;
+                case 'ArrowLeft':
+                    newIndex = (index - 1 + $tabs.length) % $tabs.length;
+                    break;
+                case 'Home':
+                    newIndex = 0;
+                    break;
+                case 'End':
+                    newIndex = $tabs.length - 1;
+                    break;
+                default:
+                    return;
+            }
+
+            e.preventDefault();
+            activateTab($tabs.eq(newIndex).data('section'), false);
+        });
+
+        var params = new URLSearchParams(window.location.search);
+        var initial = params.get('tab') || window.location.hash.substring(1);
+        if (!initial || !$tabs.filter('[data-section="' + initial + '"]').length) {
+            initial = $tabs.first().data('section');
+
         }
+
+        activateTab(initial, false, false);
+
+        $(window).on('popstate', function() {
+            var p = new URLSearchParams(window.location.search);
+            var section = p.get('tab') || window.location.hash.substring(1);
+            if (section) {
+                activateTab(section, false, false);
+            }
+        });
     }
     
     /**

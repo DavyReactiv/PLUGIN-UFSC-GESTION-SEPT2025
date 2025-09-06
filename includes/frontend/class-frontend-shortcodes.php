@@ -106,31 +106,31 @@ class UFSC_Frontend_Shortcodes {
                 </p>
                 <?php if ( in_array( 'add_licence', $sections ) ): ?>
                     <div class="ufsc-dashboard-actions">
-                        <a href="#ufsc-section-add_licence" class="ufsc-btn ufsc-btn-primary" onclick="document.querySelector('[data-section=\"add_licence\"]').click(); return false;">
+                        <a href="<?php echo esc_url( add_query_arg( 'tab', 'add_licence' ) ); ?>" class="ufsc-btn ufsc-btn-primary ufsc-tab-trigger" data-section="add_licence">
                             <?php esc_html_e( 'Ajouter une licence', 'ufsc-clubs' ); ?>
                         </a>
                     </div>
                 <?php endif; ?>
             </div>
 
-            <div class="ufsc-dashboard-nav">
+            <div class="ufsc-dashboard-nav" role="tablist">
                 <?php if ( in_array( 'licences', $sections ) ): ?>
-                    <button class="ufsc-nav-btn active" data-section="licences">
+                    <button class="ufsc-nav-btn active" role="tab" id="ufsc-tab-licences" aria-controls="ufsc-section-licences" aria-selected="true" tabindex="0" data-section="licences">
                         <?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( in_array( 'stats', $sections ) ): ?>
-                    <button class="ufsc-nav-btn" data-section="stats">
+                    <button class="ufsc-nav-btn" role="tab" id="ufsc-tab-stats" aria-controls="ufsc-section-stats" aria-selected="false" tabindex="-1" data-section="stats">
                         <?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( in_array( 'profile', $sections ) ): ?>
-                    <button class="ufsc-nav-btn" data-section="profile">
+                    <button class="ufsc-nav-btn" role="tab" id="ufsc-tab-profile" aria-controls="ufsc-section-profile" aria-selected="false" tabindex="-1" data-section="profile">
                         <?php esc_html_e( 'Mon Club', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( in_array( 'add_licence', $sections ) ): ?>
-                    <button class="ufsc-nav-btn" data-section="add_licence">
+                    <button class="ufsc-nav-btn" role="tab" id="ufsc-tab-add_licence" aria-controls="ufsc-section-add_licence" aria-selected="false" tabindex="-1" data-section="add_licence">
                         <?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
@@ -138,47 +138,30 @@ class UFSC_Frontend_Shortcodes {
 
             <div class="ufsc-dashboard-content">
                 <?php if ( in_array( 'licences', $sections ) ): ?>
-                    <div id="ufsc-section-licences" class="ufsc-dashboard-section active">
+                    <div id="ufsc-section-licences" class="ufsc-dashboard-section active" role="tabpanel" aria-labelledby="ufsc-tab-licences" tabindex="0">
                         <?php echo self::render_club_licences( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if ( in_array( 'stats', $sections ) ): ?>
-                    <div id="ufsc-section-stats" class="ufsc-dashboard-section">
+                    <div id="ufsc-section-stats" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="ufsc-tab-stats" tabindex="0" hidden>
                         <?php echo self::render_club_stats( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if ( in_array( 'profile', $sections ) ): ?>
-                    <div id="ufsc-section-profile" class="ufsc-dashboard-section">
+                    <div id="ufsc-section-profile" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="ufsc-tab-profile" tabindex="0" hidden>
                         <?php echo self::render_club_profile( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if ( in_array( 'add_licence', $sections ) ): ?>
-                    <div id="ufsc-section-add_licence" class="ufsc-dashboard-section">
+                    <div id="ufsc-section-add_licence" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="ufsc-tab-add_licence" tabindex="0" hidden>
                         <?php echo self::render_add_licence( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
             </div>
         </div>
-
-        <script>
-        jQuery(document).ready(function($) {
-            $('.ufsc-nav-btn').on('click', function() {
-                var section = $(this).data('section');
-
-                // Update nav
-                $('.ufsc-nav-btn').removeClass('active');
-                $(this).addClass('active');
-
-                // Show section
-                $('.ufsc-dashboard-section').removeClass('active');
-                $('#ufsc-section-' + section).addClass('active');
-            });
-
-        });
-        </script>
         <?php
         return ob_get_clean();
     }
@@ -600,8 +583,8 @@ class UFSC_Frontend_Shortcodes {
         }
 
         if ( empty( $atts['season'] ) ) {
-            $wc_settings = ufsc_get_woocommerce_settings();
-            $atts['season'] = $wc_settings['season'];
+            $wc_settings   = ufsc_get_woocommerce_settings();
+            $atts['season'] = isset( $wc_settings['season'] ) ? $wc_settings['season'] : '';
         }
 
         $stats = wp_parse_args(
@@ -613,6 +596,9 @@ class UFSC_Frontend_Shortcodes {
                 'quota_remaining'    => 0,
             )
         );
+
+        $stats['paid_licences']      = isset( $stats['paid_licences'] ) ? (int) $stats['paid_licences'] : 0;
+        $stats['validated_licences'] = isset( $stats['validated_licences'] ) ? (int) $stats['validated_licences'] : 0;
 
         $evolution = array();
         if ( class_exists( 'UFSC_Stats' ) ) {
@@ -627,7 +613,7 @@ class UFSC_Frontend_Shortcodes {
             'female' => esc_html__( 'Femmes', 'ufsc-clubs' ),
             'other'  => esc_html__( 'Autre', 'ufsc-clubs' ),
         );
-        if ( ! empty( $stats['by_gender'] ) ) {
+        if ( isset( $stats['by_gender'] ) && ! empty( $stats['by_gender'] ) ) {
             foreach ( $stats['by_gender'] as $gender => $count ) {
                 $gender_labels[] = isset( $gender_map[ $gender ] ) ? $gender_map[ $gender ] : ucfirst( $gender );
                 $gender_data[]   = (int) $count;
@@ -641,7 +627,7 @@ class UFSC_Frontend_Shortcodes {
             'loisir'      => esc_html__( 'Loisir', 'ufsc-clubs' ),
             'competition' => esc_html__( 'Compétition', 'ufsc-clubs' ),
         );
-        if ( ! empty( $stats['by_practice'] ) ) {
+        if ( isset( $stats['by_practice'] ) && ! empty( $stats['by_practice'] ) ) {
             foreach ( $stats['by_practice'] as $practice => $count ) {
                 $practice_labels[] = isset( $practice_map[ $practice ] ) ? $practice_map[ $practice ] : ucfirst( $practice );
                 $practice_data[]   = (int) $count;
@@ -657,10 +643,10 @@ class UFSC_Frontend_Shortcodes {
             '35-49' => 0,
             '50+'   => 0,
         );
-        if ( ! empty( $stats['by_birth_year'] ) ) {
+        if ( isset( $stats['by_birth_year'] ) && ! empty( $stats['by_birth_year'] ) ) {
             $current_year = (int) gmdate( 'Y' );
             foreach ( $stats['by_birth_year'] as $year => $count ) {
-                $age = $current_year - (int) $year;
+                $age   = $current_year - (int) $year;
                 $count = (int) $count;
                 if ( $age >= 5 && $age <= 11 ) {
                     $age_groups['5-11'] += $count;
@@ -683,8 +669,8 @@ class UFSC_Frontend_Shortcodes {
         $evolution_data   = array();
         if ( ! empty( $evolution ) ) {
             foreach ( $evolution as $row ) {
-                $evolution_labels[] = $row['week_start'];
-                $evolution_data[]   = (int) $row['total'];
+                $evolution_labels[] = isset( $row['week_start'] ) ? $row['week_start'] : '';
+                $evolution_data[]   = isset( $row['total'] ) ? (int) $row['total'] : 0;
             }
         }
 
@@ -725,22 +711,22 @@ class UFSC_Frontend_Shortcodes {
 
             <div class="ufsc-stats-kpi">
                 <div class="ufsc-kpi-card">
-                    <div class="ufsc-kpi-value"><?php echo esc_html( $stats['total_licences'] ); ?></div>
+                    <div class="ufsc-kpi-value"><?php echo esc_html( isset( $stats['total_licences'] ) ? (int) $stats['total_licences'] : 0 ); ?></div>
                     <div class="ufsc-kpi-label"><?php esc_html_e( 'Total Licences', 'ufsc-clubs' ); ?></div>
                 </div>
-                
+
                 <div class="ufsc-kpi-card">
-                    <div class="ufsc-kpi-value"><?php echo esc_html( $stats['paid_licences'] ); ?></div>
+                    <div class="ufsc-kpi-value"><?php echo esc_html( isset( $stats['paid_licences'] ) ? (int) $stats['paid_licences'] : 0 ); ?></div>
                     <div class="ufsc-kpi-label"><?php esc_html_e( 'Licences Payées', 'ufsc-clubs' ); ?></div>
                 </div>
-                
+
                 <div class="ufsc-kpi-card">
-                    <div class="ufsc-kpi-value"><?php echo esc_html( $stats['validated_licences'] ); ?></div>
+                    <div class="ufsc-kpi-value"><?php echo esc_html( isset( $stats['validated_licences'] ) ? (int) $stats['validated_licences'] : 0 ); ?></div>
                     <div class="ufsc-kpi-label"><?php esc_html_e( 'Licences Validées', 'ufsc-clubs' ); ?></div>
                 </div>
-                
+
                 <div class="ufsc-kpi-card">
-                    <div class="ufsc-kpi-value"><?php echo esc_html( $stats['quota_remaining'] ); ?></div>
+                    <div class="ufsc-kpi-value"><?php echo esc_html( isset( $stats['quota_remaining'] ) ? (int) $stats['quota_remaining'] : 0 ); ?></div>
                     <div class="ufsc-kpi-label"><?php esc_html_e( 'Quota Restant', 'ufsc-clubs' ); ?></div>
                 </div>
             </div>
@@ -1760,7 +1746,7 @@ class UFSC_Frontend_Shortcodes {
             if ( class_exists( 'UFSC_Stats' ) ) {
                 $stats = UFSC_Stats::get_club_stats( $club_id, $season );
             } else {
-                $stats = array( 'total_licences' => 0, 'paid_licences' => 0, 'validated_licences' => 0, 'quota_remaining' => 10 );
+                $stats = array();
             }
 
             set_transient( $cache_key, $stats, 10 * MINUTE_IN_SECONDS );
@@ -1772,6 +1758,19 @@ class UFSC_Frontend_Shortcodes {
         if ( isset( $stats['validated'] ) && ! isset( $stats['validated_licences'] ) ) {
             $stats['validated_licences'] = $stats['validated'];
         }
+
+        $stats = wp_parse_args(
+            is_array( $stats ) ? $stats : array(),
+            array(
+                'total_licences'     => 0,
+                'paid_licences'      => 0,
+                'validated_licences' => 0,
+                'quota_remaining'    => 0,
+            )
+        );
+
+        $stats['paid_licences']      = isset( $stats['paid_licences'] ) ? (int) $stats['paid_licences'] : 0;
+        $stats['validated_licences'] = isset( $stats['validated_licences'] ) ? (int) $stats['validated_licences'] : 0;
 
         return $stats;
     }
