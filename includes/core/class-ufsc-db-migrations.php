@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.1.0';
+    const MIGRATION_VERSION = '1.2.0';
 
     /**
      * Option key for tracking migration version
@@ -24,6 +24,7 @@ class UFSC_DB_Migrations {
         $current_version = get_option( self::VERSION_OPTION, '0.0.0' );
 
         if ( version_compare( $current_version, self::MIGRATION_VERSION, '<' ) ) {
+            self::add_profile_photo_url_column();
             self::migrate_to_innodb();
             self::create_indexes();
             self::create_unique_constraints();
@@ -32,6 +33,34 @@ class UFSC_DB_Migrations {
             update_option( self::VERSION_OPTION, self::MIGRATION_VERSION );
             
             add_action( 'admin_notices', array( __CLASS__, 'migration_success_notice' ) );
+        }
+    }
+
+    /**
+     * Add profile_photo_url column to clubs table if missing.
+     */
+    public static function add_profile_photo_url_column() {
+        global $wpdb;
+
+        $settings = UFSC_SQL::get_settings();
+        $table    = $settings['table_clubs'];
+
+        if ( self::table_exists( $table ) ) {
+            $exists = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SHOW COLUMNS FROM `{$table}` LIKE %s",
+                    'profile_photo_url'
+                )
+            );
+
+            if ( ! $exists ) {
+                $sql    = "ALTER TABLE `{$table}` ADD `profile_photo_url` TEXT NULL";
+                $result = $wpdb->query( $sql );
+
+                if ( $result === false ) {
+                    UFSC_Audit_Logger::log( 'UFSC_DB_Migrations: Failed to add profile_photo_url column: ' . $wpdb->last_error );
+                }
+            }
         }
     }
 
