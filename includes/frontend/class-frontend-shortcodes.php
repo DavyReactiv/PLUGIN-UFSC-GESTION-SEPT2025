@@ -17,6 +17,50 @@ class UFSC_Frontend_Shortcodes {
         add_shortcode( 'ufsc_club_profile', array( __CLASS__, 'render_club_profile' ) );
         add_shortcode( 'ufsc_add_licence', array( __CLASS__, 'render_add_licence' ) );
         add_shortcode( 'ufsc_licences', array( __CLASS__, 'render_licences' ) );
+
+        add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+        add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+    }
+
+    /**
+     * Enqueue assets for frontend shortcodes conditionally
+     */
+    public static function enqueue_assets() {
+        $post = get_post();
+        if ( ! $post ) {
+            return;
+        }
+
+        $content = $post->post_content;
+        $shortcodes = array(
+            'ufsc_club_dashboard',
+            'ufsc_club_licences',
+            'ufsc_club_stats',
+            'ufsc_club_profile',
+            'ufsc_add_licence',
+            'ufsc_licences',
+        );
+
+        foreach ( $shortcodes as $shortcode ) {
+            if ( has_shortcode( $content, $shortcode ) ) {
+                wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+                break;
+            }
+        }
+
+        if ( has_shortcode( $content, 'ufsc_club_dashboard' ) ) {
+            wp_enqueue_script(
+                'chart-js',
+                'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+                array(),
+                '4.4.0',
+                true
+            );
+        }
+
+        if ( has_shortcode( $content, 'ufsc_licences' ) ) {
+            wp_enqueue_script( 'ufsc-licences', UFSC_CL_URL . 'assets/js/ufsc-licences.js', array( 'jquery' ), UFSC_CL_VERSION, true );
+        }
     }
 
     /**
@@ -26,14 +70,6 @@ class UFSC_Frontend_Shortcodes {
      * @return string HTML output
      */
     public static function render_club_dashboard( $atts = array() ) {
-        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
-        wp_enqueue_script(
-            'chart-js',
-            'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
-            array(),
-            '4.4.0',
-            true
-        );
         $atts = shortcode_atts( array(
             'show_sections' => 'licences,stats,profile,add_licence'
         ), $atts );
@@ -154,7 +190,6 @@ class UFSC_Frontend_Shortcodes {
      * @return string HTML output
      */
     public static function render_club_licences( $atts = array() ) {
-        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
         $atts = shortcode_atts( array(
             'club_id' => 0,
             'per_page' => 20,
@@ -415,8 +450,6 @@ class UFSC_Frontend_Shortcodes {
      * @return string
      */
     public static function render_single_licence( $licence_id ) {
-        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
-
         $club_id = self::get_user_club_id( get_current_user_id() );
         if ( ! $club_id ) {
             return '<div class="ufsc-message ufsc-error">' .
@@ -804,7 +837,6 @@ class UFSC_Frontend_Shortcodes {
      * @return string HTML output
      */
     public static function render_club_profile( $atts = array() ) {
-        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
         $atts = shortcode_atts( array(
             'club_id' => 0
         ), $atts );
@@ -1454,8 +1486,6 @@ class UFSC_Frontend_Shortcodes {
 
         $action     = isset( $_GET['ufsc_action'] ) ? sanitize_key( $_GET['ufsc_action'] ) : '';
         $licence_id = isset( $_GET['licence_id'] ) ? intval( $_GET['licence_id'] ) : 0;
-
-        wp_enqueue_script( 'ufsc-licences', UFSC_CL_URL . 'assets/js/ufsc-licences.js', array( 'jquery' ), UFSC_CL_VERSION, true );
 
         ob_start();
         if ( in_array( $action, array( 'edit', 'new' ), true ) ) {

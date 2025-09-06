@@ -16,6 +16,36 @@ class UFSC_Auth_Shortcodes {
         add_shortcode( 'ufsc_user_status', array( __CLASS__, 'render_user_status' ) );
 
         add_action( 'wp_login_failed', array( __CLASS__, 'handle_login_failed' ) );
+
+        add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+        add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+    }
+
+    /**
+     * Enqueue assets for authentication shortcodes conditionally
+     */
+    public static function enqueue_assets() {
+        $post = get_post();
+        if ( ! $post ) {
+            return;
+        }
+
+        $content = $post->post_content;
+        $has_login  = has_shortcode( $content, 'ufsc_login_form' );
+        $has_status = has_shortcode( $content, 'ufsc_user_status' );
+
+        if ( $has_login || $has_status ) {
+            wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+        }
+
+        if ( $has_login ) {
+            wp_enqueue_style(
+                'ufsc-login-form',
+                UFSC_CL_URL . 'assets/css/ufsc-login-form.css',
+                array( 'ufsc-front' ),
+                UFSC_CL_VERSION
+            );
+        }
     }
 
     /**
@@ -25,14 +55,6 @@ class UFSC_Auth_Shortcodes {
      * @return string HTML output
      */
     public static function render_login_form( $atts = array() ) {
-        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
-        wp_enqueue_style(
-            'ufsc-login-form',
-            UFSC_CL_URL . 'assets/css/ufsc-login-form.css',
-            array( 'ufsc-front' ),
-            UFSC_CL_VERSION
-        );
-
         $atts = shortcode_atts( array(
             'redirect_admin' => admin_url( 'admin.php?page=ufsc-gestion' ),
             'redirect_club' => home_url( '/club-dashboard/' ),
@@ -187,8 +209,6 @@ class UFSC_Auth_Shortcodes {
      * @return string HTML output
      */
     public static function render_user_status( $atts = array() ) {
-        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
-
         $atts = shortcode_atts( array(
             'show_avatar' => 'true',
             'show_role' => 'true',
