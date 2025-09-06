@@ -1,4 +1,7 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-UFSC_Licences_Table::render( $licences );
+?>
+<div class="ufsc-front ufsc-full">
+<?php UFSC_Licences_Table::render( $licences ); ?>
+</div>

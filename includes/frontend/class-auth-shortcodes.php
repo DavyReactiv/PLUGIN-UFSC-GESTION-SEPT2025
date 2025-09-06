@@ -92,6 +92,7 @@ class UFSC_Auth_Shortcodes {
 
         ob_start();
         ?>
+        <div class="ufsc-front ufsc-full">
         <div class="<?php echo esc_attr( $atts['class'] ); ?>">
 
             <div class="ufsc-card ufsc-col-span-2 ufsc-login-card">
@@ -153,6 +154,7 @@ class UFSC_Auth_Shortcodes {
                 </form>
             </div>
         </div>
+        </div>
 
 
         <?php
@@ -194,7 +196,7 @@ class UFSC_Auth_Shortcodes {
             '';
 
         return sprintf(
-            '<a href="%s" class="%s" onclick="%s">%s</a>',
+            '<div class="ufsc-front ufsc-full"><a href="%s" class="%s" onclick="%s">%s</a></div>',
             esc_url( $logout_url ),
             esc_attr( $atts['class'] ),
             $onclick,
@@ -218,9 +220,9 @@ class UFSC_Auth_Shortcodes {
         ), $atts, 'ufsc_user_status' );
 
         if ( ! is_user_logged_in() ) {
-            return '<div class="ufsc-user-status ufsc-not-logged-in">' .
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-user-status ufsc-not-logged-in">' .
                    esc_html__( 'Non connecté', 'ufsc-clubs' ) .
-                   '</div>';
+                   '</div></div>';
         }
 
         $user = wp_get_current_user();
@@ -228,6 +230,7 @@ class UFSC_Auth_Shortcodes {
 
         ob_start();
         ?>
+        <div class="ufsc-front ufsc-full">
         <div class="ufsc-user-status ufsc-logged-in">
             <?php if ( $atts['show_avatar'] === 'true' ): ?>
                 <div class="ufsc-user-avatar">
@@ -260,6 +263,7 @@ class UFSC_Auth_Shortcodes {
                 <?php endif; ?>
             </div>
         </div>
+        </div>
         <?php
         return ob_get_clean();
     }
@@ -272,10 +276,10 @@ class UFSC_Auth_Shortcodes {
         $dashboard_url = self::get_user_dashboard_url( $user );
 
         return sprintf(
-            '<div class="ufsc-already-logged-in">
+            '<div class="ufsc-front ufsc-full"><div class="ufsc-already-logged-in">
                 <p>%s <strong>%s</strong></p>
                 <p><a href="%s" class="ufsc-btn ufsc-btn-primary">%s</a></p>
-            </div>',
+            </div></div>',
             esc_html__( 'Vous êtes déjà connecté en tant que', 'ufsc-clubs' ),
             esc_html( $user->display_name ),
             esc_url( $dashboard_url ),
