@@ -18,12 +18,13 @@ class UFSC_Affiliation_Form {
         add_action( 'wp_ajax_nopriv_ufsc_affiliation_pay', array( __CLASS__, 'ajax_affiliation_pay' ) );
         add_action( 'admin_post_ufsc_affiliation_pay', array( __CLASS__, 'handle_affiliation_pay' ) );
         add_action( 'admin_post_nopriv_ufsc_affiliation_pay', array( __CLASS__, 'handle_affiliation_pay' ) );
+        add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_scripts' ) );
     }
 
     /**
      * Enqueue affiliation payment script
      */
-    private static function enqueue_scripts() {
+    public static function enqueue_scripts() {
         if ( ! function_exists( 'ufsc_is_woocommerce_active' ) || ! ufsc_is_woocommerce_active() ) {
             return;
         }
@@ -91,8 +92,6 @@ class UFSC_Affiliation_Form {
                             esc_html( sanitize_text_field( $_GET['error'] ) ) .
                             '</div>';
         }
-
-        self::enqueue_scripts();
 
         ob_start();
         ?>
@@ -239,6 +238,10 @@ class UFSC_Affiliation_Form {
      */
     public static function ajax_affiliation_pay() {
         check_ajax_referer( 'ufsc_affiliation_pay', 'nonce' );
+
+        if ( ! current_user_can( 'read' ) ) {
+            wp_send_json_error( array( 'message' => __( 'Accès refusé.', 'ufsc-clubs' ) ), 403 );
+        }
 
         if ( ! function_exists( 'ufsc_is_woocommerce_active' ) || ! ufsc_is_woocommerce_active() ) {
             wp_send_json_error();
