@@ -249,6 +249,7 @@ class UFSC_Affiliation_Form {
         $added      = $product_id ? WC()->cart->add_to_cart( $product_id ) : false;
 
         if ( $added ) {
+            wc_add_to_cart_message( array( $product_id => 1 ), true );
             wp_send_json_success( array( 'redirect' => wc_get_checkout_url() ) );
         }
 
@@ -270,7 +271,10 @@ class UFSC_Affiliation_Form {
             $product_id = absint( $settings['product_affiliation_id'] );
 
             if ( $product_id ) {
-                WC()->cart->add_to_cart( $product_id );
+                $cart_key = WC()->cart->add_to_cart( $product_id );
+                if ( $cart_key ) {
+                    wc_add_to_cart_message( array( $product_id => 1 ), true );
+                }
             }
         }
 

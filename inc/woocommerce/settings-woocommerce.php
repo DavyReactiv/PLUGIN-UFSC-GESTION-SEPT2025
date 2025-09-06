@@ -19,6 +19,7 @@ function ufsc_get_default_woocommerce_settings() {
         'season' => '2025-2026',
         'max_profile_photo_size' => 2,
         'auto_consume_included' => 1,
+        'redirect_after_add_to_cart' => 'none',
     );
 }
 
@@ -66,6 +67,12 @@ function ufsc_save_woocommerce_settings( $settings ) {
 
     if ( isset( $settings['auto_consume_included'] ) ) {
         $sanitized['auto_consume_included'] = ! empty( $settings['auto_consume_included'] ) ? 1 : 0;
+    }
+
+    if ( isset( $settings['redirect_after_add_to_cart'] ) ) {
+        $allowed = array( 'none', 'cart', 'checkout' );
+        $value   = sanitize_text_field( $settings['redirect_after_add_to_cart'] );
+        $sanitized['redirect_after_add_to_cart'] = in_array( $value, $allowed, true ) ? $value : 'none';
     }
     
     return update_option( 'ufsc_woocommerce_settings', $sanitized );
@@ -117,6 +124,10 @@ function ufsc_render_woocommerce_settings_page() {
         
         if ( isset( $_POST['season'] ) ) {
             $settings['season'] = sanitize_text_field( wp_unslash( $_POST['season'] ) );
+        }
+
+        if ( isset( $_POST['redirect_after_add_to_cart'] ) ) {
+            $settings['redirect_after_add_to_cart'] = sanitize_text_field( wp_unslash( $_POST['redirect_after_add_to_cart'] ) );
         }
         
         if ( ufsc_save_woocommerce_settings( $settings ) ) {
@@ -201,11 +212,26 @@ function ufsc_render_woocommerce_settings_page() {
                         <label for="season"><?php esc_html_e( 'Saison courante', 'ufsc-clubs' ); ?></label>
                     </th>
                     <td>
-                        <input type="text" id="season" name="season" 
-                               value="<?php echo esc_attr( $current_settings['season'] ); ?>" 
+                        <input type="text" id="season" name="season"
+                               value="<?php echo esc_attr( $current_settings['season'] ); ?>"
                                class="regular-text" />
                         <p class="description">
                             <?php esc_html_e( 'Saison courante pour la gestion des quotas (par défaut: 2025-2026)', 'ufsc-clubs' ); ?>
+                        </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="redirect_after_add_to_cart"><?php esc_html_e( 'Redirection après ajout au panier', 'ufsc-clubs' ); ?></label>
+                    </th>
+                    <td>
+                        <select id="redirect_after_add_to_cart" name="redirect_after_add_to_cart">
+                            <option value="none" <?php selected( $current_settings['redirect_after_add_to_cart'], 'none' ); ?>><?php esc_html_e( 'Aucune', 'ufsc-clubs' ); ?></option>
+                            <option value="cart" <?php selected( $current_settings['redirect_after_add_to_cart'], 'cart' ); ?>><?php esc_html_e( 'Panier', 'ufsc-clubs' ); ?></option>
+                            <option value="checkout" <?php selected( $current_settings['redirect_after_add_to_cart'], 'checkout' ); ?>><?php esc_html_e( 'Commande', 'ufsc-clubs' ); ?></option>
+                        </select>
+                        <p class="description">
+                            <?php esc_html_e( 'Page vers laquelle rediriger après l\'ajout au panier', 'ufsc-clubs' ); ?>
                         </p>
                     </td>
                 </tr>

@@ -441,13 +441,14 @@ class UFSC_Unified_Handlers {
         $added = false;
         if ( function_exists( 'WC' ) ) {
             function_exists( 'wc_load_cart' ) && wc_load_cart();
-            $added = WC()->cart->add_to_cart( 4823, 1, 0, array(), array( 'ufsc_club_id' => $club_id ) );
+            $cart_key = WC()->cart->add_to_cart( 4823, 1, 0, array(), array( 'ufsc_club_id' => $club_id ) );
+            if ( $cart_key ) {
+                wc_add_to_cart_message( array( 4823 => 1 ), true );
+                $added = true;
+            }
         }
 
         if ( $added ) {
-            if ( function_exists( 'wc_add_notice' ) ) {
-                wc_add_notice( __( 'Produit d\'affiliation ajouté au panier.', 'ufsc-clubs' ), 'success' );
-            }
             wp_safe_redirect( $checkout_url );
             exit;
         }
@@ -558,6 +559,8 @@ class UFSC_Unified_Handlers {
 
             if ( ! $added ) {
                 self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+            } else {
+                wc_add_to_cart_message( array( $product_id => 1 ), true );
             }
 
             self::update_licence_status_db( $new_id, 'pending' );
@@ -584,6 +587,8 @@ class UFSC_Unified_Handlers {
 
             if ( ! $added ) {
                 self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+            } else {
+                wc_add_to_cart_message( array( $product_id => 1 ), true );
             }
 
             if ( function_exists( 'WC' ) && defined( 'PRODUCT_ID_LICENCE' ) ) {
@@ -594,7 +599,10 @@ class UFSC_Unified_Handlers {
                     'ufsc_prenom'         => sanitize_text_field( $data['prenom'] ),
                     'ufsc_date_naissance' => isset( $data['date_naissance'] ) ? sanitize_text_field( $data['date_naissance'] ) : '',
                 );
-                WC()->cart->add_to_cart( PRODUCT_ID_LICENCE, 1, 0, array(), $cart_item_data );
+                $extra_key = WC()->cart->add_to_cart( PRODUCT_ID_LICENCE, 1, 0, array(), $cart_item_data );
+                if ( $extra_key ) {
+                    wc_add_to_cart_message( array( PRODUCT_ID_LICENCE => 1 ), true );
+                }
 
             }
 
