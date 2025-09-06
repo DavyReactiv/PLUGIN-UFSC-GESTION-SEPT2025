@@ -33,7 +33,7 @@ function ufsc_init_cart_integration() {
     add_filter( 'woocommerce_add_cart_item_data', 'ufsc_add_cart_item_data', 10, 2 );
 
     // Redirect after add to cart if configured
-    add_filter( 'woocommerce_add_to_cart_redirect', 'ufsc_redirect_after_add_to_cart' );
+    add_filter( 'woocommerce_add_to_cart_redirect', 'ufsc_filter_add_to_cart_redirect' );
 }
 
 /**
@@ -65,28 +65,32 @@ function ufsc_add_cart_item_data( $cart_item_data, $product_id ) {
 
     if ( isset( $_REQUEST['ufsc_nom'] ) ) {
         $cart_item_data['ufsc_nom'] = sanitize_text_field( wp_unslash( $_REQUEST['ufsc_nom'] ) );
+    } elseif ( isset( $_REQUEST['nom'] ) ) {
+        $cart_item_data['ufsc_nom'] = sanitize_text_field( wp_unslash( $_REQUEST['nom'] ) );
     }
 
     if ( isset( $_REQUEST['ufsc_prenom'] ) ) {
         $cart_item_data['ufsc_prenom'] = sanitize_text_field( wp_unslash( $_REQUEST['ufsc_prenom'] ) );
+    } elseif ( isset( $_REQUEST['prenom'] ) ) {
+        $cart_item_data['ufsc_prenom'] = sanitize_text_field( wp_unslash( $_REQUEST['prenom'] ) );
     }
 
     if ( isset( $_REQUEST['ufsc_date_naissance'] ) ) {
         $cart_item_data['ufsc_date_naissance'] = sanitize_text_field( wp_unslash( $_REQUEST['ufsc_date_naissance'] ) );
+    } elseif ( isset( $_REQUEST['date_naissance'] ) ) {
+        $cart_item_data['ufsc_date_naissance'] = sanitize_text_field( wp_unslash( $_REQUEST['date_naissance'] ) );
     }
 
     return $cart_item_data;
 }
 
 /**
- * Redirect after add to cart based on option.
+ * Determine redirect URL after an add to cart action.
  *
- * @param string $url Default redirect URL.
- * @return string
+ * @return string Redirect URL or empty string.
  */
-function ufsc_redirect_after_add_to_cart( $url ) {
-    $settings = ufsc_get_woocommerce_settings();
-    $choice   = isset( $settings['redirect_after_add_to_cart'] ) ? $settings['redirect_after_add_to_cart'] : 'none';
+function ufsc_get_redirect_after_add_to_cart_url() {
+    $choice = get_option( 'ufsc_redirect_after_add_to_cart', 'none' );
 
     if ( 'cart' === $choice && function_exists( 'wc_get_cart_url' ) ) {
         return wc_get_cart_url();
@@ -96,7 +100,29 @@ function ufsc_redirect_after_add_to_cart( $url ) {
         return wc_get_checkout_url();
     }
 
-    return $url;
+    return '';
+}
+
+/**
+ * Filter WooCommerce's default redirect after add to cart.
+ *
+ * @param string $url Default redirect URL.
+ * @return string
+ */
+function ufsc_filter_add_to_cart_redirect( $url ) {
+    $redirect = ufsc_get_redirect_after_add_to_cart_url();
+    return $redirect ? $redirect : $url;
+}
+
+/**
+ * Redirect after `wc_add_to_cart_message()` calls.
+ */
+function ufsc_maybe_redirect_after_add_to_cart() {
+    $redirect = ufsc_get_redirect_after_add_to_cart_url();
+    if ( $redirect ) {
+        wp_safe_redirect( $redirect );
+        exit;
+    }
 }
 
 /**
@@ -339,6 +365,7 @@ function ufsc_add_affiliation_to_cart( $club_id ) {
     $cart_item_key = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
     if ( $cart_item_key ) {
         wc_add_to_cart_message( array( $product_id => 1 ), true );
+        ufsc_maybe_redirect_after_add_to_cart();
     }
 
     return $cart_item_key !== false;
@@ -388,59 +415,3 @@ add_action( 'plugins_loaded', 'ufsc_init_cart_integration' );
 // Hook to display cart item data
 add_filter( 'woocommerce_get_item_data', 'ufsc_display_cart_item_data', 10, 2 );
 
-if ( ! function_exists( 'ufsc_redirect_with_notice' ) ) {
-    /**
-     * Redirect helper that appends notice query args.
-     *
-     * @param string $message      Message to show.
-     * @param string $type         Notice type: success|error.
-     * @param string $redirect_url Optional redirect URL.
-     */
-    function ufsc_redirect_with_notice( $message, $type = 'success', $redirect_url = '' ) {
-        $redirect_url = $redirect_url ?: ( wp_get_referer() ?: home_url() );
-        $key          = ( 'error' === $type ) ? 'ufsc_error' : 'ufsc_message';
-        $redirect_url = add_query_arg( $key, rawurlencode( $message ), $redirect_url );
-        wp_safe_redirect( $redirect_url );
-        exit;
-    }
-}
-
-/**
- * Handle club affiliation form submission.
- *
- * Processes required documents and adds the affiliation product to cart.
- */
-function ufsc_club_affiliation_submit() {
-    check_admin_referer( 'ufsc_club_affiliation_submit' );
-
-    if ( ! current_user_can( 'read' ) ) {
-        ufsc_redirect_with_notice( __( 'Vous devez être connecté', 'ufsc-clubs' ), 'error' );
-    }
-
-    $club_id = isset( $_POST['club_id'] ) ? absint( $_POST['club_id'] ) : 0;
-
-    $uploads = UFSC_Uploads::handle_required_docs( $_FILES );
-    if ( is_wp_error( $uploads ) ) {
-        ufsc_redirect_with_notice( $uploads->get_error_message(), 'error' );
-    }
-
-    $added = false;
-    if ( function_exists( 'WC' ) ) {
-        function_exists( 'wc_load_cart' ) && wc_load_cart();
-        $cart_item_key = WC()->cart->add_to_cart( 4823, 1, 0, array(), array( 'ufsc_club_id' => $club_id ) );
-        if ( $cart_item_key ) {
-            wc_add_to_cart_message( array( 4823 => 1 ), true );
-            $added = true;
-        }
-    }
-
-    if ( ! $added ) {
-        ufsc_redirect_with_notice( __( 'Impossible d\'ajouter le produit au panier.', 'ufsc-clubs' ), 'error' );
-    }
-
-    $cart_url = function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : home_url();
-    ufsc_redirect_with_notice( __( 'Produit d\'affiliation ajouté au panier.', 'ufsc-clubs' ), 'success', $cart_url );
-}
-
-add_action( 'admin_post_ufsc_club_affiliation_submit', 'ufsc_club_affiliation_submit' );
-add_action( 'admin_post_nopriv_ufsc_club_affiliation_submit', 'ufsc_club_affiliation_submit' );
