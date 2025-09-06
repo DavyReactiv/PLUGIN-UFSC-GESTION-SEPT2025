@@ -14,7 +14,7 @@ $stats_practice = $ufsc_stats->get_practice_counts();
 $stats_age     = $ufsc_stats->get_age_group_counts();
 
 ?>
-
+<div class="ufsc-front ufsc-full">
 <div class="ufsc-club-dashboard" id="ufsc-club-dashboard">
     <div class="ufsc-feedback" id="ufsc-feedback" aria-live="polite" role="status" tabindex="-1"></div>
     
@@ -370,7 +370,8 @@ $stats_age     = $ufsc_stats->get_age_group_counts();
         </div>
     </div>
 
-</div>
+ </div>
 
 <!-- Toast notifications -->
 <div class="ufsc-toast-container" id="ufsc-toast-container" aria-live="polite"></div>
+</div>

@@ -75,24 +75,25 @@ class UFSC_Frontend_Shortcodes {
         ), $atts );
 
         if ( ! is_user_logged_in() ) {
-            return '<div class="ufsc-message ufsc-error">' . 
-                   esc_html__( 'Vous devez être connecté pour accéder au tableau de bord.', 'ufsc-clubs' ) . 
-                   '</div>';
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Vous devez être connecté pour accéder au tableau de bord.', 'ufsc-clubs' ) .
+                   '</div></div>';
         }
 
         $user_id = get_current_user_id();
         $club_id = self::get_user_club_id( $user_id );
 
         if ( ! $club_id ) {
-            return '<div class="ufsc-message ufsc-error">' . 
-                   esc_html__( 'Aucun club associé à votre compte.', 'ufsc-clubs' ) . 
-                   '</div>';
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Aucun club associé à votre compte.', 'ufsc-clubs' ) .
+                   '</div></div>';
         }
 
         $sections = explode( ',', $atts['show_sections'] );
         
         ob_start();
         ?>
+        <div class="ufsc-front ufsc-full">
         <div class="ufsc-club-dashboard" id="ufsc-dashboard">
             <div class="ufsc-dashboard-header">
                 <h2><?php esc_html_e( 'Tableau de bord - Mon Club', 'ufsc-clubs' ); ?></h2>
@@ -162,6 +163,7 @@ class UFSC_Frontend_Shortcodes {
                 <?php endif; ?>
             </div>
         </div>
+        </div>
 
         <script>
         jQuery(document).ready(function($) {
@@ -207,9 +209,9 @@ class UFSC_Frontend_Shortcodes {
         }
 
         if ( ! $atts['club_id'] ) {
-            return '<div class="ufsc-message ufsc-error">' . 
-                   esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) . 
-                   '</div>';
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) .
+                   '</div></div>';
         }
 
         // Handle pagination and filters from URL
@@ -257,6 +259,7 @@ class UFSC_Frontend_Shortcodes {
 
         ob_start();
         ?>
+        <div class="ufsc-front ufsc-full">
         <div class="ufsc-licences-section">
             <div class="ufsc-feedback" id="ufsc-feedback" aria-live="polite">
                 <?php if ( isset( $_GET['ufsc_message'] ) ) : ?>
@@ -439,6 +442,7 @@ class UFSC_Frontend_Shortcodes {
 
         <!-- Import Modal -->
         <?php echo self::render_import_modal( $atts['club_id'] ); ?>
+        </div>
         <?php
         return ob_get_clean();
     }
@@ -452,22 +456,23 @@ class UFSC_Frontend_Shortcodes {
     public static function render_single_licence( $licence_id ) {
         $club_id = self::get_user_club_id( get_current_user_id() );
         if ( ! $club_id ) {
-            return '<div class="ufsc-message ufsc-error">' .
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
                    esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) .
-                   '</div>';
+                   '</div></div>';
         }
 
         $licence = self::get_licence( $club_id, $licence_id );
         if ( ! $licence ) {
-            return '<div class="ufsc-message ufsc-error">' .
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
                    esc_html__( 'Licence non trouvée.', 'ufsc-clubs' ) .
-                   '</div>';
+                   '</div></div>';
         }
 
         $wc_settings = ufsc_get_woocommerce_settings();
 
         ob_start();
         ?>
+        <div class="ufsc-front ufsc-full">
         <div class="ufsc-licence-detail">
             <div class="ufsc-section-header">
                 <h3><?php esc_html_e( 'Détails de la licence', 'ufsc-clubs' ); ?></h3>
@@ -564,6 +569,7 @@ class UFSC_Frontend_Shortcodes {
                 </a>
             </p>
         </div>
+        </div>
         <?php
         return ob_get_clean();
     }
@@ -594,9 +600,9 @@ class UFSC_Frontend_Shortcodes {
         }
 
         if ( ! $atts['club_id'] ) {
-            return '<div class="ufsc-message ufsc-error">' . 
-                   esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) . 
-                   '</div>';
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) .
+                   '</div></div>';
         }
 
         if ( empty( $atts['season'] ) ) {
@@ -715,6 +721,7 @@ class UFSC_Frontend_Shortcodes {
 
         ob_start();
         ?>
+        <div class="ufsc-front ufsc-full">
         <div class="ufsc-stats-section">
             <div class="ufsc-section-header">
                 <h3><?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?></h3>
@@ -764,6 +771,7 @@ class UFSC_Frontend_Shortcodes {
                 <h4><?php esc_html_e( 'Évolution des licences (12 semaines)', 'ufsc-clubs' ); ?></h4>
                 <canvas id="ufsc-evolution-chart" height="200"></canvas>
             </div>
+        </div>
         </div>
 
         <script>
@@ -854,9 +862,9 @@ class UFSC_Frontend_Shortcodes {
         }
 
         if ( ! $atts['club_id'] ) {
-            return '<div class="ufsc-message ufsc-error">' . 
-                   esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) . 
-                   '</div>';
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) .
+                   '</div></div>';
         }
 
         $club = self::get_club_data( $atts['club_id'] );
@@ -865,18 +873,18 @@ class UFSC_Frontend_Shortcodes {
         $is_admin = current_user_can( 'manage_options' );
 
         if ( ! $club ) {
-            return '<div class="ufsc-message ufsc-error">' . 
-                   esc_html__( 'Données du club non trouvées.', 'ufsc-clubs' ) . 
-                   '</div>';
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Données du club non trouvées.', 'ufsc-clubs' ) .
+                   '</div></div>';
         }
         
         $is_admin = current_user_can( 'manage_options' );
         $can_edit = UFSC_CL_Permissions::ufsc_user_can_edit_club( $atts['club_id'] );
         
         if ( ! $can_edit ) {
-            return '<div class="ufsc-message ufsc-error">' . 
-                   esc_html__( 'Vous n\'avez pas les permissions pour voir ce club.', 'ufsc-clubs' ) . 
-                   '</div>';
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Vous n\'avez pas les permissions pour voir ce club.', 'ufsc-clubs' ) .
+                   '</div></div>';
         }
 
         
@@ -898,6 +906,7 @@ class UFSC_Frontend_Shortcodes {
 
         ob_start();
         ?>
+        <div class="ufsc-front ufsc-full">
         <div class="ufsc-club-profile">
             <!-- // UFSC: Enhanced club profile with sections and cards -->
             <div class="ufsc-section-header">
@@ -1138,6 +1147,7 @@ class UFSC_Frontend_Shortcodes {
 
             </form>
         </div>
+        </div>
         <?php
         return ob_get_clean();
     }
@@ -1158,9 +1168,9 @@ class UFSC_Frontend_Shortcodes {
         }
 
         if ( ! $atts['club_id'] ) {
-            return '<div class="ufsc-message ufsc-error">' . 
-                   esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) . 
-                   '</div>';
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) .
+                   '</div></div>';
         }
 
         // Check quota
@@ -1203,6 +1213,7 @@ class UFSC_Frontend_Shortcodes {
 
         ob_start();
         ?>
+        <div class="ufsc-front ufsc-full">
         <div class="ufsc-add-licence-section">
             <div class="ufsc-section-header">
                 <h3><?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?></h3>
@@ -1470,6 +1481,7 @@ class UFSC_Frontend_Shortcodes {
                 </div>
             </form>
         </div>
+        </div>
         <?php
         return ob_get_clean();
     }
@@ -1487,9 +1499,9 @@ class UFSC_Frontend_Shortcodes {
         }
 
         if ( ! $atts['club_id'] ) {
-            return '<div class="ufsc-message ufsc-error">' .
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
                    esc_html__( 'Club non trouv\u00e9.', 'ufsc-clubs' ) .
-                   '</div>';
+                   '</div></div>';
         }
 
         $action     = isset( $_GET['ufsc_action'] ) ? sanitize_key( $_GET['ufsc_action'] ) : '';
