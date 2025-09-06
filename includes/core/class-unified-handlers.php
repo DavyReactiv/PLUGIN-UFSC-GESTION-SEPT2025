@@ -614,8 +614,7 @@ class UFSC_Unified_Handlers {
             wp_get_referer()
         ) );
         set_transient( 'ufsc_admin_save', time(), 10 );
-        wp_safe_redirect( $redirect_url );
-        exit;
+        UFSC_Licence_Form::redirect_with_notice( $redirect_url, 'licence_saved' );
     }
 
     /**

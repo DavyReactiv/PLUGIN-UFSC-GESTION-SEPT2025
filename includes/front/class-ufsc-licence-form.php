@@ -34,4 +34,20 @@ class UFSC_Licence_Form {
         }
         return true;
     }
+
+    /**
+     * Redirect to given URL with notice and optional tab parameter
+     *
+     * @param string $url     Base URL for redirection.
+     * @param string $notice  Notice slug to display.
+     * @param string $tab     Optional tab to preserve on redirect.
+     */
+    public static function redirect_with_notice( $url, $notice, $tab = '' ) {
+        $redirect = ufsc_redirect_with_notice( $url, $notice );
+        if ( $tab ) {
+            $redirect = add_query_arg( 'tab', sanitize_key( $tab ), $redirect );
+        }
+        wp_safe_redirect( $redirect );
+        exit;
+    }
 }

@@ -445,10 +445,17 @@ class UFSC_CL_Club_Form_Handler {
      */
     private static function redirect_with_error( $message, $club_id, $affiliation ) {
         $redirect_url = wp_get_referer() ?: home_url();
-        $redirect_url = add_query_arg( array(
-            'ufsc_error' => urlencode( $message )
-        ), $redirect_url );
-        
+        $tab          = self::get_referrer_tab( $redirect_url );
+        $redirect_url = add_query_arg(
+            array(
+                'ufsc_error' => urlencode( $message ),
+            ),
+            $redirect_url
+        );
+        if ( $tab ) {
+            $redirect_url = add_query_arg( 'tab', $tab, $redirect_url );
+        }
+
         wp_safe_redirect( $redirect_url );
         exit;
     }
@@ -462,12 +469,34 @@ class UFSC_CL_Club_Form_Handler {
      */
     private static function redirect_with_success( $message, $club_id, $affiliation ) {
         $redirect_url = wp_get_referer() ?: home_url();
-        $redirect_url = add_query_arg( array(
-            'ufsc_success' => urlencode( $message )
-        ), $redirect_url );
-        
+        $tab          = self::get_referrer_tab( $redirect_url );
+        $redirect_url = add_query_arg(
+            array(
+                'ufsc_success' => urlencode( $message ),
+            ),
+            $redirect_url
+        );
+        if ( $tab ) {
+            $redirect_url = add_query_arg( 'tab', $tab, $redirect_url );
+        }
+
         wp_safe_redirect( $redirect_url );
         exit;
+    }
+
+    /**
+     * Extract tab parameter from referrer URL
+     */
+    private static function get_referrer_tab( $url ) {
+        $tab = '';
+        $ref_query = wp_parse_url( $url, PHP_URL_QUERY );
+        if ( $ref_query ) {
+            parse_str( $ref_query, $args );
+            if ( isset( $args['tab'] ) ) {
+                $tab = sanitize_key( $args['tab'] );
+            }
+        }
+        return $tab;
     }
 }
 

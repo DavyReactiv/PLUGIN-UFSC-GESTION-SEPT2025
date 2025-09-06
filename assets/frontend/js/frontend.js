@@ -23,30 +23,36 @@ jQuery(document).ready(function($) {
     function initDashboardNavigation() {
         $('.ufsc-nav-btn').on('click', function(e) {
             e.preventDefault();
-            
+
             var section = $(this).data('section');
-            
+
             // Update nav buttons
             $('.ufsc-nav-btn').removeClass('active');
             $(this).addClass('active');
-            
+
             // Show corresponding section
             $('.ufsc-dashboard-section').removeClass('active');
             $('#ufsc-section-' + section).addClass('active');
-            
-            // Update URL hash for bookmarking
+
+            // Update URL with hash and tab parameter
             if (history.pushState) {
-                history.pushState(null, null, '#' + section);
+                var url = new URL(window.location.href);
+                url.hash = section;
+                url.searchParams.set('tab', section);
+                history.pushState(null, '', url.toString());
             }
-            
+
             // Focus management for accessibility
             $('#ufsc-section-' + section).focus();
         });
-        
-        // Handle URL hash on page load
+
+        // Handle URL hash or tab parameter on page load
+        var params = new URLSearchParams(window.location.search);
+        var tab = params.get('tab');
         var hash = window.location.hash.substring(1);
-        if (hash && $('.ufsc-nav-btn[data-section="' + hash + '"]').length) {
-            $('.ufsc-nav-btn[data-section="' + hash + '"]').click();
+        var target = tab || hash;
+        if (target && $('.ufsc-nav-btn[data-section="' + target + '"]').length) {
+            $('.ufsc-nav-btn[data-section="' + target + '"]').click();
         }
     }
     
