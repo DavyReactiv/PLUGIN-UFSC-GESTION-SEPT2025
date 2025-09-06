@@ -203,6 +203,9 @@ class UFSC_Stats {
     public static function get_club_stats( $club_id, $season = null ) {
         global $wpdb;
 
+        $club_id = (int) $club_id;
+        $season  = null !== $season ? (int) $season : null;
+
         if ( function_exists( 'ufsc_get_licences_table' ) ) {
             $table = ufsc_get_licences_table();
         } else {
@@ -210,13 +213,13 @@ class UFSC_Stats {
         }
 
         $where_clauses = array( 'club_id = %d' );
-        $where_values  = array( $club_id );
+        $where_values  = array( (int) $club_id );
         if ( null !== $season ) {
             // Season column optional; only add if exists.
             $columns = method_exists( $wpdb, 'get_col' ) ? $wpdb->get_col( "DESCRIBE `{$table}`" ) : array();
             if ( in_array( 'season', $columns, true ) ) {
                 $where_clauses[] = 'season = %d';
-                $where_values[]  = $season;
+                $where_values[]  = (int) $season;
             }
         }
 
@@ -282,7 +285,14 @@ class UFSC_Stats {
 
         $quota_remaining = max( 0, 10 - $included_active );
 
-        return array(
+        $defaults = array(
+            'paid_licences'      => 0,
+            'validated_licences' => 0,
+            'paid'               => 0,
+            'validated'          => 0,
+        );
+
+        $stats = array(
             'total_licences'     => $total_licences,
             'paid_licences'      => $paid,
             'validated_licences' => $validated,
@@ -296,5 +306,7 @@ class UFSC_Stats {
             'by_practice'        => $practice_counts,
             'by_birth_year'      => $birth_year_counts,
         );
+
+        return array_merge( $defaults, $stats );
     }
 }
