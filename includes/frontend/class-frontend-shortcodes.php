@@ -53,29 +53,6 @@ class UFSC_Frontend_Shortcodes {
                    '</div>';
         }
 
-        $wc_settings = ufsc_get_woocommerce_settings();
-        $season = $wc_settings['season'];
-        $stats = self::get_club_stats( $club_id, $season );
-        wp_localize_script(
-            'chart-js',
-            'ufscLicenceStats',
-            array(
-                'labels' => array(
-                    esc_html__( 'Total', 'ufsc-clubs' ),
-                    esc_html__( 'Payées', 'ufsc-clubs' ),
-                    esc_html__( 'Validées', 'ufsc-clubs' ),
-                    esc_html__( 'Quota restant', 'ufsc-clubs' ),
-                ),
-                'data'   => array(
-                    (int) $stats['total_licences'],
-                    (int) $stats['paid_licences'],
-                    (int) $stats['validated_licences'],
-                    (int) $stats['quota_remaining'],
-                ),
-                'datasetLabel' => esc_html__( 'Licences', 'ufsc-clubs' ),
-            )
-        );
-
         $sections = explode( ',', $atts['show_sections'] );
         
         ob_start();
@@ -164,24 +141,6 @@ class UFSC_Frontend_Shortcodes {
                 $('#ufsc-section-' + section).addClass('active');
             });
 
-            var ctx = document.getElementById('ufsc-licence-chart');
-            if (ctx && typeof ufscLicenceStats !== 'undefined') {
-                new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ufscLicenceStats.labels,
-                        datasets: [{
-                            label: ufscLicenceStats.datasetLabel,
-                            data: ufscLicenceStats.data,
-                            backgroundColor: ['#36a2eb', '#4caf50', '#ffce56', '#f44336']
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false
-                    }
-                });
-            }
         });
         </script>
         <?php
@@ -583,6 +542,15 @@ class UFSC_Frontend_Shortcodes {
      * @return string HTML output
      */
     public static function render_club_stats( $atts = array() ) {
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+        wp_enqueue_script(
+            'chart-js',
+            'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+            array(),
+            '4.4.0',
+            true
+        );
+
         $atts = shortcode_atts( array(
             'club_id' => 0,
             'season' => ''
@@ -604,6 +572,105 @@ class UFSC_Frontend_Shortcodes {
         }
 
         $stats = self::get_club_stats( $atts['club_id'], $atts['season'] );
+
+        $evolution = array();
+        if ( class_exists( 'UFSC_Stats' ) ) {
+            $evolution = UFSC_Stats::get_12_week_licence_evolution();
+        }
+
+        // Prepare gender data.
+        $gender_labels = array();
+        $gender_data   = array();
+        $gender_map    = array(
+            'male'   => esc_html__( 'Hommes', 'ufsc-clubs' ),
+            'female' => esc_html__( 'Femmes', 'ufsc-clubs' ),
+            'other'  => esc_html__( 'Autre', 'ufsc-clubs' ),
+        );
+        if ( ! empty( $stats['by_gender'] ) ) {
+            foreach ( $stats['by_gender'] as $gender => $count ) {
+                $gender_labels[] = isset( $gender_map[ $gender ] ) ? $gender_map[ $gender ] : ucfirst( $gender );
+                $gender_data[]   = (int) $count;
+            }
+        }
+
+        // Prepare practice data.
+        $practice_labels = array();
+        $practice_data   = array();
+        $practice_map    = array(
+            'loisir'      => esc_html__( 'Loisir', 'ufsc-clubs' ),
+            'competition' => esc_html__( 'Compétition', 'ufsc-clubs' ),
+        );
+        if ( ! empty( $stats['by_practice'] ) ) {
+            foreach ( $stats['by_practice'] as $practice => $count ) {
+                $practice_labels[] = isset( $practice_map[ $practice ] ) ? $practice_map[ $practice ] : ucfirst( $practice );
+                $practice_data[]   = (int) $count;
+            }
+        }
+
+        // Prepare age group data from birth years.
+        $age_groups = array(
+            '5-11'  => 0,
+            '12-15' => 0,
+            '16-17' => 0,
+            '18-34' => 0,
+            '35-49' => 0,
+            '50+'   => 0,
+        );
+        if ( ! empty( $stats['by_birth_year'] ) ) {
+            $current_year = (int) gmdate( 'Y' );
+            foreach ( $stats['by_birth_year'] as $year => $count ) {
+                $age = $current_year - (int) $year;
+                $count = (int) $count;
+                if ( $age >= 5 && $age <= 11 ) {
+                    $age_groups['5-11'] += $count;
+                } elseif ( $age >= 12 && $age <= 15 ) {
+                    $age_groups['12-15'] += $count;
+                } elseif ( $age >= 16 && $age <= 17 ) {
+                    $age_groups['16-17'] += $count;
+                } elseif ( $age >= 18 && $age <= 34 ) {
+                    $age_groups['18-34'] += $count;
+                } elseif ( $age >= 35 && $age <= 49 ) {
+                    $age_groups['35-49'] += $count;
+                } elseif ( $age >= 50 ) {
+                    $age_groups['50+'] += $count;
+                }
+            }
+        }
+
+        // Prepare evolution data (last 12 weeks).
+        $evolution_labels = array();
+        $evolution_data   = array();
+        if ( ! empty( $evolution ) ) {
+            foreach ( $evolution as $row ) {
+                $evolution_labels[] = $row['week_start'];
+                $evolution_data[]   = (int) $row['total'];
+            }
+        }
+
+        wp_localize_script(
+            'chart-js',
+            'ufscChartData',
+            array(
+                'gender'   => array(
+                    'labels' => $gender_labels,
+                    'data'   => $gender_data,
+                ),
+                'age'      => array(
+                    'labels' => array_keys( $age_groups ),
+                    'data'   => array_values( $age_groups ),
+                    'label'  => esc_html__( 'Licences', 'ufsc-clubs' ),
+                ),
+                'practice' => array(
+                    'labels' => $practice_labels,
+                    'data'   => $practice_data,
+                ),
+                'evolution' => array(
+                    'labels' => $evolution_labels,
+                    'data'   => $evolution_data,
+                    'label'  => esc_html__( 'Licences', 'ufsc-clubs' ),
+                ),
+            )
+        );
 
         ob_start();
         ?>
@@ -638,10 +705,94 @@ class UFSC_Frontend_Shortcodes {
             </div>
 
             <div class="ufsc-stats-chart">
-                <h4><?php esc_html_e( 'Évolution des licences', 'ufsc-clubs' ); ?></h4>
-                <canvas id="ufsc-licence-chart" height="200"></canvas>
+                <h4><?php esc_html_e( 'Répartition par genre', 'ufsc-clubs' ); ?></h4>
+                <canvas id="ufsc-gender-chart" height="200"></canvas>
+            </div>
+
+            <div class="ufsc-stats-chart">
+                <h4><?php esc_html_e( 'Répartition par tranche d\'âge', 'ufsc-clubs' ); ?></h4>
+                <canvas id="ufsc-age-chart" height="200"></canvas>
+            </div>
+
+            <div class="ufsc-stats-chart">
+                <h4><?php esc_html_e( 'Répartition par pratique', 'ufsc-clubs' ); ?></h4>
+                <canvas id="ufsc-practice-chart" height="200"></canvas>
+            </div>
+
+            <div class="ufsc-stats-chart">
+                <h4><?php esc_html_e( 'Évolution des licences (12 semaines)', 'ufsc-clubs' ); ?></h4>
+                <canvas id="ufsc-evolution-chart" height="200"></canvas>
             </div>
         </div>
+
+        <script>
+        jQuery(function($){
+            if (typeof ufscChartData === 'undefined') {
+                return;
+            }
+
+            var g = document.getElementById('ufsc-gender-chart');
+            if (g) {
+                new Chart(g, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ufscChartData.gender.labels,
+                        datasets: [{
+                            data: ufscChartData.gender.data
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            var a = document.getElementById('ufsc-age-chart');
+            if (a) {
+                new Chart(a, {
+                    type: 'bar',
+                    data: {
+                        labels: ufscChartData.age.labels,
+                        datasets: [{
+                            label: ufscChartData.age.label,
+                            data: ufscChartData.age.data,
+                            backgroundColor: '#36a2eb'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            var p = document.getElementById('ufsc-practice-chart');
+            if (p) {
+                new Chart(p, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ufscChartData.practice.labels,
+                        datasets: [{
+                            data: ufscChartData.practice.data
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+
+            var e = document.getElementById('ufsc-evolution-chart');
+            if (e) {
+                new Chart(e, {
+                    type: 'line',
+                    data: {
+                        labels: ufscChartData.evolution.labels,
+                        datasets: [{
+                            label: ufscChartData.evolution.label,
+                            data: ufscChartData.evolution.data,
+                            fill: false,
+                            borderColor: '#36a2eb'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+            }
+        });
+        </script>
         <?php
         return ob_get_clean();
     }
@@ -1574,7 +1725,7 @@ class UFSC_Frontend_Shortcodes {
                 $stats = array( 'total_licences' => 0, 'paid_licences' => 0, 'validated_licences' => 0, 'quota_remaining' => 10 );
             }
 
-            set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
+            set_transient( $cache_key, $stats, 10 * MINUTE_IN_SECONDS );
         }
 
         return $stats;
