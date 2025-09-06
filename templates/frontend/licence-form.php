@@ -1,20 +1,18 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 include UFSC_CL_DIR . 'templates/partials/notice.php';
+$wc_settings    = ufsc_get_woocommerce_settings();
+$included_limit = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
+$included_count = UFSC_Licence_Form::get_included_count();
+$club_id       = ufsc_get_user_club_id( get_current_user_id() );
 ?>
 <div class="ufsc-front ufsc-full">
-<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-form">
-    <input type="hidden" name="action" value="ufsc_save_licence" />
+<form method="post" class="ufsc-licence-form cart">
     <?php wp_nonce_field( 'ufsc_save_licence' ); ?>
     <input type="hidden" name="licence_id" value="<?php echo isset( $licence->id ) ? intval( $licence->id ) : 0; ?>" />
-    <?php
-    $wc_settings    = ufsc_get_woocommerce_settings();
-    $included_limit = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
-    $included_count = UFSC_Licence_Form::get_included_count();
-    ?>
+    <input type="hidden" name="ufsc_club_id" value="<?php echo esc_attr( $club_id ); ?>" />
     <input type="hidden" id="included_count" value="<?php echo esc_attr( $included_count ); ?>" />
     <input type="hidden" id="included_limit" value="<?php echo esc_attr( $included_limit ); ?>" />
-    <input type="hidden" name="ufsc_submit_action" id="ufsc_submit_action" value="save" />
 
     <div class="ufsc-grid">
         <div class="ufsc-field">
@@ -70,10 +68,10 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
         </div>
     </div>
     <div class="ufsc-form-actions">
-        <button type="submit" class="ufsc-btn ufsc-btn-primary" onclick="document.getElementById('ufsc_submit_action').value='save';">
+        <button type="submit" class="ufsc-btn ufsc-btn-primary" formaction="<?php echo esc_url( admin_url( 'admin-post.php?action=ufsc_save_licence' ) ); ?>">
             <?php esc_html_e( 'Enregistrer', 'ufsc-clubs' ); ?>
         </button>
-        <button type="submit" class="ufsc-btn ufsc-btn-secondary" onclick="document.getElementById('ufsc_submit_action').value='add_to_cart';">
+        <button type="submit" class="button add_to_cart_button" data-product_id="<?php echo esc_attr( $wc_settings['product_license_id'] ); ?>" name="add-to-cart" value="<?php echo esc_attr( $wc_settings['product_license_id'] ); ?>">
             <?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?>
         </button>
     </div>
