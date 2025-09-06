@@ -70,6 +70,10 @@ class UFSC_CL_Admin_Menu {
             }
         }
     }
+    /**
+     * Register frontend assets so they can be enqueued later.
+     * This runs on the `init` hook.
+     */
     public static function register_front(){
         wp_register_style( 'ufsc-frontend', UFSC_CL_URL.'assets/frontend/css/frontend.css', array(), UFSC_CL_VERSION );
         wp_register_script( 'ufsc-frontend', UFSC_CL_URL.'assets/frontend/js/frontend.js', array('jquery'), UFSC_CL_VERSION, true );
@@ -569,3 +573,6 @@ class UFSC_CL_Admin_Menu {
         return ob_get_clean();
     }
 }
+
+// Register frontend assets on init so they can be enqueued later.
+add_action( 'init', array( 'UFSC_CL_Admin_Menu', 'register_front' ) );

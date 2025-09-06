@@ -98,7 +98,6 @@ final class UFSC_CL_Bootstrap {
 
         add_action( 'admin_menu', array( 'UFSC_CL_Admin_Menu', 'register' ) );
         add_action( 'admin_enqueue_scripts', array( 'UFSC_CL_Admin_Menu', 'enqueue_admin' ) );
-        add_action( 'wp_enqueue_scripts', array( 'UFSC_CL_Admin_Menu', 'register_front' ) );
 
         // SQL Admin CRUD actions (pages cachées mais enregistrées pour les actions directes)
         add_action( 'admin_menu', array( 'UFSC_SQL_Admin', 'register_hidden_pages' ) );
@@ -177,8 +176,8 @@ final class UFSC_CL_Bootstrap {
         }
 
         if ( $should_enqueue ) {
-            wp_enqueue_style('ufsc-frontend', UFSC_CL_URL . 'assets/frontend/css/frontend.css', array(), UFSC_CL_VERSION );
-            wp_enqueue_script('ufsc-frontend', UFSC_CL_URL . 'assets/frontend/js/frontend.js', array('jquery'), UFSC_CL_VERSION, true );
+            wp_enqueue_style( 'ufsc-frontend' );
+            wp_enqueue_script( 'ufsc-frontend' );
         }
     }
 
