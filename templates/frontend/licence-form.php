@@ -25,7 +25,7 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
             <label for="nom"><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></label>
             <input type="text" id="nom" name="nom" value="<?php echo esc_attr( $licence->nom ?? '' ); ?>" />
         </div>
-        <div class="ufsc-field">
+        <div class="ufsc-field ufsc-field-full">
             <label for="email">Email</label>
             <input type="email" id="email" name="email" value="<?php echo esc_attr( $licence->email ?? '' ); ?>" />
         </div>
@@ -47,7 +47,7 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
         <div class="ufsc-field">
             <label class="ufsc-checkbox"><input type="checkbox" id="reduction_postier" name="reduction_postier" value="1" <?php checked( $licence->reduction_postier ?? 0, 1 ); ?> /> <?php esc_html_e( 'R\u00e9duction postier', 'ufsc-clubs' ); ?></label>
         </div>
-        <div class="ufsc-field ufsc-field-identifiant-laposte" style="display:none;">
+        <div class="ufsc-field ufsc-field-identifiant-laposte ufsc-field-full" style="display:none;">
             <label for="identifiant_laposte"><?php esc_html_e( 'Identifiant La Poste', 'ufsc-clubs' ); ?></label>
             <input type="text" id="identifiant_laposte" name="identifiant_laposte" value="<?php echo esc_attr( $licence->identifiant_laposte ?? '' ); ?>" />
         </div>
@@ -57,11 +57,11 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
         <div class="ufsc-field">
             <label class="ufsc-checkbox"><input type="checkbox" id="licence_delegataire" name="licence_delegataire" value="1" <?php checked( $licence->licence_delegataire ?? 0, 1 ); ?> /> <?php esc_html_e( 'Licence d\u00e9l\u00e9gataire', 'ufsc-clubs' ); ?></label>
         </div>
-        <div class="ufsc-field ufsc-field-numero-delegataire" style="display:none;">
+        <div class="ufsc-field ufsc-field-numero-delegataire ufsc-field-full" style="display:none;">
             <label for="numero_licence_delegataire"><?php esc_html_e( 'Num\u00e9ro de licence d\u00e9l\u00e9gataire', 'ufsc-clubs' ); ?></label>
             <input type="text" id="numero_licence_delegataire" name="numero_licence_delegataire" value="<?php echo esc_attr( $licence->numero_licence_delegataire ?? '' ); ?>" />
         </div>
-        <div class="ufsc-field">
+        <div class="ufsc-field ufsc-field-full">
             <label for="note"><?php esc_html_e( 'Note', 'ufsc-clubs' ); ?></label>
             <textarea id="note" name="note" rows="3"><?php echo esc_textarea( $licence->note ?? '' ); ?></textarea>
         </div>

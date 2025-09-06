@@ -7,21 +7,90 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class UFSC_Licences_Table {
 
     /**
-     * Register AJAX handlers.
+     * Render licences table.
+     *
+     * @param array $licences Array of licence objects.
+     * @param array $args     Optional arguments.
+     * @return string HTML table.
      */
-
     public static function render( $licences, $args = array() ) {
-        $status = isset( $_GET['ufsc_status'] ) ? sanitize_text_field( wp_unslash( $_GET['ufsc_status'] ) ) : '';
+        $defaults = array();
+        $args     = wp_parse_args( $args, $defaults );
 
-        $status = isset( $args['status'] ) ? $args['status'] : $status;
-
-        // Filter licences in-memory if a status filter is provided.
-        if ( $status ) {
-            $licences = array_filter( $licences, function( $licence ) use ( $status ) {
-                $licence_status = $licence->statut ?? ( $licence->status ?? '' );
-                return $licence_status === $status;
-            } );
-        }
+        ob_start();
+        ?>
+        <table class="ufsc-licences-table ufsc-table">
+            <thead>
+                <tr>
+                    <th><?php esc_html_e( 'Titulaire', 'ufsc-clubs' ); ?></th>
+                    <th><?php esc_html_e( 'Sexe', 'ufsc-clubs' ); ?></th>
+                    <th><?php esc_html_e( 'Pratique', 'ufsc-clubs' ); ?></th>
+                    <th><?php esc_html_e( 'Âge', 'ufsc-clubs' ); ?></th>
+                    <th><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></th>
+                    <th><?php esc_html_e( 'Paiement', 'ufsc-clubs' ); ?></th>
+                    <th><?php esc_html_e( 'Expiration', 'ufsc-clubs' ); ?></th>
+                    <th><?php esc_html_e( 'Actions', 'ufsc-clubs' ); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ( empty( $licences ) ) : ?>
+                    <tr><td colspan="8"><?php esc_html_e( 'Aucune licence trouvée.', 'ufsc-clubs' ); ?></td></tr>
+                <?php else : ?>
+                    <?php foreach ( $licences as $licence ) :
+                        $full_name = trim( ( $licence->prenom ?? '' ) . ' ' . ( $licence->nom ?? '' ) );
+                        $gender_code = strtolower( $licence->sexe ?? '' );
+                        switch ( $gender_code ) {
+                            case 'm':
+                            case 'h':
+                                $gender = __( 'Homme', 'ufsc-clubs' );
+                                break;
+                            case 'f':
+                                $gender = __( 'Femme', 'ufsc-clubs' );
+                                break;
+                            default:
+                                $gender = $licence->sexe ?? '';
+                        }
+                        $practice = isset( $licence->competition ) && $licence->competition
+                            ? __( 'Compétition', 'ufsc-clubs' )
+                            : __( 'Loisir', 'ufsc-clubs' );
+                        $age = '';
+                        if ( ! empty( $licence->date_naissance ) ) {
+                            $birth = strtotime( $licence->date_naissance );
+                            if ( $birth ) {
+                                $age = floor( ( current_time( 'timestamp' ) - $birth ) / YEAR_IN_SECONDS );
+                            }
+                        }
+                        $status_badge = UFSC_Badges::render_licence_badge( $licence->statut ?? '', array( 'custom_class' => 'ufsc-badge' ) );
+                        $payment_badge = ! empty( $licence->paid )
+                            ? '<span class="ufsc-badge badge-success">' . esc_html__( 'Payée', 'ufsc-clubs' ) . '</span>'
+                            : '<span class="ufsc-badge badge-warning">' . esc_html__( 'Impayée', 'ufsc-clubs' ) . '</span>';
+                        $expiration = '';
+                        if ( ! empty( $licence->certificat_expiration ) ) {
+                            $expiration = mysql2date( get_option( 'date_format' ), $licence->certificat_expiration );
+                        } elseif ( ! empty( $licence->date_expiration ) ) {
+                            $expiration = mysql2date( get_option( 'date_format' ), $licence->date_expiration );
+                        }
+                        $actions  = '<a class="ufsc-action" href="' . esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ) . '">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a>';
+                        if ( in_array( $licence->statut ?? '', array( 'draft', 'pending' ), true ) ) {
+                            $actions .= ' <a class="ufsc-action" href="' . esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ) . '">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a>';
+                        }
+                        ?>
+                        <tr>
+                            <td><?php echo esc_html( $full_name ); ?></td>
+                            <td><?php echo esc_html( $gender ); ?></td>
+                            <td><?php echo esc_html( $practice ); ?></td>
+                            <td><?php echo '' !== $age ? intval( $age ) : ''; ?></td>
+                            <td><?php echo $status_badge; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+                            <td><?php echo $payment_badge; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+                            <td><?php echo esc_html( $expiration ); ?></td>
+                            <td><?php echo $actions; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+        <?php
+        return ob_get_clean();
     }
 
     public static function init() {
@@ -92,6 +161,7 @@ class UFSC_Licences_Table {
             'practice'   => 'competition',
             'age'        => 'date_naissance',
             'status'     => 'statut',
+            'payment'    => 'paid',
             'expiration' => 'certificat_expiration',
             'included'   => 'is_included',
         );
@@ -101,7 +171,7 @@ class UFSC_Licences_Table {
         $offset    = ( $page - 1 ) * $per_page;
 
         $query = $wpdb->prepare(
-            "SELECT SQL_CALC_FOUND_ROWS id, prenom, nom, sexe, competition, date_naissance, statut, certificat_expiration, date_expiration, is_included, paid
+            "SELECT SQL_CALC_FOUND_ROWS DISTINCT id, prenom, nom, sexe, competition, date_naissance, statut, certificat_expiration, date_expiration, is_included, paid
              FROM {$table} WHERE {$where_sql}
              ORDER BY {$orderby_sql} {$order}
              LIMIT %d OFFSET %d",
@@ -134,6 +204,9 @@ class UFSC_Licences_Table {
                 }
             }
             $status_badge = UFSC_Badges::render_licence_badge( $row->statut, array( 'custom_class' => 'ufsc-badge' ) );
+            $payment_badge = ! empty( $row->paid )
+                ? '<span class="ufsc-badge badge-success">' . esc_html__( 'Payée', 'ufsc-clubs' ) . '</span>'
+                : '<span class="ufsc-badge badge-warning">' . esc_html__( 'Impayée', 'ufsc-clubs' ) . '</span>';
             $expiration = '';
             if ( ! empty( $row->certificat_expiration ) ) {
                 $expiration = mysql2date( get_option( 'date_format' ), $row->certificat_expiration );
@@ -166,6 +239,7 @@ class UFSC_Licences_Table {
                 'practice'   => esc_html( $practice ),
                 'age'        => '' !== $age ? (int) $age : '',
                 'status'     => $status_badge,
+                'payment'    => $payment_badge,
                 'expiration' => esc_html( $expiration ),
                 'included'   => $included,
                 'actions'    => $actions,

@@ -365,57 +365,7 @@ class UFSC_Frontend_Shortcodes {
                         <?php esc_html_e( 'Aucune licence trouvée.', 'ufsc-clubs' ); ?>
                     </div>
                 <?php else : ?>
-                    <div class="ufsc-licence-grid">
-                        <?php foreach ( $licences as $licence ) :
-                            $full_name = trim( ( $licence->prenom ?? '' ) . ' ' . ( $licence->nom ?? '' ) );
-                            $gender_code = strtolower( $licence->sexe ?? '' );
-                            switch ( $gender_code ) {
-                                case 'm':
-                                case 'h':
-                                    $gender = __( 'Homme', 'ufsc-clubs' );
-                                    break;
-                                case 'f':
-                                    $gender = __( 'Femme', 'ufsc-clubs' );
-                                    break;
-                                default:
-                                    $gender = $licence->sexe ?? '';
-                            }
-
-                            $practice = isset( $licence->competition ) && $licence->competition
-                                ? __( 'Compétition', 'ufsc-clubs' )
-                                : __( 'Loisir', 'ufsc-clubs' );
-
-                            $age = '';
-                            if ( ! empty( $licence->date_naissance ) ) {
-                                $birth = strtotime( $licence->date_naissance );
-                                if ( $birth ) {
-                                    $age = floor( ( current_time( 'timestamp' ) - $birth ) / YEAR_IN_SECONDS );
-                                }
-                            }
-                            ?>
-                            <div class="ufsc-card ufsc-licence-card">
-                                <div class="ufsc-licence-card-header">
-                                    <h4 class="ufsc-licence-name"><?php echo esc_html( $full_name ); ?></h4>
-                                    <?php
-                                    $badge_label = self::get_licence_status_label( $licence->statut ?? '' );
-                                    $badge_class = self::get_licence_status_badge_class( $licence->statut ?? '' );
-                                    ?>
-                                    <span class="ufsc-badge <?php echo esc_attr( $badge_class ); ?>"><?php echo esc_html( $badge_label ); ?></span>
-                                </div>
-                                <div class="ufsc-licence-meta">
-                                    <?php if ( $gender ) : ?><span><?php echo esc_html( $gender ); ?></span><?php endif; ?>
-                                    <span><?php echo esc_html( $practice ); ?></span>
-                                    <?php if ( '' !== $age ) : ?><span><?php echo intval( $age ); ?> <?php esc_html_e( 'ans', 'ufsc-clubs' ); ?></span><?php endif; ?>
-                                </div>
-                                <div class="ufsc-licence-actions">
-                                    <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
-                                    <?php if ( in_array( $licence->statut ?? '', array( 'draft', 'pending' ), true ) ) : ?>
-                                        <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
+                    <?php echo UFSC_Licences_Table::render( $licences ); ?>
                 <?php endif; ?>
             </div>
 
@@ -1678,7 +1628,7 @@ class UFSC_Frontend_Shortcodes {
         $offset   = ( $page - 1 ) * $per_page;
 
         $where_sql = $clauses ? 'WHERE ' . implode( ' AND ', $clauses ) : '';
-        $sql       = "SELECT * FROM `{$licences_table}` {$where_sql} ORDER BY {$order_by} LIMIT %d OFFSET %d";
+        $sql       = "SELECT DISTINCT * FROM `{$licences_table}` {$where_sql} ORDER BY {$order_by} LIMIT %d OFFSET %d";
         $values[]  = $per_page;
         $values[]  = $offset;
 
@@ -1753,7 +1703,7 @@ class UFSC_Frontend_Shortcodes {
         }
 
         $where_sql = $clauses ? 'WHERE ' . implode( ' AND ', $clauses ) : '';
-        $sql       = "SELECT COUNT(*) FROM `{$licences_table}` {$where_sql}";
+        $sql       = "SELECT COUNT(DISTINCT id) FROM `{$licences_table}` {$where_sql}";
 
         return (int) $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
     }
