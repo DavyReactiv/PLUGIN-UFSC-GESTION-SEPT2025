@@ -2,460 +2,108 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
- * UFSC Database Migrations Class
- * Handles database schema upgrades, indexing, and constraints
+ * Handles database table creation and upgrades.
  */
 class UFSC_DB_Migrations {
+    /**
+     * Current plugin database schema version.
+     */
+    const VERSION = '1.0.0';
 
     /**
-     * Current migration version
+     * Option key used to store the installed DB version.
      */
-    const MIGRATION_VERSION = '1.2.0';
+    const OPTION_KEY = 'ufsc_db_version';
 
     /**
-     * Option key for tracking migration version
+     * Create initial tables and run upgrades.
      */
-    const VERSION_OPTION = 'ufsc_db_version';
+    public static function activate() {
+        global $wpdb;
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $licences_table = $wpdb->prefix . 'ufsc_licences';
+        $clubs_table    = $wpdb->prefix . 'ufsc_clubs';
+
+        $licences_sql = "CREATE TABLE {$licences_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            club_id BIGINT(20) UNSIGNED NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'en_attente',
+            paid TINYINT(1) NOT NULL DEFAULT 0,
+            gender VARCHAR(1) NULL,
+            practice VARCHAR(20) NULL,
+            birthdate DATE NULL,
+            PRIMARY KEY (id)
+        ) {$charset_collate};";
+        dbDelta( $licences_sql );
+
+        $clubs_sql = "CREATE TABLE {$clubs_table} (
+            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+            statut VARCHAR(20) NOT NULL DEFAULT 'inactive',
+            profile_photo_url VARCHAR(255) NULL,
+            PRIMARY KEY (id)
+        ) {$charset_collate};";
+        dbDelta( $clubs_sql );
+
+        self::maybe_upgrade();
+
+        update_option( self::OPTION_KEY, self::VERSION );
+    }
 
     /**
-     * Run database migrations and schema upgrades
+     * Upgrade existing tables to match current schema.
      */
-    public static function run() {
-        $current_version = get_option( self::VERSION_OPTION, '0.0.0' );
+    public static function maybe_upgrade() {
+        global $wpdb;
 
-        if ( version_compare( $current_version, self::MIGRATION_VERSION, '<' ) ) {
+        $installed = get_option( self::OPTION_KEY );
 
-            $settings        = UFSC_SQL::get_settings();
-            $licences_table  = $settings['table_licences'];
-            $clubs_table     = $settings['table_clubs'];
+        $licences_table = $wpdb->prefix . 'ufsc_licences';
+        $clubs_table    = $wpdb->prefix . 'ufsc_clubs';
 
-            // Add missing columns to licences table
-            self::maybe_add_column( $licences_table, 'status', "VARCHAR(20) NOT NULL DEFAULT 'en_attente'" );
-            self::maybe_add_column( $licences_table, 'paid', 'TINYINT(1) NOT NULL DEFAULT 0' );
-            self::maybe_add_column( $licences_table, 'gender', 'VARCHAR(1) NULL' );
-            self::maybe_add_column( $licences_table, 'practice', 'VARCHAR(20) NULL' );
-            self::maybe_add_column( $licences_table, 'birthdate', 'DATE NULL' );
+        // Ensure required columns exist.
+        self::maybe_add_column( $licences_table, 'status', "VARCHAR(20) NOT NULL DEFAULT 'en_attente'" );
+        self::maybe_add_column( $licences_table, 'paid', 'TINYINT(1) NOT NULL DEFAULT 0' );
+        self::maybe_add_column( $licences_table, 'gender', 'VARCHAR(1) NULL' );
+        self::maybe_add_column( $licences_table, 'practice', 'VARCHAR(20) NULL' );
+        self::maybe_add_column( $licences_table, 'birthdate', 'DATE NULL' );
 
-            // Add missing column to clubs table
-            self::maybe_add_column( $clubs_table, 'profile_photo_url', 'VARCHAR(255) NULL' );
+        self::maybe_add_column( $clubs_table, 'statut', "VARCHAR(20) NOT NULL DEFAULT 'inactive'" );
+        self::maybe_add_column( $clubs_table, 'profile_photo_url', 'VARCHAR(255) NULL' );
 
+        // Ensure indexes for performant queries.
+        self::maybe_add_index( $licences_table, 'club_id' );
+        self::maybe_add_index( $licences_table, 'status' );
+        self::maybe_add_index( $licences_table, 'gender' );
+        self::maybe_add_index( $licences_table, 'practice' );
+        self::maybe_add_index( $licences_table, 'birthdate' );
 
-            self::add_profile_photo_url_column();
-
-            self::migrate_to_innodb();
-            self::create_indexes();
-            self::create_unique_constraints();
-            self::create_events_table();
-
-            update_option( self::VERSION_OPTION, self::MIGRATION_VERSION );
-
-            add_action( 'admin_notices', array( __CLASS__, 'migration_success_notice' ) );
+        if ( version_compare( $installed, self::VERSION, '<' ) ) {
+            update_option( self::OPTION_KEY, self::VERSION );
         }
     }
 
     /**
-
-     * Backwards compatibility wrapper
+     * Add a column to a table if it does not already exist.
      */
-    public static function run_migrations() {
-        self::run();
-
-     * Add profile_photo_url column to clubs table if missing.
-     */
-    public static function add_profile_photo_url_column() {
+    private static function maybe_add_column( $table, $column, $ddl ) {
         global $wpdb;
-
-        $settings = UFSC_SQL::get_settings();
-        $table    = $settings['table_clubs'];
-
-        if ( self::table_exists( $table ) ) {
-            $exists = $wpdb->get_var(
-                $wpdb->prepare(
-                    "SHOW COLUMNS FROM `{$table}` LIKE %s",
-                    'profile_photo_url'
-                )
-            );
-
-            if ( ! $exists ) {
-                $sql    = "ALTER TABLE `{$table}` ADD `profile_photo_url` TEXT NULL";
-                $result = $wpdb->query( $sql );
-
-                if ( $result === false ) {
-                    UFSC_Audit_Logger::log( 'UFSC_DB_Migrations: Failed to add profile_photo_url column: ' . $wpdb->last_error );
-                }
-            }
-        }
-
-    }
-
-    /**
-     * Force tables to use InnoDB engine
-     */
-    public static function migrate_to_innodb() {
-        global $wpdb;
-        
-        $settings = UFSC_SQL::get_settings();
-        $tables = array(
-            $settings['table_clubs'],
-            $settings['table_licences']
-        );
-
-        foreach ( $tables as $table ) {
-            if ( self::table_exists( $table ) ) {
-                $current_engine = self::get_table_engine( $table );
-                
-                if ( strtolower( $current_engine ) !== 'innodb' ) {
-                    $sql = "ALTER TABLE `{$table}` ENGINE=InnoDB";
-                    $result = $wpdb->query( $sql );
-                    
-                    if ( $result === false ) {
-                        UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to convert {$table} to InnoDB: " . $wpdb->last_error );
-                    } else {
-                        UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Successfully converted {$table} to InnoDB" );
-                    }
-                }
-            }
+        $exists = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM `$table` LIKE %s", $column ) );
+        if ( ! $exists ) {
+            $wpdb->query( "ALTER TABLE `$table` ADD `$column` $ddl" );
         }
     }
 
     /**
-     * Create performance indexes
+     * Add an index to a table if it does not already exist.
      */
-    public static function create_indexes() {
+    private static function maybe_add_index( $table, $column ) {
         global $wpdb;
-        
-        $settings = UFSC_SQL::get_settings();
-        
-        // Licences table indexes
-        $licences_indexes = array(
-            'idx_licences_statut'                   => 'statut',
-            'idx_licences_payment_status'          => 'payment_status',
-            'idx_licences_date_creation'           => 'date_creation',
-            'idx_licences_nom_licence'             => 'nom_licence',
-            'idx_licences_club_id'                 => 'club_id',
-            'idx_licences_numero_licence_delegataire' => 'numero_licence_delegataire',
-            // New indexes for performant stats queries
-            'idx_licences_status'                  => 'status',
-            'idx_licences_paid'                    => 'paid',
-            'idx_licences_gender'                  => 'gender',
-            'idx_licences_practice'                => 'practice',
-            'idx_licences_birthdate'               => 'birthdate',
-        );
-
-        self::create_table_indexes( $settings['table_licences'], $licences_indexes );
-
-        // Clubs table indexes
-        $clubs_indexes = array(
-            'idx_clubs_statut'        => 'statut',
-            'idx_clubs_region'        => 'region',
-            'idx_clubs_date_creation' => 'date_creation',
-            'idx_clubs_responsable_id'=> 'responsable_id'
-        );
-
-        self::create_table_indexes( $settings['table_clubs'], $clubs_indexes );
-
-        // Club documents table indexes
-        $club_docs_table   = $wpdb->prefix . 'ufsc_club_docs';
-        $club_docs_indexes = array(
-            'idx_club_docs_club_id' => 'club_id',
-        );
-
-        self::create_table_indexes( $club_docs_table, $club_docs_indexes );
-    }
-
-    /**
-     * Create unique constraints with duplicate checking
-     */
-    public static function create_unique_constraints() {
-        global $wpdb;
-        
-        $settings = UFSC_SQL::get_settings();
-
-        // Check for duplicates in numero_licence_delegataire
-        if ( self::table_exists( $settings['table_licences'] ) ) {
-            $duplicates = $wpdb->get_results( "
-                SELECT numero_licence_delegataire, COUNT(*) as count 
-                FROM `{$settings['table_licences']}` 
-                WHERE numero_licence_delegataire IS NOT NULL 
-                AND numero_licence_delegataire != '' 
-                GROUP BY numero_licence_delegataire 
-                HAVING count > 1
-            " );
-
-            if ( empty( $duplicates ) ) {
-                self::add_unique_constraint( 
-                    $settings['table_licences'], 
-                    'uniq_numero_licence_delegataire', 
-                    'numero_licence_delegataire' 
-                );
-            } else {
-                add_action( 'admin_notices', function() use ( $duplicates ) {
-                    echo '<div class="notice notice-warning"><p>';
-                    echo esc_html__( 'UFSC: Duplicates détectés dans numero_licence_delegataire. Contrainte unique non appliquée.', 'ufsc-clubs' );
-                    echo ' (' . count( $duplicates ) . ' doublons)';
-                    echo '</p></div>';
-                } );
-            }
+        $exists = $wpdb->get_var( $wpdb->prepare( "SHOW INDEX FROM `$table` WHERE Key_name = %s", $column ) );
+        if ( ! $exists ) {
+            $wpdb->query( "ALTER TABLE `$table` ADD INDEX `$column` (`$column`)" );
         }
-
-        // Check for duplicates in num_affiliation
-        if ( self::table_exists( $settings['table_clubs'] ) ) {
-            $duplicates = $wpdb->get_results( "
-                SELECT num_affiliation, COUNT(*) as count 
-                FROM `{$settings['table_clubs']}` 
-                WHERE num_affiliation IS NOT NULL 
-                AND num_affiliation != '' 
-                GROUP BY num_affiliation 
-                HAVING count > 1
-            " );
-
-            if ( empty( $duplicates ) ) {
-                self::add_unique_constraint( 
-                    $settings['table_clubs'], 
-                    'uniq_num_affiliation', 
-                    'num_affiliation' 
-                );
-            } else {
-                add_action( 'admin_notices', function() use ( $duplicates ) {
-                    echo '<div class="notice notice-warning"><p>';
-                    echo esc_html__( 'UFSC: Duplicates détectés dans num_affiliation. Contrainte unique non appliquée.', 'ufsc-clubs' );
-                    echo ' (' . count( $duplicates ) . ' doublons)';
-                    echo '</p></div>';
-                } );
-            }
-        }
-    }
-
-    /**
-     * Create events table for idempotence tracking
-     */
-    public static function create_events_table() {
-        global $wpdb;
-
-        $table_name = $wpdb->prefix . 'ufsc_events';
-
-        $sql = "CREATE TABLE IF NOT EXISTS `{$table_name}` (
-            `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-            `event_key` varchar(255) NOT NULL,
-            `event_type` varchar(100) NOT NULL,
-            `event_data` longtext,
-            `status` varchar(50) DEFAULT 'pending',
-            `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-            `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            PRIMARY KEY (`id`),
-            UNIQUE KEY `uniq_event_key` (`event_key`),
-            KEY `idx_event_type` (`event_type`),
-            KEY `idx_status` (`status`),
-            KEY `idx_created_at` (`created_at`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
-
-        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-        dbDelta( $sql );
-
-        if ( $wpdb->last_error ) {
-            UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to create events table: " . $wpdb->last_error );
-        }
-    }
-
-    /**
-     * Helper: Add column if missing
-     */
-    private static function maybe_add_column( $table_name, $column_name, $definition ) {
-        global $wpdb;
-
-        if ( ! self::column_exists( $table_name, $column_name ) ) {
-            $sql    = "ALTER TABLE `{$table_name}` ADD `{$column_name}` {$definition}";
-            $result = $wpdb->query( $sql );
-
-            if ( $result === false ) {
-                UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to add column {$column_name} to {$table_name}: " . $wpdb->last_error );
-            }
-        }
-    }
-
-    /**
-     * Helper: Check if column exists
-     */
-    private static function column_exists( $table_name, $column_name ) {
-        global $wpdb;
-
-        $result = $wpdb->get_var( $wpdb->prepare(
-            "SHOW COLUMNS FROM `{$table_name}` LIKE %s",
-            $column_name
-        ) );
-
-        return ! is_null( $result );
-    }
-
-    /**
-     * Helper: Check if table exists
-     */
-    private static function table_exists( $table_name ) {
-        global $wpdb;
-        
-        $result = $wpdb->get_var( $wpdb->prepare( 
-            "SHOW TABLES LIKE %s", 
-            $table_name 
-        ) );
-        
-        return $result === $table_name;
-    }
-
-    /**
-     * Helper: Get table engine
-     */
-    private static function get_table_engine( $table_name ) {
-        global $wpdb;
-        
-        $result = $wpdb->get_var( $wpdb->prepare( 
-            "SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s",
-            DB_NAME,
-            $table_name
-        ) );
-        
-        return $result ?: 'unknown';
-    }
-
-    /**
-     * Helper: Create indexes for a table
-     */
-    private static function create_table_indexes( $table_name, $indexes ) {
-        global $wpdb;
-
-        if ( ! self::table_exists( $table_name ) ) {
-            return;
-        }
-
-        foreach ( $indexes as $index_name => $column ) {
-            if ( ! self::index_exists( $table_name, $index_name ) ) {
-                $sql = "ALTER TABLE `{$table_name}` ADD INDEX `{$index_name}` (`{$column}`)";
-                $result = $wpdb->query( $sql );
-                
-                if ( $result === false ) {
-                    UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to create index {$index_name} on {$table_name}: " . $wpdb->last_error );
-                }
-            }
-        }
-    }
-
-    /**
-     * Helper: Check if index exists
-     */
-    private static function index_exists( $table_name, $index_name ) {
-        global $wpdb;
-        
-        $result = $wpdb->get_var( $wpdb->prepare( 
-            "SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND INDEX_NAME = %s",
-            DB_NAME,
-            $table_name,
-            $index_name
-        ) );
-        
-        return $result > 0;
-    }
-
-    /**
-     * Helper: Add unique constraint
-     */
-    private static function add_unique_constraint( $table_name, $constraint_name, $column ) {
-        global $wpdb;
-
-        if ( ! self::constraint_exists( $table_name, $constraint_name ) ) {
-            $sql = "ALTER TABLE `{$table_name}` ADD CONSTRAINT `{$constraint_name}` UNIQUE (`{$column}`)";
-            $result = $wpdb->query( $sql );
-            
-            if ( $result === false ) {
-                UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to create unique constraint {$constraint_name} on {$table_name}: " . $wpdb->last_error );
-            }
-        }
-    }
-
-    /**
-     * Helper: Check if constraint exists
-     */
-    private static function constraint_exists( $table_name, $constraint_name ) {
-        global $wpdb;
-        
-        $result = $wpdb->get_var( $wpdb->prepare( 
-            "SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND CONSTRAINT_NAME = %s",
-            DB_NAME,
-            $table_name,
-            $constraint_name
-        ) );
-        
-        return $result > 0;
-    }
-
-    /**
-     * Display migration success notice
-     */
-    public static function migration_success_notice() {
-        echo '<div class="notice notice-success is-dismissible"><p>';
-        echo esc_html__( 'UFSC: Migrations de base de données appliquées avec succès.', 'ufsc-clubs' );
-        echo '</p></div>';
-    }
-
-    /**
-     * Get events table name
-     */
-    public static function get_events_table() {
-        global $wpdb;
-        return $wpdb->prefix . 'ufsc_events';
-    }
-
-    /**
-     * Record an event for idempotence tracking
-     */
-    public static function record_event( $event_key, $event_type, $event_data = null, $status = 'pending' ) {
-        global $wpdb;
-
-        $table = self::get_events_table();
-        
-        $data = array(
-            'event_key' => $event_key,
-            'event_type' => $event_type,
-            'event_data' => is_array( $event_data ) ? json_encode( $event_data ) : $event_data,
-            'status' => $status
-        );
-
-        $result = $wpdb->insert( $table, $data );
-        
-        if ( $result === false ) {
-            UFSC_Audit_Logger::log( "UFSC_DB_Migrations: Failed to record event {$event_key}: " . $wpdb->last_error );
-            return false;
-        }
-
-        return $wpdb->insert_id;
-    }
-
-    /**
-     * Check if event exists
-     */
-    public static function event_exists( $event_key ) {
-        global $wpdb;
-
-        $table = self::get_events_table();
-        
-        $result = $wpdb->get_var( $wpdb->prepare( 
-            "SELECT id FROM `{$table}` WHERE event_key = %s", 
-            $event_key 
-        ) );
-
-        return ! is_null( $result );
-    }
-
-    /**
-     * Update event status
-     */
-    public static function update_event_status( $event_key, $status ) {
-        global $wpdb;
-
-        $table = self::get_events_table();
-        
-        return $wpdb->update( 
-            $table, 
-            array( 'status' => $status ), 
-            array( 'event_key' => $event_key ) 
-        );
     }
 }

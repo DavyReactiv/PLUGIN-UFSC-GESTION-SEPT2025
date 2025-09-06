@@ -79,6 +79,9 @@ require_once UFSC_CL_DIR.'inc/woocommerce/cart-integration.php';
 // require_once UFSC_CL_DIR.'inc/admin/menu.php'; // Removed - using unified menu system in includes/admin/class-admin-menu.php
 require_once UFSC_CL_DIR.'includes/woo/class-ufsc-woo-sync.php';
 
+register_activation_hook(__FILE__, ['UFSC_DB_Migrations','activate']);
+add_action('plugins_loaded', ['UFSC_DB_Migrations','maybe_upgrade']);
+
 UFSC_Export_Clubs::init();
 UFSC_Export_Licences::init();
 
@@ -91,7 +94,6 @@ final class UFSC_CL_Bootstrap {
     public static function instance(){ if ( null === self::$instance ) self::$instance = new self(); return self::$instance; }
     private function __construct(){
         register_activation_hook( __FILE__, array( $this, 'on_activate' ) );
-        register_activation_hook( __FILE__, array( 'UFSC_DB_Migrations', 'run' ) );
         register_deactivation_hook( __FILE__, array( $this, 'on_deactivate' ) );
 
         add_action( 'admin_menu', array( 'UFSC_CL_Admin_Menu', 'register' ) );
@@ -126,8 +128,7 @@ final class UFSC_CL_Bootstrap {
 
         add_action( 'init', array( 'UFSC_Unified_Handlers', 'init' ) );
         add_action( 'init', array( 'UFSC_Cache_Manager', 'init' ) );
-        add_action( 'plugins_loaded', array( 'UFSC_DB_Migrations', 'run' ) );
-        
+                
         // Initialize UFSC Gestion WooCommerce hooks
         add_action( 'plugins_loaded', 'ufsc_init_woocommerce_hooks' );
         add_action( 'plugins_loaded', array( 'UFSC_Woo_Sync', 'init' ) );
