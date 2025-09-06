@@ -1537,8 +1537,11 @@ textarea:focus {
 /* // UFSC: Document Cards */
 .ufsc-documents-grid {
     display: grid;
+    grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+@media (max-width: 640px) {
+    .ufsc-documents-grid { grid-template-columns: 1fr; }
 }
 
 .ufsc-document-card {
