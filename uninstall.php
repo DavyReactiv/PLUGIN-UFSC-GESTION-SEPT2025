@@ -14,6 +14,7 @@ $option_names = [
     'ufsc_gestion_settings',
     'ufsc_woocommerce_settings',
     'ufsc_sql_settings',
+    'ufsc_db_version',
     'ufsc_db_migration_version',
     'ufsc_license_pricing_rules',
     'ufsc_dashboard_page',
