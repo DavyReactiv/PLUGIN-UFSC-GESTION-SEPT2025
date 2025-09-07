@@ -138,7 +138,7 @@ class UFSC_CL_Admin_Menu {
             echo '<div class="ufsc-alert error">';
             echo '<strong>'.esc_html__('Configuration requise','ufsc-clubs').'</strong><br>';
             echo esc_html__('Les tables de données ne sont pas encore configurées.','ufsc-clubs').' ';
-            echo '<a href="'.admin_url('admin.php?page=ufsc-settings').'">'.esc_html__('Configurer maintenant','ufsc-clubs').'</a>';
+            echo '<a href="'.admin_url('admin.php?page=ufsc-sql-settings').'">'.esc_html__('Configurer maintenant','ufsc-clubs').'</a>';
             echo '</div>';
             echo '</div>';
             return;
@@ -258,7 +258,7 @@ class UFSC_CL_Admin_Menu {
         echo '<a href="'.admin_url('admin.php?page=ufsc-sql-licences&action=new').'" class="button button-primary">'.esc_html__('Nouvelle Licence','ufsc-clubs').'</a>';
         echo '<a href="'.admin_url('admin.php?page=ufsc-sql-clubs').'" class="button">'.esc_html__('Gérer les Clubs','ufsc-clubs').'</a>';
         echo '<a href="'.admin_url('admin.php?page=ufsc-sql-licences').'" class="button">'.esc_html__('Gérer les Licences','ufsc-clubs').'</a>';
-        echo '<a href="'.admin_url('admin.php?page=ufsc-settings').'" class="button">'.esc_html__('Réglages','ufsc-clubs').'</a>';
+        echo '<a href="'.admin_url('admin.php?page=ufsc-sql-settings').'" class="button">'.esc_html__('Réglages','ufsc-clubs').'</a>';
         echo '</div>';
         echo '</div>';
         
@@ -659,6 +659,15 @@ add_action( 'admin_menu', function () {
         $cap,
         'ufsc-exports',
         'ufsc_render_exports_page'
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Réglages SQL', 'ufsc-clubs' ),
+        __( 'Réglages SQL', 'ufsc-clubs' ),
+        $cap,
+        'ufsc-sql-settings',
+        array( 'UFSC_SQL_Admin', 'render_settings' )
     );
 
     add_submenu_page(
