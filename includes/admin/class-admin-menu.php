@@ -4,7 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class UFSC_CL_Admin_Menu {
     public static function register(){
         // Menu principal unifié UFSC
-        if ( isset( $_GET['page'] ) && $_GET['page'] === 'ufsc-attestations' ) {
+        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+        if ( 'ufsc-attestations' === $page ) {
             wp_safe_redirect( admin_url( 'admin.php?page=ufsc-gestion' ) );
             exit;
         }
