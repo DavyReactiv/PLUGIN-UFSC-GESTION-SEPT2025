@@ -13,7 +13,7 @@ class UFSC_CL_Admin_Menu {
         add_menu_page(
             __( 'UFSC Gestion', 'ufsc-clubs' ),
             __( 'UFSC Gestion', 'ufsc-clubs' ),
-            'manage_options',
+            'ufsc_manage',
             'ufsc-gestion',
             array( __CLASS__, 'render_dashboard' ),
             'dashicons-groups',
@@ -25,7 +25,7 @@ class UFSC_CL_Admin_Menu {
             'ufsc-gestion',
             __('Clubs','ufsc-clubs'),
             __('Clubs','ufsc-clubs'),
-            'manage_options',
+            'ufsc_manage',
             'ufsc-clubs',
             array( 'UFSC_SQL_Admin', 'render_clubs' )
         );
@@ -34,7 +34,7 @@ class UFSC_CL_Admin_Menu {
             'ufsc-gestion',
             __('Licences','ufsc-clubs'),
             __('Licences','ufsc-clubs'),
-            'manage_options',
+            'ufsc_manage',
             'ufsc-licences',
             array( 'UFSC_SQL_Admin', 'render_licences' )
         );
@@ -43,7 +43,7 @@ class UFSC_CL_Admin_Menu {
             'ufsc-gestion',
             __('Exports/Imports','ufsc-clubs'),
             __('Exports/Imports','ufsc-clubs'),
-            'manage_options',
+            'ufsc_manage',
             'ufsc-exports',
             array( 'UFSC_SQL_Admin', 'render_exports' )
         );
@@ -52,7 +52,7 @@ class UFSC_CL_Admin_Menu {
             'ufsc-gestion',
             __('Réglages','ufsc-clubs'),
             __('Réglages','ufsc-clubs'),
-            'manage_options',
+            'ufsc_manage',
             'ufsc-settings',
             array( 'UFSC_Settings_Page', 'render' )
         );
@@ -97,7 +97,7 @@ class UFSC_CL_Admin_Menu {
         echo '<p>'.esc_html__('Tableau de bord de gestion des clubs et licences sportives UFSC','ufsc-clubs').'</p>';
         echo '</div>';
         // Cache refresh button
-        if (current_user_can('manage_options')) {
+        if (current_user_can('ufsc_manage')) {
             $refresh_url = add_query_arg('ufsc_refresh_cache', '1', admin_url('admin.php?page=ufsc-gestion'));
             $refresh_url = wp_nonce_url($refresh_url, 'ufsc_refresh_cache');
             echo '<a href="'.esc_url($refresh_url).'" class="button" style="color: white; border-color: rgba(255,255,255,0.3);" title="'.esc_attr__('Actualiser les données (cache: 10 min)','ufsc-clubs').'">'.esc_html__('⟳ Actualiser','ufsc-clubs').'</a>';
@@ -106,7 +106,7 @@ class UFSC_CL_Admin_Menu {
         echo '</div>';
         
         // Handle cache refresh
-        if (isset($_GET['ufsc_refresh_cache']) && current_user_can('manage_options')) {
+        if (isset($_GET['ufsc_refresh_cache']) && current_user_can('ufsc_manage')) {
             check_admin_referer('ufsc_refresh_cache');
             delete_transient('ufsc_dashboard_data');
             echo '<div class="notice notice-success is-dismissible"><p>'.esc_html__('Cache du tableau de bord actualisé.','ufsc-clubs').'</p></div>';

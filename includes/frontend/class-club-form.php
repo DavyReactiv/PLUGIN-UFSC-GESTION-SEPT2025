@@ -421,7 +421,7 @@ class UFSC_CL_Club_Form {
                                 <?php esc_html_e( 'Créer un nouveau compte', 'ufsc-clubs' ); ?>
                             </label>
                             
-                            <?php if ( current_user_can( 'manage_options' ) ): ?>
+                            <?php if ( current_user_can( 'ufsc_manage' ) ): ?>
                             <label class="ufsc-radio-label">
                                 <input type="radio" name="user_association" value="existing" />
                                 <?php esc_html_e( 'Associer à un utilisateur existant', 'ufsc-clubs' ); ?>
@@ -449,7 +449,7 @@ class UFSC_CL_Club_Form {
                     </div>
                     
                     <!-- Existing User Fields (Admin only) -->
-                    <?php if ( current_user_can( 'manage_options' ) ): ?>
+                    <?php if ( current_user_can( 'ufsc_manage' ) ): ?>
                     <div id="existing-user-fields" class="ufsc-conditional-section" style="display: none;">
                         <div class="ufsc-field">
                             <label for="existing_user_id" class="ufsc-label"><?php esc_html_e( 'Utilisateur existant', 'ufsc-clubs' ); ?></label>
@@ -471,7 +471,7 @@ class UFSC_CL_Club_Form {
                 <?php endif; ?>
                 
                 <!-- Admin-only fields -->
-                <?php if ( current_user_can( 'manage_options' ) ): ?>
+                <?php if ( current_user_can( 'ufsc_manage' ) ): ?>
                 <fieldset class="ufsc-form-section ufsc-grid">
                     <legend><?php esc_html_e( 'Administration', 'ufsc-clubs' ); ?></legend>
                     
