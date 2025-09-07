@@ -1124,13 +1124,19 @@ class UFSC_Frontend_Shortcodes {
             'club_id' => 0
         ), $atts );
 
-        if ( ! $atts['club_id'] && is_user_logged_in() ) {
+        if ( ! is_user_logged_in() ) {
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Vous devez être connecté pour ajouter une licence.', 'ufsc-clubs' ) .
+                   '</div></div>';
+        }
+
+        if ( ! $atts['club_id'] ) {
             $atts['club_id'] = self::get_user_club_id( get_current_user_id() );
         }
 
         if ( ! $atts['club_id'] ) {
             return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
-                   esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) .
+                   esc_html__( 'Aucun club associé à votre compte.', 'ufsc-clubs' ) .
                    '</div></div>';
         }
 
@@ -1151,12 +1157,13 @@ class UFSC_Frontend_Shortcodes {
 
         $product_id = (int) get_option( 'ufsc_license_product_id' );
         if ( ! $product_id ) {
+            $message = esc_html__( 'Produit licence introuvable.', 'ufsc-clubs' );
             if ( current_user_can( 'ufsc_manage' ) ) {
-                return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
-                    esc_html__( 'Produit licence introuvable. Veuillez configurer l\'ID du produit.', 'ufsc-clubs' ) .
-                    '</div></div>';
+                $message = esc_html__( 'Produit licence introuvable. Veuillez configurer l\'ID du produit.', 'ufsc-clubs' );
             }
-            return '';
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   $message .
+                   '</div></div>';
         }
 
         $product_url = get_permalink( $product_id );

@@ -1,7 +1,13 @@
 <?php
+
+if ( ! defined( 'ABSPATH' ) ) {
+    define( 'ABSPATH', __DIR__ );
+}
+require_once __DIR__ . '/../includes/frontend/class-frontend-shortcodes.php';
+
 /**
  * Basic PHPUnit test scaffold for UFSC Frontend
- * 
+ *
  * To run tests:
  * 1. Install PHPUnit: composer require --dev phpunit/phpunit
  * 2. Run: vendor/bin/phpunit tests/
@@ -10,13 +16,26 @@
 class UFSC_Frontend_Test extends PHPUnit\Framework\TestCase {
 
     public function setUp(): void {
+        // Mock WordPress environment globals
+        global $ufsc_test_is_user_logged_in, $ufsc_test_current_user_id,
+               $ufsc_test_options, $ufsc_test_current_user_caps,
+               $ufsc_actions, $shortcode_tags, $ufsc_test_user_club_id;
+
+        $ufsc_test_is_user_logged_in  = false;
+        $ufsc_test_current_user_id    = 0;
+        $ufsc_test_options            = array();
+        $ufsc_test_current_user_caps  = array();
+        $ufsc_actions                 = array();
+        $shortcode_tags               = array();
+        $ufsc_test_user_club_id       = 0;
+
         // Mock WordPress functions if needed
         if ( ! function_exists( 'wp_create_nonce' ) ) {
             function wp_create_nonce( $action ) {
                 return 'test_nonce_' . $action;
             }
         }
-        
+
         if ( ! function_exists( '__' ) ) {
             function __( $text, $domain = 'default' ) {
                 return $text;
@@ -53,15 +72,93 @@ class UFSC_Frontend_Test extends PHPUnit\Framework\TestCase {
             }
         }
 
+        if ( ! function_exists( 'shortcode_atts' ) ) {
+            function shortcode_atts( $pairs, $atts ) {
+                return array_merge( $pairs, $atts );
+            }
+        }
+
         if ( ! function_exists( 'is_user_logged_in' ) ) {
             function is_user_logged_in() {
-                return false; // Default for tests
+                global $ufsc_test_is_user_logged_in;
+                return $ufsc_test_is_user_logged_in;
             }
         }
 
         if ( ! function_exists( 'get_current_user_id' ) ) {
             function get_current_user_id() {
-                return 0; // Default for tests
+                global $ufsc_test_current_user_id;
+                return $ufsc_test_current_user_id;
+            }
+        }
+
+        if ( ! function_exists( 'get_option' ) ) {
+            function get_option( $option, $default = false ) {
+                global $ufsc_test_options;
+                return $ufsc_test_options[ $option ] ?? $default;
+            }
+        }
+
+        if ( ! function_exists( 'current_user_can' ) ) {
+            function current_user_can( $capability ) {
+                global $ufsc_test_current_user_caps;
+                return in_array( $capability, $ufsc_test_current_user_caps, true );
+            }
+        }
+
+        if ( ! function_exists( 'get_permalink' ) ) {
+            function get_permalink( $post_id ) {
+                return '#';
+            }
+        }
+
+        if ( ! function_exists( 'wp_nonce_field' ) ) {
+            function wp_nonce_field( $action, $name = '_wpnonce', $referer = true, $echo = true ) {
+                return 'wp_nonce_field';
+            }
+        }
+
+        if ( ! function_exists( 'get_transient' ) ) {
+            function get_transient( $key ) {
+                return false;
+            }
+        }
+
+        if ( ! function_exists( 'delete_transient' ) ) {
+            function delete_transient( $key ) {
+                return true;
+            }
+        }
+
+        if ( ! function_exists( 'add_action' ) ) {
+            function add_action( $hook, $callback ) {
+                global $ufsc_actions;
+                $ufsc_actions[ $hook ][] = $callback;
+            }
+        }
+
+        if ( ! function_exists( 'do_action' ) ) {
+            function do_action( $hook ) {
+                global $ufsc_actions;
+                if ( isset( $ufsc_actions[ $hook ] ) ) {
+                    foreach ( $ufsc_actions[ $hook ] as $cb ) {
+                        call_user_func( $cb );
+                    }
+                }
+            }
+        }
+
+        if ( ! function_exists( 'add_shortcode' ) ) {
+            function add_shortcode( $tag, $callback ) {
+                global $shortcode_tags;
+                $shortcode_tags[ $tag ] = $callback;
+            }
+        }
+
+        if ( ! function_exists( 'ufsc_get_user_club_id' ) ) {
+            function ufsc_get_user_club_id( $user_id ) {
+                global $ufsc_test_user_club_id;
+                return $ufsc_test_user_club_id;
             }
         }
     }
@@ -82,6 +179,48 @@ class UFSC_Frontend_Test extends PHPUnit\Framework\TestCase {
             method_exists( 'UFSC_Frontend_Shortcodes', 'register' ),
             'UFSC_Frontend_Shortcodes::register method should exist'
         );
+    }
+
+    public function test_add_licence_shortcode_registers_on_init() {
+        global $shortcode_tags;
+
+        add_action( 'init', array( 'UFSC_Frontend_Shortcodes', 'register' ) );
+        do_action( 'init' );
+
+        $this->assertArrayHasKey( 'ufsc_add_licence', $shortcode_tags );
+    }
+
+    public function test_render_add_licence_requires_login() {
+        global $ufsc_test_is_user_logged_in;
+        $ufsc_test_is_user_logged_in = false;
+
+        $output = UFSC_Frontend_Shortcodes::render_add_licence();
+
+        $this->assertStringContainsString( 'Vous devez être connecté', $output );
+    }
+
+    public function test_render_add_licence_requires_club() {
+        global $ufsc_test_is_user_logged_in, $ufsc_test_user_club_id;
+        $ufsc_test_is_user_logged_in = true;
+        $ufsc_test_user_club_id      = 0;
+
+        $output = UFSC_Frontend_Shortcodes::render_add_licence();
+
+        $this->assertStringContainsString( 'Aucun club associé', $output );
+    }
+
+    public function test_render_add_licence_missing_product() {
+        global $ufsc_test_is_user_logged_in, $ufsc_test_user_club_id,
+               $ufsc_test_options, $ufsc_test_current_user_caps;
+
+        $ufsc_test_is_user_logged_in = true;
+        $ufsc_test_user_club_id      = 123;
+        $ufsc_test_options['ufsc_license_product_id'] = 0;
+        $ufsc_test_current_user_caps = array();
+
+        $output = UFSC_Frontend_Shortcodes::render_add_licence( array( 'club_id' => 123 ) );
+
+        $this->assertStringContainsString( 'Produit licence introuvable', $output );
     }
 
     /**
