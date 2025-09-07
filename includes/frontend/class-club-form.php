@@ -118,11 +118,15 @@ class UFSC_CL_Club_Form {
     private static function render_form( $affiliation, $club_id, $club_data ) {
         $is_edit = $club_id > 0;
         $statuses = UFSC_SQL::statuses();
-        $regions = UFSC_CL_Utils::regions();
-        
+        $regions  = UFSC_CL_Utils::regions();
+
+        // Determine current status and edit restrictions
+        $status        = $club_data['statut'] ?? '';
+        $is_restricted = $is_edit && ! empty( $status ) && 'brouillon' !== $status;
+
         // Get default status for new clubs
-        $default_status = $is_edit ? ($club_data['statut'] ?? '') : self::get_default_status();
-        
+        $default_status = $is_edit ? $status : self::get_default_status();
+
         // Display messages
         self::display_messages();
         ?>
@@ -134,15 +138,21 @@ class UFSC_CL_Club_Form {
                 <input type="hidden" name="action" value="ufsc_save_club" />
                 <input type="hidden" name="club_id" value="<?php echo esc_attr( $club_id ); ?>" />
                 <input type="hidden" name="affiliation" value="<?php echo esc_attr( $affiliation ? '1' : '0' ); ?>" />
-                
+
                 <div role="status" aria-live="polite" class="ufsc-form-status" id="ufsc-form-status"></div>
-                
+
                 <?php if ( $affiliation ): ?>
                     <h2><?php esc_html_e( 'Demande d\'affiliation', 'ufsc-clubs' ); ?></h2>
                 <?php else: ?>
                     <h2><?php echo $is_edit ? esc_html__( 'Éditer le club', 'ufsc-clubs' ) : esc_html__( 'Créer un club', 'ufsc-clubs' ); ?></h2>
                 <?php endif; ?>
-                
+
+                <?php if ( $is_restricted ) : ?>
+                    <div class="ufsc-alert ufsc-alert-warning">
+                        <?php esc_html_e( 'Seules l\'adresse e-mail et le téléphone peuvent être modifiés après validation du club.', 'ufsc-clubs' ); ?>
+                    </div>
+                <?php endif; ?>
+
                 <!-- General Information Section -->
                 <fieldset class="ufsc-form-section ufsc-grid">
                     <legend><?php esc_html_e( 'Informations générales', 'ufsc-clubs' ); ?></legend>
@@ -490,7 +500,7 @@ class UFSC_CL_Club_Form {
                 <?php endif; ?>
                 
                 <div class="ufsc-form-actions">
-                    <button type="submit" class="ufsc-btn ufsc-btn-primary">
+                    <button type="submit" id="ufsc-submit" class="ufsc-btn ufsc-btn-primary">
                         <?php if ( $affiliation ): ?>
                             <?php esc_html_e( 'Demander l\'affiliation', 'ufsc-clubs' ); ?>
                         <?php else: ?>
@@ -503,7 +513,18 @@ class UFSC_CL_Club_Form {
                 </div>
             </form>
         </div>
-        
+
+        <?php if ( $is_restricted ) : ?>
+            <script>
+                jQuery(function ($) {
+                    $('.ufsc-club-form').find('input, select, textarea, button')
+                        .not('#email, #telephone, #ufsc-submit, [type=hidden]')
+                        .prop('readonly', true)
+                        .prop('disabled', true);
+                });
+            </script>
+        <?php endif; ?>
+
         <?php
     }
     
