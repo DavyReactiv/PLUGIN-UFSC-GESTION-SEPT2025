@@ -229,7 +229,7 @@ class UFSC_Licences_Table {
                 if ( UFSC_Badges::is_active_licence_status( $row->statut ) && ! in_array( $row->statut, array( 'draft', 'pending' ), true ) ) {
                     $actions .= ' <span class="ufsc-edit-note">' . esc_html__( 'coordonnées uniquement', 'ufsc-clubs' ) . '</span>';
                 }
-                if ( ( empty( $row->statut ) || ! UFSC_Badges::is_active_licence_status( $row->statut ) ) && current_user_can( 'manage_options' ) ) {
+                if ( ( empty( $row->statut ) || ! UFSC_Badges::is_active_licence_status( $row->statut ) ) && current_user_can( 'ufsc_manage' ) ) {
                     $actions .= '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ufsc-inline-form">';
                     $actions .= '<input type="hidden" name="action" value="ufsc_delete_licence" />';
                     $actions .= '<input type="hidden" name="licence_id" value="' . intval( $row->id ) . '" />';

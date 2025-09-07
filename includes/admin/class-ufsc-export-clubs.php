@@ -45,7 +45,7 @@ class UFSC_Export_Clubs extends UFSC_Export_Base {
     }
 
     public static function handle_export() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'ufsc_manage' ) ) {
             wp_die( 'Accès refusé' );
         }
         check_admin_referer( 'ufsc_export_clubs' );
