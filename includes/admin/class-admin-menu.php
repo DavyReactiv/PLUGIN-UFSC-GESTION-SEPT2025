@@ -2,64 +2,6 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class UFSC_CL_Admin_Menu {
-    public static function register(){
-        // Menu principal unifié UFSC
-        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-        if ( 'ufsc-attestations' === $page ) {
-            wp_safe_redirect( admin_url( 'admin.php?page=ufsc-gestion' ) );
-            exit;
-        }
-
-        add_menu_page(
-            __( 'UFSC Gestion', 'ufsc-clubs' ),
-            __( 'UFSC Gestion', 'ufsc-clubs' ),
-            'manage_options',
-            'ufsc-gestion',
-            array( __CLASS__, 'render_dashboard' ),
-            'dashicons-groups',
-            58
-        );
-
-        // Sous-menus organisés
-        add_submenu_page(
-            'ufsc-gestion',
-            __('Clubs','ufsc-clubs'),
-            __('Clubs','ufsc-clubs'),
-            'manage_options',
-            'ufsc-clubs',
-            array( 'UFSC_SQL_Admin', 'render_clubs' )
-        );
-
-        add_submenu_page(
-            'ufsc-gestion',
-            __('Licences','ufsc-clubs'),
-            __('Licences','ufsc-clubs'),
-            'manage_options',
-            'ufsc-licences',
-            array( 'UFSC_SQL_Admin', 'render_licences' )
-        );
-
-        add_submenu_page(
-            'ufsc-gestion',
-            __('Exports/Imports','ufsc-clubs'),
-            __('Exports/Imports','ufsc-clubs'),
-            'manage_options',
-            'ufsc-exports',
-            array( 'UFSC_SQL_Admin', 'render_exports' )
-        );
-
-        add_submenu_page(
-            'ufsc-gestion',
-            __('Réglages','ufsc-clubs'),
-            __('Réglages','ufsc-clubs'),
-            'manage_options',
-            'ufsc-settings',
-            array( 'UFSC_Settings_Page', 'render' )
-        );
-
-        remove_submenu_page( 'ufsc-gestion', 'ufsc-gestion' );
-        remove_menu_page( 'ufsc-attestations' );
-    }
     public static function enqueue_admin( $hook ){
         if ( strpos( (string) ( $hook ?? '' ), 'ufsc' ) !== false ){
             wp_enqueue_style( 'ufsc-admin', UFSC_CL_URL.'assets/admin/css/admin.css', array(), UFSC_CL_VERSION );
@@ -574,6 +516,95 @@ class UFSC_CL_Admin_Menu {
         return ob_get_clean();
     }
 }
+
+// Global render callbacks
+if ( ! function_exists( 'ufsc_render_dashboard' ) ) {
+    function ufsc_render_dashboard() {
+        UFSC_CL_Admin_Menu::render_dashboard();
+    }
+}
+
+if ( ! function_exists( 'ufsc_render_clubs_page' ) ) {
+    function ufsc_render_clubs_page() {
+        UFSC_SQL_Admin::render_clubs();
+    }
+}
+
+if ( ! function_exists( 'ufsc_render_licences_page' ) ) {
+    function ufsc_render_licences_page() {
+        UFSC_SQL_Admin::render_licences();
+    }
+}
+
+// Ensure export page renderer is available
+require_once UFSC_CL_DIR . 'includes/admin/page-ufsc-exports.php';
+
+if ( ! function_exists( 'ufsc_render_settings_page' ) ) {
+    function ufsc_render_settings_page() {
+        UFSC_Settings_Page::render();
+    }
+}
+
+// Register admin menu with a closure
+add_action( 'admin_menu', function () {
+    $cap  = 'ufsc_manage';
+    $slug = 'ufsc-gestion';
+
+    add_menu_page(
+        __( 'UFSC Gestion', 'ufsc-clubs' ),
+        __( 'UFSC Gestion', 'ufsc-clubs' ),
+        $cap,
+        $slug,
+        'ufsc_render_dashboard',
+        'dashicons-groups',
+        58
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Tableau de bord', 'ufsc-clubs' ),
+        __( 'Tableau de bord', 'ufsc-clubs' ),
+        $cap,
+        $slug,
+        'ufsc_render_dashboard'
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Clubs', 'ufsc-clubs' ),
+        __( 'Clubs', 'ufsc-clubs' ),
+        $cap,
+        'ufsc-clubs',
+        'ufsc_render_clubs_page'
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Licences', 'ufsc-clubs' ),
+        __( 'Licences', 'ufsc-clubs' ),
+        $cap,
+        'ufsc-licences',
+        'ufsc_render_licences_page'
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Exports/Imports', 'ufsc-clubs' ),
+        __( 'Exports/Imports', 'ufsc-clubs' ),
+        $cap,
+        'ufsc-exports',
+        'ufsc_render_exports_page'
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Réglages', 'ufsc-clubs' ),
+        __( 'Réglages', 'ufsc-clubs' ),
+        $cap,
+        'ufsc-settings',
+        'ufsc_render_settings_page'
+    );
+}, 10 );
 
 // Register frontend assets during wp_enqueue_scripts so they can be enqueued later.
 add_action( 'wp_enqueue_scripts', array( 'UFSC_CL_Admin_Menu', 'register_front' ) );
