@@ -98,7 +98,7 @@ class UFSC_SQL_Admin {
     /* ---------------- Réglages ---------------- */
     public static function render_settings(){
         if ( isset($_POST['ufsc_sql_save']) && check_admin_referer('ufsc_sql_settings') ){
-            $in = UFSC_CL_Utils::sanitize_text_arr( $_POST );
+            $in = UFSC_CL_Utils::sanitize_text_arr( wp_unslash( $_POST ) );
             $opts = UFSC_SQL::get_settings();
             $opts['table_clubs'] = $in['table_clubs'];
             $opts['table_licences'] = $in['table_licences'];
