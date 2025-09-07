@@ -98,12 +98,14 @@ class UFSC_SQL_Admin {
     /* ---------------- Réglages ---------------- */
     public static function render_settings(){
         if ( isset($_POST['ufsc_sql_save']) && check_admin_referer('ufsc_sql_settings') ){
-            $in = UFSC_CL_Utils::sanitize_text_arr( wp_unslash( $_POST ) );
-            $opts = UFSC_SQL::get_settings();
-            $opts['table_clubs'] = $in['table_clubs'];
-            $opts['table_licences'] = $in['table_licences'];
-            update_option('ufsc_sql_settings',$opts);
-            echo '<div class="updated"><p>'.esc_html__('Réglages enregistrés.','ufsc-clubs').'</p></div>';
+            $in   = UFSC_CL_Utils::sanitize_text_arr( wp_unslash( $_POST ) );
+            $opts = array(
+                'table_clubs'    => ufsc_sanitize_table_name( $in['table_clubs'] ),
+                'table_licences' => ufsc_sanitize_table_name( $in['table_licences'] ),
+            );
+
+            UFSC_SQL::update_settings( $opts );
+            echo '<div class="updated"><p>' . esc_html__( 'Réglages enregistrés.', 'ufsc-clubs' ) . '</p></div>';
         }
         $s = UFSC_SQL::get_settings();
         echo '<div class="wrap"><h1>'.esc_html__('Réglages (SQL)','ufsc-clubs').'</h1><form method="post">';

@@ -148,6 +148,27 @@ class UFSC_SQL {
         $settings = wp_parse_args( $opts, self::default_settings() );
         return apply_filters( 'ufsc_sql_settings', $settings );
     }
+
+    /**
+     * Update settings while preserving existing values.
+     *
+     * @param array $settings New settings to merge.
+     * @return bool True on success.
+     */
+    public static function update_settings( $settings ) {
+        $current = self::get_settings();
+        $merged  = array_merge( $current, $settings );
+
+        if ( isset( $merged['table_clubs'] ) ) {
+            $merged['table_clubs'] = ufsc_sanitize_table_name( $merged['table_clubs'] );
+        }
+
+        if ( isset( $merged['table_licences'] ) ) {
+            $merged['table_licences'] = ufsc_sanitize_table_name( $merged['table_licences'] );
+        }
+
+        return update_option( 'ufsc_sql_settings', $merged );
+    }
     
     public static function statuses(){ 
         $s = self::get_settings(); 

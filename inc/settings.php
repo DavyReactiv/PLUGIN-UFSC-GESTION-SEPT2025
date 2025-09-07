@@ -36,16 +36,7 @@ function ufsc_get_settings() {
  * @return bool True on success
  */
 function ufsc_save_settings( $settings ) {
-    // Sanitize table names
-    if ( isset( $settings['table_clubs'] ) ) {
-        $settings['table_clubs'] = ufsc_sanitize_table_name( $settings['table_clubs'] );
-    }
-
-    if ( isset( $settings['table_licences'] ) ) {
-        $settings['table_licences'] = ufsc_sanitize_table_name( $settings['table_licences'] );
-    }
-
-    return update_option( 'ufsc_sql_settings', $settings );
+    return UFSC_SQL::update_settings( $settings );
 }
 
 /**
