@@ -388,6 +388,7 @@ class UFSC_Unified_Handlers {
             self::store_form_and_redirect( $_POST, array( __( 'Aucun club associé à votre compte', 'ufsc-clubs' ) ), $licence_id );
         }
 
+        $licence_status = 'draft';
         if ( $licence_id > 0 ) {
             $licence_status = self::get_licence_status( $licence_id, $club_id );
             if ( ! $licence_status ) {
@@ -405,6 +406,10 @@ class UFSC_Unified_Handlers {
             self::store_form_and_redirect( $_POST, array( $data->get_error_message() ), $licence_id );
         }
 
+        if ( 'draft' !== $licence_status ) {
+            $allowed = array( 'email', 'tel_fixe', 'tel_mobile' );
+            $data    = array_intersect_key( $data, array_flip( $allowed ) );
+        }
 
         $result = self::save_licence_data( $licence_id, $club_id, $data );
         if ( is_wp_error( $result ) ) {
