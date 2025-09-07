@@ -35,7 +35,7 @@
         if (section) {
             var url = new URL(window.location);
             url.searchParams.set('tab', section);
-            url.hash = section;
+            url.hash = 'tab=' + section;
             window.history.replaceState(null, '', url);
         }
     }
@@ -83,7 +83,7 @@
 
         // Activate from URL
         var url = new URL(window.location);
-        var section = url.searchParams.get('tab') || window.location.hash.substring(1);
+        var section = url.searchParams.get('tab') || new URLSearchParams(location.hash.slice(1)).get('tab');
         var target = Array.from(tabs).find(function(t) { return t.dataset.section === section; });
         if (target) {
             activateTab(Array.from(tabs), target, false, dashboard);
