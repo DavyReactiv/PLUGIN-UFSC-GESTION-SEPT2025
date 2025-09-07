@@ -267,10 +267,13 @@ class UFSC_Frontend_Shortcodes {
         <div class="ufsc-licences-section">
             <div class="ufsc-feedback" id="ufsc-feedback" aria-live="polite">
                 <?php if ( isset( $_GET['ufsc_message'] ) ) : ?>
-                    <div class="ufsc-message ufsc-success"><?php echo esc_html( $_GET['ufsc_message'] ); ?></div>
+                    <div class="ufsc-message ufsc-success"><?php echo esc_html( sanitize_text_field( wp_unslash( $_GET['ufsc_message'] ) ) ); ?></div>
+                    <?php $clean_url = esc_url( remove_query_arg( array( 'ufsc_message', 'ufsc_error' ) ) ); ?>
                 <?php elseif ( isset( $_GET['ufsc_error'] ) ) : ?>
-                    <div class="ufsc-message ufsc-error"><?php echo esc_html( $_GET['ufsc_error'] ); ?></div>
-                    <?php $clean_url = esc_url( remove_query_arg( 'ufsc_error' ) ); ?>
+                    <div class="ufsc-message ufsc-error"><?php echo esc_html( sanitize_text_field( wp_unslash( $_GET['ufsc_error'] ) ) ); ?></div>
+                    <?php $clean_url = esc_url( remove_query_arg( array( 'ufsc_message', 'ufsc_error' ) ) ); ?>
+                <?php endif; ?>
+                <?php if ( isset( $clean_url ) ) : ?>
                     <script>
                         if ( window.history.replaceState ) {
                             window.history.replaceState( {}, document.title, '<?php echo $clean_url; ?>' );
