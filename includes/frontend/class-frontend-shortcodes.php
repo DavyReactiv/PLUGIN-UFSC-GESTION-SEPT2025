@@ -20,6 +20,7 @@ class UFSC_Frontend_Shortcodes {
 
         add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
         add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
+        add_filter( 'body_class', array( __CLASS__, 'maybe_add_dashboard_body_class' ) );
     }
 
     /**
@@ -69,6 +70,25 @@ class UFSC_Frontend_Shortcodes {
         if ( has_shortcode( $content, 'ufsc_licences' ) ) {
             wp_enqueue_script( 'ufsc-licences', UFSC_CL_URL . 'assets/js/ufsc-licences.js', array( 'jquery' ), UFSC_CL_VERSION, true );
         }
+    }
+
+    /**
+     * Add a custom body class on dashboard pages.
+     *
+     * @param array $classes Existing body classes.
+     * @return array Modified body classes.
+     */
+    public static function maybe_add_dashboard_body_class( $classes ) {
+        $post = get_post();
+        if ( ! $post ) {
+            return $classes;
+        }
+
+        if ( has_shortcode( $post->post_content, 'ufsc_club_dashboard' ) ) {
+            $classes[] = 'ufsc-dashboard-page';
+        }
+
+        return $classes;
     }
 
     /**
