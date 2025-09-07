@@ -3,6 +3,16 @@
  * Design tokens and base components for front shortcodes
  */
 
+.ufsc-dashboard-page .ast-container{ max-width:100% !important; padding:0 !important; }
+.ufsc-dashboard-page .ufsc-front.ufsc-full{ width:100%; max-width:1400px; margin:0 auto; padding-inline:clamp(12px,2vw,24px); }
+
+.ufsc-dashboard-page .ufsc-hero,
+.ufsc-dashboard-page .ufsc-dashboard-card{
+    width:100%;
+    border:1px solid #e1e5e9;
+    padding:var(--ufsc-spacing-md);
+}
+
 .ufsc-front{
     --ufsc-primary: #2271b1;      /* Bleu UFSC */
     --ufsc-secondary: #135e96;    /* Bleu foncé */
@@ -82,11 +92,6 @@
     display: grid;
     gap: var(--ufsc-spacing-md);
     grid-template-columns: 1fr;
-}
-@media (min-width: var(--tablet)) {
-.ufsc-front .ufsc-documents-status{
-        grid-template-columns: repeat(2, 1fr);
-    }
 }
 @media (min-width: var(--desktop)) {
 .ufsc-front .ufsc-documents-status{
@@ -416,6 +421,24 @@
 }
 .ufsc-front .ufsc-licence-form .ufsc-field-full{
     grid-column: 1 / -1;
+}
+
+/* Add licence section grid */
+.ufsc-add-licence-section .ufsc-grid{
+    grid-template-columns:1fr;
+}
+@media (min-width:var(--tablet)){
+.ufsc-add-licence-section .ufsc-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+}
+@media (min-width:var(--desktop)){
+.ufsc-add-licence-section .ufsc-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
+}
+.ufsc-add-licence-section .ufsc-grid-full{
+    grid-column:1 / -1;
 }
 
 /* Licences table */
