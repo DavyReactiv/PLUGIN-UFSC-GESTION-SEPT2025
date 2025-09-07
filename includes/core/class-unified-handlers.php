@@ -659,22 +659,37 @@ class UFSC_Unified_Handlers {
         $errors = array();
         $data = array();
         
-        // Allowed fields whitelist
-        $allowed_fields = array(
-            'nom' => 'sanitize_text_field',
-            'adresse' => 'sanitize_textarea_field', 
-            'code_postal' => 'sanitize_text_field',
-            'ville' => 'sanitize_text_field',
-            'email' => 'sanitize_email',
-            'telephone' => 'sanitize_text_field',
-            'iban' => 'sanitize_text_field',
-            'region' => 'sanitize_text_field'
+        // Dynamically allow all known club fields
+        $club_fields = UFSC_SQL::get_club_fields();
+
+        $type_sanitizers = array(
+            'text'        => 'sanitize_text_field',
+            'textarea'    => 'sanitize_textarea_field',
+            'number'      => 'absint',
+            'date'        => 'sanitize_text_field',
+            'region'      => 'sanitize_text_field',
+            'club_status' => 'sanitize_text_field',
         );
-        
-        foreach ( $allowed_fields as $field => $sanitizer ) {
-            if ( ! empty( $post_data[$field] ) ) {
-                $data[$field] = call_user_func( $sanitizer, $post_data[$field] );
+
+        foreach ( $club_fields as $field => $info ) {
+            if ( empty( $post_data[ $field ] ) ) {
+                continue;
             }
+
+            $type      = isset( $info[1] ) ? $info[1] : 'text';
+            $sanitizer = $type_sanitizers[ $type ] ?? 'sanitize_text_field';
+
+            // Email fields
+            if ( false !== strpos( $field, 'email' ) ) {
+                $sanitizer = 'sanitize_email';
+            }
+
+            // URL fields
+            if ( false !== strpos( $field, 'url' ) ) {
+                $sanitizer = 'esc_url_raw';
+            }
+
+            $data[ $field ] = call_user_func( $sanitizer, $post_data[ $field ] );
         }
         
         // Specific validations
