@@ -34,8 +34,8 @@ class UFSC_Frontend_Shortcodes {
 
         $content = $post->post_content;
 
-        $css_path = UFSC_CL_PATH . 'assets/css/ufsc-front.css';
-        $js_path  = UFSC_CL_PATH . 'assets/js/ufsc-front.js';
+        $css_path = UFSC_CL_DIR . 'assets/css/ufsc-front.css';
+        $js_path  = UFSC_CL_DIR . 'assets/js/ufsc-front.js';
 
         $css_version = file_exists( $css_path ) ? filemtime( $css_path ) : UFSC_CL_VERSION;
         $js_version  = file_exists( $js_path ) ? filemtime( $js_path ) : UFSC_CL_VERSION;
