@@ -1,15 +1,25 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+add_action('admin_init', function () {
+    if (!is_admin()) return;
+    $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : '';
+    $legacy = [
+        'ufsc-gestion-clubs'       => 'ufsc-clubs',
+        'ufsc-gestion-licences'    => 'ufsc-licences',
+        'ufsc-gestion-parametres'  => 'ufsc-settings',
+        'ufsc-gestion-woocommerce' => 'ufsc-settings',
+        'ufsc-attestations'        => 'ufsc-settings',
+    ];
+    if ($page && isset($legacy[$page])) {
+        wp_safe_redirect(admin_url('admin.php?page=' . $legacy[$page]));
+        exit;
+    }
+});
+
 class UFSC_CL_Admin_Menu {
     public static function register(){
         // Menu principal unifié UFSC
-        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-        if ( 'ufsc-attestations' === $page ) {
-            wp_safe_redirect( admin_url( 'admin.php?page=ufsc-gestion' ) );
-            exit;
-        }
-
         add_menu_page(
             __( 'UFSC Gestion', 'ufsc-clubs' ),
             __( 'UFSC Gestion', 'ufsc-clubs' ),
