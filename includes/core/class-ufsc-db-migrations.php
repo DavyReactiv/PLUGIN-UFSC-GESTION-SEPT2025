@@ -21,65 +21,36 @@ class UFSC_DB_Migrations {
     public static function activate() {
         global $wpdb;
 
-        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-        $charset_collate = $wpdb->get_charset_collate();
-
         $licences_table = $wpdb->prefix . 'ufsc_licences';
         $clubs_table    = $wpdb->prefix . 'ufsc_clubs';
 
-        // Drop existing foreign key to allow dbDelta to run safely.
-        $fk_exists = $wpdb->get_var(
-            $wpdb->prepare(
-                'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = %s AND TABLE_NAME = %s AND CONSTRAINT_NAME = "fk_licence_club"',
-                $wpdb->dbname,
-                $licences_table
-            )
-        );
-        if ( $fk_exists ) {
-            $wpdb->query( "ALTER TABLE {$licences_table} DROP FOREIGN KEY fk_licence_club" );
+        UFSC_SQL::update_settings([
+            'table_clubs'    => $clubs_table,
+            'table_licences' => $licences_table,
+        ]);
+
+        $missing_tables = [];
+        if ( ! ufsc_table_exists( $clubs_table ) ) {
+            $missing_tables[] = $clubs_table;
+        }
+        if ( ! ufsc_table_exists( $licences_table ) ) {
+            $missing_tables[] = $licences_table;
         }
 
-        // Ensure referenced columns use the same data type before recreating the foreign key.
-        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $licences_table ) ) === $licences_table ) {
-            $wpdb->query( "ALTER TABLE {$licences_table} MODIFY club_id BIGINT(20) UNSIGNED NOT NULL" );
-        }
+        if ( ! empty( $missing_tables ) ) {
+            $message = sprintf(
+                'UFSC – Missing required database tables: %s',
+                implode( ', ', $missing_tables )
+            );
+            error_log( $message );
 
-        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $clubs_table ) ) === $clubs_table ) {
-            $wpdb->query( "ALTER TABLE {$clubs_table} MODIFY id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT" );
-        }
+            if ( is_admin() ) {
+                add_action( 'admin_notices', function() use ( $message ) {
+                    echo '<div class="notice notice-error"><p>' . esc_html( $message ) . '</p></div>';
+                } );
+            }
 
-        $licences_sql = "CREATE TABLE {$licences_table} (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            club_id BIGINT(20) UNSIGNED NOT NULL,
-            status VARCHAR(20) NOT NULL DEFAULT 'en_attente',
-            paid TINYINT(1) NOT NULL DEFAULT 0,
-            gender VARCHAR(1) NULL,
-            practice VARCHAR(20) NULL,
-            birthdate DATE NULL,
-            PRIMARY KEY (id)
-        ) {$charset_collate};";
-        dbDelta( $licences_sql );
-
-        $clubs_sql = "CREATE TABLE {$clubs_table} (
-            id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
-            statut VARCHAR(20) NOT NULL DEFAULT 'en_attente',
-            profile_photo_url VARCHAR(255) NULL,
-            PRIMARY KEY (id)
-        ) {$charset_collate};";
-        dbDelta( $clubs_sql );
-        self::maybe_add_column( $clubs_table, 'statut', "VARCHAR(20) NOT NULL DEFAULT 'en_attente'" );
-        self::ensure_statut_default( $clubs_table );
-
-        // Recreate the foreign key if it does not exist after the migrations.
-        $fk_exists = $wpdb->get_var(
-            $wpdb->prepare(
-                'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = %s AND TABLE_NAME = %s AND CONSTRAINT_NAME = "fk_licence_club"',
-                $wpdb->dbname,
-                $licences_table
-            )
-        );
-        if ( ! $fk_exists ) {
-            $wpdb->query( "ALTER TABLE {$licences_table} ADD CONSTRAINT fk_licence_club FOREIGN KEY (club_id) REFERENCES {$clubs_table}(id)" );
+            return;
         }
 
         self::maybe_upgrade();
