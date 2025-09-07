@@ -46,21 +46,21 @@ class UFSC_SQL_Admin {
         // Enregistrer les pages cachées pour les actions directes (mentionnées dans les specs)
         $parent_slug = 'ufsc-gestion';
 
-        add_submenu_page($parent_slug, __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), 'manage_options', 'ufsc-sql-clubs', array(__CLASS__, 'render_clubs'));
-        add_submenu_page($parent_slug, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), 'manage_options', 'ufsc-sql-licences', array(__CLASS__, 'render_licences'));
+        add_submenu_page($parent_slug, __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), 'manage_options', 'ufsc-clubs', array(__CLASS__, 'render_clubs'));
+        add_submenu_page($parent_slug, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), 'manage_options', 'ufsc-licences', array(__CLASS__, 'render_licences'));
         // Alias pour compatibilité avec la spec (licenses vs licences)
-        add_submenu_page($parent_slug, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), 'manage_options', 'ufsc-sql-licenses', array(__CLASS__, 'render_licences'));
+        add_submenu_page($parent_slug, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), 'manage_options', 'ufsc-licenses', array(__CLASS__, 'render_licences'));
 
-        remove_submenu_page($parent_slug, 'ufsc-sql-clubs');
-        remove_submenu_page($parent_slug, 'ufsc-sql-licences');
-        remove_submenu_page($parent_slug, 'ufsc-sql-licenses');
+        remove_submenu_page($parent_slug, 'ufsc-clubs');
+        remove_submenu_page($parent_slug, 'ufsc-licences');
+        remove_submenu_page($parent_slug, 'ufsc-licenses');
     }
 
     /* ---------------- Menus complets (obsolète - remplacé par menu unifié) ---------------- */
     public static function register_menus(){
         add_menu_page( __('UFSC – Données (SQL)','ufsc-clubs'), __('UFSC – Données (SQL)','ufsc-clubs'), 'manage_options', 'ufsc-sql', array(__CLASS__,'render_dashboard'), 'dashicons-database', 59 );
-        add_submenu_page( 'ufsc-sql', __('Clubs (SQL)','ufsc-clubs'), __('Clubs (SQL)','ufsc-clubs'), 'manage_options', 'ufsc-sql-clubs', array(__CLASS__,'render_clubs') );
-        add_submenu_page( 'ufsc-sql', __('Licences (SQL)','ufsc-clubs'), __('Licences (SQL)','ufsc-clubs'), 'manage_options', 'ufsc-sql-licences', array(__CLASS__,'render_licences') );
+        add_submenu_page( 'ufsc-sql', __('Clubs (SQL)','ufsc-clubs'), __('Clubs (SQL)','ufsc-clubs'), 'manage_options', 'ufsc-clubs', array(__CLASS__,'render_clubs') );
+        add_submenu_page( 'ufsc-sql', __('Licences (SQL)','ufsc-clubs'), __('Licences (SQL)','ufsc-clubs'), 'manage_options', 'ufsc-licences', array(__CLASS__,'render_licences') );
         add_submenu_page( 'ufsc-sql', __('Réglages (SQL)','ufsc-clubs'), __('Réglages (SQL)','ufsc-clubs'), 'manage_options', 'ufsc-sql-settings', array(__CLASS__,'render_settings') );
     }
 
@@ -178,7 +178,7 @@ class UFSC_SQL_Admin {
             wp_nonce_field('ufsc_save_club');
             echo '<input type="hidden" name="action" value="ufsc_sql_save_club" />';
             echo '<input type="hidden" name="id" value="'.(int)$id.'" />';
-            echo '<input type="hidden" name="page" value="ufsc-sql-clubs"/>';
+            echo '<input type="hidden" name="page" value="ufsc-clubs"/>';
         }
 
         echo '<div class="ufsc-grid">';
@@ -243,12 +243,12 @@ class UFSC_SQL_Admin {
         }
         
         if ( !$readonly ) {
-            echo '<p><button class="button button-primary">'.esc_html__('Enregistrer','ufsc-clubs').'</button> <a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-sql-clubs') ).'">'.esc_html__('Annuler','ufsc-clubs').'</a></p>';
+            echo '<p><button class="button button-primary">'.esc_html__('Enregistrer','ufsc-clubs').'</button> <a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-clubs') ).'">'.esc_html__('Annuler','ufsc-clubs').'</a></p>';
             echo '</form>';
         } else {
-            echo '<p><a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-sql-clubs') ).'">'.esc_html__('Retour à la liste','ufsc-clubs').'</a>';
+            echo '<p><a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-clubs') ).'">'.esc_html__('Retour à la liste','ufsc-clubs').'</a>';
             if ( current_user_can('manage_options') ) {
-                echo ' <a class="button button-primary" href="'.esc_url( admin_url('admin.php?page=ufsc-sql-clubs&action=edit&id='.$id) ).'">'.esc_html__('Modifier','ufsc-clubs').'</a>';
+                echo ' <a class="button button-primary" href="'.esc_url( admin_url('admin.php?page=ufsc-clubs&action=edit&id='.$id) ).'">'.esc_html__('Modifier','ufsc-clubs').'</a>';
             }
             echo '</p>';
         }
@@ -438,7 +438,7 @@ class UFSC_SQL_Admin {
         // Check for upload errors
         if ( !empty($upload_errors) ) {
             $error_message = implode(', ', $upload_errors);
-            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($error_message)) );
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-clubs&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($error_message)) );
             exit;
         }
 
@@ -447,7 +447,7 @@ class UFSC_SQL_Admin {
         if ( !empty($validation_errors) ) {
             UFSC_CL_Utils::log('Erreurs de validation club: ' . implode(', ', $validation_errors), 'warning');
             $error_message = implode(', ', $validation_errors);
-            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($error_message)) );
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-clubs&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($error_message)) );
             exit;
         }
 
@@ -505,11 +505,11 @@ class UFSC_SQL_Admin {
                 }
             }
 
-            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&action=edit&id='.$id.'&updated=1') );
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-clubs&action=edit&id='.$id.'&updated=1') );
             exit;
         } catch (Exception $e) {
             UFSC_CL_Utils::log('Erreur sauvegarde club: ' . $e->getMessage(), 'error');
-            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($e->getMessage())) );
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-clubs&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($e->getMessage())) );
             exit;
         }
     }
@@ -706,13 +706,13 @@ class UFSC_SQL_Admin {
             $result = $wpdb->delete( $t, array( $pk=>$id ) );
             if ( $result !== false ) {
                 UFSC_CL_Utils::log('Club supprimé: ID ' . $id, 'info');
-                wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&deleted=1&deleted_id='.$id) );
+                wp_safe_redirect( admin_url('admin.php?page=ufsc-clubs&deleted=1&deleted_id='.$id) );
             } else {
                 UFSC_CL_Utils::log('Erreur suppression club: ID ' . $id, 'error');
-                wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&error='.urlencode(__('Erreur lors de la suppression du club','ufsc-clubs'))) );
+                wp_safe_redirect( admin_url('admin.php?page=ufsc-clubs&error='.urlencode(__('Erreur lors de la suppression du club','ufsc-clubs'))) );
             }
         } else {
-            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-clubs&error='.urlencode(__('ID de club invalide','ufsc-clubs'))) );
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-clubs&error='.urlencode(__('ID de club invalide','ufsc-clubs'))) );
         }
         exit;
     }
@@ -795,7 +795,7 @@ class UFSC_SQL_Admin {
         // Add nonce for AJAX operations
         echo '<input type="hidden" id="ufsc-ajax-nonce" value="' . wp_create_nonce('ufsc_ajax_nonce') . '" />';
         
-        echo '<p><a href="'.esc_url( admin_url('admin.php?page=ufsc-sql-licences&action=new') ).'" class="button button-primary">'.esc_html__('Ajouter une licence','ufsc-clubs').'</a> ';
+        echo '<p><a href="'.esc_url( admin_url('admin.php?page=ufsc-licences&action=new') ).'" class="button button-primary">'.esc_html__('Ajouter une licence','ufsc-clubs').'</a> ';
         echo '<a href="'.esc_url( admin_url('admin.php?page=ufsc-exports') ).'" class="button">'.esc_html__('Exporter','ufsc-clubs').'</a></p>';
 
         if ( isset($_GET['action']) && $_GET['action']==='edit' ){
@@ -817,7 +817,7 @@ class UFSC_SQL_Admin {
         // Search and Filters
         echo '<div class="ufsc-list-filters" style="background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px;">';
         echo '<form method="get" class="ufsc-filters-form">';
-        echo '<input type="hidden" name="page" value="ufsc-sql-licences" />';
+        echo '<input type="hidden" name="page" value="ufsc-licences" />';
         
         echo '<div style="display: grid; grid-template-columns: 1fr 200px 200px 150px auto; gap: 10px; align-items: end;">';
         
@@ -865,7 +865,7 @@ class UFSC_SQL_Admin {
         echo '<div>';
         echo '<button type="submit" class="button">'.esc_html__('Filtrer', 'ufsc-clubs').'</button>';
         if (!empty($search) || !empty($filter_region) || !empty($filter_club) || !empty($filter_status)) {
-            echo ' <a href="'.admin_url('admin.php?page=ufsc-sql-licences').'" class="button">'.esc_html__('Effacer', 'ufsc-clubs').'</a>';
+            echo ' <a href="'.admin_url('admin.php?page=ufsc-licences').'" class="button">'.esc_html__('Effacer', 'ufsc-clubs').'</a>';
         }
         echo '</div>';
         
@@ -919,8 +919,8 @@ class UFSC_SQL_Admin {
                 $status_label = UFSC_SQL::statuses()[$r->statut] ?? $r->statut;
                 $badge = UFSC_CL_Utils::esc_badge( $status_label, $cls );
                 
-                $view_url = admin_url('admin.php?page=ufsc-sql-licences&action=view&id='.$r->$pk);
-                $edit_url = admin_url('admin.php?page=ufsc-sql-licences&action=edit&id='.$r->$pk);
+                $view_url = admin_url('admin.php?page=ufsc-licences&action=view&id='.$r->$pk);
+                $edit_url = admin_url('admin.php?page=ufsc-licences&action=edit&id='.$r->$pk);
                 $del_url  = wp_nonce_url( admin_url('admin-post.php?action=ufsc_sql_delete_licence&id='.$r->$pk), 'ufsc_sql_delete_licence' );
                 $name = trim($r->prenom.' '.$r->nom);
                 $club_display = $r->club_nom ? esc_html($r->club_nom) : esc_html__('Club #', 'ufsc-clubs') . $r->club_id;
@@ -962,7 +962,7 @@ class UFSC_SQL_Admin {
         if ($total_pages > 1) {
             echo '<div class="ufsc-pagination" style="margin: 20px 0; text-align: center;">';
             
-            $pagination_base = admin_url('admin.php?page=ufsc-sql-licences');
+            $pagination_base = admin_url('admin.php?page=ufsc-licences');
             if (!empty($search)) $pagination_base .= '&search=' . urlencode($search);
             if (!empty($filter_region)) $pagination_base .= '&filter_region=' . urlencode($filter_region);
             if (!empty($filter_club)) $pagination_base .= '&filter_club=' . $filter_club;
@@ -1058,7 +1058,7 @@ class UFSC_SQL_Admin {
             wp_nonce_field('ufsc_save_licence');
             echo '<input type="hidden" name="action" value="ufsc_sql_save_licence" />';
             echo '<input type="hidden" name="id" value="'.(int)$id.'" />';
-            echo '<input type="hidden" name="page" value="ufsc-sql-licences"/>';
+            echo '<input type="hidden" name="page" value="ufsc-licences"/>';
         }
 
         echo '<div class="ufsc-grid">';
@@ -1076,7 +1076,7 @@ class UFSC_SQL_Admin {
                 // Only show payment button for existing licenses
                 echo '<button type="submit" name="save_action" value="save_and_payment" class="button button-secondary" style="background: #00a32a; border-color: #00a32a; color: white;">'.esc_html__('Enregistrer et envoyer pour paiement','ufsc-clubs').'</button>';
             }
-            echo '<a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-sql-licences') ).'">'.esc_html__('Annuler','ufsc-clubs').'</a>';
+            echo '<a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-licences') ).'">'.esc_html__('Annuler','ufsc-clubs').'</a>';
             echo '</div>';
             if (!$id) {
                 echo '<p class="description" style="margin-top: 10px;">'.esc_html__('Note: Le bouton "Envoyer pour paiement" sera disponible après le premier enregistrement.','ufsc-clubs').'</p>';
@@ -1084,9 +1084,9 @@ class UFSC_SQL_Admin {
             echo '</div>';
             echo '</form>';
         } else {
-            echo '<p><a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-sql-licences') ).'">'.esc_html__('Retour à la liste','ufsc-clubs').'</a>';
+            echo '<p><a class="button" href="'.esc_url( admin_url('admin.php?page=ufsc-licences') ).'">'.esc_html__('Retour à la liste','ufsc-clubs').'</a>';
             if ( current_user_can('manage_options') ) {
-                echo ' <a class="button button-primary" href="'.esc_url( admin_url('admin.php?page=ufsc-sql-licences&action=edit&id='.$id) ).'">'.esc_html__('Modifier','ufsc-clubs').'</a>';
+                echo ' <a class="button button-primary" href="'.esc_url( admin_url('admin.php?page=ufsc-licences&action=edit&id='.$id) ).'">'.esc_html__('Modifier','ufsc-clubs').'</a>';
             }
             echo '</p>';
         }
@@ -1257,7 +1257,7 @@ class UFSC_SQL_Admin {
                 }
                 if ( $current_included >= $quota_total ) {
                     $error_message = __( 'Quota de licences incluses atteint', 'ufsc-clubs' );
-                    wp_safe_redirect( admin_url( 'admin.php?page=ufsc-sql-licences&action=' . ( $id ? 'edit&id=' . $id : 'new' ) . '&error=' . urlencode( $error_message ) ) );
+                    wp_safe_redirect( admin_url( 'admin.php?page=ufsc-licences&action=' . ( $id ? 'edit&id=' . $id : 'new' ) . '&error=' . urlencode( $error_message ) ) );
                     exit;
                 }
             }
@@ -1268,7 +1268,7 @@ class UFSC_SQL_Admin {
         if ( !empty($validation_errors) ) {
             UFSC_CL_Utils::log('Erreurs de validation licence: ' . implode(', ', $validation_errors), 'warning');
             $error_message = implode(', ', $validation_errors);
-            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-licences&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($error_message)) );
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($error_message)) );
             exit;
         }
 
@@ -1280,7 +1280,7 @@ class UFSC_SQL_Admin {
                 $data['certificat_url'] = esc_url_raw( $upload['url'] );
             } elseif ( ! empty($upload['error']) ) {
                 UFSC_CL_Utils::log('Erreur upload certificat: ' . $upload['error'], 'warning');
-                wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-licences&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode('Erreur upload fichier: '.$upload['error'])) );
+                wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode('Erreur upload fichier: '.$upload['error'])) );
                 exit;
             }
         } else {
@@ -1310,12 +1310,12 @@ class UFSC_SQL_Admin {
                 wp_safe_redirect( admin_url('admin-post.php?action=ufsc_send_license_payment&license_id='.$id.'&_wpnonce='.wp_create_nonce('ufsc_send_license_payment_'.$id)) );
             } else {
                 // Normal save redirect
-                wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-licences&action=edit&id='.$id.'&updated=1') );
+                wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&action=edit&id='.$id.'&updated=1') );
             }
             exit;
         } catch (Exception $e) {
             UFSC_CL_Utils::log('Erreur sauvegarde licence: ' . $e->getMessage(), 'error');
-            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-licences&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($e->getMessage())) );
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&action='.($id ? 'edit&id='.$id : 'new').'&error='.urlencode($e->getMessage())) );
             exit;
         }
     }
@@ -1333,7 +1333,7 @@ class UFSC_SQL_Admin {
         check_admin_referer('ufsc_send_license_payment_'.$license_id);
 
         if (!$license_id) {
-            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-licences&error='.urlencode(__('ID de licence invalide','ufsc-clubs'))) );
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&error='.urlencode(__('ID de licence invalide','ufsc-clubs'))) );
             exit;
         }
 
@@ -1342,10 +1342,10 @@ class UFSC_SQL_Admin {
         
         if ($order_id) {
             UFSC_CL_Utils::log('Commande créée pour licence ID ' . $license_id . ': Order ID ' . $order_id, 'info');
-            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-licences&action=edit&id='.$license_id.'&payment_sent=1&order_id='.$order_id) );
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&action=edit&id='.$license_id.'&payment_sent=1&order_id='.$order_id) );
         } else {
             UFSC_CL_Utils::log('Erreur création commande pour licence ID ' . $license_id, 'error');
-            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-licences&action=edit&id='.$license_id.'&error='.urlencode(__('Erreur lors de la création de la commande de paiement','ufsc-clubs'))) );
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&action=edit&id='.$license_id.'&error='.urlencode(__('Erreur lors de la création de la commande de paiement','ufsc-clubs'))) );
         }
         exit;
     }
@@ -1581,13 +1581,13 @@ class UFSC_SQL_Admin {
             $result = $wpdb->delete( $t, array( $pk=>$id ) );
             if ( $result !== false ) {
                 UFSC_CL_Utils::log('Licence supprimée: ID ' . $id, 'info');
-                wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-licences&deleted=1&deleted_id='.$id) );
+                wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&deleted=1&deleted_id='.$id) );
             } else {
                 UFSC_CL_Utils::log('Erreur suppression licence: ID ' . $id, 'error');
-                wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-licences&error='.urlencode(__('Erreur lors de la suppression de la licence','ufsc-clubs'))) );
+                wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&error='.urlencode(__('Erreur lors de la suppression de la licence','ufsc-clubs'))) );
             }
         } else {
-            wp_safe_redirect( admin_url('admin.php?page=ufsc-sql-licences&error='.urlencode(__('ID de licence invalide','ufsc-clubs'))) );
+            wp_safe_redirect( admin_url('admin.php?page=ufsc-licences&error='.urlencode(__('ID de licence invalide','ufsc-clubs'))) );
         }
         exit;
     }
