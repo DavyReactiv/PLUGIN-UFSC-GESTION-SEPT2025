@@ -230,7 +230,7 @@ function ufsc_handle_admin_send_to_payment() {
     }
 
     // Verify nonce and capabilities
-    if ( ! check_admin_referer( 'ufsc_send_to_payment' ) || ! current_user_can( 'manage_options' ) ) {
+    if ( ! check_admin_referer( 'ufsc_send_to_payment' ) || ! current_user_can( 'ufsc_manage' ) ) {
         wp_die( __( 'Erreur de sécurité', 'ufsc-clubs' ) );
     }
     

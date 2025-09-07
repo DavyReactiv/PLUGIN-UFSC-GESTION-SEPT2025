@@ -14,7 +14,7 @@ function ufsc_register_admin_menu() {
     add_menu_page(
         __( 'UFSC Gestion', 'ufsc-clubs' ),
         __( 'UFSC Gestion', 'ufsc-clubs' ),
-        'manage_options',
+        'ufsc_manage',
         'ufsc-gestion',
         'ufsc_render_dashboard_page',
         'dashicons-groups',
@@ -26,7 +26,7 @@ function ufsc_register_admin_menu() {
         'ufsc-gestion',
         __( 'Tableau de bord', 'ufsc-clubs' ),
         __( 'Tableau de bord', 'ufsc-clubs' ),
-        'manage_options',
+        'ufsc_manage',
         'ufsc-gestion',
         'ufsc_render_dashboard_page'
     );
@@ -36,7 +36,7 @@ function ufsc_register_admin_menu() {
         'ufsc-gestion',
         __( 'Clubs', 'ufsc-clubs' ),
         __( 'Clubs', 'ufsc-clubs' ),
-        'manage_options',
+        'ufsc_manage',
         'ufsc-gestion-clubs',
         'ufsc_render_clubs_page'
     );
@@ -46,7 +46,7 @@ function ufsc_register_admin_menu() {
         'ufsc-gestion',
         __( 'Licences', 'ufsc-clubs' ),
         __( 'Licences', 'ufsc-clubs' ),
-        'manage_options',
+        'ufsc_manage',
         'ufsc-gestion-licences',
         'ufsc_render_licences_page'
     );
@@ -56,7 +56,7 @@ function ufsc_register_admin_menu() {
         'ufsc-gestion',
         __( 'Paramètres', 'ufsc-clubs' ),
         __( 'Paramètres', 'ufsc-clubs' ),
-        'manage_options',
+        'ufsc_manage',
         'ufsc-gestion-parametres',
         'ufsc_render_settings_page'
     );
@@ -66,7 +66,7 @@ function ufsc_register_admin_menu() {
         'ufsc-gestion',
         __( 'WooCommerce', 'ufsc-clubs' ),
         __( 'WooCommerce', 'ufsc-clubs' ),
-        'manage_options',
+        'ufsc_manage',
         'ufsc-gestion-woocommerce',
         'ufsc_render_woocommerce_settings_page'
     );

@@ -98,7 +98,7 @@ class UFSC_CL_Club_Form_Handler {
             }
             
             // Set default status for new clubs if not admin
-            if ( ! $is_edit && ! current_user_can( 'manage_options' ) ) {
+            if ( ! $is_edit && ! current_user_can( 'ufsc_manage' ) ) {
                 $statuses = UFSC_SQL::statuses();
                 if ( isset( $statuses['en_attente'] ) ) {
                     $data['statut'] = 'en_attente';
@@ -293,7 +293,7 @@ class UFSC_CL_Club_Form_Handler {
                 return self::create_new_user();
                 
             case 'existing':
-                if ( ! current_user_can( 'manage_options' ) ) {
+                if ( ! current_user_can( 'ufsc_manage' ) ) {
                     return new WP_Error( 'permission_denied', __( 'Permissions insuffisantes pour associer un utilisateur existant.', 'ufsc-clubs' ) );
                 }
                 

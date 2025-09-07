@@ -204,7 +204,7 @@ class UFSC_User_Club_Mapping {
      */
     public static function user_can_manage_club( $user_id, $club_id ) {
         // Les administrateurs peuvent tout gérer.
-        if ( current_user_can( 'manage_options' ) ) {
+        if ( current_user_can( 'ufsc_manage' ) ) {
             return true;
         }
 

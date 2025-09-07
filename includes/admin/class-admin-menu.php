@@ -1,7 +1,77 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+add_action('admin_init', function () {
+    if (!is_admin()) return;
+    $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : '';
+    $legacy = [
+        'ufsc-gestion-clubs'       => 'ufsc-clubs',
+        'ufsc-gestion-licences'    => 'ufsc-licences',
+        'ufsc-gestion-parametres'  => 'ufsc-settings',
+        'ufsc-gestion-woocommerce' => 'ufsc-settings',
+        'ufsc-attestations'        => 'ufsc-settings',
+    ];
+    if ($page && isset($legacy[$page])) {
+        wp_safe_redirect(admin_url('admin.php?page=' . $legacy[$page]));
+        exit;
+    }
+});
+
 class UFSC_CL_Admin_Menu {
+
+    public static function register(){
+        // Menu principal unifié UFSC
+        add_menu_page(
+            __( 'UFSC Gestion', 'ufsc-clubs' ),
+            __( 'UFSC Gestion', 'ufsc-clubs' ),
+            'ufsc_manage',
+            'ufsc-gestion',
+            array( __CLASS__, 'render_dashboard' ),
+            'dashicons-groups',
+            58
+        );
+
+        // Sous-menus organisés
+        add_submenu_page(
+            'ufsc-gestion',
+            __('Clubs','ufsc-clubs'),
+            __('Clubs','ufsc-clubs'),
+            'ufsc_manage',
+            'ufsc-clubs',
+            array( 'UFSC_SQL_Admin', 'render_clubs' )
+        );
+
+        add_submenu_page(
+            'ufsc-gestion',
+            __('Licences','ufsc-clubs'),
+            __('Licences','ufsc-clubs'),
+            'ufsc_manage',
+            'ufsc-licences',
+            array( 'UFSC_SQL_Admin', 'render_licences' )
+        );
+
+        add_submenu_page(
+            'ufsc-gestion',
+            __('Exports/Imports','ufsc-clubs'),
+            __('Exports/Imports','ufsc-clubs'),
+            'ufsc_manage',
+            'ufsc-exports',
+            array( 'UFSC_SQL_Admin', 'render_exports' )
+        );
+
+        add_submenu_page(
+            'ufsc-gestion',
+            __('Réglages','ufsc-clubs'),
+            __('Réglages','ufsc-clubs'),
+            'ufsc_manage',
+            'ufsc-settings',
+            array( 'UFSC_Settings_Page', 'render' )
+        );
+
+        remove_submenu_page( 'ufsc-gestion', 'ufsc-gestion' );
+        remove_menu_page( 'ufsc-attestations' );
+    }
+
     public static function enqueue_admin( $hook ){
         if ( strpos( (string) ( $hook ?? '' ), 'ufsc' ) !== false ){
             wp_enqueue_style( 'ufsc-admin', UFSC_CL_URL.'assets/admin/css/admin.css', array(), UFSC_CL_VERSION );
@@ -39,7 +109,7 @@ class UFSC_CL_Admin_Menu {
         echo '<p>'.esc_html__('Tableau de bord de gestion des clubs et licences sportives UFSC','ufsc-clubs').'</p>';
         echo '</div>';
         // Cache refresh button
-        if (current_user_can('manage_options')) {
+        if (current_user_can('ufsc_manage')) {
             $refresh_url = add_query_arg('ufsc_refresh_cache', '1', admin_url('admin.php?page=ufsc-gestion'));
             $refresh_url = wp_nonce_url($refresh_url, 'ufsc_refresh_cache');
             echo '<a href="'.esc_url($refresh_url).'" class="button" style="color: white; border-color: rgba(255,255,255,0.3);" title="'.esc_attr__('Actualiser les données (cache: 10 min)','ufsc-clubs').'">'.esc_html__('⟳ Actualiser','ufsc-clubs').'</a>';
@@ -48,7 +118,7 @@ class UFSC_CL_Admin_Menu {
         echo '</div>';
         
         // Handle cache refresh
-        if (isset($_GET['ufsc_refresh_cache']) && current_user_can('manage_options')) {
+        if (isset($_GET['ufsc_refresh_cache']) && current_user_can('ufsc_manage')) {
             check_admin_referer('ufsc_refresh_cache');
             delete_transient('ufsc_dashboard_data');
             echo '<div class="notice notice-success is-dismissible"><p>'.esc_html__('Cache du tableau de bord actualisé.','ufsc-clubs').'</p></div>';

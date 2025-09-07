@@ -34,7 +34,7 @@ class UFSC_User_Club_Admin {
             'ufsc-gestion',
             __( 'Associations Utilisateurs', 'ufsc-clubs' ),
             __( 'Associations', 'ufsc-clubs' ),
-            'manage_options',
+            'ufsc_manage',
             'ufsc-user-club-mapping',
             array( __CLASS__, 'render_admin_page' )
         );
@@ -44,7 +44,7 @@ class UFSC_User_Club_Admin {
      * Render admin page
      */
     public static function render_admin_page() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'ufsc_manage' ) ) {
             wp_die( __( 'Vous n\'avez pas les permissions pour accéder à cette page.', 'ufsc-clubs' ) );
         }
 
@@ -380,7 +380,7 @@ class UFSC_User_Club_Admin {
 
         check_admin_referer( 'ufsc_associate_user_club', 'ufsc_nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'ufsc_manage' ) ) {
             wp_die( __( 'Sécurité échouée', 'ufsc-clubs' ) );
         }
 
@@ -412,7 +412,7 @@ class UFSC_User_Club_Admin {
 
         check_admin_referer( 'ufsc_update_club_region', 'ufsc_nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'ufsc_manage' ) ) {
             wp_die( __( 'Sécurité échouée', 'ufsc-clubs' ) );
         }
 
@@ -438,7 +438,7 @@ class UFSC_User_Club_Admin {
      * AJAX search users
      */
     public static function ajax_search_users() {
-        if ( ! wp_verify_nonce( $_REQUEST['nonce'], 'ufsc_search_users' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! wp_verify_nonce( $_REQUEST['nonce'], 'ufsc_search_users' ) || ! current_user_can( 'ufsc_manage' ) ) {
             wp_die( -1 );
         }
 
@@ -470,7 +470,7 @@ class UFSC_User_Club_Admin {
      * AJAX search clubs
      */
     public static function ajax_search_clubs() {
-        if ( ! wp_verify_nonce( $_REQUEST['nonce'], 'ufsc_search_clubs' ) || ! current_user_can( 'manage_options' ) ) {
+        if ( ! wp_verify_nonce( $_REQUEST['nonce'], 'ufsc_search_clubs' ) || ! current_user_can( 'ufsc_manage' ) ) {
             wp_die( -1 );
         }
 
