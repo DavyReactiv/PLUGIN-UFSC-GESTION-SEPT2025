@@ -22,7 +22,8 @@ Core (includes/core/)
 Admin (includes/admin/ + inc/admin/)
 ├── class-admin-menu.php     # Menu principal
 ├── class-sql-admin.php      # Interface CRUD
-└── menu.php                 # Pages d'administration
+├── class-ufsc-gestion-clubs-list-table.php     # Liste des clubs
+└── class-ufsc-gestion-licences-list-table.php  # Liste des licences
 
 Frontend (includes/frontend/)
 ├── class-sql-shortcodes.php # Shortcodes publics
