@@ -609,11 +609,6 @@ if ( ! function_exists( 'ufsc_render_licences_page' ) ) {
 // Ensure export page renderer is available
 require_once UFSC_CL_DIR . 'includes/admin/page-ufsc-exports.php';
 
-if ( ! function_exists( 'ufsc_render_settings_page' ) ) {
-    function ufsc_render_settings_page() {
-        UFSC_Settings_Page::render();
-    }
-}
 
 // Register admin menu with a closure
 add_action( 'admin_menu', function () {
@@ -672,7 +667,7 @@ add_action( 'admin_menu', function () {
         __( 'Réglages', 'ufsc-clubs' ),
         $cap,
         'ufsc-settings',
-        'ufsc_render_settings_page'
+        array( 'UFSC_Settings_Page', 'render' )
     );
 }, 10 );
 

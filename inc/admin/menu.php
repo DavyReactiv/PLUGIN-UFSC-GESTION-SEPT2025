@@ -58,7 +58,7 @@ function ufsc_register_admin_menu() {
         __( 'Paramètres', 'ufsc-clubs' ),
         'ufsc_manage',
         'ufsc-gestion-parametres',
-        'ufsc_render_settings_page'
+        'ufsc_render_core_settings_page'
     );
     
     // WooCommerce submenu

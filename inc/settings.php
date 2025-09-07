@@ -54,7 +54,7 @@ function ufsc_save_settings( $settings ) {
 /**
  * Render settings page
  */
-function ufsc_render_settings_page() {
+function ufsc_render_core_settings_page() {
     // Handle form submission
     if ( isset( $_POST['ufsc_save_settings'] ) && check_admin_referer( 'ufsc_gestion_settings' ) ) {
         $settings = array();
