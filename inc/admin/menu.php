@@ -286,5 +286,5 @@ function ufsc_get_licences_count() {
 }
 
 // Register the menu
-add_action( 'admin_menu', 'ufsc_register_admin_menu' );
+// add_action( 'admin_menu', 'ufsc_register_admin_menu' );
 
