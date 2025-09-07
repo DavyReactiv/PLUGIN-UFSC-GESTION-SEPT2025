@@ -83,6 +83,7 @@ class UFSC_DB_Migrations {
         }
 
         self::maybe_upgrade();
+        self::migrate_settings();
     }
 
     /**
@@ -113,6 +114,22 @@ class UFSC_DB_Migrations {
         self::maybe_add_index( $licences_table, 'birthdate' );
 
         update_option( self::OPTION_KEY, self::VERSION );
+        self::migrate_settings();
+    }
+
+    /**
+     * Migrate legacy settings option to the unified one and remove leftovers.
+     */
+    public static function migrate_settings() {
+        $legacy  = get_option( 'ufsc_gestion_settings', array() );
+        $current = get_option( 'ufsc_sql_settings', array() );
+
+        if ( ! empty( $legacy ) ) {
+            $current = wp_parse_args( $current, $legacy );
+            update_option( 'ufsc_sql_settings', $current );
+        }
+
+        delete_option( 'ufsc_gestion_settings' );
     }
 
     /**
