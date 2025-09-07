@@ -27,6 +27,27 @@ class UFSC_DB_Migrations {
         $licences_table = $wpdb->prefix . 'ufsc_licences';
         $clubs_table    = $wpdb->prefix . 'ufsc_clubs';
 
+        // Drop existing foreign key to allow dbDelta to run safely.
+        $fk_exists = $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = %s AND TABLE_NAME = %s AND CONSTRAINT_NAME = "fk_licence_club"',
+                $wpdb->dbname,
+                $licences_table
+            )
+        );
+        if ( $fk_exists ) {
+            $wpdb->query( "ALTER TABLE {$licences_table} DROP FOREIGN KEY fk_licence_club" );
+        }
+
+        // Ensure referenced columns use the same data type before recreating the foreign key.
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $licences_table ) ) === $licences_table ) {
+            $wpdb->query( "ALTER TABLE {$licences_table} MODIFY club_id BIGINT(20) UNSIGNED NOT NULL" );
+        }
+
+        if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $clubs_table ) ) === $clubs_table ) {
+            $wpdb->query( "ALTER TABLE {$clubs_table} MODIFY id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT" );
+        }
+
         $licences_sql = "CREATE TABLE {$licences_table} (
             id BIGINT(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             club_id BIGINT(20) UNSIGNED NOT NULL,
@@ -48,6 +69,18 @@ class UFSC_DB_Migrations {
         dbDelta( $clubs_sql );
         self::maybe_add_column( $clubs_table, 'statut', "VARCHAR(20) NOT NULL DEFAULT 'en_attente'" );
         self::ensure_statut_default( $clubs_table );
+
+        // Recreate the foreign key if it does not exist after the migrations.
+        $fk_exists = $wpdb->get_var(
+            $wpdb->prepare(
+                'SELECT CONSTRAINT_NAME FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = %s AND TABLE_NAME = %s AND CONSTRAINT_NAME = "fk_licence_club"',
+                $wpdb->dbname,
+                $licences_table
+            )
+        );
+        if ( ! $fk_exists ) {
+            $wpdb->query( "ALTER TABLE {$licences_table} ADD CONSTRAINT fk_licence_club FOREIGN KEY (club_id) REFERENCES {$clubs_table}(id)" );
+        }
 
         self::maybe_upgrade();
     }
