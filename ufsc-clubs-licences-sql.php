@@ -8,6 +8,11 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+if ( defined( 'UFSC_PLUGIN_LOADED' ) ) {
+    return;
+}
+define( 'UFSC_PLUGIN_LOADED', true );
+
 define( 'UFSC_CL_VERSION', '1.5.7' );
 define( 'UFSC_CL_DIR', plugin_dir_path( __FILE__ ) );
 define( 'UFSC_CL_URL', plugin_dir_url( __FILE__ ) );
@@ -77,6 +82,8 @@ require_once UFSC_CL_DIR.'inc/woocommerce/hooks.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/admin-actions.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/cart-integration.php';
 require_once UFSC_CL_DIR.'includes/woo/class-ufsc-woo-sync.php';
+
+add_action('admin_menu', ['UFSC_CL_Admin_Menu','register']);
 
 register_activation_hook(__FILE__, ['UFSC_DB_Migrations','activate']);
 add_action('plugins_loaded', ['UFSC_DB_Migrations','maybe_upgrade']);

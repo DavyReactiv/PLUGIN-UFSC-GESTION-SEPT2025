@@ -1459,10 +1459,10 @@ class UFSC_Frontend_Shortcodes {
             if ( 'edit' === $action && $licence_id ) {
                 $licence = self::get_licence( $atts['club_id'], $licence_id );
             }
-            include UFSC_CL_DIR . 'templates/frontend/licence-form.php';
+            require_once UFSC_CL_DIR . 'templates/frontend/licence-form.php';
         } else {
             $licences = self::get_club_licences( $atts['club_id'], array( 'per_page' => 100 ) );
-            include UFSC_CL_DIR . 'templates/frontend/licences-list.php';
+            require_once UFSC_CL_DIR . 'templates/frontend/licences-list.php';
         }
         return ob_get_clean();
     }
