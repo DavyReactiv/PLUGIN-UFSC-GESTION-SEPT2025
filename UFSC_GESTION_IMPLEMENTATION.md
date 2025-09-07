@@ -8,7 +8,8 @@ This document outlines the implementation of the UFSC Gestion plugin enhancement
 
 ### 1. Updated Admin Menu ✅
 
-- **Location**: `includes/admin/class-admin-menu.php` (updated) and `inc/admin/menu.php` (new)
+- **Location**: `includes/admin/class-admin-menu.php`
+- **Deprecated**: `inc/admin/menu.php` removed
 - **Changes**: 
   - Updated main menu icon to `dashicons-groups`
   - Added WooCommerce submenu
@@ -148,7 +149,8 @@ ufsc_get_club_name($club_id) // Get club name for display
 ```
 inc/
 ├── admin/
-│   └── menu.php                    # New admin menu system
+│   ├── class-ufsc-gestion-clubs-list-table.php   # Admin table for clubs
+│   └── class-ufsc-gestion-licences-list-table.php # Admin table for licences
 ├── common/
 │   ├── regions.php                 # Unified regions management
 │   └── tables.php                  # Table name helpers
