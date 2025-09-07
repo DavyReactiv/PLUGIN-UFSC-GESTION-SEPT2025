@@ -103,7 +103,6 @@ final class UFSC_CL_Bootstrap {
         register_activation_hook( __FILE__, array( $this, 'on_activate' ) );
         register_deactivation_hook( __FILE__, array( $this, 'on_deactivate' ) );
 
-        add_action( 'admin_menu', array( 'UFSC_CL_Admin_Menu', 'register' ) );
         add_action( 'admin_enqueue_scripts', array( 'UFSC_CL_Admin_Menu', 'enqueue_admin' ) );
 
         // SQL Admin CRUD actions (pages cachées mais enregistrées pour les actions directes)
