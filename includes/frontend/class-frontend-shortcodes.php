@@ -33,20 +33,16 @@ class UFSC_Frontend_Shortcodes {
         }
 
         $content = $post->post_content;
-        $shortcodes = array(
-            'ufsc_club_dashboard',
-            'ufsc_club_licences',
-            'ufsc_club_stats',
-            'ufsc_club_profile',
-            'ufsc_add_licence',
-            'ufsc_licences',
-        );
 
-        foreach ( $shortcodes as $shortcode ) {
-            if ( has_shortcode( $content, $shortcode ) ) {
-                wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
-                break;
-            }
+        $css_path = UFSC_CL_PATH . 'assets/css/ufsc-front.css';
+        $js_path  = UFSC_CL_PATH . 'assets/js/ufsc-front.js';
+
+        $css_version = file_exists( $css_path ) ? filemtime( $css_path ) : UFSC_CL_VERSION;
+        $js_version  = file_exists( $js_path ) ? filemtime( $js_path ) : UFSC_CL_VERSION;
+
+        if ( has_shortcode( $content, 'ufsc_club_dashboard' ) || has_shortcode( $content, 'ufsc_add_licence' ) ) {
+            wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), $css_version );
+            wp_enqueue_script( 'ufsc-front', UFSC_CL_URL . 'assets/js/ufsc-front.js', array(), $js_version, true );
         }
 
         if ( has_shortcode( $content, 'ufsc_club_dashboard' ) ) {
@@ -55,14 +51,6 @@ class UFSC_Frontend_Shortcodes {
                 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
                 array(),
                 '4.4.0',
-                true
-            );
-
-            wp_enqueue_script(
-                'ufsc-front',
-                UFSC_CL_URL . 'assets/js/ufsc-front.js',
-                array(),
-                UFSC_CL_VERSION,
                 true
             );
         }
