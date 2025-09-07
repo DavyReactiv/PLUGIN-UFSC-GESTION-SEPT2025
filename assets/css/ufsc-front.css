@@ -6,8 +6,8 @@
 .ufsc-dashboard-page .ast-container{ max-width:100% !important; padding:0 !important; }
 .ufsc-dashboard-page .ufsc-front.ufsc-full{ width:100%; max-width:1400px; margin:0 auto; padding-inline:clamp(12px,2vw,24px); }
 
-.ufsc-dashboard-page .ufsc-hero,
-.ufsc-dashboard-page .ufsc-dashboard-card{
+.ufsc-front .ufsc-hero,
+.ufsc-front .ufsc-dashboard-card{
     width:100%;
     border:1px solid #e1e5e9;
     padding:var(--ufsc-spacing-md);
@@ -52,16 +52,16 @@
 }
 
 /* Specific grid layout for add licence section */
-.ufsc-add-licence-section .ufsc-grid{
+.ufsc-front .ufsc-add-licence-section .ufsc-grid{
     grid-template-columns: 1fr;
 }
 @media (min-width: var(--tablet)) {
-    .ufsc-add-licence-section .ufsc-grid{
+    .ufsc-front .ufsc-add-licence-section .ufsc-grid{
         grid-template-columns: repeat(2, 1fr);
     }
 }
 @media (min-width: var(--desktop)) {
-    .ufsc-add-licence-section .ufsc-grid{
+    .ufsc-front .ufsc-add-licence-section .ufsc-grid{
         grid-template-columns: repeat(2, 1fr);
     }
 }
@@ -439,20 +439,20 @@
 }
 
 /* Add licence section grid */
-.ufsc-add-licence-section .ufsc-grid{
+.ufsc-front .ufsc-add-licence-section .ufsc-grid{
     grid-template-columns:1fr;
 }
 @media (min-width:var(--tablet)){
-.ufsc-add-licence-section .ufsc-grid{
+    .ufsc-front .ufsc-add-licence-section .ufsc-grid{
         grid-template-columns:repeat(2,1fr);
     }
 }
 @media (min-width:var(--desktop)){
-.ufsc-add-licence-section .ufsc-grid{
+    .ufsc-front .ufsc-add-licence-section .ufsc-grid{
         grid-template-columns:repeat(2,1fr);
     }
 }
-.ufsc-add-licence-section .ufsc-grid-full{
+.ufsc-front .ufsc-add-licence-section .ufsc-grid-full{
     grid-column:1 / -1;
 }
 
@@ -467,3 +467,11 @@
     border-bottom: 1px solid #e1e5e9;
     text-align: left;
 }
+
+.ufsc-dashboard-page .ast-container{max-width:100%!important;padding:0!important}
+.ufsc-dashboard-page .ufsc-front.ufsc-full{width:100%;max-width:1400px;margin-inline:auto;padding-inline:clamp(12px,2vw,24px)}
+.ufsc-front .ufsc-hero,
+.ufsc-front .ufsc-dashboard-card{width:100%;border-radius:14px;padding:clamp(16px,2vw,28px)}
+.ufsc-front .ufsc-club-photo{max-width:220px;aspect-ratio:1/1;object-fit:cover;border-radius:50%}
+.ufsc-front .ufsc-documents{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:768px){.ufsc-front .ufsc-documents{grid-template-columns:1fr}}
