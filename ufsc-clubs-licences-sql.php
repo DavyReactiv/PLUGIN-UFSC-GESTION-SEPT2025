@@ -76,7 +76,6 @@ require_once UFSC_CL_DIR.'inc/woocommerce/settings-woocommerce.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/hooks.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/admin-actions.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/cart-integration.php';
-// require_once UFSC_CL_DIR.'inc/admin/menu.php'; // Removed - using unified menu system in includes/admin/class-admin-menu.php
 require_once UFSC_CL_DIR.'includes/woo/class-ufsc-woo-sync.php';
 
 register_activation_hook(__FILE__, ['UFSC_DB_Migrations','activate']);
