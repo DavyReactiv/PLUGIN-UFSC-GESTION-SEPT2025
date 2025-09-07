@@ -1238,7 +1238,7 @@ class UFSC_Frontend_Shortcodes {
                     <div class="ufsc-card ufsc-form-section">
                         <h4><?php esc_html_e( 'Adresse', 'ufsc-clubs' ); ?></h4>
                         
-                        <div class="ufsc-field">
+                        <div class="ufsc-field ufsc-grid-full">
                             <label for="adresse"><?php esc_html_e( 'Adresse complète', 'ufsc-clubs' ); ?></label>
                             <textarea id="adresse" name="adresse" rows="3"><?php echo esc_textarea( $form_data['adresse'] ?? '' ); ?></textarea>
                         </div>
@@ -1414,7 +1414,7 @@ class UFSC_Frontend_Shortcodes {
                             </label>
                         </div>
 
-                        <div class="ufsc-form-field">
+                        <div class="ufsc-form-field ufsc-grid-full">
                             <label for="note"><?php esc_html_e( 'Note', 'ufsc-clubs' ); ?></label>
                             <textarea id="note" name="note" rows="3"></textarea>
                         </div>

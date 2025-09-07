@@ -40,6 +40,21 @@
         grid-template-columns: repeat(3, 1fr);
     }
 }
+
+/* Specific grid layout for add licence section */
+.ufsc-add-licence-section .ufsc-grid{
+    grid-template-columns: 1fr;
+}
+@media (min-width: var(--tablet)) {
+    .ufsc-add-licence-section .ufsc-grid{
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (min-width: var(--desktop)) {
+    .ufsc-add-licence-section .ufsc-grid{
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
 .ufsc-front .ufsc-grid.-wide{
     grid-template-columns: 1fr;
 }
