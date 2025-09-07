@@ -25,7 +25,7 @@ Plugin WordPress complet pour la gestion des clubs et licences UFSC - Saison 202
 
 == Installation ==
 1. Téléversez le ZIP dans Extensions > Ajouter > Téléverser
-2. Activez le plugin
+2. Activez le plugin *(les tables `ufsc_clubs` et `ufsc_licences` doivent déjà exister)*
 3. Allez dans **UFSC – Gestion > Paramètres** et configurez :
    - Tables SQL existantes (clubs et licences)
    - IDs produits WooCommerce

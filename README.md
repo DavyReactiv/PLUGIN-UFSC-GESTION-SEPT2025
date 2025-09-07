@@ -104,7 +104,7 @@ Le plugin UFSC Clubs & Licences est une solution complète et moderne pour la ge
 ### Installation standard
 1. **Télécharger** le plugin depuis le repository
 2. **Uploader** dans `/wp-content/plugins/`
-3. **Activer** via l'interface d'administration
+3. **Activer** via l'interface d'administration *(les tables `ufsc_clubs` et `ufsc_licences` doivent déjà exister)*
 4. **Configurer** les paramètres de base
 
 ### Configuration initiale
