@@ -18,15 +18,17 @@ class UFSC_CL_Club_Form_Handler {
      * Handle club form submission
      */
     public static function handle_save_club() {
+        global $wpdb;
+
         if ( ! current_user_can( 'read' ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
 
         check_admin_referer( 'ufsc_save_club', 'ufsc_club_nonce' );
-        
-        $club_id = (int) ( $_POST['club_id'] ?? 0 );
+
+        $club_id    = (int) ( $_POST['club_id'] ?? 0 );
         $affiliation = (bool) ( $_POST['affiliation'] ?? false );
-        $is_edit = $club_id > 0;
+        $is_edit     = $club_id > 0;
         
         // Permission checks
         if ( $is_edit && ! UFSC_CL_Permissions::ufsc_user_can_edit_club( $club_id ) ) {
@@ -41,9 +43,28 @@ class UFSC_CL_Club_Form_Handler {
         
         // Collect and sanitize input data
         $data = self::collect_and_sanitize_data();
-        
+
+        // Determine if editing is restricted
+        $is_restricted = false;
+        $settings      = UFSC_SQL::get_settings();
+        $table         = $settings['table_clubs'];
+        $pk            = $settings['pk_club'];
+        $validation_base = $data;
+
+        if ( $is_edit ) {
+            $current_status = $wpdb->get_var( $wpdb->prepare( "SELECT statut FROM `{$table}` WHERE `{$pk}` = %d", $club_id ) );
+            if ( $current_status && 'brouillon' !== $current_status ) {
+                $is_restricted = true;
+                $data = array_intersect_key( $data, array_flip( array( 'email', 'telephone' ) ) );
+                $existing      = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE `{$pk}` = %d", $club_id ), ARRAY_A );
+                if ( $existing ) {
+                    $validation_base = array_merge( $existing, $data );
+                }
+            }
+        }
+
         // Validate required fields
-        $validation_errors = UFSC_CL_Utils::validate_club_data( $data, $affiliation );
+        $validation_errors = UFSC_CL_Utils::validate_club_data( $validation_base, $affiliation );
         
         if ( ! empty( $validation_errors ) ) {
             $error_message = implode( ', ', $validation_errors );
@@ -52,15 +73,19 @@ class UFSC_CL_Club_Form_Handler {
         }
         
         try {
-            // Handle file uploads
-            $upload_result = self::handle_file_uploads( $data, $club_id );
-            if ( is_wp_error( $upload_result ) ) {
-                self::redirect_with_error( $upload_result->get_error_message(), $club_id, $affiliation );
-                return;
+            $upload_result = array();
+
+            // Handle file uploads only when not restricted
+            if ( ! $is_restricted ) {
+                $upload_result = self::handle_file_uploads( $data, $club_id );
+                if ( is_wp_error( $upload_result ) ) {
+                    self::redirect_with_error( $upload_result->get_error_message(), $club_id, $affiliation );
+                    return;
+                }
+
+                // Merge upload results into data
+                $data = array_merge( $data, $upload_result );
             }
-            
-            // Merge upload results into data
-            $data = array_merge( $data, $upload_result );
             
             // Handle user association for new club creation
             if ( ! $is_edit ) {
