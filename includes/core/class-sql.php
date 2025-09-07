@@ -134,6 +134,17 @@ class UFSC_SQL {
     }
     public static function get_settings(){
         $opts = get_option( 'ufsc_sql_settings', array() );
+
+        // Migrate legacy option if it exists.
+        if ( empty( $opts ) ) {
+            $legacy = get_option( 'ufsc_gestion_settings', array() );
+            if ( ! empty( $legacy ) ) {
+                $opts = $legacy;
+                update_option( 'ufsc_sql_settings', $opts );
+                delete_option( 'ufsc_gestion_settings' );
+            }
+        }
+
         $settings = wp_parse_args( $opts, self::default_settings() );
         return apply_filters( 'ufsc_sql_settings', $settings );
     }

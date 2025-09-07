@@ -12,11 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * @return array Default settings
  */
 function ufsc_get_default_settings() {
-    global $wpdb;
-    
+    $defaults = UFSC_SQL::default_settings();
+
     return array(
-        'clubs_table' => $wpdb->prefix . 'ufsc_clubs',
-        'licences_table' => $wpdb->prefix . 'ufsc_licences'
+        'table_clubs'    => $defaults['table_clubs'],
+        'table_licences' => $defaults['table_licences'],
     );
 }
 
@@ -26,10 +26,7 @@ function ufsc_get_default_settings() {
  * @return array Current settings merged with defaults
  */
 function ufsc_get_settings() {
-    $defaults = ufsc_get_default_settings();
-    $saved = get_option( 'ufsc_gestion_settings', array() );
-    
-    return wp_parse_args( $saved, $defaults );
+    return UFSC_SQL::get_settings();
 }
 
 /**
@@ -40,15 +37,15 @@ function ufsc_get_settings() {
  */
 function ufsc_save_settings( $settings ) {
     // Sanitize table names
-    if ( isset( $settings['clubs_table'] ) ) {
-        $settings['clubs_table'] = ufsc_sanitize_table_name( $settings['clubs_table'] );
+    if ( isset( $settings['table_clubs'] ) ) {
+        $settings['table_clubs'] = ufsc_sanitize_table_name( $settings['table_clubs'] );
     }
-    
-    if ( isset( $settings['licences_table'] ) ) {
-        $settings['licences_table'] = ufsc_sanitize_table_name( $settings['licences_table'] );
+
+    if ( isset( $settings['table_licences'] ) ) {
+        $settings['table_licences'] = ufsc_sanitize_table_name( $settings['table_licences'] );
     }
-    
-    return update_option( 'ufsc_gestion_settings', $settings );
+
+    return update_option( 'ufsc_sql_settings', $settings );
 }
 
 /**
@@ -56,15 +53,15 @@ function ufsc_save_settings( $settings ) {
  */
 function ufsc_render_core_settings_page() {
     // Handle form submission
-    if ( isset( $_POST['ufsc_save_settings'] ) && check_admin_referer( 'ufsc_gestion_settings' ) ) {
+    if ( isset( $_POST['ufsc_save_settings'] ) && check_admin_referer( 'ufsc_sql_settings' ) ) {
         $settings = array();
-        
-        if ( isset( $_POST['clubs_table'] ) ) {
-            $settings['clubs_table'] = sanitize_text_field( wp_unslash( $_POST['clubs_table'] ) );
+
+        if ( isset( $_POST['table_clubs'] ) ) {
+            $settings['table_clubs'] = sanitize_text_field( wp_unslash( $_POST['table_clubs'] ) );
         }
-        
-        if ( isset( $_POST['licences_table'] ) ) {
-            $settings['licences_table'] = sanitize_text_field( wp_unslash( $_POST['licences_table'] ) );
+
+        if ( isset( $_POST['table_licences'] ) ) {
+            $settings['table_licences'] = sanitize_text_field( wp_unslash( $_POST['table_licences'] ) );
         }
         
         if ( ufsc_save_settings( $settings ) ) {
@@ -80,17 +77,17 @@ function ufsc_render_core_settings_page() {
         <h1><?php esc_html_e( 'Paramètres UFSC Gestion', 'ufsc-clubs' ); ?></h1>
         
         <form method="post" action="">
-            <?php wp_nonce_field( 'ufsc_gestion_settings' ); ?>
+            <?php wp_nonce_field( 'ufsc_sql_settings' ); ?>
             
             <h2><?php esc_html_e( 'Configuration des tables', 'ufsc-clubs' ); ?></h2>
             <table class="form-table">
                 <tr>
                     <th scope="row">
-                        <label for="clubs_table"><?php esc_html_e( 'Table des clubs', 'ufsc-clubs' ); ?></label>
+                        <label for="table_clubs"><?php esc_html_e( 'Table des clubs', 'ufsc-clubs' ); ?></label>
                     </th>
                     <td>
-                        <input type="text" id="clubs_table" name="clubs_table" 
-                               value="<?php echo esc_attr( $current_settings['clubs_table'] ); ?>" 
+                        <input type="text" id="table_clubs" name="table_clubs"
+                               value="<?php echo esc_attr( $current_settings['table_clubs'] ); ?>"
                                class="regular-text" />
                         <p class="description">
                             <?php esc_html_e( 'Nom de la table contenant les données des clubs. Caractères autorisés: A-Z, a-z, 0-9, _', 'ufsc-clubs' ); ?>
@@ -99,11 +96,11 @@ function ufsc_render_core_settings_page() {
                 </tr>
                 <tr>
                     <th scope="row">
-                        <label for="licences_table"><?php esc_html_e( 'Table des licences', 'ufsc-clubs' ); ?></label>
+                        <label for="table_licences"><?php esc_html_e( 'Table des licences', 'ufsc-clubs' ); ?></label>
                     </th>
                     <td>
-                        <input type="text" id="licences_table" name="licences_table" 
-                               value="<?php echo esc_attr( $current_settings['licences_table'] ); ?>" 
+                        <input type="text" id="table_licences" name="table_licences"
+                               value="<?php echo esc_attr( $current_settings['table_licences'] ); ?>"
                                class="regular-text" />
                         <p class="description">
                             <?php esc_html_e( 'Nom de la table contenant les données des licences. Caractères autorisés: A-Z, a-z, 0-9, _', 'ufsc-clubs' ); ?>
