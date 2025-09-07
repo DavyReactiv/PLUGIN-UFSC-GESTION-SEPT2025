@@ -29,6 +29,11 @@ class UFSC_Affiliation_Form {
             return;
         }
 
+        $post = get_post();
+        if ( ! $post || ! has_shortcode( $post->post_content, 'ufsc_affiliation_form' ) ) {
+            return;
+        }
+
         wp_enqueue_script(
             'ufsc-affiliation',
             UFSC_CL_URL . 'assets/js/ufsc-affiliation.js',

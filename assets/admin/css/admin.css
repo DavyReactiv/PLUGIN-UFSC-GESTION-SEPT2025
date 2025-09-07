@@ -3,6 +3,29 @@
  * Styles for admin area including badges, tables, and forms
  */
 
+:root {
+    --ufsc-color-navy: #1C2143;
+    --ufsc-color-steel: #2E3A8C;
+    --ufsc-color-light-gray: #F3F5F9;
+    --ufsc-color-white: #ffffff;
+    --ufsc-color-red: #E31E24;
+}
+
+.ufsc-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    background: var(--ufsc-color-light-gray);
+    color: var(--ufsc-color-navy);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.ufsc-badge:focus {
+    outline: 2px solid var(--ufsc-color-steel);
+    outline-offset: 2px;
+}
+
 /* Status badges with colored dots */
 .ufsc-status-badge {
     display: inline-flex;
@@ -11,10 +34,15 @@
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
-    background: #f1f1f1;
-    color: #444;
-    border: 1px solid #ddd;
+    background: var(--ufsc-color-light-gray);
+    color: var(--ufsc-color-navy);
+    border: 1px solid var(--ufsc-color-light-gray);
     white-space: nowrap;
+}
+
+.ufsc-status-badge:focus {
+    outline: 2px solid var(--ufsc-color-steel);
+    outline-offset: 2px;
 }
 
 .ufsc-status-badge .ufsc-status-dot {
@@ -53,7 +81,7 @@
 }
 
 .ufsc-status-badge.ufsc-status-rejected .ufsc-status-dot {
-    background: #dc3545;
+    background: var(--ufsc-color-red);
 }
 
 .ufsc-status-badge.ufsc-status-inactive {
@@ -184,7 +212,7 @@
 }
 
 .ufsc-admin-notice.notice-error {
-    border-left-color: #dc3232;
+    border-left-color: var(--ufsc-color-red);
 }
 
 .ufsc-admin-notice.notice-warning {
@@ -258,7 +286,7 @@
 .ufsc-form-field.required label::after,
 .ufsc-field.required label::after {
     content: " *";
-    color: #dc3232;
+    color: var(--ufsc-color-red);
 }
 
 /* Validation error styling */
@@ -268,13 +296,13 @@
 .ufsc-field.error input,
 .ufsc-field.error select,
 .ufsc-field.error textarea {
-    border-color: #dc3232;
-    box-shadow: 0 0 0 1px #dc3232;
+    border-color: var(--ufsc-color-red);
+    box-shadow: 0 0 0 1px var(--ufsc-color-red);
 }
 
 .ufsc-form-field .error-message,
 .ufsc-field .error-message {
-    color: #dc3232;
+    color: var(--ufsc-color-red);
     font-size: 12px;
     margin-top: 4px;
 }
@@ -288,8 +316,8 @@
 }
 
 .ufsc-dashboard-card {
-    background: #fff;
-    border: 1px solid #c3c4c7;
+    background: var(--ufsc-color-white);
+    border: 1px solid var(--ufsc-color-light-gray);
     border-radius: 4px;
     padding: 20px;
     text-align: center;
@@ -299,6 +327,12 @@
 
 .ufsc-dashboard-card:hover {
     box-shadow: 0 2px 5px rgba(0,0,0,.1);
+}
+
+.ufsc-dashboard-card:focus,
+.ufsc-dashboard-card:focus-within {
+    outline: 2px solid var(--ufsc-color-steel);
+    outline-offset: 2px;
 }
 
 .ufsc-dashboard-card .card-value {
