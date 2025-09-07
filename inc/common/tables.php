@@ -12,16 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * @return array Table names
  */
 function ufsc_get_table_names() {
-    global $wpdb;
-    
-    $options = get_option( 'ufsc_gestion_settings', array() );
-    
-    $defaults = array(
-        'clubs_table' => $wpdb->prefix . 'ufsc_clubs',
-        'licences_table' => $wpdb->prefix . 'ufsc_licences'
+    $settings = UFSC_SQL::get_settings();
+
+    return array(
+        'table_clubs'    => $settings['table_clubs'],
+        'table_licences' => $settings['table_licences'],
     );
-    
-    return wp_parse_args( $options, $defaults );
 }
 
 /**
@@ -31,7 +27,7 @@ function ufsc_get_table_names() {
  */
 function ufsc_get_clubs_table() {
     $tables = ufsc_get_table_names();
-    return $tables['clubs_table'];
+    return $tables['table_clubs'];
 }
 
 /**
@@ -41,7 +37,7 @@ function ufsc_get_clubs_table() {
  */
 function ufsc_get_licences_table() {
     $tables = ufsc_get_table_names();
-    return $tables['licences_table'];
+    return $tables['table_licences'];
 }
 
 /**

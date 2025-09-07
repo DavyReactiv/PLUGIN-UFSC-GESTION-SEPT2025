@@ -11,7 +11,6 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 // Remove stored options.
 $option_names = [
-    'ufsc_gestion_settings',
     'ufsc_woocommerce_settings',
     'ufsc_sql_settings',
     'ufsc_db_version',
