@@ -406,10 +406,15 @@ class UFSC_PDF_Attestations {
      * Handle secure download
      */
     public static function handle_secure_download() {
-        $attestation_id = intval( $_GET['id'] );
-        
-        if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'ufsc_download_' . $attestation_id ) ) {
-            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        if ( ! isset( $_GET['id'], $_GET['_wpnonce'] ) ) {
+            wp_die( __( 'Paramètres manquants.', 'ufsc-clubs' ) );
+        }
+
+        $attestation_id = absint( $_GET['id'] );
+        $nonce          = sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) );
+
+        if ( ! wp_verify_nonce( $nonce, 'ufsc_download_' . $attestation_id ) ) {
+            wp_die( __( 'Nonce de sécurité invalide.', 'ufsc-clubs' ) );
         }
 
         // Get attestation info
