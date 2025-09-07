@@ -31,7 +31,7 @@ class UFSC_User_Club_Admin {
      */
     public static function add_admin_menu() {
         add_submenu_page(
-            'ufsc-gestion',
+            'ufsc_gestion',
             __( 'Associations Utilisateurs', 'ufsc-clubs' ),
             __( 'Associations', 'ufsc-clubs' ),
             'ufsc_manage',

@@ -78,7 +78,7 @@ class UFSC_CL_Club_Metaboxes {
         $club_col = ufsc_lic_col( 'club_id' );
 
         $count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM `{$lic_table}` WHERE `{$club_col}` = %d", $club_id ) );
-        $link  = admin_url( 'admin.php?page=ufsc-licences&club_id=' . $club_id );
+        $link  = admin_url( 'admin.php?page=ufsc_licences&club_id=' . $club_id );
 
         echo '<p>' . sprintf( esc_html__( '%d licences', 'ufsc-clubs' ), $count ) . '</p>';
         echo '<p><a href="' . esc_url( $link ) . '">' . esc_html__( 'Voir les licences', 'ufsc-clubs' ) . '</a></p>';

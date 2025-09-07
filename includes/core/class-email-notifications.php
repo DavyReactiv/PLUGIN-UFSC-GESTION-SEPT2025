@@ -43,7 +43,7 @@ class UFSC_Email_Notifications {
         $template_data = array(
             'licence' => $licence_data,
             'club' => $club_data,
-            'action_url' => admin_url( 'admin.php?page=ufsc-gestion-licences' )
+            'action_url' => admin_url( 'admin.php?page=ufsc_licences' )
         );
 
         $message = self::render_template( 'licence-created', $template_data );

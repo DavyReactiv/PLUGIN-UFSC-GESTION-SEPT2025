@@ -18,7 +18,7 @@ function ufsc_wc_log( $action, $context = array(), $level = 'info' ) {
         UFSC_Audit_Logger::log( $action, $context );
     } elseif ( function_exists( 'wc_get_logger' ) ) {
         $logger  = wc_get_logger();
-        $context = array_merge( array( 'source' => 'ufsc-gestion' ), $context );
+        $context = array_merge( array( 'source' => 'ufsc_gestion' ), $context );
         if ( 'error' === $level ) {
             $logger->error( $action, $context );
         } else {

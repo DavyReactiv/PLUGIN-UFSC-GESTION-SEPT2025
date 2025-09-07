@@ -19,7 +19,7 @@ if ( ! function_exists( 'ufsc_wc_log' ) ) {
             UFSC_Audit_Logger::log( $action, $context );
         } elseif ( function_exists( 'wc_get_logger' ) ) {
             $logger  = wc_get_logger();
-            $context = array_merge( array( 'source' => 'ufsc-gestion' ), $context );
+            $context = array_merge( array( 'source' => 'ufsc_gestion' ), $context );
             if ( 'error' === $level ) {
                 $logger->error( $action, $context );
             } else {
@@ -230,7 +230,7 @@ function ufsc_handle_admin_send_to_payment() {
     }
 
     // Verify nonce and capabilities
-    if ( ! check_admin_referer( 'ufsc_send_to_payment' ) || ! current_user_can( 'ufsc_manage' ) ) {
+    if ( ! check_admin_referer( 'ufsc_send_to_payment' ) || ! current_user_can( 'ufsc_manage_licences' ) ) {
         wp_die( __( 'Erreur de sécurité', 'ufsc-clubs' ) );
     }
     
@@ -258,7 +258,7 @@ function ufsc_handle_admin_send_to_payment() {
     // Send email
     $email_sent = ufsc_send_payment_link_email( $order_id, $user_id, $license_ids );
     
-    $redirect_url = admin_url( 'admin.php?page=ufsc-licences' );
+    $redirect_url = admin_url( 'admin.php?page=ufsc_licences' );
     $message = $email_sent 
         ? __( 'Commande créée et email envoyé avec succès', 'ufsc-clubs' )
         : __( 'Commande créée mais erreur lors de l\'envoi de l\'email', 'ufsc-clubs' );
