@@ -581,16 +581,25 @@ class UFSC_Unified_Handlers {
         
         // Optional fields with sanitization
         $optional_fields = array(
-            'prenom' => 'sanitize_text_field',
-            'nom' => 'sanitize_text_field',
-            'telephone' => 'sanitize_text_field',
-            'adresse' => 'sanitize_textarea_field',
-            'date_naissance' => 'sanitize_text_field',
-            'sexe' => 'sanitize_text_field',
-            'role' => 'sanitize_text_field',
-            'competition' => 'absint',
-            'status' => 'sanitize_text_field',
-            'note' => 'sanitize_textarea_field'
+            'club_id'          => 'absint',
+            'nom'              => 'sanitize_text_field',
+            'prenom'           => 'sanitize_text_field',
+            'sexe'             => 'sanitize_text_field',
+            'date_naissance'   => 'sanitize_text_field',
+            'adresse'          => 'sanitize_textarea_field',
+            'suite_adresse'    => 'sanitize_text_field',
+            'code_postal'      => 'sanitize_text_field',
+            'ville'            => 'sanitize_text_field',
+            'tel_fixe'         => 'sanitize_text_field',
+            'tel_mobile'       => 'sanitize_text_field',
+            'profession'       => 'sanitize_text_field',
+            'note'             => 'sanitize_textarea_field',
+            'region'           => 'sanitize_text_field',
+            'statut'           => 'sanitize_text_field',
+            'date_inscription' => 'sanitize_text_field',
+            'responsable_id'   => 'absint',
+            'certificat_date'  => 'sanitize_text_field',
+            'certificat_url'   => 'esc_url_raw'
         );
 
         foreach ( $optional_fields as $field => $sanitizer ) {
@@ -605,6 +614,7 @@ class UFSC_Unified_Handlers {
             'reduction_postier',
             'identifiant_laposte_flag',
             'fonction_publique',
+            'competition',
             'licence_delegataire',
             'diffusion_image',
             'infos_fsasptt',
@@ -614,6 +624,7 @@ class UFSC_Unified_Handlers {
             'honorabilite',
             'assurance_dommage_corporel',
             'assurance_assistance',
+            'paid',
             'is_included'
         );
 
