@@ -61,6 +61,9 @@ class UFSC_SQL_Admin {
         remove_submenu_page($parent_slug, 'ufsc-clubs');
         remove_submenu_page($parent_slug, 'ufsc-licences');
         remove_submenu_page($parent_slug, 'ufsc-licenses');
+        remove_submenu_page($parent_slug, 'ufsc-sql-clubs');
+        remove_submenu_page($parent_slug, 'ufsc-sql-licences');
+        remove_submenu_page($parent_slug, 'ufsc-sql-licenses');
     }
 
     /* ---------------- Menus complets (obsolète - remplacé par menu unifié) ---------------- */
