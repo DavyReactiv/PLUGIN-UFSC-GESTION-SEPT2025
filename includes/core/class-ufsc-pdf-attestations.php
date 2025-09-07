@@ -25,7 +25,7 @@ class UFSC_PDF_Attestations {
             'ufsc-dashboard',
             __( 'Attestations PDF', 'ufsc-clubs' ),
             __( 'Attestations PDF', 'ufsc-clubs' ),
-            'manage_options',
+            'ufsc_manage',
             'ufsc-attestations',
             array( __CLASS__, 'render_admin_page' )
         );
@@ -189,7 +189,7 @@ class UFSC_PDF_Attestations {
 
         check_admin_referer( 'ufsc_upload_attestation', 'ufsc_attestation_nonce' );
 
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! current_user_can( 'ufsc_manage' ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
 

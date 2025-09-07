@@ -150,7 +150,7 @@ class UFSC_Unified_Handlers {
         $target_club_id = isset( $_POST['club_id'] ) ? intval( $_POST['club_id'] ) : $managed_club;
 
         // Ensure current user can manage the target club
-        if ( ! current_user_can( 'manage_options' ) && $managed_club !== $target_club_id ) {
+        if ( ! current_user_can( 'ufsc_manage' ) && $managed_club !== $target_club_id ) {
             set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
             wp_safe_redirect( wp_get_referer() );
             exit; // Abort processing when permission check fails
@@ -327,7 +327,7 @@ class UFSC_Unified_Handlers {
         $target_club_id = isset( $_POST['club_id'] ) ? intval( $_POST['club_id'] ) : $managed_club;
 
         // Ensure the current user can manage the requested club
-        if ( ! current_user_can( 'manage_options' ) && $managed_club !== $target_club_id ) {
+        if ( ! current_user_can( 'ufsc_manage' ) && $managed_club !== $target_club_id ) {
             set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
             wp_safe_redirect( wp_get_referer() );
             exit; // Abort if user doesn't manage this club

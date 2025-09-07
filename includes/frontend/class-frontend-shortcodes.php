@@ -831,7 +831,7 @@ class UFSC_Frontend_Shortcodes {
         $club = self::get_club_data( $atts['club_id'] );
 
         $is_validated = self::is_validated_club( $atts['club_id'] );
-        $is_admin = current_user_can( 'manage_options' );
+        $is_admin = current_user_can( 'ufsc_manage' );
 
         if ( ! $club ) {
             return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
@@ -839,7 +839,7 @@ class UFSC_Frontend_Shortcodes {
                    '</div></div>';
         }
         
-        $is_admin = current_user_can( 'manage_options' );
+        $is_admin = current_user_can( 'ufsc_manage' );
         $can_edit = UFSC_CL_Permissions::ufsc_user_can_edit_club( $atts['club_id'] );
         
         if ( ! $can_edit ) {
@@ -1151,7 +1151,7 @@ class UFSC_Frontend_Shortcodes {
 
         $product_id = (int) get_option( 'ufsc_license_product_id' );
         if ( ! $product_id ) {
-            if ( current_user_can( 'manage_options' ) ) {
+            if ( current_user_can( 'ufsc_manage' ) ) {
                 return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
                     esc_html__( 'Produit licence introuvable. Veuillez configurer l\'ID du produit.', 'ufsc-clubs' ) .
                     '</div></div>';
@@ -1988,7 +1988,7 @@ class UFSC_Frontend_Shortcodes {
         }
         
         $clubs_table = ufsc_get_clubs_table();
-        $is_admin = current_user_can( 'manage_options' );
+        $is_admin = current_user_can( 'ufsc_manage' );
         
         // Verify club exists and user has permission
         $club = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$clubs_table}` WHERE id = %d", $club_id ) );
@@ -2074,7 +2074,7 @@ class UFSC_Frontend_Shortcodes {
         $pk = ufsc_club_col( 'id' );
         
         // Determine editable fields based on user role
-        $is_admin = current_user_can( 'manage_options' );
+        $is_admin = current_user_can( 'ufsc_manage' );
         
         if ( $is_admin ) {
             // Admin can edit all fields
@@ -2127,7 +2127,7 @@ class UFSC_Frontend_Shortcodes {
             return array( 'success' => false, 'message' => __( 'Non autorisé', 'ufsc-clubs' ) );
         }
         
-        $is_admin = current_user_can( 'manage_options' );
+        $is_admin = current_user_can( 'ufsc_manage' );
         global $wpdb;
         
         if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {

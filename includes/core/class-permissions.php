@@ -14,7 +14,7 @@ class UFSC_CL_Permissions {
      */
     public static function ufsc_user_can_edit_club( $club_id ) {
         // Admin users can edit any club
-        if ( current_user_can( 'manage_options' ) ) {
+        if ( current_user_can( 'ufsc_manage' ) ) {
             return true;
         }
         

@@ -297,7 +297,7 @@ class UFSC_Auth_Shortcodes {
     public static function handle_login_redirect( $redirect_to, $request, $user ) {
         if ( ! is_wp_error( $user ) ) {
             // Admin users go to admin dashboard
-            if ( user_can( $user, 'manage_options' ) ) {
+            if ( user_can( $user, 'ufsc_manage' ) ) {
                 return admin_url( 'admin.php?page=ufsc-gestion' );
             }
             
@@ -319,7 +319,7 @@ class UFSC_Auth_Shortcodes {
      * Get appropriate dashboard URL for user
      */
     private static function get_user_dashboard_url( $user ) {
-        if ( user_can( $user, 'manage_options' ) ) {
+        if ( user_can( $user, 'ufsc_manage' ) ) {
             return admin_url( 'admin.php?page=ufsc-gestion' );
         }
 
