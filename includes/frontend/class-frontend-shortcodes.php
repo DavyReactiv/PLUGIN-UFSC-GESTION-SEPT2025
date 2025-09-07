@@ -1920,7 +1920,7 @@ class UFSC_Frontend_Shortcodes {
         ) );
 
         $used = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM `{$licences_table}` WHERE club_id = %d",
+            "SELECT COUNT(*) FROM `{$licences_table}` WHERE club_id = %d AND deleted_at IS NULL",
             $club_id
         ) );
 
