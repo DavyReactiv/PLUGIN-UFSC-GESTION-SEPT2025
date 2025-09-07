@@ -236,11 +236,10 @@ class UFSC_CL_Admin_Menu {
         
         if (!empty($dashboard_data['recent_licenses'])) {
             foreach ($dashboard_data['recent_licenses'] as $license) {
-                $status_class = self::get_status_class($license->statut);
                 echo '<div class="activity-item">';
                 echo '<span class="activity-date">'.esc_html(mysql2date('d/m/Y', $license->date_inscription)).'</span>';
                 echo '<span class="activity-desc">Nouvelle licence: <strong>'.esc_html($license->prenom.' '.$license->nom).'</strong></span>';
-                echo '<span class="activity-status ufsc-status-badge ufsc-status-'.$status_class.'"><span class="ufsc-status-dot"></span>'.esc_html(UFSC_SQL::statuses()[$license->statut] ?? $license->statut).'</span>';
+                echo '<span class="activity-status">'.UFSC_Status::badge( $license->statut ).'</span>';
                 echo '</div>';
             }
         } else {
@@ -360,27 +359,6 @@ class UFSC_CL_Admin_Menu {
         set_transient($cache_key, $data, 10 * MINUTE_IN_SECONDS);
         
         return $data;
-    }
-
-    /**
-     * Get status CSS class for display
-     */
-    private static function get_status_class($status) {
-        $status_map = array(
-            'valide' => 'valid',
-            'validee' => 'valid',
-            'active' => 'valid',
-            'en_attente' => 'pending',
-            'attente' => 'pending',
-            'pending' => 'pending',
-            'a_regler' => 'pending',
-            'refuse' => 'rejected',
-            'rejected' => 'rejected',
-            'desactive' => 'inactive',
-            'inactive' => 'inactive'
-        );
-        
-        return isset($status_map[$status]) ? $status_map[$status] : 'inactive';
     }
 
     /**
