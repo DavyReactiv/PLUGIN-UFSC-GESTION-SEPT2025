@@ -71,8 +71,12 @@ class UFSC_Licences_Table {
                             $expiration = mysql2date( get_option( 'date_format' ), $licence->date_expiration );
                         }
                         $actions  = '<a class="ufsc-action" href="' . esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ) . '">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a>';
-                        if ( in_array( $licence->statut ?? '', array( 'draft', 'pending' ), true ) ) {
+                        $can_edit = in_array( $licence->statut ?? '', array( 'draft', 'pending' ), true ) || UFSC_Badges::is_active_licence_status( $licence->statut ?? '' );
+                        if ( $can_edit ) {
                             $actions .= ' <a class="ufsc-action" href="' . esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ) . '">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a>';
+                            if ( 'draft' !== ( $licence->statut ?? 'draft' ) && 'pending' !== ( $licence->statut ?? 'draft' ) ) {
+                                $actions .= ' <span class="ufsc-edit-note">' . esc_html__( 'coordonnées uniquement', 'ufsc-clubs' ) . '</span>';
+                            }
                         }
                         ?>
                         <tr>
@@ -219,9 +223,13 @@ class UFSC_Licences_Table {
 
             $actions  = '<div class="ufsc-actions">';
             $actions .= '<a class="ufsc-action" href="' . esc_url( add_query_arg( array( 'ufsc_action' => 'view', 'licence_id' => $row->id ) ) ) . '">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a>';
-            if ( empty( $row->statut ) || ! UFSC_Badges::is_active_licence_status( $row->statut ) ) {
+            $can_edit = empty( $row->statut ) || UFSC_Badges::is_active_licence_status( $row->statut ) || in_array( $row->statut, array( 'draft', 'pending' ), true );
+            if ( $can_edit ) {
                 $actions .= ' <a class="ufsc-action" href="' . esc_url( add_query_arg( array( 'ufsc_action' => 'edit', 'licence_id' => $row->id ) ) ) . '">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a>';
-                if ( current_user_can( 'manage_options' ) ) {
+                if ( UFSC_Badges::is_active_licence_status( $row->statut ) && ! in_array( $row->statut, array( 'draft', 'pending' ), true ) ) {
+                    $actions .= ' <span class="ufsc-edit-note">' . esc_html__( 'coordonnées uniquement', 'ufsc-clubs' ) . '</span>';
+                }
+                if ( ( empty( $row->statut ) || ! UFSC_Badges::is_active_licence_status( $row->statut ) ) && current_user_can( 'manage_options' ) ) {
                     $actions .= '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" class="ufsc-inline-form">';
                     $actions .= '<input type="hidden" name="action" value="ufsc_delete_licence" />';
                     $actions .= '<input type="hidden" name="licence_id" value="' . intval( $row->id ) . '" />';

@@ -8,6 +8,7 @@
 
     // Initialize when document is ready
     $(document).ready(function() {
+        applyLicenceStatus();
         initLicenseFormValidation();
         initClubRegionSync();
 
@@ -21,7 +22,7 @@
      * Initialize form validation for license forms
      */
     function initLicenseFormValidation() {
-        const form = $('form[action*="ufsc_sql_save_licence"]');
+        const form = $('.ufsc-licence-form');
         if (form.length === 0) return;
 
         // Real-time validation on blur
@@ -53,6 +54,9 @@
      */
     function validateEmail() {
         const input = $(this);
+        if (input.prop('disabled') || input.prop('readonly')) {
+            return true;
+        }
         const email = input.val().trim();
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -71,6 +75,9 @@
      */
     function validatePhone() {
         const input = $(this);
+        if (input.prop('disabled') || input.prop('readonly')) {
+            return true;
+        }
         const phone = input.val().trim();
         // French phone number regex (flexible)
         const phoneRegex = /^(?:(?:\+|00)33[\s.-]{0,3}(?:\(0\)[\s.-]{0,3})?|0)[1-9](?:[\s.-]?\d{2}){4}$/;
@@ -90,6 +97,9 @@
      */
     function validateDate() {
         const input = $(this);
+        if (input.prop('disabled') || input.prop('readonly')) {
+            return true;
+        }
         const date = input.val();
 
         clearFieldError(input);
@@ -128,6 +138,9 @@
      */
     function validateRequired() {
         const input = $(this);
+        if (input.prop('disabled') || input.prop('readonly')) {
+            return true;
+        }
         const value = input.val().trim();
 
         clearFieldError(input);
@@ -276,6 +289,15 @@
                 this.checked = false;
             }
         });
+    }
+
+    function applyLicenceStatus() {
+        const form = $('.ufsc-licence-form');
+        if (!form.length) return;
+        const status = form.data('licence-status') || 'draft';
+        if (status !== 'draft') {
+            form.find(':input').not('#email, #tel_fixe, #tel_mobile, [type="hidden"], button').prop('readonly', true).prop('disabled', true);
+        }
     }
 
     /**
