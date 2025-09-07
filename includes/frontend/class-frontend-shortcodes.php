@@ -1131,7 +1131,6 @@ class UFSC_Frontend_Shortcodes {
                    '</div></div>';
         }
 
-        // Check quota
         $quota_info  = self::get_club_quota_info( $atts['club_id'] );
         $form_data   = array();
         $form_errors = array();
@@ -1147,27 +1146,17 @@ class UFSC_Frontend_Shortcodes {
         }
 
 
-        $quota_info = self::get_club_quota_info( $atts['club_id'] );
-
-
-        // Handle form submission
-        if ( isset( $_POST['ufsc_add_licence'] ) && wp_verify_nonce( $_POST['_wpnonce'], 'ufsc_add_licence' ) ) {
-            $result = self::handle_licence_creation( $atts['club_id'], $_POST );
-            if ( $result['success'] ) {
-                echo '<div class="ufsc-message ufsc-success">' . esc_html( $result['message'] ) . '</div>';
-                if ( isset( $result['payment_url'] ) ) {
-                    echo '<div class="ufsc-message ufsc-info">';
-                    echo '<p>' . esc_html__( 'Quota atteint. Paiement requis:', 'ufsc-clubs' ) . '</p>';
-                    echo '<a href="' . esc_url( $result['payment_url'] ) . '" class="ufsc-btn ufsc-btn-primary">';
-                    echo esc_html__( 'Procéder au paiement', 'ufsc-clubs' );
-                    echo '</a>';
-                    echo '<span class="ufsc-field-error" aria-live="polite"></span></div>';
-                }
-            } else {
-                echo '<div class="ufsc-message ufsc-error">' . esc_html( $result['message'] ) . '</div>';
-
+        $product_id = (int) get_option( 'ufsc_license_product_id' );
+        if ( ! $product_id ) {
+            if ( current_user_can( 'manage_options' ) ) {
+                return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                    esc_html__( 'Produit licence introuvable. Veuillez configurer l\'ID du produit.', 'ufsc-clubs' ) .
+                    '</div></div>';
             }
+            return '';
         }
+
+        $product_url = get_permalink( $product_id );
 
         ob_start();
         ?>
@@ -1194,11 +1183,10 @@ class UFSC_Frontend_Shortcodes {
                 </div>
             <?php endif; ?>
 
-            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-form">
+            <form method="post" action="<?php echo esc_url( $product_url ); ?>" class="ufsc-licence-form">
 
-                <input type="hidden" name="action" value="ufsc_save_licence">
-                <?php wp_nonce_field( 'ufsc_save_licence' ); ?>
-                <input type="hidden" name="ufsc_submit_action" id="ufsc_submit_action" value="save">
+                <input type="hidden" name="add-to-cart" value="<?php echo esc_attr( $product_id ); ?>">
+                <?php wp_nonce_field( 'ufsc_add_licence' ); ?>
 
                 <div class="ufsc-notices" aria-live="polite"></div>
 
@@ -1430,10 +1418,7 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <div class="ufsc-form-actions">
-                    <button type="submit" class="ufsc-btn ufsc-btn-primary" onclick="document.getElementById('ufsc_submit_action').value='save';">
-                        <?php esc_html_e( 'Enregistrer', 'ufsc-clubs' ); ?>
-                    </button>
-                    <button type="submit" class="ufsc-btn ufsc-btn-secondary" onclick="document.getElementById('ufsc_submit_action').value='add_to_cart';">
+                    <button type="submit" class="ufsc-btn ufsc-btn-primary">
                         <?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?>
                     </button>
                 </div>
