@@ -132,8 +132,15 @@ class UFSC_Media {
         check_admin_referer( 'ufsc_remove_profile_photo', 'ufsc_remove_profile_photo_nonce' );
 
         self::remove_profile_photo( $club_id );
-        $redirect = ufsc_redirect_with_notice( wp_get_referer(), 'profile_photo_removed' );
-        wp_safe_redirect( $redirect );
+
+        $dashboard_page = get_option( 'ufsc_dashboard_page' );
+        if ( $dashboard_page ) {
+            $dashboard_url = get_permalink( $dashboard_page );
+        } else {
+            $dashboard_url = home_url( '/club-dashboard/' );
+        }
+
+        wp_safe_redirect( ufsc_redirect_with_notice( add_query_arg( 'tab', 'club', $dashboard_url ), 'profile_photo_removed' ) );
         exit;
     }
 
