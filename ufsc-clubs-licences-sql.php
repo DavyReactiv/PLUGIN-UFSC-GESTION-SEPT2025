@@ -82,6 +82,13 @@ require_once UFSC_CL_DIR.'includes/woo/class-ufsc-woo-sync.php';
 register_activation_hook(__FILE__, ['UFSC_DB_Migrations','activate']);
 add_action('plugins_loaded', ['UFSC_DB_Migrations','maybe_upgrade']);
 
+register_activation_hook(__FILE__, function() {
+    if ($r = get_role('administrator')) $r->add_cap('ufsc_manage');
+});
+add_action('admin_init', function() {
+    if ($r = get_role('administrator')) $r->add_cap('ufsc_manage');
+});
+
 UFSC_Export_Clubs::init();
 UFSC_Export_Licences::init();
 
