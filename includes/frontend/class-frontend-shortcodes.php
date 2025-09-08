@@ -1906,40 +1906,29 @@ class UFSC_Frontend_Shortcodes {
             }
         }
         
-        $update_data = array();
-        
-        if ( $is_admin ) {
-            // Admin can update all fields present in the data
-            $allowed_fields = ['nom', 'sigle', 'email', 'telephone', 'adresse', 'code_postal', 'ville', 'region'];
-            foreach ( $allowed_fields as $field ) {
-                if ( isset( $data[$field] ) ) {
-                    $update_data[$field] = sanitize_text_field( $data[$field] );
-                }
+        $status        = $club->statut ?? '';
+        $context       = $is_admin ? 'admin' : 'update';
+        $allowed_fields = ufsc_allowed_fields( 'club', $context, $status );
+        $update_data    = array();
+        foreach ( $data as $field => $value ) {
+            if ( in_array( $field, $allowed_fields, true ) ) {
+                $update_data[ $field ] = sanitize_text_field( $value );
             }
-            
-            // Handle logo upload for admin
-            if ( ! empty( $_FILES['club_logo']['name'] ) ) {
-                $upload_result = wp_handle_upload( $_FILES['club_logo'], array( 'test_form' => false ) );
-                if ( ! isset( $upload_result['error'] ) ) {
-                    $attachment_id = wp_insert_attachment( array(
-                        'post_title' => sanitize_file_name( $_FILES['club_logo']['name'] ),
-                        'post_content' => '',
-                        'post_status' => 'inherit',
-                        'post_mime_type' => $upload_result['type']
-                    ), $upload_result['file'] );
-                    
-                    if ( $attachment_id ) {
-                        update_option( 'ufsc_club_logo_' . $club_id, $attachment_id );
-                    }
-                }
-            }
-            
-        } else {
-            // Non-admin can only update email and telephone
-            $allowed_fields = ['email', 'telephone'];
-            foreach ( $allowed_fields as $field ) {
-                if ( isset( $data[$field] ) ) {
-                    $update_data[$field] = sanitize_text_field( $data[$field] );
+        }
+
+        // Handle logo upload for admin
+        if ( $is_admin && ! empty( $_FILES['club_logo']['name'] ) ) {
+            $upload_result = wp_handle_upload( $_FILES['club_logo'], array( 'test_form' => false ) );
+            if ( ! isset( $upload_result['error'] ) ) {
+                $attachment_id = wp_insert_attachment( array(
+                    'post_title'   => sanitize_file_name( $_FILES['club_logo']['name'] ),
+                    'post_content' => '',
+                    'post_status'  => 'inherit',
+                    'post_mime_type' => $upload_result['type'],
+                ), $upload_result['file'] );
+
+                if ( $attachment_id ) {
+                    update_option( 'ufsc_club_logo_' . $club_id, $attachment_id );
                 }
             }
         }
@@ -1978,14 +1967,9 @@ class UFSC_Frontend_Shortcodes {
         
         // Determine editable fields based on user role
         $is_admin = current_user_can( 'ufsc_manage' );
-        
-        if ( $is_admin ) {
-            // Admin can edit all fields
-            $allowed_fields = array_keys( UFSC_Column_Map::get_clubs_columns() );
-        } else {
-            // Non-admin can only edit email and telephone
-            $allowed_fields = array( 'email', 'telephone' );
-        }
+        $status   = $wpdb->get_var( $wpdb->prepare( "SELECT statut FROM `{$table}` WHERE `{$pk}` = %d", $club_id ) );
+        $context  = $is_admin ? 'admin' : 'update';
+        $allowed_fields = ufsc_allowed_fields( 'club', $context, $status );
         
         $update_data = array();
         foreach ( $allowed_fields as $field ) {
@@ -2040,7 +2024,9 @@ class UFSC_Frontend_Shortcodes {
         $table = ufsc_get_clubs_table();
         
         // Determine allowed fields based on user permissions
-        $allowed_fields = $is_admin ? null : array( 'email', 'telephone' );
+        $club_status   = $wpdb->get_var( $wpdb->prepare( "SELECT statut FROM `{$table}` WHERE id = %d", $club_id ) );
+        $context       = $is_admin ? 'admin' : 'update';
+        $allowed_fields = ufsc_allowed_fields( 'club', $context, $club_status );
         
         $update_data = array();
         

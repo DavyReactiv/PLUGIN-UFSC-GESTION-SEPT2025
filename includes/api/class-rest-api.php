@@ -372,8 +372,8 @@ class UFSC_REST_API {
             return new WP_Error( 'licence_not_found', __( 'Licence non trouvée.', 'ufsc-clubs' ), array( 'status' => 404 ) );
         }
 
-        // Allow only known fields
-        $allowed_fields = array_keys( $settings['licence_fields'] );
+        $licence_status = $wpdb->get_var( $wpdb->prepare( "SELECT statut FROM {$licences_table} WHERE id = %d", $licence_id ) );
+        $allowed_fields = ufsc_allowed_fields( 'licence', 'update', $licence_status );
         $sanitized      = array();
         foreach ( $data as $key => $value ) {
             if ( ! in_array( $key, $allowed_fields, true ) ) {
@@ -481,15 +481,12 @@ class UFSC_REST_API {
     private static function update_club_info( $club_id, $request ) {
         $data = $request->get_json_params();
 
-        // Check if club is validated (restrictions apply)
-        if ( ufsc_is_validated_club( $club_id ) ) {
-            // Only allow limited fields for validated clubs
-            $allowed_fields = array( 'email', 'telephone', 'precision_distribution' );
-            $data = array_intersect_key( $data, array_flip( $allowed_fields ) );
-            
-            if ( empty( $data ) ) {
-                return new WP_Error( 'club_validated', __( 'Ce club est validé, seuls certains champs peuvent être modifiés.', 'ufsc-clubs' ), array( 'status' => 403 ) );
-            }
+        $status = ufsc_is_validated_club( $club_id ) ? 'valide' : '';
+        $allowed_fields = ufsc_allowed_fields( 'club', 'update', $status );
+        $data = array_intersect_key( $data, array_flip( $allowed_fields ) );
+
+        if ( empty( $data ) ) {
+            return new WP_Error( 'club_validated', __( 'Ce club est validé, seuls certains champs peuvent être modifiés.', 'ufsc-clubs' ), array( 'status' => 403 ) );
         }
 
         // Sanitize data

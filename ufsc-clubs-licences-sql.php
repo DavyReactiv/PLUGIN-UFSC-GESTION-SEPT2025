@@ -73,6 +73,7 @@ require_once UFSC_CL_DIR.'inc/common/regions.php';
 require_once UFSC_CL_DIR.'inc/common/tables.php';
 require_once UFSC_CL_DIR.'inc/settings.php';
 require_once UFSC_CL_DIR.'inc/form-license-sanitizer.php';
+require_once UFSC_CL_DIR.'inc/permissions.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/settings-woocommerce.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/hooks.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/admin-actions.php';
