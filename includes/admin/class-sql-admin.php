@@ -8,38 +8,6 @@ if ( ! is_admin() ) {
 
 class UFSC_SQL_Admin {
 
-    /**
-     * Generate status badge with colored dot
-     */
-    private static function get_status_badge($status, $label = '') {
-        if (empty($label)) {
-            $label = UFSC_SQL::statuses()[$status] ?? $status;
-        }
-        
-        // Map status to CSS class
-        $status_map = array(
-            'valide' => 'valid',
-            'validee' => 'valid',
-            'active' => 'valid',
-            'en_attente' => 'pending',
-            'attente' => 'pending',
-            'pending' => 'pending',
-            'a_regler' => 'pending',
-            'refuse' => 'rejected',
-            'rejected' => 'rejected',
-            'desactive' => 'inactive',
-            'inactive' => 'inactive',
-            'off' => 'inactive'
-        );
-        
-        $css_class = isset($status_map[$status]) ? $status_map[$status] : 'inactive';
-        
-        return '<span class="ufsc-status-badge ufsc-status-' . esc_attr($css_class) . '">' .
-               '<span class="ufsc-status-dot"></span>' .
-               esc_html($label) .
-               '</span>';
-    }
-
     /* ---------------- Menus cachés pour accès direct ---------------- */
     public static function register_hidden_pages()
     {
@@ -940,11 +908,6 @@ class UFSC_SQL_Admin {
         
         if ( $rows ){
             foreach($rows as $r){
-                $map = array('valide'=>'success','a_regler'=>'info','desactive'=>'off','en_attente'=>'wait');
-                $cls = isset($map[$r->statut]) ? $map[$r->statut] : 'info';
-                $status_label = UFSC_SQL::statuses()[$r->statut] ?? $r->statut;
-                $badge = UFSC_CL_Utils::esc_badge( $status_label, $cls );
-                
                 $view_url = admin_url('admin.php?page=ufsc-licences&action=view&id='.$r->$pk);
                 $edit_url = admin_url('admin.php?page=ufsc-licences&action=edit&id='.$r->$pk);
                 $del_url  = wp_nonce_url( admin_url('admin-post.php?action=ufsc_sql_delete_licence&id='.$r->$pk), 'ufsc_sql_delete_licence' );
@@ -960,8 +923,8 @@ class UFSC_SQL_Admin {
                 echo '<td>'.esc_html($r->region).'</td>';
                 echo '<td>';
                 
-                // Display status badge with colored dot
-                echo self::get_status_badge($r->statut);
+                // Display status badge using unified status helper
+                echo UFSC_Status::badge( $r->statut );
                 
                 echo '</td>';
                 echo '<td>'.esc_html($r->date_inscription ?: '').'</td>';
