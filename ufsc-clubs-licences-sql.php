@@ -2,13 +2,13 @@
 /**
  * Plugin Name: UFSC – Clubs & Licences (SQL)
  * Description: Gestion Clubs/Licences connectée aux tables SQL existantes (mapping complet), formulaires complets (admin & front), documents PDF/JPG/PNG, exports CSV, badges colorés, mini-dashboard, shortcodes.
- * Version: 1.5.7
+ * Version: 1.5.8
  * Author: Davy – Studio REACTIV (pour l'UFSC)
  * Text Domain: ufsc-clubs
  */
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-define( 'UFSC_CL_VERSION', '1.5.7' );
+define( 'UFSC_CL_VERSION', '1.5.8' );
 define( 'UFSC_CL_DIR', plugin_dir_path( __FILE__ ) );
 define( 'UFSC_CL_URL', plugin_dir_url( __FILE__ ) );
 
