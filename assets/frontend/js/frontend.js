@@ -29,12 +29,14 @@ jQuery(document).ready(function($) {
             $('input[name="redirect_to"]').val(currentUrl);
         }
 
-        function activateTab(section, focusPanel, updateUrl) {
+        function activateTab(section, focusPanel, updateUrl, push) {
             focusPanel = focusPanel !== false;
             updateUrl = updateUrl !== false;
+            push = push === true;
 
             var $tab = $tabs.filter('[data-section="' + section + '"]');
-            var $panel = $('#ufsc-section-' + section);
+            var panelId = $tab.attr('aria-controls');
+            var $panel = panelId ? $('#' + panelId) : $();
 
             if (!$tab.length || !$panel.length) {
                 return;
@@ -60,7 +62,11 @@ jQuery(document).ready(function($) {
                 var url = new URL(window.location.href);
                 url.searchParams.set('tab', section);
                 url.hash = section;
-                history.replaceState(null, '', url.toString());
+                if (push) {
+                    history.pushState(null, '', url.toString());
+                } else {
+                    history.replaceState(null, '', url.toString());
+                }
             }
 
             updateRedirectFields();
@@ -68,36 +74,17 @@ jQuery(document).ready(function($) {
 
         $triggers.on('click', function(e) {
             e.preventDefault();
-
-
             var section = $(this).data('section');
-
-            // Update nav buttons
-            $('.ufsc-nav-btn').removeClass('active');
-            $(this).addClass('active');
-
-            // Show corresponding section
-            $('.ufsc-dashboard-section').removeClass('active');
-            $('#ufsc-section-' + section).addClass('active');
-
-            // Update URL with hash and tab parameter
-            if (history.pushState) {
-                var url = new URL(window.location.href);
-                url.hash = section;
-                url.searchParams.set('tab', section);
-                history.pushState(null, '', url.toString());
-            }
-
-            // Focus management for accessibility
-            $('#ufsc-section-' + section).focus();
+            activateTab(section, true, true, true);
         });
 
-        // Handle URL hash or tab parameter on page load
         var params = new URLSearchParams(window.location.search);
-        var target = params.get('tab') || window.location.hash.substring(1);
-        if (target && $('.ufsc-nav-btn[data-section="' + target + '"]').length) {
-            activateTab(target, true, false);
+        var initial = params.get('tab') || window.location.hash.substring(1);
+        if (!initial || !$tabs.filter('[data-section="' + initial + '"]').length) {
+            initial = $tabs.first().data('section');
         }
+
+        activateTab(initial, false, false);
 
         $tabs.on('keydown', function(e) {
             var index = $tabs.index(this);
@@ -123,15 +110,6 @@ jQuery(document).ready(function($) {
             e.preventDefault();
             activateTab($tabs.eq(newIndex).data('section'), false);
         });
-
-        var params = new URLSearchParams(window.location.search);
-        var initial = params.get('tab') || window.location.hash.substring(1);
-        if (!initial || !$tabs.filter('[data-section="' + initial + '"]').length) {
-            initial = $tabs.first().data('section');
-
-        }
-
-        activateTab(initial, false, false);
 
         $(window).on('popstate', function() {
             var p = new URLSearchParams(window.location.search);

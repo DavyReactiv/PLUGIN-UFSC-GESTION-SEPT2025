@@ -105,10 +105,13 @@ class UFSC_Frontend_Shortcodes {
                    '</div></div>';
         }
 
-        $sections   = explode( ',', $atts['show_sections'] );
+        $sections     = explode( ',', $atts['show_sections'] );
         $dashboard_id = uniqid( 'ufsc-dashboard-' );
         $tab_prefix   = $dashboard_id . '-tab-';
         $panel_prefix = $dashboard_id . '-section-';
+
+        $requested_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : '';
+        $active_section = in_array( $requested_tab, $sections, true ) ? $requested_tab : $sections[0];
 
         ob_start();
         ?>
@@ -135,22 +138,26 @@ class UFSC_Frontend_Shortcodes {
 
             <div class="ufsc-dashboard-nav" role="tablist">
                 <?php if ( in_array( 'licences', $sections ) ) : ?>
-                    <button class="ufsc-nav-btn active" role="tab" id="<?php echo esc_attr( $tab_prefix . 'licences' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'licences' ); ?>" aria-selected="true" tabindex="0" data-section="licences">
+                    <?php $is_active = ( 'licences' === $active_section ); ?>
+                    <button class="ufsc-nav-btn<?php echo $is_active ? ' active' : ''; ?>" role="tab" id="<?php echo esc_attr( $tab_prefix . 'licences' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'licences' ); ?>" aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>" tabindex="<?php echo $is_active ? '0' : '-1'; ?>" data-section="licences">
                         <?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( in_array( 'stats', $sections ) ) : ?>
-                    <button class="ufsc-nav-btn" role="tab" id="<?php echo esc_attr( $tab_prefix . 'stats' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'stats' ); ?>" aria-selected="false" tabindex="-1" data-section="stats">
+                    <?php $is_active = ( 'stats' === $active_section ); ?>
+                    <button class="ufsc-nav-btn<?php echo $is_active ? ' active' : ''; ?>" role="tab" id="<?php echo esc_attr( $tab_prefix . 'stats' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'stats' ); ?>" aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>" tabindex="<?php echo $is_active ? '0' : '-1'; ?>" data-section="stats">
                         <?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( in_array( 'profile', $sections ) ) : ?>
-                    <button class="ufsc-nav-btn" role="tab" id="<?php echo esc_attr( $tab_prefix . 'profile' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'profile' ); ?>" aria-selected="false" tabindex="-1" data-section="profile">
+                    <?php $is_active = ( 'profile' === $active_section ); ?>
+                    <button class="ufsc-nav-btn<?php echo $is_active ? ' active' : ''; ?>" role="tab" id="<?php echo esc_attr( $tab_prefix . 'profile' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'profile' ); ?>" aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>" tabindex="<?php echo $is_active ? '0' : '-1'; ?>" data-section="profile">
                         <?php esc_html_e( 'Mon Club', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( in_array( 'add_licence', $sections ) ) : ?>
-                    <button class="ufsc-nav-btn" role="tab" id="<?php echo esc_attr( $tab_prefix . 'add_licence' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'add_licence' ); ?>" aria-selected="false" tabindex="-1" data-section="add_licence">
+                    <?php $is_active = ( 'add_licence' === $active_section ); ?>
+                    <button class="ufsc-nav-btn<?php echo $is_active ? ' active' : ''; ?>" role="tab" id="<?php echo esc_attr( $tab_prefix . 'add_licence' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'add_licence' ); ?>" aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>" tabindex="<?php echo $is_active ? '0' : '-1'; ?>" data-section="add_licence">
                         <?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
@@ -158,25 +165,29 @@ class UFSC_Frontend_Shortcodes {
 
             <div class="ufsc-dashboard-content">
                 <?php if ( in_array( 'licences', $sections ) ) : ?>
-                    <div id="<?php echo esc_attr( $panel_prefix . 'licences' ); ?>" class="ufsc-dashboard-section active" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'licences' ); ?>" tabindex="0">
+                    <?php $is_active = ( 'licences' === $active_section ); ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'licences' ); ?>" class="ufsc-dashboard-section<?php echo $is_active ? ' active' : ''; ?>" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'licences' ); ?>" tabindex="0" <?php echo $is_active ? '' : 'hidden'; ?>>
                         <?php echo self::render_club_licences( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if ( in_array( 'stats', $sections ) ) : ?>
-                    <div id="<?php echo esc_attr( $panel_prefix . 'stats' ); ?>" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'stats' ); ?>" tabindex="0" hidden>
+                    <?php $is_active = ( 'stats' === $active_section ); ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'stats' ); ?>" class="ufsc-dashboard-section<?php echo $is_active ? ' active' : ''; ?>" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'stats' ); ?>" tabindex="0" <?php echo $is_active ? '' : 'hidden'; ?>>
                         <?php echo self::render_club_stats( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if ( in_array( 'profile', $sections ) ) : ?>
-                    <div id="<?php echo esc_attr( $panel_prefix . 'profile' ); ?>" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'profile' ); ?>" tabindex="0" hidden>
+                    <?php $is_active = ( 'profile' === $active_section ); ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'profile' ); ?>" class="ufsc-dashboard-section<?php echo $is_active ? ' active' : ''; ?>" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'profile' ); ?>" tabindex="0" <?php echo $is_active ? '' : 'hidden'; ?>>
                         <?php echo self::render_club_profile( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if ( in_array( 'add_licence', $sections ) ) : ?>
-                    <div id="<?php echo esc_attr( $panel_prefix . 'add_licence' ); ?>" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'add_licence' ); ?>" tabindex="0" hidden>
+                    <?php $is_active = ( 'add_licence' === $active_section ); ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'add_licence' ); ?>" class="ufsc-dashboard-section<?php echo $is_active ? ' active' : ''; ?>" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'add_licence' ); ?>" tabindex="0" <?php echo $is_active ? '' : 'hidden'; ?>>
                         <?php echo self::render_add_licence( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
