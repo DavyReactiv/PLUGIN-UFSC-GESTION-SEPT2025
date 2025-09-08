@@ -8,9 +8,6 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * transitions with UFSC SQL tables.
  */
 class UFSC_Woo_Sync {
-    /** @var int Licence product ID */
-    protected static $license_product_id = 2934;
-
     /** @var int Affiliation product ID */
     protected static $affiliation_product_id = 4823;
 
@@ -20,9 +17,6 @@ class UFSC_Woo_Sync {
     public static function init() {
         if ( function_exists( 'ufsc_get_woocommerce_settings' ) ) {
             $settings = ufsc_get_woocommerce_settings();
-            if ( ! empty( $settings['product_license_id'] ) ) {
-                self::$license_product_id = (int) $settings['product_license_id'];
-            }
             if ( ! empty( $settings['product_affiliation_id'] ) ) {
                 self::$affiliation_product_id = (int) $settings['product_affiliation_id'];
             }
@@ -43,7 +37,7 @@ class UFSC_Woo_Sync {
      * @return array
      */
     public static function add_cart_item_data( $cart_item_data, $product_id ) {
-        if ( $product_id == self::$license_product_id ) {
+        if ( (int) $product_id === UFSC_WC_LICENCE_PRODUCT_ID ) {
             if ( isset( $_REQUEST['ufsc_licence_id'] ) ) {
                 $cart_item_data['ufsc_licence_id'] = absint( $_REQUEST['ufsc_licence_id'] );
             } else {
@@ -96,7 +90,7 @@ class UFSC_Woo_Sync {
         foreach ( $order->get_items() as $item ) {
             $product_id = $item->get_product_id();
 
-            if ( $product_id == self::$license_product_id ) {
+            if ( (int) $product_id === UFSC_WC_LICENCE_PRODUCT_ID ) {
                 $licence_id = $item->get_meta( '_ufsc_licence_id', true );
                 if ( $licence_id ) {
                     self::activate_licence( $licence_id );
@@ -133,7 +127,7 @@ class UFSC_Woo_Sync {
         foreach ( $order->get_items() as $item ) {
             $product_id = $item->get_product_id();
 
-            if ( $product_id == self::$license_product_id ) {
+            if ( (int) $product_id === UFSC_WC_LICENCE_PRODUCT_ID ) {
                 $licence_id = $item->get_meta( '_ufsc_licence_id', true );
                 if ( $licence_id ) {
                     self::rollback_licence( $licence_id );

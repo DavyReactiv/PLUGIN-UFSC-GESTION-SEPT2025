@@ -428,12 +428,11 @@ class UFSC_Unified_Handlers {
 
         $new_id = $result;
 
-        $wc_settings    = ufsc_get_woocommerce_settings();
-        $included_quota = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
+        $wc_settings     = ufsc_get_woocommerce_settings();
+        $included_quota  = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
         $current_included = UFSC_SQL::count_included_licences( $club_id );
 
-        $auto_consume = ! empty( $wc_settings['auto_consume_included'] );
-        if ( $auto_consume && $current_included < $included_quota ) {
+        if ( $current_included < $included_quota ) {
             UFSC_SQL::mark_licence_as_included( $new_id );
             $redirect_url = esc_url_raw( add_query_arg(
                 array(
@@ -450,19 +449,16 @@ class UFSC_Unified_Handlers {
         // Quota exceeded: add licence product to cart
         if ( function_exists( 'WC' ) ) {
             function_exists( 'wc_load_cart' ) && wc_load_cart();
-            $product_id     = $wc_settings['product_license_id'];
             $cart_item_data = array(
                 'ufsc_licence_id' => $new_id,
                 'ufsc_club_id'    => $club_id,
-                'season'          => $wc_settings['season'],
-                'category'        => isset( $data['categorie'] ) ? sanitize_text_field( $data['categorie'] ) : '',
             );
-            $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
+            $added = WC()->cart->add_to_cart( UFSC_WC_LICENCE_PRODUCT_ID, 1, 0, array(), $cart_item_data );
 
             if ( ! $added ) {
                 self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
             } else {
-                wc_add_to_cart_message( array( $product_id => 1 ), true );
+                wc_add_to_cart_message( array( UFSC_WC_LICENCE_PRODUCT_ID => 1 ), true );
                 if ( function_exists( 'ufsc_maybe_redirect_after_add_to_cart' ) ) {
                     ufsc_maybe_redirect_after_add_to_cart();
                 }
