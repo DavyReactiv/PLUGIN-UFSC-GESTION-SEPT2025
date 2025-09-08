@@ -151,26 +151,26 @@ class UFSC_CL_Admin_Menu {
         echo '<div class="ufsc-dashboard-cards">';
         
         // Clubs KPIs
-        echo '<div class="ufsc-dashboard-card">';
+        echo '<div class="ufsc-dashboard-card" role="group" tabindex="0" aria-label="'.esc_attr__('Clubs Total','ufsc-clubs').'">';
         echo '<div class="card-label">'.esc_html__('Clubs Total','ufsc-clubs').'</div>';
         echo '<div class="card-value">'.esc_html($dashboard_data['clubs_total']).'</div>';
         echo '<div class="card-description">'.sprintf(esc_html__('%d actifs','ufsc-clubs'), $dashboard_data['clubs_active']).'</div>';
         echo '</div>';
         
         // Licenses by status
-        echo '<div class="ufsc-dashboard-card">';
+        echo '<div class="ufsc-dashboard-card" role="group" tabindex="0" aria-label="'.esc_attr__('Licences Validées','ufsc-clubs').'">';
         echo '<div class="card-label">'.esc_html__('Licences Validées','ufsc-clubs').'</div>';
         echo '<div class="card-value" style="color: #00a32a;">'.esc_html($dashboard_data['licenses_valid']).'</div>';
         echo '<div class="card-description">'.sprintf(esc_html__('sur %d total','ufsc-clubs'), $dashboard_data['licenses_total']).'</div>';
         echo '</div>';
         
-        echo '<div class="ufsc-dashboard-card">';
+        echo '<div class="ufsc-dashboard-card" role="group" tabindex="0" aria-label="'.esc_attr__('En Attente','ufsc-clubs').'">';
         echo '<div class="card-label">'.esc_html__('En Attente','ufsc-clubs').'</div>';
         echo '<div class="card-value" style="color: #f0b000;">'.esc_html($dashboard_data['licenses_pending']).'</div>';
         echo '<div class="card-description">'.esc_html__('paiement requis','ufsc-clubs').'</div>';
         echo '</div>';
         
-        echo '<div class="ufsc-dashboard-card">';
+        echo '<div class="ufsc-dashboard-card" role="group" tabindex="0" aria-label="'.esc_attr__('Licences Refusées','ufsc-clubs').'">';
         echo '<div class="card-label">'.esc_html__('Licences Refusées','ufsc-clubs').'</div>';
         echo '<div class="card-value" style="color: #d63638;">'.esc_html($dashboard_data['licenses_rejected']).'</div>';
         echo '<div class="card-description">'.esc_html__('révision nécessaire','ufsc-clubs').'</div>';
@@ -178,7 +178,7 @@ class UFSC_CL_Admin_Menu {
         
         // Expiring licenses (if available)
         if (isset($dashboard_data['licenses_expiring_soon'])) {
-            echo '<div class="ufsc-dashboard-card">';
+            echo '<div class="ufsc-dashboard-card" role="group" tabindex="0" aria-label="'.esc_attr__('Expirent < 30j','ufsc-clubs').'">';
             echo '<div class="card-label">'.esc_html__('Expirent < 30j','ufsc-clubs').'</div>';
             echo '<div class="card-value" style="color: #f56e28;">'.esc_html($dashboard_data['licenses_expiring_soon']).'</div>';
             echo '<div class="card-description">'.esc_html__('renouvellement requis','ufsc-clubs').'</div>';

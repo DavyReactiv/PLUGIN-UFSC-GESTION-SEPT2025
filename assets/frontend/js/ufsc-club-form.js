@@ -228,11 +228,11 @@
             const $submitBtn = $(this).find('button[type="submit"]');
             const originalText = $submitBtn.text();
             
-            $submitBtn.prop('disabled', true).text('Enregistrement...');
-            
-            // Re-enable after a timeout as fallback
+            $submitBtn.attr('aria-busy', 'true').text('Enregistrement...');
+
+            // Remove busy state after a timeout as fallback
             setTimeout(function() {
-                $submitBtn.prop('disabled', false).text(originalText);
+                $submitBtn.removeAttr('aria-busy').text(originalText);
             }, 30000);
         });
         

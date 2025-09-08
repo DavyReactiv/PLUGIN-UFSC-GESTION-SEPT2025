@@ -6,6 +6,11 @@
     --ufsc-font-size-heading: 1.4rem;
     --ufsc-font-weight-regular: 400;
     --ufsc-font-weight-semibold: 600;
+    --ufsc-color-navy: #1C2143;
+    --ufsc-color-steel: #2E3A8C;
+    --ufsc-color-light-gray: #F3F5F9;
+    --ufsc-color-white: #ffffff;
+    --ufsc-color-red: #E31E24;
 }
 
 /* // UFSC: Premium Grid System */
@@ -39,8 +44,8 @@
 
 /* // UFSC: Premium Card System */
 .ufsc-card {
-    background: #ffffff;
-    border: 1px solid #e1e5e9;
+    background: var(--ufsc-color-white);
+    border: 1px solid var(--ufsc-color-light-gray);
     border-radius: 8px;
     padding: 1.5rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
@@ -52,11 +57,16 @@
     transform: translateY(-2px);
 }
 
+.ufsc-card:focus-within {
+    outline: 2px solid var(--ufsc-color-steel);
+    outline-offset: 2px;
+}
+
 .ufsc-card h3 {
     margin: 0 0 1rem 0;
     font-size: 1.1rem;
     font-weight: 600;
-    color: #2c3e50;
+    color: var(--ufsc-color-navy);
 }
 
 /* // UFSC: Button System */
@@ -74,24 +84,53 @@
     transition: all 0.2s ease;
 }
 
-.ufsc-btn-primary {
-    background: #3498db;
-    color: white;
+.ufsc-btn:focus {
+    outline: 2px solid var(--ufsc-color-steel);
+    outline-offset: 2px;
 }
 
-.ufsc-btn-primary:hover {
-    background: #2980b9;
-    color: white;
+.ufsc-btn-primary {
+    background: var(--ufsc-color-steel);
+    color: var(--ufsc-color-white);
+}
+
+.ufsc-btn-primary:hover,
+.ufsc-btn-primary:focus {
+    background: var(--ufsc-color-navy);
+    color: var(--ufsc-color-white);
 }
 
 .ufsc-btn-secondary {
-    background: #95a5a6;
-    color: white;
+    background: var(--ufsc-color-light-gray);
+    color: var(--ufsc-color-navy);
 }
 
-.ufsc-btn-secondary:hover {
-    background: #7f8c8d;
-    color: white;
+.ufsc-btn-secondary:hover,
+.ufsc-btn-secondary:focus {
+    background: var(--ufsc-color-steel);
+    color: var(--ufsc-color-white);
+}
+
+/* // UFSC: Badge System */
+.ufsc-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    background: var(--ufsc-color-light-gray);
+    color: var(--ufsc-color-navy);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.ufsc-badge:focus {
+    outline: 2px solid var(--ufsc-color-steel);
+    outline-offset: 2px;
+}
+
+/* // UFSC: Tabs */
+.ufsc-nav-btn:focus {
+    outline: 2px solid var(--ufsc-color-steel);
+    outline-offset: 2px;
 }
 
 /* Dashboard Layout */
@@ -506,7 +545,7 @@
 
 .ufsc-alert-error {
     background: #f8d7da;
-    border-left-color: #dc3545;
+    border-left-color: var(--ufsc-color-red);
     color: #721c24;
 }
 
@@ -598,8 +637,8 @@
 }
 
 .ufsc-btn-small.-danger {
-    background: #dc3545;
-    border-color: #dc3545;
+    background: var(--ufsc-color-red);
+    border-color: var(--ufsc-color-red);
 }
 
 .ufsc-btn-small.-danger:hover {
@@ -1734,12 +1773,12 @@ textarea:focus {
 .ufsc-form-field.has-error input,
 .ufsc-form-field.has-error textarea,
 .ufsc-form-field.has-error select {
-    border-color: #dc3545;
-    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+    border-color: var(--ufsc-color-red);
+    box-shadow: 0 0 0 3px rgba(227, 30, 36, 0.1);
 }
 
 .ufsc-field-error {
-    color: #dc3545;
+    color: var(--ufsc-color-red);
     font-size: 0.8rem;
     margin-top: 0.25rem;
     display: block;

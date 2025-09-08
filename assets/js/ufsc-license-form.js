@@ -336,8 +336,8 @@
         $('form').on('submit', function() {
             const form = $(this);
             const buttons = form.find('button[type="submit"]');
-            
-            buttons.prop('disabled', true).each(function() {
+
+            buttons.attr('aria-busy', 'true').each(function() {
                 const btn = $(this);
                 const originalText = btn.text();
                 btn.data('original-text', originalText);

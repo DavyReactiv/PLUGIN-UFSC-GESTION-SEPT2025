@@ -72,7 +72,7 @@ class UFSC_Badge_Helper {
         $class = isset( $options['class'] ) ? $options['class'] : $config['class'];
         
         return sprintf(
-            '<span class="ufsc-badge %s" data-status="%s">%s</span>',
+            '<span class="ufsc-badge %s" data-status="%s" role="status">%s</span>',
             esc_attr( $class ),
             esc_attr( $status ),
             esc_html( $label )
@@ -91,7 +91,7 @@ class UFSC_Badge_Helper {
         $class = isset( $options['class'] ) ? $options['class'] : $config['class'];
         
         return sprintf(
-            '<span class="ufsc-badge %s" data-region="%s">%s</span>',
+            '<span class="ufsc-badge %s" data-region="%s" role="status">%s</span>',
             esc_attr( $class ),
             esc_attr( $region ),
             esc_html( $region )
@@ -114,7 +114,7 @@ class UFSC_Badge_Helper {
         $class = isset( $options['class'] ) ? $options['class'] : $config['class'];
         
         return sprintf(
-            '<span class="ufsc-badge %s" data-doc-status="%s">%s</span>',
+            '<span class="ufsc-badge %s" data-doc-status="%s" role="status">%s</span>',
             esc_attr( $class ),
             esc_attr( $status ),
             esc_html( $label )
@@ -127,11 +127,16 @@ class UFSC_Badge_Helper {
      */
     public static function enqueue_styles() {
         add_action( 'wp_enqueue_scripts', function() {
-            wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+            $post = get_post();
+            if ( $post && ( has_shortcode( $post->post_content, 'ufsc_login_form' ) || has_shortcode( $post->post_content, 'ufsc_user_status' ) ) ) {
+                wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+            }
         } );
 
-        add_action( 'admin_enqueue_scripts', function() {
-            wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+        add_action( 'admin_enqueue_scripts', function( $hook ) {
+            if ( strpos( (string) $hook, 'ufsc' ) !== false ) {
+                wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+            }
         } );
     }
 
