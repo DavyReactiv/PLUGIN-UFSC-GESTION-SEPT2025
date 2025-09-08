@@ -14,24 +14,25 @@ class UFSC_SQL_Admin {
         // Enregistrer les pages cachées pour les actions directes (mentionnées dans les specs)
         $parent_slug = 'ufsc-gestion';
 
+        add_submenu_page(
+            $parent_slug,
+            __('Clubs (SQL)', 'ufsc-clubs'),
+            __('Clubs (SQL)', 'ufsc-clubs'),
+            'ufsc_manage',
+            'ufsc-sql-clubs',
+            array(__CLASS__, 'render_clubs')
+        );
+        add_submenu_page(
+            $parent_slug,
+            __('Licences (SQL)', 'ufsc-clubs'),
+            __('Licences (SQL)', 'ufsc-clubs'),
+            'ufsc_manage',
+            'ufsc-sql-licences',
+            array(__CLASS__, 'render_licences')
+        );
 
-        add_submenu_page($parent_slug, __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), 'manage_options', 'ufsc-clubs', array(__CLASS__, 'render_clubs'));
-        add_submenu_page($parent_slug, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), 'manage_options', 'ufsc-licences', array(__CLASS__, 'render_licences'));
-        // Alias pour compatibilité avec la spec (licenses vs licences)
-        add_submenu_page($parent_slug, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), 'manage_options', 'ufsc-licenses', array(__CLASS__, 'render_licences'));
-
-        add_submenu_page($parent_slug, __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), 'ufsc_manage', 'ufsc-sql-clubs', array(__CLASS__, 'render_clubs'));
-        add_submenu_page($parent_slug, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), 'ufsc_manage', 'ufsc-sql-licences', array(__CLASS__, 'render_licences'));
-        // Alias pour compatibilité avec la spec (licenses vs licences)
-        add_submenu_page($parent_slug, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), 'ufsc_manage', 'ufsc-sql-licenses', array(__CLASS__, 'render_licences'));
-
-
-        remove_submenu_page($parent_slug, 'ufsc-clubs');
-        remove_submenu_page($parent_slug, 'ufsc-licences');
-        remove_submenu_page($parent_slug, 'ufsc-licenses');
         remove_submenu_page($parent_slug, 'ufsc-sql-clubs');
         remove_submenu_page($parent_slug, 'ufsc-sql-licences');
-        remove_submenu_page($parent_slug, 'ufsc-sql-licenses');
     }
 
     /* ---------------- Menus complets (obsolète - remplacé par menu unifié) ---------------- */

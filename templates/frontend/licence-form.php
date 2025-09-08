@@ -1,6 +1,6 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
-include UFSC_CL_DIR . 'templates/partials/notice.php';
+require_once UFSC_CL_DIR . 'templates/partials/notice.php';
 $wc_settings    = ufsc_get_woocommerce_settings();
 $included_limit = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
 $included_count = UFSC_Licence_Form::get_included_count();
