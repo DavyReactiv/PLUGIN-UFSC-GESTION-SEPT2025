@@ -90,6 +90,9 @@ class UFSC_Unified_Handlers {
             return;
         }
 
+        $allowed = ufsc_allowed_fields( 'licence', 'create', 'draft' );
+        $data    = array_intersect_key( $data, array_flip( $allowed ) );
+
         $result = self::save_licence_data( 0, $club_id, $data );
         if ( is_wp_error( $result ) ) {
             self::redirect_with_error( $result->get_error_message() );
@@ -181,6 +184,9 @@ class UFSC_Unified_Handlers {
             self::redirect_with_error( $data->get_error_message(), $licence_id );
             return;
         }
+
+        $allowed = ufsc_allowed_fields( 'licence', 'update', $licence_status );
+        $data    = array_intersect_key( $data, array_flip( $allowed ) );
 
         $result = self::save_licence_data( $licence_id, $club_id, $data );
         if ( is_wp_error( $result ) ) {
@@ -355,7 +361,12 @@ class UFSC_Unified_Handlers {
             }
         }
         $data = array_merge( $data, $upload_result );
-        
+
+        $status  = $data['statut'] ?? '';
+        $context = $club_id ? 'update' : 'create';
+        $allowed = ufsc_allowed_fields( 'club', $context, $status );
+        $data    = array_intersect_key( $data, array_flip( $allowed ) );
+
         // Save club data
         $result = self::save_club_data( $club_id, $data );
         if ( is_wp_error( $result ) ) {
@@ -406,10 +417,9 @@ class UFSC_Unified_Handlers {
             self::store_form_and_redirect( $_POST, array( $data->get_error_message() ), $licence_id );
         }
 
-        if ( 'draft' !== $licence_status ) {
-            $allowed = array( 'email', 'tel_fixe', 'tel_mobile' );
-            $data    = array_intersect_key( $data, array_flip( $allowed ) );
-        }
+        $context = $licence_id > 0 ? 'update' : 'create';
+        $allowed = ufsc_allowed_fields( 'licence', $context, $licence_status );
+        $data    = array_intersect_key( $data, array_flip( $allowed ) );
 
         $result = self::save_licence_data( $licence_id, $club_id, $data );
         if ( is_wp_error( $result ) ) {

@@ -51,17 +51,21 @@ class UFSC_CL_Club_Form_Handler {
         $pk            = $settings['pk_club'];
         $validation_base = $data;
 
+        $current_status = '';
         if ( $is_edit ) {
             $current_status = $wpdb->get_var( $wpdb->prepare( "SELECT statut FROM `{$table}` WHERE `{$pk}` = %d", $club_id ) );
-            if ( $current_status && 'brouillon' !== $current_status ) {
+            if ( $current_status && 'valide' === $current_status ) {
                 $is_restricted = true;
-                $data = array_intersect_key( $data, array_flip( array( 'email', 'telephone' ) ) );
                 $existing      = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE `{$pk}` = %d", $club_id ), ARRAY_A );
                 if ( $existing ) {
                     $validation_base = array_merge( $existing, $data );
                 }
             }
         }
+
+        $context = $is_edit ? 'update' : 'create';
+        $allowed = ufsc_allowed_fields( 'club', $context, $current_status );
+        $data    = array_intersect_key( $data, array_flip( $allowed ) );
 
         // Validate required fields
         $validation_errors = UFSC_CL_Utils::validate_club_data( $validation_base, $affiliation );

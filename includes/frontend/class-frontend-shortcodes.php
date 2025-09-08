@@ -258,7 +258,7 @@ class UFSC_Frontend_Shortcodes {
 
         $club_name  = self::get_club_name( $atts['club_id'] );
         $wc_settings = ufsc_get_woocommerce_settings();
-        $quota_info = self::get_club_quota_info( $atts['club_id'] );
+        $quota_info = ufsc_get_quota_info( $atts['club_id'] );
 
 
         ob_start();
@@ -470,9 +470,7 @@ class UFSC_Frontend_Shortcodes {
                                 $formatted = $value ? esc_html( date_i18n( 'd/m/Y', strtotime( $value ) ) ) : '';
                                 break;
                             case 'licence_status':
-                                $label_value = self::get_licence_status_label( $value );
-                                $class = self::get_licence_status_badge_class( $value );
-                                $formatted = '<span class="ufsc-badge ' . esc_attr( $class ) . '">' . esc_html( $label_value ) . '</span>';
+                                $formatted = UFSC_Status::badge( $value );
                                 break;
                             case 'payment_status':
                                 $formatted = self::render_payment_status_badge( $value );
@@ -1134,7 +1132,7 @@ class UFSC_Frontend_Shortcodes {
                    '</div></div>';
         }
 
-        $quota_info  = self::get_club_quota_info( $atts['club_id'] );
+        $quota_info  = ufsc_get_quota_info( $atts['club_id'] );
         $form_data   = array();
         $form_errors = array();
 
@@ -1821,63 +1819,6 @@ class UFSC_Frontend_Shortcodes {
         return ufsc_is_validated_licence( $licence_id );
     }
 
-    /**
-     * Get licence status label
-     */
-    private static function get_licence_status_label( $status ) {
-        $map = array(
-            'brouillon' => 'draft',
-            'non_payee' => 'pending',
-            'paid'      => 'pending',
-            'validated' => 'active',
-            'applied'   => 'active',
-            'rejected'  => 'rejected',
-        );
-
-        $status = strtolower( $status );
-        if ( isset( $map[ $status ] ) ) {
-            $status = $map[ $status ];
-        }
-
-        $labels = array(
-            'draft'    => __( 'Brouillon', 'ufsc-clubs' ),
-            'pending'  => __( 'En attente', 'ufsc-clubs' ),
-            'active'   => __( 'Active', 'ufsc-clubs' ),
-            'expired'  => __( 'Expirée', 'ufsc-clubs' ),
-            'rejected' => __( 'Refusée', 'ufsc-clubs' ),
-        );
-
-        return $labels[ $status ] ?? $status;
-    }
-
-    /**
-     * Map licence status to badge class
-     */
-    private static function get_licence_status_badge_class( $status ) {
-        $map = array(
-            'brouillon' => 'draft',
-            'non_payee' => 'pending',
-            'paid'      => 'pending',
-            'validated' => 'active',
-            'applied'   => 'active',
-            'rejected'  => 'rejected',
-        );
-
-        $status = strtolower( $status );
-        if ( isset( $map[ $status ] ) ) {
-            $status = $map[ $status ];
-        }
-
-        $classes = array(
-            'draft'    => '-draft',
-            'pending'  => '-pending',
-            'active'   => '-ok',
-            'expired'  => '-expired',
-            'rejected' => '-rejected',
-        );
-
-        return $classes[ $status ] ?? '-draft';
-    }
 
     /**
      * Render payment status badge
@@ -1895,44 +1836,6 @@ class UFSC_Frontend_Shortcodes {
         return '<span class="ufsc-badge ' . esc_attr( $class ) . '">' . esc_html( $status ) . '</span>';
     }
 
-    /**
-     * Get club quota information
-     *
-     * Retrieves the total allowed licences for the club, the number of
-     * licences currently used and calculates the remaining quota. Values
-     * are fetched directly from the UFSC SQL tables.
-     *
-     * @param int $club_id Club ID
-     * @return array{total:int,used:int,remaining:int}
-     */
-    private static function get_club_quota_info( $club_id ) {
-        global $wpdb;
-
-        if ( ! class_exists( 'UFSC_SQL' ) ) {
-            return array( 'total' => 0, 'used' => 0, 'remaining' => 0 );
-        }
-
-        $settings        = UFSC_SQL::get_settings();
-        $clubs_table     = $settings['table_clubs'];
-        $licences_table  = $settings['table_licences'];
-        $quota_col       = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'quota_licences' ) : 'quota_licences';
-
-        $quota_total = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT `{$quota_col}` FROM `{$clubs_table}` WHERE id = %d",
-            $club_id
-        ) );
-
-        $used = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM `{$licences_table}` WHERE club_id = %d AND deleted_at IS NULL",
-            $club_id
-        ) );
-
-        return array(
-            'total'     => $quota_total,
-            'used'      => $used,
-            'remaining' => max( 0, $quota_total - $used )
-        );
-    }
 
     /**
      * Render club documents list for frontend display
@@ -2003,40 +1906,29 @@ class UFSC_Frontend_Shortcodes {
             }
         }
         
-        $update_data = array();
-        
-        if ( $is_admin ) {
-            // Admin can update all fields present in the data
-            $allowed_fields = ['nom', 'sigle', 'email', 'telephone', 'adresse', 'code_postal', 'ville', 'region'];
-            foreach ( $allowed_fields as $field ) {
-                if ( isset( $data[$field] ) ) {
-                    $update_data[$field] = sanitize_text_field( $data[$field] );
-                }
+        $status        = $club->statut ?? '';
+        $context       = $is_admin ? 'admin' : 'update';
+        $allowed_fields = ufsc_allowed_fields( 'club', $context, $status );
+        $update_data    = array();
+        foreach ( $data as $field => $value ) {
+            if ( in_array( $field, $allowed_fields, true ) ) {
+                $update_data[ $field ] = sanitize_text_field( $value );
             }
-            
-            // Handle logo upload for admin
-            if ( ! empty( $_FILES['club_logo']['name'] ) ) {
-                $upload_result = wp_handle_upload( $_FILES['club_logo'], array( 'test_form' => false ) );
-                if ( ! isset( $upload_result['error'] ) ) {
-                    $attachment_id = wp_insert_attachment( array(
-                        'post_title' => sanitize_file_name( $_FILES['club_logo']['name'] ),
-                        'post_content' => '',
-                        'post_status' => 'inherit',
-                        'post_mime_type' => $upload_result['type']
-                    ), $upload_result['file'] );
-                    
-                    if ( $attachment_id ) {
-                        update_option( 'ufsc_club_logo_' . $club_id, $attachment_id );
-                    }
-                }
-            }
-            
-        } else {
-            // Non-admin can only update email and telephone
-            $allowed_fields = ['email', 'telephone'];
-            foreach ( $allowed_fields as $field ) {
-                if ( isset( $data[$field] ) ) {
-                    $update_data[$field] = sanitize_text_field( $data[$field] );
+        }
+
+        // Handle logo upload for admin
+        if ( $is_admin && ! empty( $_FILES['club_logo']['name'] ) ) {
+            $upload_result = wp_handle_upload( $_FILES['club_logo'], array( 'test_form' => false ) );
+            if ( ! isset( $upload_result['error'] ) ) {
+                $attachment_id = wp_insert_attachment( array(
+                    'post_title'   => sanitize_file_name( $_FILES['club_logo']['name'] ),
+                    'post_content' => '',
+                    'post_status'  => 'inherit',
+                    'post_mime_type' => $upload_result['type'],
+                ), $upload_result['file'] );
+
+                if ( $attachment_id ) {
+                    update_option( 'ufsc_club_logo_' . $club_id, $attachment_id );
                 }
             }
         }
@@ -2075,14 +1967,9 @@ class UFSC_Frontend_Shortcodes {
         
         // Determine editable fields based on user role
         $is_admin = current_user_can( 'ufsc_manage' );
-        
-        if ( $is_admin ) {
-            // Admin can edit all fields
-            $allowed_fields = array_keys( UFSC_Column_Map::get_clubs_columns() );
-        } else {
-            // Non-admin can only edit email and telephone
-            $allowed_fields = array( 'email', 'telephone' );
-        }
+        $status   = $wpdb->get_var( $wpdb->prepare( "SELECT statut FROM `{$table}` WHERE `{$pk}` = %d", $club_id ) );
+        $context  = $is_admin ? 'admin' : 'update';
+        $allowed_fields = ufsc_allowed_fields( 'club', $context, $status );
         
         $update_data = array();
         foreach ( $allowed_fields as $field ) {
@@ -2137,7 +2024,9 @@ class UFSC_Frontend_Shortcodes {
         $table = ufsc_get_clubs_table();
         
         // Determine allowed fields based on user permissions
-        $allowed_fields = $is_admin ? null : array( 'email', 'telephone' );
+        $club_status   = $wpdb->get_var( $wpdb->prepare( "SELECT statut FROM `{$table}` WHERE id = %d", $club_id ) );
+        $context       = $is_admin ? 'admin' : 'update';
+        $allowed_fields = ufsc_allowed_fields( 'club', $context, $club_status );
         
         $update_data = array();
         
@@ -2261,7 +2150,7 @@ class UFSC_Frontend_Shortcodes {
             return array( 'success' => false, 'message' => __( 'Adresse email invalide.', 'ufsc-clubs' ) );
         }
 
-        $quota_info   = self::get_club_quota_info( $club_id );
+        $quota_info   = ufsc_get_quota_info( $club_id );
         $needs_payment = $quota_info['remaining'] <= 0;
 
         global $wpdb;

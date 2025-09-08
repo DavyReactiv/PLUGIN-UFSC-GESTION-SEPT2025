@@ -260,7 +260,7 @@ jQuery(document).ready(function($) {
             var $submitBtn = $form.find('button[type="submit"], input[type="submit"]');
             
             // Add loading state
-            $submitBtn.prop('disabled', true);
+            $submitBtn.attr('aria-busy', 'true');
             $form.addClass('ufsc-loading');
             
             // Store original text
@@ -409,7 +409,7 @@ jQuery(document).ready(function($) {
             }
 
             // UI feedback
-            $btn.addClass('ufsc-loading').prop('disabled', true);
+            $btn.addClass('ufsc-loading').attr('aria-busy', 'true');
             $btn.text(ufsc_frontend_vars.strings.exporting);
 
             var xhr = new XMLHttpRequest();
@@ -457,14 +457,14 @@ jQuery(document).ready(function($) {
                     }
                 }
 
-                $btn.removeClass('ufsc-loading').prop('disabled', false);
+                $btn.removeClass('ufsc-loading').removeAttr('aria-busy');
                 $btn.text(originalText);
                 $btn.data('exporting', false);
             };
 
             xhr.onerror = function() {
                 alert(ufsc_frontend_vars.strings.ajax_error);
-                $btn.removeClass('ufsc-loading').prop('disabled', false);
+                $btn.removeClass('ufsc-loading').removeAttr('aria-busy');
                 $btn.text(originalText);
                 $btn.data('exporting', false);
             };

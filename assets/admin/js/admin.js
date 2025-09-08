@@ -81,7 +81,7 @@ jQuery(document).ready(function($) {
     // Loading states for forms
     $('form').on('submit', function() {
         var $submitBtn = $(this).find('button[type="submit"], input[type="submit"]');
-        $submitBtn.prop('disabled', true).text('Enregistrement...');
+        $submitBtn.attr('aria-busy', 'true').text('Enregistrement...');
     });
     
     // Club selector with auto-region population
@@ -121,7 +121,7 @@ jQuery(document).ready(function($) {
         var originalStatus = $select.data('original-status');
         
         // Show loading state
-        $select.prop('disabled', true);
+        $select.attr('aria-busy', 'true');
         
         $.ajax({
             url: ajaxurl,
@@ -156,7 +156,7 @@ jQuery(document).ready(function($) {
                 showToast('Erreur de communication', 'error');
             },
             complete: function() {
-                $select.prop('disabled', false);
+                $select.removeAttr('aria-busy');
             }
         });
     });
@@ -183,7 +183,7 @@ jQuery(document).ready(function($) {
         }
         
         // Show loading state
-        $btn.prop('disabled', true).text('Envoi en cours...');
+        $btn.attr('aria-busy', 'true').text('Envoi en cours...');
         
         $.ajax({
             url: ajaxurl,
@@ -208,7 +208,7 @@ jQuery(document).ready(function($) {
                 showToast('Erreur de communication', 'error');
             },
             complete: function() {
-                $btn.prop('disabled', false).text('Envoyer au paiement');
+                $btn.removeAttr('aria-busy').text('Envoyer au paiement');
             }
         });
     });
