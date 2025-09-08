@@ -310,7 +310,7 @@ class UFSC_Email_Notifications {
         if ( file_exists( $template_file ) ) {
             ob_start();
             extract( $data );
-            include $template_file;
+            require_once $template_file;
             return ob_get_clean();
         }
 

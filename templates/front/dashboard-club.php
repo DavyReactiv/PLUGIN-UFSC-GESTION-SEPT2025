@@ -9,7 +9,7 @@ $settings = UFSC_SQL::get_settings();
 $table    = $settings['table_clubs'];
 $club     = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d", $club_id ) );
 
-include UFSC_CL_DIR . 'templates/partials/notice.php';
+require_once UFSC_CL_DIR . 'templates/partials/notice.php';
 ?>
 
 <div class="ufsc-dashboard-header">

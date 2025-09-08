@@ -252,3 +252,9 @@ function ufsc_render_woocommerce_settings_page() {
     </div>
     <?php
 }
+
+// Define global licence product ID constant.
+if ( ! defined( 'UFSC_WC_LICENCE_PRODUCT_ID' ) ) {
+    $ufsc_wc_settings = ufsc_get_woocommerce_settings();
+    define( 'UFSC_WC_LICENCE_PRODUCT_ID', (int) $ufsc_wc_settings['product_license_id'] );
+}

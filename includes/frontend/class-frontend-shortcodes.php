@@ -105,10 +105,13 @@ class UFSC_Frontend_Shortcodes {
                    '</div></div>';
         }
 
-        $sections   = explode( ',', $atts['show_sections'] );
+        $sections     = explode( ',', $atts['show_sections'] );
         $dashboard_id = uniqid( 'ufsc-dashboard-' );
         $tab_prefix   = $dashboard_id . '-tab-';
         $panel_prefix = $dashboard_id . '-section-';
+
+        $requested_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : '';
+        $active_section = in_array( $requested_tab, $sections, true ) ? $requested_tab : $sections[0];
 
         ob_start();
         ?>
@@ -135,22 +138,26 @@ class UFSC_Frontend_Shortcodes {
 
             <div class="ufsc-dashboard-nav" role="tablist">
                 <?php if ( in_array( 'licences', $sections ) ) : ?>
-                    <button class="ufsc-nav-btn active" role="tab" id="<?php echo esc_attr( $tab_prefix . 'licences' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'licences' ); ?>" aria-selected="true" tabindex="0" data-section="licences">
+                    <?php $is_active = ( 'licences' === $active_section ); ?>
+                    <button class="ufsc-nav-btn<?php echo $is_active ? ' active' : ''; ?>" role="tab" id="<?php echo esc_attr( $tab_prefix . 'licences' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'licences' ); ?>" aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>" tabindex="<?php echo $is_active ? '0' : '-1'; ?>" data-section="licences">
                         <?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( in_array( 'stats', $sections ) ) : ?>
-                    <button class="ufsc-nav-btn" role="tab" id="<?php echo esc_attr( $tab_prefix . 'stats' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'stats' ); ?>" aria-selected="false" tabindex="-1" data-section="stats">
+                    <?php $is_active = ( 'stats' === $active_section ); ?>
+                    <button class="ufsc-nav-btn<?php echo $is_active ? ' active' : ''; ?>" role="tab" id="<?php echo esc_attr( $tab_prefix . 'stats' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'stats' ); ?>" aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>" tabindex="<?php echo $is_active ? '0' : '-1'; ?>" data-section="stats">
                         <?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( in_array( 'profile', $sections ) ) : ?>
-                    <button class="ufsc-nav-btn" role="tab" id="<?php echo esc_attr( $tab_prefix . 'profile' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'profile' ); ?>" aria-selected="false" tabindex="-1" data-section="profile">
+                    <?php $is_active = ( 'profile' === $active_section ); ?>
+                    <button class="ufsc-nav-btn<?php echo $is_active ? ' active' : ''; ?>" role="tab" id="<?php echo esc_attr( $tab_prefix . 'profile' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'profile' ); ?>" aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>" tabindex="<?php echo $is_active ? '0' : '-1'; ?>" data-section="profile">
                         <?php esc_html_e( 'Mon Club', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
                 <?php if ( in_array( 'add_licence', $sections ) ) : ?>
-                    <button class="ufsc-nav-btn" role="tab" id="<?php echo esc_attr( $tab_prefix . 'add_licence' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'add_licence' ); ?>" aria-selected="false" tabindex="-1" data-section="add_licence">
+                    <?php $is_active = ( 'add_licence' === $active_section ); ?>
+                    <button class="ufsc-nav-btn<?php echo $is_active ? ' active' : ''; ?>" role="tab" id="<?php echo esc_attr( $tab_prefix . 'add_licence' ); ?>" aria-controls="<?php echo esc_attr( $panel_prefix . 'add_licence' ); ?>" aria-selected="<?php echo $is_active ? 'true' : 'false'; ?>" tabindex="<?php echo $is_active ? '0' : '-1'; ?>" data-section="add_licence">
                         <?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?>
                     </button>
                 <?php endif; ?>
@@ -158,25 +165,29 @@ class UFSC_Frontend_Shortcodes {
 
             <div class="ufsc-dashboard-content">
                 <?php if ( in_array( 'licences', $sections ) ) : ?>
-                    <div id="<?php echo esc_attr( $panel_prefix . 'licences' ); ?>" class="ufsc-dashboard-section active" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'licences' ); ?>" tabindex="0">
+                    <?php $is_active = ( 'licences' === $active_section ); ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'licences' ); ?>" class="ufsc-dashboard-section<?php echo $is_active ? ' active' : ''; ?>" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'licences' ); ?>" tabindex="0" <?php echo $is_active ? '' : 'hidden'; ?>>
                         <?php echo self::render_club_licences( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if ( in_array( 'stats', $sections ) ) : ?>
-                    <div id="<?php echo esc_attr( $panel_prefix . 'stats' ); ?>" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'stats' ); ?>" tabindex="0" hidden>
+                    <?php $is_active = ( 'stats' === $active_section ); ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'stats' ); ?>" class="ufsc-dashboard-section<?php echo $is_active ? ' active' : ''; ?>" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'stats' ); ?>" tabindex="0" <?php echo $is_active ? '' : 'hidden'; ?>>
                         <?php echo self::render_club_stats( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if ( in_array( 'profile', $sections ) ) : ?>
-                    <div id="<?php echo esc_attr( $panel_prefix . 'profile' ); ?>" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'profile' ); ?>" tabindex="0" hidden>
+                    <?php $is_active = ( 'profile' === $active_section ); ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'profile' ); ?>" class="ufsc-dashboard-section<?php echo $is_active ? ' active' : ''; ?>" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'profile' ); ?>" tabindex="0" <?php echo $is_active ? '' : 'hidden'; ?>>
                         <?php echo self::render_club_profile( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if ( in_array( 'add_licence', $sections ) ) : ?>
-                    <div id="<?php echo esc_attr( $panel_prefix . 'add_licence' ); ?>" class="ufsc-dashboard-section" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'add_licence' ); ?>" tabindex="0" hidden>
+                    <?php $is_active = ( 'add_licence' === $active_section ); ?>
+                    <div id="<?php echo esc_attr( $panel_prefix . 'add_licence' ); ?>" class="ufsc-dashboard-section<?php echo $is_active ? ' active' : ''; ?>" role="tabpanel" aria-labelledby="<?php echo esc_attr( $tab_prefix . 'add_licence' ); ?>" tabindex="0" <?php echo $is_active ? '' : 'hidden'; ?>>
                         <?php echo self::render_add_licence( array( 'club_id' => $club_id ) ); ?>
                     </div>
                 <?php endif; ?>
@@ -258,7 +269,7 @@ class UFSC_Frontend_Shortcodes {
 
         $club_name  = self::get_club_name( $atts['club_id'] );
         $wc_settings = ufsc_get_woocommerce_settings();
-        $quota_info = self::get_club_quota_info( $atts['club_id'] );
+        $quota_info = ufsc_get_quota_info( $atts['club_id'] );
 
 
         ob_start();
@@ -470,9 +481,7 @@ class UFSC_Frontend_Shortcodes {
                                 $formatted = $value ? esc_html( date_i18n( 'd/m/Y', strtotime( $value ) ) ) : '';
                                 break;
                             case 'licence_status':
-                                $label_value = self::get_licence_status_label( $value );
-                                $class = self::get_licence_status_badge_class( $value );
-                                $formatted = '<span class="ufsc-badge ' . esc_attr( $class ) . '">' . esc_html( $label_value ) . '</span>';
+                                $formatted = UFSC_Status::badge( $value );
                                 break;
                             case 'payment_status':
                                 $formatted = self::render_payment_status_badge( $value );
@@ -1124,17 +1133,23 @@ class UFSC_Frontend_Shortcodes {
             'club_id' => 0
         ), $atts );
 
-        if ( ! $atts['club_id'] && is_user_logged_in() ) {
+        if ( ! is_user_logged_in() ) {
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   esc_html__( 'Vous devez être connecté pour ajouter une licence.', 'ufsc-clubs' ) .
+                   '</div></div>';
+        }
+
+        if ( ! $atts['club_id'] ) {
             $atts['club_id'] = self::get_user_club_id( get_current_user_id() );
         }
 
         if ( ! $atts['club_id'] ) {
             return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
-                   esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) .
+                   esc_html__( 'Aucun club associé à votre compte.', 'ufsc-clubs' ) .
                    '</div></div>';
         }
 
-        $quota_info  = self::get_club_quota_info( $atts['club_id'] );
+        $quota_info  = ufsc_get_quota_info( $atts['club_id'] );
         $form_data   = array();
         $form_errors = array();
 
@@ -1151,12 +1166,13 @@ class UFSC_Frontend_Shortcodes {
 
         $product_id = (int) get_option( 'ufsc_license_product_id' );
         if ( ! $product_id ) {
+            $message = esc_html__( 'Produit licence introuvable.', 'ufsc-clubs' );
             if ( current_user_can( 'ufsc_manage' ) ) {
-                return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
-                    esc_html__( 'Produit licence introuvable. Veuillez configurer l\'ID du produit.', 'ufsc-clubs' ) .
-                    '</div></div>';
+                $message = esc_html__( 'Produit licence introuvable. Veuillez configurer l\'ID du produit.', 'ufsc-clubs' );
             }
-            return '';
+            return '<div class="ufsc-front ufsc-full"><div class="ufsc-message ufsc-error">' .
+                   $message .
+                   '</div></div>';
         }
 
         $product_url = get_permalink( $product_id );
@@ -1459,10 +1475,10 @@ class UFSC_Frontend_Shortcodes {
             if ( 'edit' === $action && $licence_id ) {
                 $licence = self::get_licence( $atts['club_id'], $licence_id );
             }
-            include UFSC_CL_DIR . 'templates/frontend/licence-form.php';
+            require_once UFSC_CL_DIR . 'templates/frontend/licence-form.php';
         } else {
             $licences = self::get_club_licences( $atts['club_id'], array( 'per_page' => 100 ) );
-            include UFSC_CL_DIR . 'templates/frontend/licences-list.php';
+            require_once UFSC_CL_DIR . 'templates/frontend/licences-list.php';
         }
         return ob_get_clean();
     }
@@ -1821,63 +1837,6 @@ class UFSC_Frontend_Shortcodes {
         return ufsc_is_validated_licence( $licence_id );
     }
 
-    /**
-     * Get licence status label
-     */
-    private static function get_licence_status_label( $status ) {
-        $map = array(
-            'brouillon' => 'draft',
-            'non_payee' => 'pending',
-            'paid'      => 'pending',
-            'validated' => 'active',
-            'applied'   => 'active',
-            'rejected'  => 'rejected',
-        );
-
-        $status = strtolower( $status );
-        if ( isset( $map[ $status ] ) ) {
-            $status = $map[ $status ];
-        }
-
-        $labels = array(
-            'draft'    => __( 'Brouillon', 'ufsc-clubs' ),
-            'pending'  => __( 'En attente', 'ufsc-clubs' ),
-            'active'   => __( 'Active', 'ufsc-clubs' ),
-            'expired'  => __( 'Expirée', 'ufsc-clubs' ),
-            'rejected' => __( 'Refusée', 'ufsc-clubs' ),
-        );
-
-        return $labels[ $status ] ?? $status;
-    }
-
-    /**
-     * Map licence status to badge class
-     */
-    private static function get_licence_status_badge_class( $status ) {
-        $map = array(
-            'brouillon' => 'draft',
-            'non_payee' => 'pending',
-            'paid'      => 'pending',
-            'validated' => 'active',
-            'applied'   => 'active',
-            'rejected'  => 'rejected',
-        );
-
-        $status = strtolower( $status );
-        if ( isset( $map[ $status ] ) ) {
-            $status = $map[ $status ];
-        }
-
-        $classes = array(
-            'draft'    => '-draft',
-            'pending'  => '-pending',
-            'active'   => '-ok',
-            'expired'  => '-expired',
-            'rejected' => '-rejected',
-        );
-
-        return $classes[ $status ] ?? '-draft';
-    }
 
     /**
      * Render payment status badge
@@ -1895,44 +1854,6 @@ class UFSC_Frontend_Shortcodes {
         return '<span class="ufsc-badge ' . esc_attr( $class ) . '">' . esc_html( $status ) . '</span>';
     }
 
-    /**
-     * Get club quota information
-     *
-     * Retrieves the total allowed licences for the club, the number of
-     * licences currently used and calculates the remaining quota. Values
-     * are fetched directly from the UFSC SQL tables.
-     *
-     * @param int $club_id Club ID
-     * @return array{total:int,used:int,remaining:int}
-     */
-    private static function get_club_quota_info( $club_id ) {
-        global $wpdb;
-
-        if ( ! class_exists( 'UFSC_SQL' ) ) {
-            return array( 'total' => 0, 'used' => 0, 'remaining' => 0 );
-        }
-
-        $settings        = UFSC_SQL::get_settings();
-        $clubs_table     = $settings['table_clubs'];
-        $licences_table  = $settings['table_licences'];
-        $quota_col       = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'quota_licences' ) : 'quota_licences';
-
-        $quota_total = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT `{$quota_col}` FROM `{$clubs_table}` WHERE id = %d",
-            $club_id
-        ) );
-
-        $used = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM `{$licences_table}` WHERE club_id = %d AND deleted_at IS NULL",
-            $club_id
-        ) );
-
-        return array(
-            'total'     => $quota_total,
-            'used'      => $used,
-            'remaining' => max( 0, $quota_total - $used )
-        );
-    }
 
     /**
      * Render club documents list for frontend display
@@ -2003,40 +1924,29 @@ class UFSC_Frontend_Shortcodes {
             }
         }
         
-        $update_data = array();
-        
-        if ( $is_admin ) {
-            // Admin can update all fields present in the data
-            $allowed_fields = ['nom', 'sigle', 'email', 'telephone', 'adresse', 'code_postal', 'ville', 'region'];
-            foreach ( $allowed_fields as $field ) {
-                if ( isset( $data[$field] ) ) {
-                    $update_data[$field] = sanitize_text_field( $data[$field] );
-                }
+        $status        = $club->statut ?? '';
+        $context       = $is_admin ? 'admin' : 'update';
+        $allowed_fields = ufsc_allowed_fields( 'club', $context, $status );
+        $update_data    = array();
+        foreach ( $data as $field => $value ) {
+            if ( in_array( $field, $allowed_fields, true ) ) {
+                $update_data[ $field ] = sanitize_text_field( $value );
             }
-            
-            // Handle logo upload for admin
-            if ( ! empty( $_FILES['club_logo']['name'] ) ) {
-                $upload_result = wp_handle_upload( $_FILES['club_logo'], array( 'test_form' => false ) );
-                if ( ! isset( $upload_result['error'] ) ) {
-                    $attachment_id = wp_insert_attachment( array(
-                        'post_title' => sanitize_file_name( $_FILES['club_logo']['name'] ),
-                        'post_content' => '',
-                        'post_status' => 'inherit',
-                        'post_mime_type' => $upload_result['type']
-                    ), $upload_result['file'] );
-                    
-                    if ( $attachment_id ) {
-                        update_option( 'ufsc_club_logo_' . $club_id, $attachment_id );
-                    }
-                }
-            }
-            
-        } else {
-            // Non-admin can only update email and telephone
-            $allowed_fields = ['email', 'telephone'];
-            foreach ( $allowed_fields as $field ) {
-                if ( isset( $data[$field] ) ) {
-                    $update_data[$field] = sanitize_text_field( $data[$field] );
+        }
+
+        // Handle logo upload for admin
+        if ( $is_admin && ! empty( $_FILES['club_logo']['name'] ) ) {
+            $upload_result = wp_handle_upload( $_FILES['club_logo'], array( 'test_form' => false ) );
+            if ( ! isset( $upload_result['error'] ) ) {
+                $attachment_id = wp_insert_attachment( array(
+                    'post_title'   => sanitize_file_name( $_FILES['club_logo']['name'] ),
+                    'post_content' => '',
+                    'post_status'  => 'inherit',
+                    'post_mime_type' => $upload_result['type'],
+                ), $upload_result['file'] );
+
+                if ( $attachment_id ) {
+                    update_option( 'ufsc_club_logo_' . $club_id, $attachment_id );
                 }
             }
         }
@@ -2075,14 +1985,9 @@ class UFSC_Frontend_Shortcodes {
         
         // Determine editable fields based on user role
         $is_admin = current_user_can( 'ufsc_manage' );
-        
-        if ( $is_admin ) {
-            // Admin can edit all fields
-            $allowed_fields = array_keys( UFSC_Column_Map::get_clubs_columns() );
-        } else {
-            // Non-admin can only edit email and telephone
-            $allowed_fields = array( 'email', 'telephone' );
-        }
+        $status   = $wpdb->get_var( $wpdb->prepare( "SELECT statut FROM `{$table}` WHERE `{$pk}` = %d", $club_id ) );
+        $context  = $is_admin ? 'admin' : 'update';
+        $allowed_fields = ufsc_allowed_fields( 'club', $context, $status );
         
         $update_data = array();
         foreach ( $allowed_fields as $field ) {
@@ -2137,7 +2042,9 @@ class UFSC_Frontend_Shortcodes {
         $table = ufsc_get_clubs_table();
         
         // Determine allowed fields based on user permissions
-        $allowed_fields = $is_admin ? null : array( 'email', 'telephone' );
+        $club_status   = $wpdb->get_var( $wpdb->prepare( "SELECT statut FROM `{$table}` WHERE id = %d", $club_id ) );
+        $context       = $is_admin ? 'admin' : 'update';
+        $allowed_fields = ufsc_allowed_fields( 'club', $context, $club_status );
         
         $update_data = array();
         
@@ -2261,7 +2168,7 @@ class UFSC_Frontend_Shortcodes {
             return array( 'success' => false, 'message' => __( 'Adresse email invalide.', 'ufsc-clubs' ) );
         }
 
-        $quota_info   = self::get_club_quota_info( $club_id );
+        $quota_info   = ufsc_get_quota_info( $club_id );
         $needs_payment = $quota_info['remaining'] <= 0;
 
         global $wpdb;

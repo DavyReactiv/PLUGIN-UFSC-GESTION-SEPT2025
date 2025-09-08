@@ -90,7 +90,8 @@ function ufsc_add_cart_item_data( $cart_item_data, $product_id ) {
  * @return string Redirect URL or empty string.
  */
 function ufsc_get_redirect_after_add_to_cart_url() {
-    $choice = get_option( 'ufsc_redirect_after_add_to_cart', 'none' );
+    $settings = function_exists( 'ufsc_get_woocommerce_settings' ) ? ufsc_get_woocommerce_settings() : array();
+    $choice   = isset( $settings['redirect_after_add_to_cart'] ) ? $settings['redirect_after_add_to_cart'] : 'none';
 
     if ( 'cart' === $choice && function_exists( 'wc_get_cart_url' ) ) {
         return wc_get_cart_url();
@@ -126,14 +127,14 @@ function ufsc_maybe_redirect_after_add_to_cart() {
 }
 
 /**
- * Limit quantity input for licence product 2934 to 1.
+ * Limit quantity input for licence product to 1.
  *
  * @param array      $args    Quantity input arguments.
  * @param WC_Product $product Product object.
  * @return array Modified arguments.
  */
 function ufsc_limit_licence_quantity( $args, $product ) {
-    if ( $product && (int) $product->get_id() === 2934 ) {
+    if ( $product && (int) $product->get_id() === UFSC_WC_LICENCE_PRODUCT_ID ) {
         $args['max_value']   = 1;
         $args['min_value']   = 1;
         $args['input_value'] = 1;
@@ -144,7 +145,7 @@ function ufsc_limit_licence_quantity( $args, $product ) {
 /**
  * Validate licence cart item before it is added to the cart.
  *
- * Ensures product 2934 is limited to quantity 1 and that ufsc_licence_id is
+ * Ensures licence product is limited to quantity 1 and that ufsc_licence_id is
  * unique in the cart.
  *
  * @param bool  $passed         Whether validation passed.
@@ -156,7 +157,7 @@ function ufsc_limit_licence_quantity( $args, $product ) {
  * @return bool Validation result.
  */
 function ufsc_validate_licence_cart_item( $passed, $product_id, $quantity, $variation_id = 0, $variations = array(), $cart_item_data = array() ) {
-    if ( (int) $product_id === 2934 && $quantity > 1 ) {
+    if ( (int) $product_id === UFSC_WC_LICENCE_PRODUCT_ID && $quantity > 1 ) {
         wc_add_notice( __( 'Chaque licence est nominative. Vous ne pouvez en ajouter qu\'une seule à la fois.', 'ufsc-clubs' ), 'error' );
         return false;
     }
@@ -184,7 +185,7 @@ function ufsc_validate_licence_cart_item( $passed, $product_id, $quantity, $vari
  * @return bool
  */
 function ufsc_validate_cart_update_quantity( $passed, $cart_item_key, $values, $quantity ) {
-    if ( (int) $values['product_id'] === 2934 && $quantity > 1 ) {
+    if ( (int) $values['product_id'] === UFSC_WC_LICENCE_PRODUCT_ID && $quantity > 1 ) {
         wc_add_notice( __( 'Chaque licence est nominative. Vous ne pouvez en ajouter qu\'une seule à la fois.', 'ufsc-clubs' ), 'error' );
         return false;
     }
@@ -196,7 +197,7 @@ function ufsc_validate_cart_update_quantity( $passed, $cart_item_key, $values, $
  */
 function ufsc_licence_nominative_notice() {
     global $product;
-    if ( $product && (int) $product->get_id() === 2934 ) {
+    if ( $product && (int) $product->get_id() === UFSC_WC_LICENCE_PRODUCT_ID ) {
         echo '<p class="ufsc-licence-note">' . esc_html__( 'Chaque licence est nominative. Ajoutez-les une par une.', 'ufsc-clubs' ) . '</p>';
     }
 }

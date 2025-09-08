@@ -121,8 +121,9 @@ class UFSC_CL_Club_Form {
         $regions  = UFSC_CL_Utils::regions();
 
         // Determine current status and edit restrictions
-        $status        = $club_data['statut'] ?? '';
-        $is_restricted = $is_edit && ! empty( $status ) && 'brouillon' !== $status;
+        $status          = $club_data['statut'] ?? '';
+        $allowed_fields  = ufsc_allowed_fields( 'club', 'update', $status );
+        $is_restricted   = $is_edit && 'valide' === $status;
 
         // Get default status for new clubs
         $default_status = $is_edit ? $status : self::get_default_status();
@@ -514,11 +515,16 @@ class UFSC_CL_Club_Form {
             </form>
         </div>
 
-        <?php if ( $is_restricted ) : ?>
+        <?php if ( $is_restricted ) :
+            $allowed_selectors   = array_map( function ( $f ) { return '#' . $f; }, $allowed_fields );
+            $allowed_selectors[] = '#ufsc-submit';
+            $allowed_selectors[] = '[type=hidden]';
+            $allowed_selector_str = implode( ', ', $allowed_selectors );
+            ?>
             <script>
                 jQuery(function ($) {
                     $('.ufsc-club-form').find('input, select, textarea, button')
-                        .not('#email, #telephone, #ufsc-submit, [type=hidden]')
+                        .not('<?php echo esc_js( $allowed_selector_str ); ?>')
                         .prop('readonly', true)
                         .prop('disabled', true);
                 });

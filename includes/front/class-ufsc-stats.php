@@ -229,11 +229,10 @@ class UFSC_Stats {
         $status_sql   = "SELECT status, COUNT(*) AS count FROM `{$table}` WHERE {$where_sql} GROUP BY status";
         $status_rows  = $wpdb->get_results( $wpdb->prepare( $status_sql, $where_values ) );
         $status_counts = array();
-        $total_licences = 0;
         foreach ( $status_rows as $row ) {
             $status_counts[ $row->status ] = (int) $row->count;
-            $total_licences += (int) $row->count;
         }
+        $total_licences = ufsc_count_licences( $club_id );
 
         // Paid distribution
         $paid_sql    = "SELECT paid, COUNT(*) AS count FROM `{$table}` WHERE {$where_sql} GROUP BY paid";
@@ -271,19 +270,11 @@ class UFSC_Stats {
             $birth_year_counts[ $row->year ] = (int) $row->count;
         }
 
-        // Determine validated licences based on canonical status
-        $validated = isset( $status_counts['active'] ) ? (int) $status_counts['active'] : 0;
+        // Determine validated licences using unified counter
+        $validated = ufsc_count_licences( $club_id, 'active' );
 
-        // Quota remaining based on included active licences
-        $included_sql = "SELECT COUNT(*) FROM `{$table}` WHERE {$where_sql} AND is_included = %d AND status = %s";
-        $included_active = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                $included_sql,
-                array_merge( $where_values, array( 1, 'active' ) )
-            )
-        );
-
-        $quota_remaining = max( 0, 10 - $included_active );
+        // Remaining quota via helper
+        $quota_remaining = ufsc_get_quota_remaining( $club_id );
 
         $defaults = array(
             'paid_licences'      => 0,
