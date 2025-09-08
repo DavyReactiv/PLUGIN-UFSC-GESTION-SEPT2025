@@ -200,7 +200,7 @@ class UFSC_Clubs_List_Table {
      */
     private static function render_action_buttons() {
         echo '<p>';
-        echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&action=new' ) ) . '" class="button button-primary">';
+        echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc_clubs&action=add' ) ) . '" class="button button-primary">';
         echo esc_html__( 'Ajouter un club', 'ufsc-clubs' );
         echo '</a> ';
         echo '<a href="' . esc_url( add_query_arg( 'export', '1' ) ) . '" class="button">';

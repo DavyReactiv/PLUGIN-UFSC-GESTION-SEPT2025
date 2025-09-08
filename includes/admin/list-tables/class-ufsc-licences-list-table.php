@@ -214,7 +214,7 @@ class UFSC_Licences_List_Table {
      */
     private static function render_action_buttons() {
         echo '<p>';
-        echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-licences&action=new' ) ) . '" class="button button-primary">';
+        echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc_licences&action=add' ) ) . '" class="button button-primary">';
         echo esc_html__( 'Ajouter une licence', 'ufsc-clubs' );
         echo '</a> ';
         echo '<a href="' . esc_url( add_query_arg( 'export', '1' ) ) . '" class="button">';

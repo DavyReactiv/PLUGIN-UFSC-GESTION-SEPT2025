@@ -5,8 +5,8 @@ add_action('admin_init', function () {
     if (!is_admin()) return;
     $page = isset($_GET['page']) ? sanitize_key($_GET['page']) : '';
     $legacy = [
-        'ufsc-gestion-clubs'       => 'ufsc-clubs',
-        'ufsc-gestion-licences'    => 'ufsc-licences',
+        'ufsc-gestion-clubs'       => 'ufsc_clubs',
+        'ufsc-gestion-licences'    => 'ufsc_licences',
         'ufsc-gestion-parametres'  => 'ufsc-settings',
         'ufsc-gestion-woocommerce' => 'ufsc-settings',
         'ufsc-attestations'        => 'ufsc-settings',
@@ -25,7 +25,7 @@ class UFSC_CL_Admin_Menu {
             __( 'UFSC Gestion', 'ufsc-clubs' ),
             __( 'UFSC Gestion', 'ufsc-clubs' ),
             'ufsc_manage',
-            'ufsc-gestion',
+            'ufsc_gestion',
             array( __CLASS__, 'render_dashboard' ),
             'dashicons-groups',
             58
@@ -33,25 +33,25 @@ class UFSC_CL_Admin_Menu {
 
         // Sous-menus organisés
         add_submenu_page(
-            'ufsc-gestion',
+            'ufsc_gestion',
             __('Clubs','ufsc-clubs'),
             __('Clubs','ufsc-clubs'),
-            'ufsc_manage',
-            'ufsc-clubs',
+            'ufsc_manage_clubs',
+            'ufsc_clubs',
             array( 'UFSC_SQL_Admin', 'render_clubs' )
         );
 
         add_submenu_page(
-            'ufsc-gestion',
+            'ufsc_gestion',
             __('Licences','ufsc-clubs'),
             __('Licences','ufsc-clubs'),
-            'ufsc_manage',
-            'ufsc-licences',
+            'ufsc_manage_licences',
+            'ufsc_licences',
             array( 'UFSC_SQL_Admin', 'render_licences' )
         );
 
         add_submenu_page(
-            'ufsc-gestion',
+            'ufsc_gestion',
             __('Exports/Imports','ufsc-clubs'),
             __('Exports/Imports','ufsc-clubs'),
             'ufsc_manage',
@@ -60,7 +60,7 @@ class UFSC_CL_Admin_Menu {
         );
 
         add_submenu_page(
-            'ufsc-gestion',
+            'ufsc_gestion',
             __('Réglages','ufsc-clubs'),
             __('Réglages','ufsc-clubs'),
             'ufsc_manage',
@@ -68,7 +68,7 @@ class UFSC_CL_Admin_Menu {
             array( 'UFSC_Settings_Page', 'render' )
         );
 
-        remove_submenu_page( 'ufsc-gestion', 'ufsc-gestion' );
+        remove_submenu_page( 'ufsc_gestion', 'ufsc_gestion' );
         remove_menu_page( 'ufsc-attestations' );
     }
 
@@ -110,7 +110,7 @@ class UFSC_CL_Admin_Menu {
         echo '</div>';
         // Cache refresh button
         if (current_user_can('ufsc_manage')) {
-            $refresh_url = add_query_arg('ufsc_refresh_cache', '1', admin_url('admin.php?page=ufsc-gestion'));
+            $refresh_url = add_query_arg('ufsc_refresh_cache', '1', admin_url('admin.php?page=ufsc_gestion'));
             $refresh_url = wp_nonce_url($refresh_url, 'ufsc_refresh_cache');
             echo '<a href="'.esc_url($refresh_url).'" class="button" style="color: white; border-color: rgba(255,255,255,0.3);" title="'.esc_attr__('Actualiser les données (cache: 10 min)','ufsc-clubs').'">'.esc_html__('⟳ Actualiser','ufsc-clubs').'</a>';
         }
@@ -253,11 +253,11 @@ class UFSC_CL_Admin_Menu {
         echo '<div class="ufsc-quick-actions" style="margin-top: 30px;">';
         echo '<h2>'.esc_html__('Actions Rapides','ufsc-clubs').'</h2>';
         echo '<div class="ufsc-button-group" style="gap: 12px; flex-wrap: wrap; margin-top: 15px;">';
-        echo '<a href="'.admin_url('admin.php?page=ufsc-sql-clubs&action=new').'" class="button button-primary">'.esc_html__('Nouveau Club','ufsc-clubs').'</a>';
-        echo '<a href="'.admin_url('admin.php?page=ufsc-sql-licences&action=new').'" class="button button-primary">'.esc_html__('Nouvelle Licence','ufsc-clubs').'</a>';
-        echo '<a href="'.admin_url('admin.php?page=ufsc-sql-clubs').'" class="button">'.esc_html__('Gérer les Clubs','ufsc-clubs').'</a>';
-        echo '<a href="'.admin_url('admin.php?page=ufsc-sql-licences').'" class="button">'.esc_html__('Gérer les Licences','ufsc-clubs').'</a>';
-        echo '<a href="'.admin_url('admin.php?page=ufsc-sql-settings').'" class="button">'.esc_html__('Réglages','ufsc-clubs').'</a>';
+        echo '<a href="' . admin_url( 'admin.php?page=ufsc_clubs&action=add' ) . '" class="button button-primary">' . esc_html__( 'Nouveau Club', 'ufsc-clubs' ) . '</a>';
+        echo '<a href="' . admin_url( 'admin.php?page=ufsc_licences&action=add' ) . '" class="button button-primary">' . esc_html__( 'Nouvelle Licence', 'ufsc-clubs' ) . '</a>';
+        echo '<a href="' . admin_url( 'admin.php?page=ufsc_clubs' ) . '" class="button">' . esc_html__( 'Gérer les Clubs', 'ufsc-clubs' ) . '</a>';
+        echo '<a href="' . admin_url( 'admin.php?page=ufsc_licences' ) . '" class="button">' . esc_html__( 'Gérer les Licences', 'ufsc-clubs' ) . '</a>';
+        echo '<a href="' . admin_url( 'admin.php?page=ufsc-settings' ) . '" class="button">' . esc_html__( 'Réglages', 'ufsc-clubs' ) . '</a>';
         echo '</div>';
         echo '</div>';
         
@@ -567,6 +567,79 @@ class UFSC_CL_Admin_Menu {
 
 // Ensure export page renderer is available
 require_once UFSC_CL_DIR . 'includes/admin/page-ufsc-exports.php';
+
+
+
+// Register admin menu with a closure
+add_action( 'admin_menu', function () {
+    $cap  = 'ufsc_manage';
+    $slug = 'ufsc_gestion';
+
+    add_menu_page(
+        __( 'UFSC Gestion', 'ufsc-clubs' ),
+        __( 'UFSC Gestion', 'ufsc-clubs' ),
+        $cap,
+        $slug,
+        'ufsc_render_dashboard',
+        'dashicons-groups',
+        58
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Tableau de bord', 'ufsc-clubs' ),
+        __( 'Tableau de bord', 'ufsc-clubs' ),
+        $cap,
+        $slug,
+        'ufsc_render_dashboard'
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Clubs', 'ufsc-clubs' ),
+        __( 'Clubs', 'ufsc-clubs' ),
+        'ufsc_manage_clubs',
+        'ufsc_clubs',
+        'ufsc_render_clubs_page'
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Licences', 'ufsc-clubs' ),
+        __( 'Licences', 'ufsc-clubs' ),
+        'ufsc_manage_licences',
+        'ufsc_licences',
+        'ufsc_render_licences_page'
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Exports/Imports', 'ufsc-clubs' ),
+        __( 'Exports/Imports', 'ufsc-clubs' ),
+        $cap,
+        'ufsc-exports',
+        'ufsc_render_exports_page'
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Réglages SQL', 'ufsc-clubs' ),
+        __( 'Réglages SQL', 'ufsc-clubs' ),
+        $cap,
+        'ufsc-sql-settings',
+        array( 'UFSC_SQL_Admin', 'render_settings' )
+    );
+
+    add_submenu_page(
+        $slug,
+        __( 'Réglages', 'ufsc-clubs' ),
+        __( 'Réglages', 'ufsc-clubs' ),
+        $cap,
+        'ufsc-settings',
+        array( 'UFSC_Settings_Page', 'render' )
+    );
+}, 10 );
+
 
 // Register frontend assets during wp_enqueue_scripts so they can be enqueued later.
 add_action( 'wp_enqueue_scripts', array( 'UFSC_CL_Admin_Menu', 'register_front' ) );

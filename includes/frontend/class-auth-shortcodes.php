@@ -49,7 +49,7 @@ class UFSC_Auth_Shortcodes {
      */
     public static function render_login_form( $atts = array() ) {
         $atts = shortcode_atts( array(
-            'redirect_admin' => admin_url( 'admin.php?page=ufsc-gestion' ),
+            'redirect_admin' => admin_url( 'admin.php?page=ufsc_gestion' ),
             'redirect_club' => home_url( '/club-dashboard/' ),
             'redirect_default' => home_url(),
             'show_register' => 'true',
@@ -298,7 +298,7 @@ class UFSC_Auth_Shortcodes {
         if ( ! is_wp_error( $user ) ) {
             // Admin users go to admin dashboard
             if ( user_can( $user, 'ufsc_manage' ) ) {
-                return admin_url( 'admin.php?page=ufsc-gestion' );
+                return admin_url( 'admin.php?page=ufsc_gestion' );
             }
             
             // Club managers go to club dashboard, licences tab
@@ -320,7 +320,7 @@ class UFSC_Auth_Shortcodes {
      */
     private static function get_user_dashboard_url( $user ) {
         if ( user_can( $user, 'ufsc_manage' ) ) {
-            return admin_url( 'admin.php?page=ufsc-gestion' );
+            return admin_url( 'admin.php?page=ufsc_gestion' );
         }
 
         $club_id = ufsc_get_user_club_id( $user->ID );
