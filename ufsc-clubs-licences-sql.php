@@ -91,10 +91,6 @@ add_action('admin_init', function() {
 UFSC_Export_Clubs::init();
 UFSC_Export_Licences::init();
 
-add_action('init', function () {
-    load_plugin_textdomain('ufsc-clubs', false, dirname(plugin_basename(__FILE__)) . '/languages');
-});
-
 final class UFSC_CL_Bootstrap {
     private static $instance = null;
     public static function instance(){ if ( null === self::$instance ) self::$instance = new self(); return self::$instance; }
@@ -137,9 +133,11 @@ final class UFSC_CL_Bootstrap {
         add_action( 'plugins_loaded', 'ufsc_init_woocommerce_hooks' );
         add_action( 'plugins_loaded', array( 'UFSC_Woo_Sync', 'init' ) );
 
+        // Load translations
+        add_action( 'init', array( $this, 'load_textdomain' ) );
+
         // Initialize frontend assets
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
-        add_action( 'wp_enqueue_scripts', array( $this, 'localize_frontend_scripts' ) );
     }
     public function on_activate(){
 
@@ -157,23 +155,39 @@ final class UFSC_CL_Bootstrap {
     }
 
     /**
+     * Load plugin translations
+     */
+    public function load_textdomain() {
+        load_plugin_textdomain( 'ufsc-clubs', false, dirname( plugin_basename( __FILE__ ) ) . '/languages' );
+    }
+
+    /**
      * Enqueue frontend assets
      */
     public function enqueue_frontend_assets() {
         global $post;
-        $should_enqueue = false;
 
-        if ( $post && has_shortcode( $post->post_content, 'ufsc_club_dashboard' ) ) {
-            $should_enqueue = true;
-        } elseif ( $post && (
-            has_shortcode( $post->post_content, 'ufsc_club_licences' ) ||
-            has_shortcode( $post->post_content, 'ufsc_club_stats' ) ||
-            has_shortcode( $post->post_content, 'ufsc_club_profile' ) ||
-            has_shortcode( $post->post_content, 'ufsc_add_licence' )
-        ) ) { $should_enqueue = true; }
+        $should_enqueue = false;
+        $shortcodes     = array(
+            'ufsc_club_dashboard',
+            'ufsc_club_licences',
+            'ufsc_club_stats',
+            'ufsc_club_profile',
+            'ufsc_add_licence',
+            'ufsc_licences',
+        );
+
+        if ( $post ) {
+            foreach ( $shortcodes as $shortcode ) {
+                if ( has_shortcode( $post->post_content, $shortcode ) ) {
+                    $should_enqueue = true;
+                    break;
+                }
+            }
+        }
 
         if ( ! $should_enqueue && is_user_logged_in() ) {
-            if ( function_exists('is_account_page') && is_account_page() ) {
+            if ( function_exists( 'is_account_page' ) && is_account_page() ) {
                 $should_enqueue = true;
             } else {
                 $should_enqueue = is_page( array( 'tableau-de-bord', 'club-dashboard', 'mon-club', 'mon-compte', 'my-account' ) );
@@ -183,53 +197,52 @@ final class UFSC_CL_Bootstrap {
         if ( $should_enqueue ) {
             wp_enqueue_style( 'ufsc-frontend' );
             wp_enqueue_script( 'ufsc-frontend' );
+            $this->localize_frontend_scripts();
         }
     }
 
     /**
      * Localize frontend scripts with data and translations
      */
-    public function localize_frontend_scripts() {
-        if ( wp_script_is( 'ufsc-frontend', 'enqueued' ) ) {
-            wp_localize_script( 'ufsc-frontend', 'ufsc_frontend_vars', array(
-                'ajax_url' => admin_url( 'admin-ajax.php' ),
-                'rest_url' => rest_url( 'ufsc/v1/' ),
-                'nonce' => wp_create_nonce( 'ufsc_frontend_nonce' ),
-                'rest_nonce' => wp_create_nonce( 'wp_rest' ),
-                'strings' => array(
-                    'saving' => __( 'Enregistrement...', 'ufsc-clubs' ),
-                    'loading' => __( 'Chargement...', 'ufsc-clubs' ),
-                    'error' => __( 'Une erreur est survenue.', 'ufsc-clubs' ),
-                    'success' => __( 'Opération réussie.', 'ufsc-clubs' ),
-                    'confirm_remove_logo' => __( 'Êtes-vous sûr de vouloir supprimer ce logo ?', 'ufsc-clubs' ),
-                    'invalid_file_type' => __( 'Type de fichier non autorisé.', 'ufsc-clubs' ),
-                    'file_too_large' => __( 'Fichier trop volumineux.', 'ufsc-clubs' ),
-                    'invalid_email' => __( 'Adresse email invalide.', 'ufsc-clubs' ),
-                    'invalid_phone' => __( 'Numéro de téléphone invalide.', 'ufsc-clubs' ),
-                    'invalid_postal_code' => __( 'Code postal invalide.', 'ufsc-clubs' ),
-                    'characters_remaining' => __( 'caractères restants', 'ufsc-clubs' ),
-                    'exporting' => __( 'Export en cours...', 'ufsc-clubs' ),
-                    'export' => __( 'Exporter', 'ufsc-clubs' ),
-                    'import_preview' => __( 'Prévisualisation de l\'import', 'ufsc-clubs' ),
-                    'import_errors' => __( 'Erreurs détectées', 'ufsc-clubs' ),
-                    'preview_data' => __( 'Données à importer', 'ufsc-clubs' ),
-                    'confirm_import' => __( 'Confirmer l\'import', 'ufsc-clubs' ),
-                    'confirm_import_action' => __( 'Êtes-vous sûr de vouloir importer ces données ?', 'ufsc-clubs' ),
-                    'name' => __( 'Nom', 'ufsc-clubs' ),
-                    'first_name' => __( 'Prénom', 'ufsc-clubs' ),
-                    'email' => __( 'Email', 'ufsc-clubs' ),
-                    'status' => __( 'Statut', 'ufsc-clubs' ),
-                    'ajax_error' => __( 'Erreur de communication avec le serveur.', 'ufsc-clubs' ),
-                    'logo_preview' => __( 'Aperçu du logo', 'ufsc-clubs' ),
-                    'logo_preview_text' => __( 'Aperçu du logo à télécharger', 'ufsc-clubs' ),
-                    'choose_logo' => __( 'Choisir un logo', 'ufsc-clubs' ),
-                    'logo_help' => __( 'Formats acceptés: JPG, PNG, SVG. Taille max: 2MB', 'ufsc-clubs' ),
-                    'button_action' => __( 'Action', 'ufsc-clubs' ),
-                    'skip_to_nav' => __( 'Aller à la navigation', 'ufsc-clubs' ),
-                    'skip_to_content' => __( 'Aller au contenu', 'ufsc-clubs' )
-                )
-            ) );
-        }
+    private function localize_frontend_scripts() {
+        wp_localize_script( 'ufsc-frontend', 'ufsc_frontend_vars', array(
+            'ajax_url'   => admin_url( 'admin-ajax.php' ),
+            'rest_url'   => rest_url( 'ufsc/v1/' ),
+            'nonce'      => wp_create_nonce( 'ufsc_frontend_nonce' ),
+            'rest_nonce' => wp_create_nonce( 'wp_rest' ),
+            'strings'    => array(
+                'saving'              => __( 'Enregistrement...', 'ufsc-clubs' ),
+                'loading'             => __( 'Chargement...', 'ufsc-clubs' ),
+                'error'               => __( 'Une erreur est survenue.', 'ufsc-clubs' ),
+                'success'             => __( 'Opération réussie.', 'ufsc-clubs' ),
+                'confirm_remove_logo' => __( 'Êtes-vous sûr de vouloir supprimer ce logo ?', 'ufsc-clubs' ),
+                'invalid_file_type'   => __( 'Type de fichier non autorisé.', 'ufsc-clubs' ),
+                'file_too_large'      => __( 'Fichier trop volumineux.', 'ufsc-clubs' ),
+                'invalid_email'       => __( 'Adresse email invalide.', 'ufsc-clubs' ),
+                'invalid_phone'       => __( 'Numéro de téléphone invalide.', 'ufsc-clubs' ),
+                'invalid_postal_code' => __( 'Code postal invalide.', 'ufsc-clubs' ),
+                'characters_remaining'=> __( 'caractères restants', 'ufsc-clubs' ),
+                'exporting'           => __( 'Export en cours...', 'ufsc-clubs' ),
+                'export'              => __( 'Exporter', 'ufsc-clubs' ),
+                'import_preview'      => __( 'Prévisualisation de l\'import', 'ufsc-clubs' ),
+                'import_errors'       => __( 'Erreurs détectées', 'ufsc-clubs' ),
+                'preview_data'        => __( 'Données à importer', 'ufsc-clubs' ),
+                'confirm_import'      => __( 'Confirmer l\'import', 'ufsc-clubs' ),
+                'confirm_import_action'=> __( 'Êtes-vous sûr de vouloir importer ces données ?', 'ufsc-clubs' ),
+                'name'                => __( 'Nom', 'ufsc-clubs' ),
+                'first_name'          => __( 'Prénom', 'ufsc-clubs' ),
+                'email'               => __( 'Email', 'ufsc-clubs' ),
+                'status'              => __( 'Statut', 'ufsc-clubs' ),
+                'ajax_error'          => __( 'Erreur de communication avec le serveur.', 'ufsc-clubs' ),
+                'logo_preview'        => __( 'Aperçu du logo', 'ufsc-clubs' ),
+                'logo_preview_text'   => __( 'Aperçu du logo à télécharger', 'ufsc-clubs' ),
+                'choose_logo'         => __( 'Choisir un logo', 'ufsc-clubs' ),
+                'logo_help'           => __( 'Formats acceptés: JPG, PNG, SVG. Taille max: 2MB', 'ufsc-clubs' ),
+                'button_action'       => __( 'Action', 'ufsc-clubs' ),
+                'skip_to_nav'         => __( 'Aller à la navigation', 'ufsc-clubs' ),
+                'skip_to_content'     => __( 'Aller au contenu', 'ufsc-clubs' ),
+            ),
+        ) );
     }
 }
 UFSC_CL_Bootstrap::instance();
