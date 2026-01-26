@@ -1,0 +1,88 @@
+.ufsc-login-form {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+}
+.ufsc-login-title {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+.ufsc-grid {
+    display: grid;
+    gap: 15px;
+}
+@media (min-width: 1024px) {
+    .ufsc-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+.ufsc-grid-full {
+    grid-column: 1 / -1;
+}
+.ufsc-form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+.ufsc-form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+.ufsc-form-control:focus {
+    border-color: #0073aa;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 115, 170, 0.2);
+}
+.ufsc-form-checkbox label {
+    display: inline;
+    font-weight: normal;
+    margin-left: 5px;
+}
+.ufsc-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+.ufsc-btn-primary {
+    background-color: #0073aa;
+    color: #fff;
+    width: 100%;
+}
+.ufsc-btn-primary:hover {
+    background-color: #005a87;
+}
+.ufsc-error-message {
+    color: #d63638;
+    font-size: 12px;
+    margin-top: 4px;
+}
+.ufsc-form-links {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+.ufsc-form-links a {
+    color: #0073aa;
+    text-decoration: none;
+    font-size: 13px;
+}
+.ufsc-form-links a:hover {
+    text-decoration: underline;
+}
+.ufsc-form-links a:focus {
+    outline: 2px solid #005a87;
+    outline-offset: 2px;
+}

@@ -1,0 +1,836 @@
+<?php
+if (! defined('ABSPATH')) {exit;}
+
+/**
+ * Import/Export utilities for UFSC
+ * Handles CSV and Excel file operations
+ */
+class UFSC_Import_Export
+{
+
+    /**
+     * Export licences to CSV
+     *
+     * @param int   $club_id Club ID
+     * @param array $filters Optional filters (status, season, ids)
+     * @return array Result with success status and file info
+     */
+    public static function export_licences_csv($club_id, $filters = [])
+    {
+        $licences = static::get_club_licences_for_export($club_id, $filters);
+        if (empty($licences)) {
+            return [
+                'success' => false,
+                'message' => __('Aucune licence à exporter.', 'ufsc-clubs'),
+            ];
+        }
+        // Create CSV content
+        $csv_data = [];
+
+        // Header row
+        $headers = [
+            __('ID', 'ufsc-clubs'),
+            __('Nom', 'ufsc-clubs'),
+            __('Prénom', 'ufsc-clubs'),
+            __('Email', 'ufsc-clubs'),
+            __('Téléphone mobile', 'ufsc-clubs'),
+            __('Date de naissance', 'ufsc-clubs'),
+            __('Sexe', 'ufsc-clubs'),
+            __('Adresse', 'ufsc-clubs'),
+            __('Suite adresse', 'ufsc-clubs'),
+            __('Ville', 'ufsc-clubs'),
+            __('Code postal', 'ufsc-clubs'),
+            __('Statut', 'ufsc-clubs'),
+            __('Téléphone fixe', 'ufsc-clubs'),
+            __('Réduction bénévole', 'ufsc-clubs'),
+            __('Réduction postier', 'ufsc-clubs'),
+            __('Identifiant la poste', 'ufsc-clubs'),
+            __('Profession', 'ufsc-clubs'),
+            __('Fonction publique', 'ufsc-clubs'),
+            __('Diffusion image', 'ufsc-clubs'),
+            __('Recevoir infos FSASPTT', 'ufsc-clubs'),
+            __('Recevoir infos ASPTT', 'ufsc-clubs'),
+            __('Recevoir infos Comite Regional', 'ufsc-clubs'),
+            __('Recevoir infos partenaires', 'ufsc-clubs'),
+            __('Soumis à l\'honorabilité', 'ufsc-clubs'),
+            __('Compétition', 'ufsc-clubs'),
+            __('Licence Délégataire', 'ufsc-clubs'),
+            __('Numéro licence Délégataire', 'ufsc-clubs'),
+            __('Note', 'ufsc-clubs'),
+            __('Assurance dommage corporel', 'ufsc-clubs'),
+            __('Assurance assistance', 'ufsc-clubs'),
+        ];
+        $csv_data[] = $headers;
+
+        // Data rows
+        foreach ($licences as $licence) {
+            $reduction_benevole         = (! empty($licence['reduction_benevole']) && $licence['reduction_benevole'] == '1') ? 'Oui' : 'Non';
+            $reduction_postier          = (! empty($licence['reduction_postier']) && $licence['reduction_postier'] == '1') ? 'Oui' : 'Non';
+            $fonction_publique          = (! empty($licence['fonction_publique']) && $licence['fonction_publique'] == '1') ? 'Oui' : 'Non';
+            $diffusion_image            = (! empty($licence['diffusion_image']) && $licence['diffusion_image'] == '1') ? 'Oui' : 'Non';
+            $infos_fsasptt              = (! empty($licence['infos_fsasptt']) && $licence['infos_fsasptt'] == '1') ? 'Oui' : 'Non';
+            $infos_asptt                = (! empty($licence['infos_asptt']) && $licence['infos_asptt'] == '1') ? 'Oui' : 'Non';
+            $infos_cr                   = (! empty($licence['infos_cr']) && $licence['infos_cr'] == '1') ? 'Oui' : 'Non';
+            $infos_partenaires          = (! empty($licence['infos_partenaires']) && $licence['infos_partenaires'] == '1') ? 'Oui' : 'Non';
+            $honorabilite               = (! empty($licence['honorabilite']) && $licence['honorabilite'] == '1') ? 'Oui' : 'Non';
+            $competition                = (! empty($licence['competition']) && $licence['competition'] == '1') ? 'Oui' : 'Non';
+            $licence_delegataire        = (! empty($licence['licence_delegataire']) && $licence['licence_delegataire'] == '1') ? 'Oui' : 'Non';
+            $assurance_dommage_corporel = (! empty($licence['assurance_dommage_corporel']) && $licence['assurance_dommage_corporel'] == '1') ? 'Oui' : 'Non';
+            $assurance_assistance       = (! empty($licence['assurance_assistance']) && $licence['assurance_assistance'] == '1') ? 'Oui' : 'Non';
+
+            $csv_data[] = [
+                $licence['id'] ?? '',
+                $licence['nom'] ?? '',
+                $licence['prenom'] ?? '',
+                $licence['email'] ?? '',
+                $licence['tel_mobile'] ?? '',
+                $licence['date_naissance'] ?? '',
+                $licence['sexe'] ?? '',
+                $licence['adresse'] ?? '',
+                $licence['suite_adresse'] ?? '',
+                $licence['ville'] ?? '',
+                $licence['code_postal'] ?? '',
+                $licence['statut'] ?? '',
+                $licence['tel_fixe'] ?? '',
+                $reduction_benevole,
+                $reduction_postier,
+                $licence['identifiant_laposte'] ?? '',
+                $licence['profession'] ?? '',
+                $fonction_publique,
+                $diffusion_image,
+                $infos_fsasptt,
+                $infos_asptt,
+                $infos_cr,
+                $infos_partenaires,
+                $honorabilite,
+                $competition,
+                $licence_delegataire,
+                $licence['numero_licence_delegataire'] ?? '',
+                $licence['note'] ?? '',
+                $assurance_dommage_corporel,
+                $assurance_assistance,
+            ];
+        }
+
+        // Generate filename
+        $club_name = static::get_club_name($club_id);
+        $date      = date('Y-m-d_H-i-s');
+        $filename  = sanitize_file_name("licences_{$club_name}_{$date}.csv");
+
+        // Create file
+        $upload_dir = wp_upload_dir();
+        $file_path  = $upload_dir['path'] . '/' . $filename;
+
+        $file_handle = fopen($file_path, 'w');
+        if (! $file_handle) {
+            return [
+                'success' => false,
+                'message' => __('Impossible de créer le fichier CSV.', 'ufsc-clubs'),
+            ];
+        }
+
+        // Write BOM for UTF-8
+        fwrite($file_handle, "\xEF\xBB\xBF");
+
+        // Write CSV data
+        foreach ($csv_data as $row) {
+            //fputcsv( $file_handle, $row, ',', '"' );
+            fputcsv($file_handle, $row, ';');
+        }
+
+        fclose($file_handle);
+
+        // Log export
+        if (function_exists('ufsc_audit_log')) {
+            ufsc_audit_log('csv_export', [
+                'club_id'      => $club_id,
+                'filename'     => $filename,
+                'record_count' => count($licences),
+            ]);
+        }
+
+        return [
+            'success'      => true,
+            'filename'     => $filename,
+            'file_path'    => $file_path,
+            'file_url'     => $upload_dir['url'] . '/' . $filename,
+            'record_count' => count($licences),
+        ];
+    }
+
+    /**
+     * Export licences to Excel (XLSX)
+     *
+     * @param int   $club_id Club ID
+     * @param array $filters Optional filters (status, season, ids)
+     * @return array Result with success status and file info
+     */
+    public static function export_licences_xlsx($club_id, $filters = [])
+    {
+        // Check if PhpSpreadsheet is available
+        //var_dump(class_exists( 'PhpOffice\PhpSpreadsheet\Spreadsheet' ));exit();
+        if (! class_exists('PhpOffice\PhpSpreadsheet\Spreadsheet')) {
+            // Fall back to CSV
+            $csv_result = static::export_licences_csv($club_id, $filters);
+            if ($csv_result['success']) {
+                $csv_result['message'] = __('PhpSpreadsheet non disponible. Export CSV généré à la place.', 'ufsc-clubs');
+            }
+            return $csv_result;
+        }
+
+        $licences = static::get_club_licences_for_export($club_id, $filters);
+        if (empty($licences)) {
+            return [
+                'success' => false,
+                'message' => __('Aucune licence à exporter.', 'ufsc-clubs'),
+            ];
+        }
+
+        try {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet       = $spreadsheet->getActiveSheet();
+            $sheet->setTitle(__('Licences', 'ufsc-clubs'));
+
+            // Headers
+            $headers = [
+                'A1'  => __('ID', 'ufsc-clubs'),
+                'B1'  => __('Nom', 'ufsc-clubs'),
+                'C1'  => __('Prénom', 'ufsc-clubs'),
+                'D1'  => __('Email', 'ufsc-clubs'),
+                'E1'  => __('Téléphone mobile', 'ufsc-clubs'),
+                'F1'  => __('Date de naissance', 'ufsc-clubs'),
+                'G1'  => __('Sexe', 'ufsc-clubs'),
+                'H1'  => __('Adresse', 'ufsc-clubs'),
+                'I1'  => __('Suite adresse', 'ufsc-clubs'),
+                'J1'  => __('Ville', 'ufsc-clubs'),
+                'K1'  => __('Code postal', 'ufsc-clubs'),
+                'L1'  => __('Statut', 'ufsc-clubs'),
+                'M1'  => __('Téléphone fixe', 'ufsc-clubs'),
+                'N1'  => __('Réduction bénévole', 'ufsc-clubs'),
+                'O1'  => __('Réduction postier', 'ufsc-clubs'),
+                'P1'  => __('Identifiant la poste', 'ufsc-clubs'),
+                'Q1'  => __('Profession', 'ufsc-clubs'),
+                'R1'  => __('Fonction publique', 'ufsc-clubs'),
+                'S1'  => __('Diffusion image', 'ufsc-clubs'),
+                'T1'  => __('Recevoir infos FSASPTT', 'ufsc-clubs'),
+                'U1'  => __('Recevoir infos ASPTT', 'ufsc-clubs'),
+                'V1'  => __('Recevoir infos Comite Regional', 'ufsc-clubs'),
+                'W1'  => __('Recevoir infos partenaires', 'ufsc-clubs'),
+                'X1'  => __('Soumis à l\'honorabilité', 'ufsc-clubs'),
+                'Y1'  => __('Compétition', 'ufsc-clubs'),
+                'Z1'  => __('Licence Délégataire', 'ufsc-clubs'),
+                'AA1' => __('Numéro licence Délégataire', 'ufsc-clubs'),
+                'AB1' => __('Note', 'ufsc-clubs'),
+                'AC1' => __('Assurance dommage corporel', 'ufsc-clubs'),
+                'AD1' => __('Assurance assistance', 'ufsc-clubs'),
+            ];
+
+            foreach ($headers as $cell => $value) {
+                $sheet->setCellValue($cell, $value);
+            }
+
+            // Style headers
+            $headerStyle = [
+                'font' => ['bold' => true],
+                'fill' => [
+                    'fillType'   => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                    'startColor' => ['rgb' => 'E9ECEF'],
+                ],
+            ];
+            $sheet->getStyle('A1:AD1')->applyFromArray($headerStyle);
+
+            // Data
+            $row = 2;
+            foreach ($licences as $licence) {
+                $reduction_benevole         = (! empty($licence['reduction_benevole']) && $licence['reduction_benevole'] == '1') ? 'Oui' : 'Non';
+                $reduction_postier          = (! empty($licence['reduction_postier']) && $licence['reduction_postier'] == '1') ? 'Oui' : 'Non';
+                $fonction_publique          = (! empty($licence['fonction_publique']) && $licence['fonction_publique'] == '1') ? 'Oui' : 'Non';
+                $diffusion_image            = (! empty($licence['diffusion_image']) && $licence['diffusion_image'] == '1') ? 'Oui' : 'Non';
+                $infos_fsasptt              = (! empty($licence['infos_fsasptt']) && $licence['infos_fsasptt'] == '1') ? 'Oui' : 'Non';
+                $infos_asptt                = (! empty($licence['infos_asptt']) && $licence['infos_asptt'] == '1') ? 'Oui' : 'Non';
+                $infos_cr                   = (! empty($licence['infos_cr']) && $licence['infos_cr'] == '1') ? 'Oui' : 'Non';
+                $infos_partenaires          = (! empty($licence['infos_partenaires']) && $licence['infos_partenaires'] == '1') ? 'Oui' : 'Non';
+                $honorabilite               = (! empty($licence['honorabilite']) && $licence['honorabilite'] == '1') ? 'Oui' : 'Non';
+                $competition                = (! empty($licence['competition']) && $licence['competition'] == '1') ? 'Oui' : 'Non';
+                $licence_delegataire        = (! empty($licence['licence_delegataire']) && $licence['licence_delegataire'] == '1') ? 'Oui' : 'Non';
+                $assurance_dommage_corporel = (! empty($licence['assurance_dommage_corporel']) && $licence['assurance_dommage_corporel'] == '1') ? 'Oui' : 'Non';
+                $assurance_assistance       = (! empty($licence['assurance_assistance']) && $licence['assurance_assistance'] == '1') ? 'Oui' : 'Non';
+
+                $sheet->setCellValue("A{$row}", $licence['id'] ?? '');
+                $sheet->setCellValue("B{$row}", $licence['nom'] ?? '');
+                $sheet->setCellValue("C{$row}", $licence['prenom'] ?? '');
+                $sheet->setCellValue("D{$row}", $licence['email'] ?? '');
+                $sheet->setCellValue("E{$row}", $licence['tel_mobile'] ?? '');
+                $sheet->setCellValue("F{$row}", $licence['date_naissance'] ?? '');
+                $sheet->setCellValue("G{$row}", $licence['sexe'] ?? '');
+                $sheet->setCellValue("H{$row}", $licence['adresse'] ?? '');
+                $sheet->setCellValue("I{$row}", $licence['suite_adresse'] ?? '');
+                $sheet->setCellValue("J{$row}", $licence['ville'] ?? '');
+                $sheet->setCellValue("K{$row}", $licence['code_postal'] ?? '');
+                $sheet->setCellValue("L{$row}", $licence['statut'] ?? '');
+                $sheet->setCellValue("M{$row}", $licence['tel_fixe'] ?? '');
+                $sheet->setCellValue("N{$row}", $reduction_benevole);
+                $sheet->setCellValue("O{$row}", $reduction_postier);
+                $sheet->setCellValue("P{$row}", $licence['identifiant_laposte'] ?? '');
+                $sheet->setCellValue("Q{$row}", $licence['profession'] ?? '');
+                $sheet->setCellValue("R{$row}", $fonction_publique);
+                $sheet->setCellValue("S{$row}", $diffusion_image);
+                $sheet->setCellValue("T{$row}", $infos_fsasptt);
+                $sheet->setCellValue("U{$row}", $infos_asptt);
+                $sheet->setCellValue("V{$row}", $infos_cr);
+                $sheet->setCellValue("W{$row}", $infos_partenaires);
+                $sheet->setCellValue("X{$row}", $honorabilite);
+                $sheet->setCellValue("Y{$row}", $competition);
+                $sheet->setCellValue("Z{$row}", $licence_delegataire);
+                $sheet->setCellValue("AA{$row}", $licence['numero_licence_delegataire'] ?? '');
+                $sheet->setCellValue("AB{$row}", $licence['note'] ?? '');
+                $sheet->setCellValue("AC{$row}", $assurance_dommage_corporel);
+                $sheet->setCellValue("AD{$row}", $assurance_assistance);
+
+                $row++;
+            }
+
+            // Auto-size columns
+            foreach (range('A', 'M') as $column) {
+                $sheet->getColumnDimension($column)->setAutoSize(true);
+            }
+
+            // Generate filename
+            $club_name = static::get_club_name($club_id);
+            $date      = date('Y-m-d_H-i-s');
+            $filename  = sanitize_file_name("licences_{$club_name}_{$date}.xlsx");
+
+            // Save file
+            $upload_dir = wp_upload_dir();
+            $file_path  = $upload_dir['path'] . '/' . $filename;
+
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $writer->save($file_path);
+
+            // Log export
+            if (function_exists('ufsc_audit_log')) {
+                ufsc_audit_log('xlsx_export', [
+                    'club_id'      => $club_id,
+                    'filename'     => $filename,
+                    'record_count' => count($licences),
+                ]);
+            }
+
+            return [
+                'success'      => true,
+                'filename'     => $filename,
+                'file_path'    => $file_path,
+                'file_url'     => $upload_dir['url'] . '/' . $filename,
+                'record_count' => count($licences),
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => sprintf(__('Erreur lors de la création du fichier Excel: %s', 'ufsc-clubs'), $e->getMessage()),
+            ];
+        }
+    }
+
+    /**
+     * Parse CSV file for import preview
+     *
+     * @param array $file Uploaded file array
+     * @return array Result with parsed data and validation errors
+     */
+    public static function parse_csv_for_import($file)
+    {
+        if (empty($file['tmp_name']) || ! is_uploaded_file($file['tmp_name'])) {
+            return [
+                'success' => false,
+                'message' => __('Fichier invalide.', 'ufsc-clubs'),
+            ];
+        }
+
+        // Validate file type
+        $file_info = pathinfo($file['name']);
+
+        if (strtolower($file_info['extension'] ?? '') !== 'csv') {
+            return [
+                'success' => false,
+                'message' => __('Seuls les fichiers CSV sont acceptés.', 'ufsc-clubs'),
+            ];
+        }
+
+        // Read CSV file
+        $handle = fopen($file['tmp_name'], 'r');
+        if (! $handle) {
+            return [
+                'success' => false,
+                'message' => __('Impossible de lire le fichier.', 'ufsc-clubs'),
+            ];
+        }
+
+        // Skip BOM if present
+        $bom = fread($handle, 3);
+        if ($bom !== "\xEF\xBB\xBF") {
+            rewind($handle);
+        }
+
+        $data        = [];
+        $errors      = [];
+        $line_number = 0;
+        $headers     = null;
+        while (($row = fgetcsv($handle, 0, ';', '"')) !== false) {
+            $line_number++;
+
+            if ($line_number === 1) {
+                // First line should be headers
+                $headers = array_map('strtolower', array_map('trim', $row));
+
+                // Validate required headers
+                $required_headers = ['nom', 'prenom', 'email', 'date_naissance', 'sexe'];
+                $missing_headers  = array_diff($required_headers, $headers);
+
+                if (! empty($missing_headers)) {
+                    $errors[] = sprintf(
+                        __('En-têtes manquants: %s', 'ufsc-clubs'),
+                        implode(', ', $missing_headers)
+                    );
+                    break;
+                }
+
+                continue;
+            }
+
+            // Map row by headers
+            $row_data   = [];
+            $row_errors = [];
+
+            foreach ($headers as $index => $header) {
+                $value             = isset($row[$index]) ? trim($row[$index]) : '';
+                $row_data[$header] = $value;
+            }
+
+            // Validate required fields
+            if (empty($row_data['nom'])) {
+                $row_errors[] = __('Nom requis', 'ufsc-clubs');
+            }
+            if (empty($row_data['prenom'])) {
+                $row_errors[] = __('Prénom requis', 'ufsc-clubs');
+            }
+            if (empty($row_data['email'])) {
+                $row_errors[] = __('Email requis', 'ufsc-clubs');
+            } elseif (! is_email($row_data['email'])) {
+                $row_errors[] = __('Email invalide', 'ufsc-clubs');
+            }
+
+            // Validate date format if provided
+            $raw_date = str_replace('/', '-', $row_data['date_naissance']);
+            $date     = DateTime::createFromFormat('Y-m-d', $raw_date);
+
+            if (! $date || $date->format('Y-m-d') !== date('Y-m-d', strtotime($raw_date))) {
+                $row_errors[] = __('Format de date invalide (YYYY-MM-DD attendu)', 'ufsc-clubs');
+            }
+
+            // Validate sex if provided
+            if (! empty($row_data['sexe']) && ! in_array(strtoupper($row_data['sexe']), ['M', 'F'], true)) {
+                $row_errors[] = __('Sexe invalide (M ou F attendu)', 'ufsc-clubs');
+            }
+
+            if (! empty($row_errors)) {
+                $errors[] = sprintf(
+                    __('Ligne %d: %s', 'ufsc-clubs'),
+                    $line_number,
+                    implode(', ', $row_errors)
+                );
+            }
+
+            $row_data['line_number'] = $line_number;
+            $row_data['status']      = empty($row_errors) ? 'valid' : 'error';
+            $data[]                  = $row_data;
+
+            // Limit preview to first 50 rows
+            if (count($data) >= 50) {
+                break;
+            }
+        }
+
+        fclose($handle);
+
+        return [
+            'success'    => true,
+            'data'       => $data,
+            'errors'     => $errors,
+            'preview'    => $data,
+            'total_rows' => $line_number - 1, // Excluding header
+            'valid_rows' => count(array_filter($data, function ($r) {return $r['status'] === 'valid';})),
+        ];
+    }
+
+    /**
+     * Import CSV data after validation
+     *
+     * @param array $data     Validated CSV data
+     * @param int   $club_id  Club ID
+     * @return array Result with import statistics
+     */
+    public static function import_csv_data($data, $club_id)
+    {
+        $imported            = 0;
+        $errors              = [];
+        $created_licence_ids = [];
+
+        // Check quota
+        $quota_info    = static::get_club_quota_info($club_id);
+        $needs_payment = false;
+
+        foreach ($data as $row) {
+            if (($row['status'] ?? '') !== 'valid') {
+                continue;
+            }
+
+            // Check if we've exceeded quota
+            if ($quota_info['remaining'] <= 0 && ! $needs_payment) {
+                $needs_payment = true;
+            }
+
+            // Create licence record
+            $licence_data = [
+                'nom'                => sanitize_text_field($row['nom']),
+                'prenom'             => sanitize_text_field($row['prenom']),
+                'email'              => sanitize_email($row['email']),
+                'tel_mobile'         => sanitize_text_field($row['telephone'] ?? ''),
+                'tel_fixe'           => sanitize_text_field($row['tel_fixe'] ?? ''),
+                'date_naissance'     => ! empty($row['date_naissance']) ? $row['date_naissance'] : null,
+                'sexe'               => strtoupper($row['sexe'] ?? ''),
+                'adresse'            => sanitize_textarea_field($row['adresse'] ?? ''),
+                'suite_adresse'      => sanitize_textarea_field($row['suite_adresse'] ?? ''),
+                'ville'              => sanitize_text_field($row['ville'] ?? ''),
+                'code_postal'        => sanitize_text_field($row['code_postal'] ?? ''),
+                'reduction_benevole' => sanitize_text_field($row['reduction_benevole'] ?? ''),
+                'region'             => sanitize_text_field($row['region'] ?? ''),
+                'statut'             => 'brouillon',
+            ];
+            //var_dump($licence_data);exit();
+            $licence_id = static::create_licence_record($club_id, $licence_data);
+
+            if ($licence_id) {
+                $imported++;
+                $created_licence_ids[] = $licence_id;
+                $quota_info['remaining']--;
+
+                if (function_exists('ufsc_audit_log')) {
+                    ufsc_audit_log('licence_imported', [
+                        'licence_id' => $licence_id,
+                        'club_id'    => $club_id,
+                        'source'     => 'csv_import',
+                    ]);
+                }
+            } else {
+                $errors[] = sprintf(
+                    __('Ligne %d: Échec de création de la licence', 'ufsc-clubs'),
+                    (int) ($row['line_number'] ?? 0)
+                );
+            }
+        }
+
+        // Create payment order if quota exceeded
+        $payment_url = null;
+        if ($needs_payment && ! empty($created_licence_ids)) {
+            $order_id = static::create_payment_order($club_id, $created_licence_ids);
+            if ($order_id && function_exists('wc_get_order')) {
+                $order = wc_get_order($order_id);
+                if ($order) {
+                    $payment_url = $order->get_checkout_payment_url();
+                }
+            }
+        }
+
+        if (function_exists('ufsc_audit_log')) {
+            ufsc_audit_log('csv_import_completed', [
+                'club_id'          => $club_id,
+                'imported_count'   => $imported,
+                'error_count'      => count($errors),
+                'payment_required' => $needs_payment,
+            ]);
+        }
+
+        return [
+            'success'          => true,
+            'imported'         => $imported,
+            'errors'           => $errors,
+            'payment_required' => $needs_payment,
+            'payment_url'      => $payment_url,
+            'licence_ids'      => $created_licence_ids,
+        ];
+    }
+
+    /* ---------------------------------------------------------------------
+     * Helper methods
+     * ------------------------------------------------------------------ */
+
+    /**
+     * Retrieve club licences for export.
+     *
+     * @param int   $club_id Club identifier.
+     * @param array $filters Optional filters (status, season).
+     * @return array List of licences.
+     */
+    protected static function get_club_licences_for_export($club_id, $filters)
+    {
+        global $wpdb;
+
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        $where  = ['club_id = %d'];
+        $values = [$club_id];
+
+        if (! empty($filters['status'])) {
+            $where[]  = 'statut = %s';
+            $values[] = sanitize_text_field($filters['status']);
+        }
+
+        if (! empty($filters['season'])) {
+            $season_col = function_exists('ufsc_get_mapped_column_if_exists')
+                ? ufsc_get_mapped_column_if_exists($licences_table, 'season', 'licences')
+                : null;
+            if ($season_col) {
+                $where[]  = "`{$season_col}` = %s";
+                $values[] = sanitize_text_field($filters['season']);
+            }
+        }
+
+        if (! empty($filters['ids']) && is_array($filters['ids'])) {
+            $ids = array_filter(array_map('intval', $filters['ids']));
+            if (! empty($ids)) {
+                $placeholders = implode(',', array_fill(0, count($ids), '%d'));
+                $where[]      = "id IN ({$placeholders})";
+                $values       = array_merge($values, $ids);
+            }
+        }
+
+        $sql = "SELECT id, nom, prenom, email, tel_mobile, date_naissance, sexe, adresse, ville, code_postal, statut, region, tel_fixe, suite_adresse, reduction_benevole
+                FROM {$licences_table}
+                WHERE " . implode(' AND ', $where);
+
+        $results = $wpdb->get_results($wpdb->prepare($sql, $values), ARRAY_A);
+
+        return is_array($results) ? $results : [];
+    }
+
+    /**
+     * Get the display name of a club.
+     *
+     * @param int $club_id Club ID.
+     * @return string Club name or default string.
+     */
+    protected static function get_club_name($club_id)
+    {
+        global $wpdb;
+
+        $settings    = UFSC_SQL::get_settings();
+        $clubs_table = $settings['table_clubs'];
+        $name_col    = function_exists('ufsc_club_col') ? ufsc_club_col('name') : 'nom';
+
+        $name = $wpdb->get_var($wpdb->prepare(
+            "SELECT {$name_col} FROM {$clubs_table} WHERE id = %d",
+            $club_id
+        ));
+
+        return $name ? $name : "Club_{$club_id}";
+    }
+
+    /**
+     * Retrieve club licence quota information.
+     *
+     * @param int $club_id Club identifier.
+     * @return array{total:int,used:int,remaining:int} Quota details.
+     */
+    protected static function get_club_quota_info($club_id)
+    {
+        global $wpdb;
+
+        $settings       = UFSC_SQL::get_settings();
+        $clubs_table    = $settings['table_clubs'];
+        $licences_table = $settings['table_licences'];
+
+        $quota_total = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT quota_licences FROM {$clubs_table} WHERE id = %d",
+            $club_id
+        ));
+
+        $used = (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$licences_table} WHERE club_id = %d",
+            $club_id
+        ));
+
+        return [
+            'total'     => $quota_total,
+            'used'      => $used,
+            'remaining' => max(0, $quota_total - $used),
+        ];
+    }
+
+    /**
+     * Insert a licence record into the UFSC licences table.
+     *
+     * @param int   $club_id Club identifier.
+     * @param array $data    Licence data.
+     * @return int Inserted licence ID or 0 on failure.
+     */
+    protected static function create_licence_record($club_id, $data)
+    {
+        global $wpdb;
+
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        $insert_data = array_merge(
+            $data,
+            [
+                'club_id'       => $club_id,
+                'date_creation' => current_time('mysql'),
+            ]
+        );
+
+        $result = $wpdb->insert($licences_table, $insert_data);
+
+        if (false === $result) {
+            UFSC_Audit_Logger::log('UFSC: Failed to insert licence - ' . $wpdb->last_error);
+            return 0;
+        }
+
+        return (int) $wpdb->insert_id;
+    }
+
+    /**
+     * Create a payment order for licences over quota.
+     *
+     * Delegates order creation to ufsc_create_additional_license_order for
+     * consistent WooCommerce handling.
+     *
+     * @param int   $club_id     Club ID.
+     * @param array $licence_ids Licence IDs to attach to the order.
+     * @return int|false Order ID on success, false otherwise.
+     */
+    protected static function create_payment_order($club_id, $licence_ids)
+    {
+        if (! function_exists('ufsc_create_additional_license_order')) {
+            return false;
+        }
+
+        return ufsc_create_additional_license_order($club_id, $licence_ids, get_current_user_id());
+    }
+}
+
+/**
+ * Handle export requests
+ */
+function ufsc_handle_export_request()
+{
+    if (! isset($_GET['ufsc_export']) || ! is_user_logged_in()) {
+        return;
+    }
+
+    $format  = sanitize_text_field(wp_unslash($_GET['ufsc_export']));
+    $user_id = get_current_user_id();
+    $club_id = function_exists('ufsc_get_user_club_id') ? ufsc_get_user_club_id($user_id) : 0;
+
+    if (! $club_id) {
+        wp_die(__('Aucun club associé à votre compte.', 'ufsc-clubs'));
+    }
+
+    // Verify nonce if present
+    if (isset($_GET['_wpnonce']) && ! wp_verify_nonce($_GET['_wpnonce'], 'ufsc_export')) {
+        wp_die(__('Vérification de sécurité échouée.', 'ufsc-clubs'));
+    }
+
+    $filters = [
+        'season' => isset($_GET['season']) ? sanitize_text_field(wp_unslash($_GET['season'])) : null,
+        'status' => isset($_GET['status']) ? sanitize_text_field(wp_unslash($_GET['status'])) : null,
+        'ids'    => isset($_REQUEST['ids']) ? array_map('intval', (array) $_REQUEST['ids']) : [],
+    ];
+
+    switch ($format) {
+        case 'csv':
+            $result = UFSC_Import_Export::export_licences_csv($club_id, $filters);
+            break;
+        case 'xlsx':
+            $result = UFSC_Import_Export::export_licences_xlsx($club_id, $filters);
+            break;
+        default:
+            wp_die(__('Format d\'export non supporté.', 'ufsc-clubs'));
+    }
+
+    if (! empty($result['success'])) {
+        if (file_exists($result['file_path'])) {
+            // Force download
+            header('Content-Type: application/octet-stream');
+            header('Content-Disposition: attachment; filename="' . $result['filename'] . '"');
+            header('Content-Length: ' . filesize($result['file_path']));
+            readfile($result['file_path']);
+            // Clean up file after download
+            @unlink($result['file_path']);
+        }
+        exit;
+    }
+
+    status_header(500);
+    die(esc_html($result['message'] ?? __('Erreur inconnue lors de l’export.', 'ufsc-clubs')));
+}
+add_action('init', 'ufsc_handle_export_request');
+
+/**
+ * Handle import request preview csv format
+ */
+function ufsc_handle_preview_import_request()
+{
+    if (! isset($_POST['ufsc_import_preview']) || ! is_user_logged_in()) {
+        return;
+    }
+
+    //$format  = sanitize_text_field( wp_unslash( $_GET['ufsc_export'] ) );
+    $user_id = get_current_user_id();
+    $club_id = function_exists('ufsc_get_user_club_id') ? ufsc_get_user_club_id($user_id) : 0;
+
+    if (! $club_id) {
+        wp_die(__('Aucun club associé à votre compte.', 'ufsc-clubs'));
+    }
+
+    // Verify nonce if present
+    if (isset($_POST['ufsc_nonce']) && ! wp_verify_nonce($_POST['ufsc_nonce'], 'ufsc_import')) {
+        wp_die(__('Vérification de sécurité échouée.', 'ufsc-clubs'));
+    }
+    $file   = $_FILES['csv_file'];
+    $result = UFSC_Import_Export::parse_csv_for_import($file);
+    echo json_encode($result);
+    exit();
+}
+add_action('init', 'ufsc_handle_preview_import_request');
+
+/**
+ * Handle import request preview csv format
+ */
+function ufsc_handle_import_commit_request()
+{
+
+    if (! isset($_POST['action']) || ! is_user_logged_in()) {
+        return;
+    }
+    if ($_POST['action'] == 'ufsc_import_commit') {
+        //$format  = sanitize_text_field( wp_unslash( $_GET['ufsc_export'] ) );
+        $user_id = get_current_user_id();
+        $club_id = function_exists('ufsc_get_user_club_id') ? ufsc_get_user_club_id($user_id) : 0;
+
+        if (! $club_id) {
+            wp_die(__('Aucun club associé à votre compte.', 'ufsc-clubs'));
+        }
+
+        // Verify nonce if present
+        /*if ( isset( $_POST['nonce'] ) && ! wp_verify_nonce( $_POST['nonce'], 'nonce' ) ) {
+          wp_die( __( 'Vérification de sécurité échouée.', 'ufsc-clubs' ) );
+      }*/
+
+        $result = UFSC_Import_Export::import_csv_data($_POST['data'], $club_id);
+        echo json_encode($result);
+        exit();
+    }
+
+}
+add_action('init', 'ufsc_handle_import_commit_request');

@@ -1,0 +1,464 @@
+/**
+ * UFSC Frontend Styles
+ * Design tokens and base components for front shortcodes
+ */
+
+:root {
+    --ufsc-primary: #2271b1;      /* Bleu UFSC */
+    --ufsc-secondary: #135e96;    /* Bleu foncé */
+    --ufsc-success: #047857;      /* Vert validation */
+    --ufsc-warning: #b45309;      /* Orange attention */
+    --ufsc-danger: #b91c1c;       /* Rouge erreur */
+    --ufsc-info: #1d4ed8;         /* Bleu information */
+    --ufsc-neutral: #374151;      /* Gris neutre */
+
+    --ufsc-spacing-xs: 8px;
+    --ufsc-spacing-sm: 16px;
+    --ufsc-spacing-md: 24px;
+    --ufsc-spacing-lg: 32px;
+    --ufsc-spacing-xl: 48px;
+
+    --mobile: 480px;
+    --tablet: 768px;
+    --desktop: 1024px;
+    --wide: 1200px;
+}
+
+/* Grid system */
+.ufsc-grid {
+    display: grid;
+    gap: var(--ufsc-spacing-md);
+    grid-template-columns: 1fr;
+}
+@media (min-width: var(--tablet)) {
+    .ufsc-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (min-width: var(--desktop)) {
+    .ufsc-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+.ufsc-grid.-wide {
+    grid-template-columns: 1fr;
+}
+
+/* Licence cards grid */
+.ufsc-licence-grid {
+    display: grid;
+    gap: var(--ufsc-spacing-md);
+    grid-template-columns: 1fr;
+}
+@media (min-width: var(--tablet)) {
+    .ufsc-licence-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (min-width: var(--tablet)) {
+    .ufsc-grid.-wide {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Licence cards grid */
+.ufsc-licence-cards {
+    display: grid;
+    gap: var(--ufsc-spacing-md);
+    grid-template-columns: 1fr;
+}
+@media (min-width: var(--tablet)) {
+    .ufsc-licence-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Documents status grid */
+.ufsc-documents-status {
+    display: grid;
+    gap: var(--ufsc-spacing-md);
+    grid-template-columns: 1fr;
+}
+@media (min-width: var(--tablet)) {
+    .ufsc-documents-status {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (min-width: var(--desktop)) {
+    .ufsc-documents-status {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Card */
+.ufsc-card {
+    background: #ffffff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: var(--ufsc-spacing-md);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+.ufsc-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.ufsc-card:focus,
+.ufsc-card:focus-within,
+.ufsc-licence-card:focus,
+.ufsc-document-item:focus {
+    outline: 3px solid var(--ufsc-info);
+    outline-offset: 2px;
+}
+
+/* Club profile grids */
+.ufsc-club-profile .ufsc-card .ufsc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--ufsc-spacing-md);
+}
+
+/* Club profile typography and spacing */
+.ufsc-club-profile .ufsc-card h4,
+.ufsc-club-profile fieldset legend {
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: var(--ufsc-spacing-sm);
+    color: var(--ufsc-secondary);
+}
+
+.ufsc-club-profile fieldset {
+    margin-bottom: var(--ufsc-spacing-lg);
+    padding: var(--ufsc-spacing-md);
+    background: #ffffff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+}
+
+/* Field */
+.ufsc-club-profile .ufsc-field {
+    margin-bottom: var(--ufsc-spacing-md);
+}
+.ufsc-field label {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+.ufsc-field input,
+.ufsc-field select,
+.ufsc-field textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* Buttons */
+.ufsc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.ufsc-btn-primary {
+    background: var(--ufsc-primary);
+    color: #fff;
+}
+.ufsc-btn-primary:hover {
+    background: #005a87;
+    color: #fff;
+}
+.ufsc-btn-secondary {
+    background: var(--ufsc-neutral);
+    color: #fff;
+}
+.ufsc-btn-secondary:hover {
+    background: #4b5563;
+    color: #fff;
+}
+
+/* Badges */
+.ufsc-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.ufsc-badge-success {
+    background: var(--ufsc-success);
+    color: #fff;
+}
+.ufsc-badge-warning {
+    background: var(--ufsc-warning);
+    color: #fff;
+}
+.ufsc-badge-info {
+    background: var(--ufsc-info);
+    color: #fff;
+}
+.ufsc-badge-danger {
+    background: var(--ufsc-danger);
+    color: #fff;
+}
+.ufsc-badge-region {
+    background: var(--ufsc-primary);
+    color: #fff;
+}
+
+.ufsc-badge-doc-complete {
+    background: var(--ufsc-success);
+    color: #fff;
+}
+.ufsc-badge-doc-partial {
+    background: var(--ufsc-warning);
+    color: #fff;
+}
+.ufsc-badge-doc-missing {
+    background: var(--ufsc-danger);
+    color: #fff;
+}
+
+/* Licence status badges */
+.ufsc-badge-pending {
+    background: var(--ufsc-info);
+    color: #fff;
+}
+.ufsc-badge-validated {
+    background: var(--ufsc-success);
+    color: #fff;
+}
+.ufsc-badge-expired {
+    background: var(--ufsc-warning);
+    color: #fff;
+}
+.ufsc-badge-rejected {
+    background: var(--ufsc-danger);
+    color: #fff;
+}
+
+.ufsc-badge:hover {
+    opacity: 0.8;
+    text-decoration: none;
+}
+
+.ufsc-badge-sm {
+    padding: 0.2em 0.5em;
+    font-size: 0.65em;
+}
+
+.ufsc-badge-lg {
+    padding: 0.35em 0.8em;
+    font-size: 0.85em;
+}
+
+/* Login form */
+.ufsc-login-form {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: var(--ufsc-spacing-md);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+}
+.ufsc-login-title {
+    text-align: center;
+    margin-bottom: var(--ufsc-spacing-md);
+    color: #333;
+}
+.ufsc-form-group {
+    margin-bottom: var(--ufsc-spacing-sm);
+}
+.ufsc-form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+.ufsc-form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+.ufsc-form-control:focus {
+    border-color: var(--ufsc-primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(34,113,177,0.2);
+}
+.ufsc-form-links {
+    text-align: center;
+    margin-top: 10px;
+}
+.ufsc-form-links a {
+    color: var(--ufsc-primary);
+    text-decoration: none;
+    font-size: 13px;
+}
+.ufsc-form-links a:hover {
+    text-decoration: underline;
+}
+
+/* User status */
+.ufsc-user-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #e9ecef;
+}
+.ufsc-user-status.ufsc-not-logged-in {
+    text-align: center;
+    color: #6c757d;
+}
+.ufsc-user-avatar img {
+    border-radius: 50%;
+}
+.ufsc-user-info {
+    flex: 1;
+}
+.ufsc-user-name {
+    margin-bottom: 2px;
+}
+.ufsc-user-role,
+.ufsc-user-club {
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 2px;
+}
+.ufsc-user-actions {
+    margin-top: 5px;
+}
+.ufsc-logout-button {
+    font-size: 12px;
+    color: #dc3545;
+    text-decoration: none;
+}
+.ufsc-logout-button:hover {
+    text-decoration: underline;
+}
+.ufsc-notice.ufsc-notice-error {
+    background: #f6a2a1;
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+.ufsc-notice p {
+    margin-bottom: 0;
+}
+.ufsc-notice.ufsc-notice-success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+    padding: 0px;
+}
+
+.ufsc-licence-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ufsc-licence-table th,
+.ufsc-licence-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-top: 1px solid #ddd; 
+}
+
+.ufsc-licence-table thead th {
+    border-top: none; 
+    background-color: #f9f9f9;
+    font-weight: 600;
+}
+
+.ufsc-action {
+    display: inline-block;
+    padding: 6px 12px;
+    margin-right: 5px;
+    font-size: 13px;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #fff;
+}
+
+.ufsc-action:first-child {
+    margin-left: 0;
+}
+
+.ufsc-action[href*="view_licence"] {
+    background-color: #2271b1; 
+}
+
+.ufsc-action[href*="edit_licence"] {
+    background-color: #27ae60; 
+}
+
+.ufsc-action[href*="delete_licence"] {
+    background-color: #e74c3c; 
+}
+
+img.photo-club-front {
+    max-width: 400px;
+}
+
+img.img-attestation-club-front {
+    max-width: 400px !important;
+}
+
+button.button.ufsc-remove-photo {
+    padding: 5px 17px !important;
+    margin-top:  21px !important;
+}
+
+button.button.ufsc-upload-photo {
+    padding: 5px 17px !important;
+    margin-top: 18px !important;
+    margin-bottom: 32px !important;
+}
+
+h3.title-attestation.club.front {
+    font-size: 23px !important;
+    font-weight: 700 !important;
+}
+
+a#btn-telechrager-attestation {
+    padding: 4px 10px !important;
+    background: #fff !important;
+    color: #257af8 !important;
+    margin-top: 22px !important;
+    border-color:#257af8 !important;
+}
+
+a#btn-telechrager-attestation:hover {
+    color: #27245B !important;
+    border-color: #27245B !important;
+}
+
+canvas#ufsc-licence-chart {
+    max-height:400px !important;
+}
+
+canvas#ufsc-licence-year-chart {
+    max-height:400px;
+}
+button#upload_btn {
+    padding: 5px 15px !important;
+    margin: 28px 0 !important;
+}

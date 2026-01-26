@@ -1,0 +1,555 @@
+/**
+ * UFSC Admin CSS
+ * Styles for admin area including badges, tables, and forms
+ */
+
+/* Status badges with colored dots */
+.ufsc-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #f1f1f1;
+    color: #444;
+    border: 1px solid #ddd;
+    white-space: nowrap;
+}
+
+.ufsc-status-badge .ufsc-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+/* Status colors */
+.ufsc-status-badge.ufsc-status-valid {
+    background: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.ufsc-status-badge.ufsc-status-valid .ufsc-status-dot {
+    background: #28a745;
+}
+
+.ufsc-status-badge.ufsc-status-pending {
+    background: #fff3cd;
+    border-color: #ffeeba;
+    color: #856404;
+}
+
+.ufsc-status-badge.ufsc-status-pending .ufsc-status-dot {
+    background: #ffc107;
+}
+
+.ufsc-status-badge.ufsc-status-rejected {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.ufsc-status-badge.ufsc-status-rejected .ufsc-status-dot {
+    background: #dc3545;
+}
+
+.ufsc-status-badge.ufsc-status-inactive {
+    background: #e2e3e5;
+    border-color: #d6d8db;
+    color: #6c757d;
+}
+
+.ufsc-status-badge.ufsc-status-inactive .ufsc-status-dot {
+    background: #6c757d;
+}
+
+/* Table improvements */
+.wrap {
+    overflow-x: auto;
+}
+
+.wp-list-table {
+    table-layout: fixed;
+}
+
+.wp-list-table th,
+.wp-list-table td {
+    word-break: break-word;
+}
+
+.wp-list-table.ufsc-enhanced {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.wp-list-table.ufsc-enhanced th,
+.wp-list-table.ufsc-enhanced td {
+    padding: 12px 8px;
+    vertical-align: middle;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.wp-list-table.ufsc-enhanced th {
+    background: #f8f9fa;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.wp-list-table.ufsc-enhanced tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.wp-list-table.ufsc-enhanced tbody tr:nth-child(even) {
+    background-color: #fbfbfb;
+}
+
+.wp-list-table.ufsc-enhanced tbody tr:nth-child(even):hover {
+    background-color: #f0f0f0;
+}
+
+/* Actions column improvements */
+.wp-list-table .column-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.wp-list-table .column-actions .button {
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+/* Quick status dropdown styling */
+.ufsc-quick-status {
+    min-width: 120px;
+    font-size: 12px;
+    padding: 4px 6px;
+}
+
+/* Column width optimizations */
+.wp-list-table .column-id {
+    width: 60px;
+    text-align: center;
+}
+
+.wp-list-table .column-statut {
+    width: 120px;
+}
+
+.wp-list-table .column-region {
+    width: 100px;
+}
+
+.wp-list-table .column-date {
+    width: 100px;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+    .wp-list-table .column-actions .button {
+        display: block;
+        margin-bottom: 2px;
+        margin-right: 0;
+        width: 100%;
+        text-align: center;
+    }
+
+    .ufsc-status-badge {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+
+    .ufsc-status-badge .ufsc-status-dot {
+        width: 6px;
+        height: 6px;
+        margin-right: 4px;
+    }
+}
+
+/* Admin notices styling */
+.ufsc-admin-notice {
+    margin: 15px 0;
+    padding: 12px;
+    border-left: 4px solid #0073aa;
+    background: #fff;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.ufsc-admin-notice.notice-success {
+    border-left-color: #46b450;
+}
+
+.ufsc-admin-notice.notice-error {
+    border-left-color: #dc3232;
+}
+
+.ufsc-admin-notice.notice-warning {
+    border-left-color: #ffb900;
+}
+
+/* Form enhancements */
+.ufsc-form-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    margin: 20px 0;
+    padding: 20px;
+    border-radius: 4px;
+}
+
+.ufsc-form-section h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e1e1e1;
+}
+
+.ufsc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.ufsc-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.ufsc-form-field,
+.ufsc-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.ufsc-form-field label,
+.ufsc-field label {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.ufsc-form-field input,
+.ufsc-form-field select,
+.ufsc-form-field textarea,
+.ufsc-field input,
+.ufsc-field select,
+.ufsc-field textarea {
+    padding: 8px;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.ufsc-form-field input:focus,
+.ufsc-form-field select:focus,
+.ufsc-form-field textarea:focus,
+.ufsc-field input:focus,
+.ufsc-field select:focus,
+.ufsc-field textarea:focus {
+    border-color: #2271b1;
+    box-shadow: 0 0 0 1px #2271b1;
+    outline: none;
+}
+
+.ufsc-form-field.required label::after,
+.ufsc-field.required label::after {
+    content: " *";
+    color: #dc3232;
+}
+
+/* Validation error styling */
+.ufsc-form-field.error input,
+.ufsc-form-field.error select,
+.ufsc-form-field.error textarea,
+.ufsc-field.error input,
+.ufsc-field.error select,
+.ufsc-field.error textarea {
+    border-color: #dc3232;
+    box-shadow: 0 0 0 1px #dc3232;
+}
+
+.ufsc-form-field .error-message,
+.ufsc-field .error-message {
+    color: #dc3232;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+/* Dashboard cards */
+.ufsc-dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.ufsc-dashboard-card {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    transition: box-shadow 0.2s ease;
+}
+
+.ufsc-dashboard-card:hover {
+    box-shadow: 0 2px 5px rgba(0,0,0,.1);
+}
+
+.ufsc-dashboard-card .card-value {
+    font-size: 2.5em;
+    font-weight: bold;
+    color: #2271b1;
+    margin: 10px 0;
+}
+
+.ufsc-dashboard-card .card-label {
+    font-weight: 600;
+    color: #50575e;
+    margin-bottom: 10px;
+}
+
+/* Loading states */
+.ufsc-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.ufsc-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #2271b1;
+    border-radius: 50%;
+    animation: ufsc-spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes ufsc-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Accessibility improvements */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Button group styling */
+.ufsc-button-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ufsc-button-group .button {
+    margin: 0;
+}
+
+/* Filter panel styling */
+.ufsc-filters-panel {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.ufsc-filters-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    align-items: end;
+}
+
+.ufsc-filters-form .form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.ufsc-filters-form label {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 12px;
+}
+
+.ufsc-filters-form input,
+.ufsc-filters-form select {
+    padding: 6px;
+    border: 1px solid #c3c4c7;
+    border-radius: 3px;
+    font-size: 13px;
+}
+
+/* Results info styling */
+.ufsc-results-info {
+    background: #e7f3ff;
+    border: 1px solid #b8daff;
+    border-radius: 4px;
+    padding: 10px 15px;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+/* Dashboard enhancements */
+.ufsc-chart-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.ufsc-chart-container {
+    position: relative;
+    height: 300px;
+    margin-top: 15px;
+}
+
+.ufsc-recent-activity {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.ufsc-activity-list {
+    margin-top: 15px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 15px;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-date {
+    color: #666;
+    font-size: 12px;
+    min-width: 80px;
+}
+
+.activity-desc {
+    flex: 1;
+    font-size: 14px;
+}
+
+.activity-status {
+    font-size: 11px;
+    padding: 2px 6px;
+}
+
+/* Dashboard header styling */
+.ufsc-header {
+    background: linear-gradient(135deg, #2271b1 0%, #135e96 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.ufsc-header h1 {
+    color: white;
+    margin: 0 0 10px 0;
+}
+
+.ufsc-header p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+/* Alert styling */
+.ufsc-alert {
+    padding: 15px;
+    border-radius: 4px;
+    margin: 15px 0;
+}
+
+.ufsc-alert.error {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+/* Quick actions styling */
+.ufsc-quick-actions {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+}
+
+
+.custom-file .custom-file-label::after {
+    top: -1px;
+    right: -1px;
+    bottom: -1px;
+    height: auto;
+    font-weight: 600;
+    color: #fff;
+    background-color: #25b9d7;
+    border-color: #25b9d7;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+        z-index: 3;
+}
+
+.custom-file-label, .custom-file-label::after {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: .375rem .4375rem;
+    line-height: 1.5;
+    color: #363a41;
+}
+
+.custom-file-label {
+    left: 0;
+    z-index: 1;
+    overflow: hidden;
+    font-weight: 400;
+    background-color: #fff;
+    border: 1px solid #bbcdd2;
+    border-radius: 4px;
+    -webkit-box-shadow: none;
+    box-shadow: none;
+}
+
+.custom-file {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 0;
+}
+.custom-file, .custom-select {
+    /* width: 100%; */
+    height: 2.188rem;
+}
+.form-control {
+    min-width: 200px;
+}
+.ufsc-alert.success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+}

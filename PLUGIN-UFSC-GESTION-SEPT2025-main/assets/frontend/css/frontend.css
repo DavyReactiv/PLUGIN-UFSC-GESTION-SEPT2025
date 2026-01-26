@@ -1,0 +1,1792 @@
+/* UFSC Frontend Styles */
+
+/* Typography base */
+:root {
+    --ufsc-font-size-base: 0.95rem;
+    --ufsc-font-size-heading: 1.4rem;
+    --ufsc-font-weight-regular: 400;
+    --ufsc-font-weight-semibold: 600;
+}
+
+/* // UFSC: Premium Grid System */
+.ufsc-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+    .ufsc-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1024px) {
+    .ufsc-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.ufsc-grid.-wide {
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+    .ufsc-grid.-wide {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* // UFSC: Premium Card System */
+.ufsc-card {
+    background: #ffffff;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.ufsc-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.ufsc-card h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* // UFSC: Button System */
+.ufsc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ufsc-btn-primary {
+    background: #3498db;
+    color: white;
+}
+
+.ufsc-btn-primary:hover {
+    background: #2980b9;
+    color: white;
+}
+
+.ufsc-btn-secondary {
+    background: #95a5a6;
+    color: white;
+}
+
+.ufsc-btn-secondary:hover {
+    background: #7f8c8d;
+    color: white;
+}
+
+/* Dashboard Layout */
+.ufsc-club-dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.ufsc-dashboard-header {
+    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 8px 8px 0 0;
+    margin-bottom: 0;
+}
+
+.ufsc-dashboard-header h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+    font-weight: 600;
+}
+
+.ufsc-dashboard-subtitle {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+/* // UFSC: KPI Cards Enhancement */
+.ufsc-kpi-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.ufsc-kpi-card {
+    text-align: center;
+    position: relative;
+    border-left: 4px solid #bdc3c7;
+}
+
+.ufsc-kpi-card.-validees {
+    border-left-color: #27ae60;
+}
+
+.ufsc-kpi-card.-payees {
+    border-left-color: #f39c12;
+}
+
+.ufsc-kpi-card.-attente {
+    border-left-color: #e74c3c;
+}
+
+.ufsc-kpi-card.-rejected {
+    border-left-color: #95a5a6;
+}
+
+.ufsc-kpi-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.ufsc-kpi-label {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    font-weight: 500;
+}
+
+/* // UFSC: Filters Bar */
+.ufsc-filters-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.ufsc-filters {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.ufsc-filter {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.ufsc-filter-checkbox-label {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.ufsc-filter-checkbox-label input {
+    margin-right: 0.25rem;
+}
+
+/* // UFSC: Recent Licenses Table */
+.ufsc-recent-licences table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.ufsc-table-note {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.ufsc-recent-licences th,
+.ufsc-recent-licences td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.ufsc-recent-licences th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #2c3e50;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.ufsc-documents-status th {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 1;
+}
+
+.ufsc-card,
+.ufsc-btn,
+.ufsc-badge,
+.ufsc-row-actions a {
+    transition: all 0.2s ease;
+}
+
+.ufsc-card:focus-within,
+.ufsc-btn:focus,
+.ufsc-btn:focus-visible,
+.ufsc-badge:focus,
+.ufsc-badge:focus-visible,
+.ufsc-row-actions a:focus,
+.ufsc-row-actions a:focus-visible {
+    outline: 2px solid #3498db;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.4);
+}
+
+/* // UFSC: Badge System */
+.ufsc-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ufsc-badge.-draft {
+    background: #fff9c4;
+    color: #856404;
+    border: 1px dotted #d39e00;
+}
+
+.ufsc-badge.-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.ufsc-badge.-ok {
+    background: #28a745;
+    color: #ffffff;
+    padding: 0.35rem 0.65rem;
+}
+
+.ufsc-badge.-rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* // UFSC: Row Actions for Mobile */
+.ufsc-row-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ufsc-row-actions-row .ufsc-row-actions {
+    justify-content: flex-start;
+}
+
+@media (max-width: 767px) {
+    .ufsc-row-actions {
+        flex-direction: column;
+    }
+    .ufsc-hide-mobile {
+        display: none;
+    }
+}
+
+/* // UFSC: Documents Status */
+.ufsc-document-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ufsc-document-item:last-child {
+    border-bottom: none;
+}
+
+.ufsc-document-icon {
+    font-size: 1.2rem;
+}
+
+.ufsc-document-name {
+    flex: 1;
+    font-weight: 500;
+}
+
+.ufsc-document-status {
+    font-size: 1.1rem;
+}
+
+/* Constrain club logo */
+.ufsc-club-profile .ufsc-logo img,
+.ufsc-logo-preview img,
+.ufsc-logo img { max-width:240px; max-height:160px; width:auto; height:auto; object-fit:contain; display:block; margin:0 auto; }
+
+/* Dashboard header CTA spacing */
+.ufsc-dashboard-actions { margin-top:8px; }
+.ufsc-dashboard-actions .ufsc-btn { padding:10px 14px; font-weight:600; }
+
+/* Documents list */
+.ufsc-docs-list { list-style:none; padding:0; margin:8px 0 0; }
+.ufsc-docs-list li { margin:6px 0; display:flex; gap:10px; align-items:center; }
+.ufsc-docs-list a { text-decoration:underline; }
+
+/* Navigation */
+.ufsc-dashboard-nav {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+}
+
+.ufsc-nav-btn {
+    background: transparent;
+    border: none;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #495057;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.ufsc-nav-btn:hover {
+    background: #e9ecef;
+    color: #2c3e50;
+}
+
+.ufsc-nav-btn.active {
+    color: #2c3e50;
+    border-bottom-color: #3498db;
+    background: white;
+}
+
+/* Content Sections */
+.ufsc-dashboard-content {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+}
+
+.ufsc-dashboard-section {
+    padding: 2rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ufsc-dashboard-section:last-child {
+    border-bottom: none;
+}
+
+/* Section Headers */
+.ufsc-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.ufsc-section-header--tight {
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+}
+
+/* // UFSC: Statistics Cards */
+.ufsc-stats-grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.ufsc-stat-card {
+    min-height: 200px;
+}
+
+.ufsc-stat-card.-wide {
+    grid-column: 1 / -1;
+}
+
+.ufsc-stat-content {
+    min-height: 100px;
+}
+
+.ufsc-stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.ufsc-stat-item:last-child {
+    border-bottom: none;
+}
+
+.ufsc-stat-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.ufsc-stat-value {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* // UFSC: Evolution Stats */
+.ufsc-evolution-stats {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.ufsc-evolution-item {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.ufsc-evolution-label {
+    display: block;
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.ufsc-evolution-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* // UFSC: Alerts */
+.ufsc-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border-radius: 6px;
+    border-left: 4px solid;
+}
+
+.ufsc-alert:last-child {
+    margin-bottom: 0;
+}
+
+.ufsc-alert-warning {
+    background: #fff3cd;
+    border-left-color: #ffc107;
+    color: #856404;
+}
+
+.ufsc-alert-info {
+    background: #d1ecf1;
+    border-left-color: #17a2b8;
+    color: #0c5460;
+}
+
+.ufsc-alert-error {
+    background: #f8d7da;
+    border-left-color: #dc3545;
+    color: #721c24;
+}
+
+.ufsc-alert-icon {
+    font-size: 1.2rem;
+}
+
+.ufsc-alert-message {
+    flex: 1;
+    font-weight: 500;
+}
+
+/* // UFSC: Loading States */
+.ufsc-loading {
+    text-align: center;
+    padding: 2rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.ufsc-loading::before {
+    content: "⏳ ";
+    margin-right: 0.5rem;
+}
+
+/* // UFSC: Tables */
+.ufsc-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.ufsc-table th,
+.ufsc-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+    vertical-align: top;
+    font-size: var(--ufsc-font-size-base);
+    font-weight: var(--ufsc-font-weight-regular);
+}
+
+.ufsc-table th {
+    background: #f8f9fa;
+    font-weight: var(--ufsc-font-weight-semibold);
+    color: #495057;
+}
+
+.ufsc-table thead {
+    position: sticky;
+    top: 0;
+    background: #f8f9fa;
+    z-index: 1;
+}
+
+.ufsc-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* Utility: spacious table variant */
+.ufsc-table--spacious th,
+.ufsc-table--spacious td {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+}
+
+/* // UFSC: Small buttons */
+.ufsc-btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    text-decoration: none;
+    border: 1px solid;
+    display: inline-block;
+    margin: 0 0.25rem 0.25rem 0;
+    transition: all 0.3s ease;
+}
+
+.ufsc-btn-small {
+    background: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+.ufsc-btn-small:hover {
+    background: #5a6268;
+    color: white;
+    border-color: #545b62;
+}
+
+.ufsc-btn-small.-danger {
+    background: #dc3545;
+    border-color: #dc3545;
+}
+
+.ufsc-btn-small.-danger:hover {
+    background: #c82333;
+    border-color: #bd2130;
+    color: white;
+}
+
+/* // UFSC: Charts */
+.ufsc-charts-grid {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.ufsc-chart-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border: 1px solid #e1e5e9;
+}
+
+.ufsc-chart-container h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.ufsc-chart-wide {
+    grid-column: 1 / -1;
+}
+
+/* // UFSC: Responsive Design */
+@media (max-width: 768px) {
+    .ufsc-dashboard-section {
+        padding: 1rem;
+    }
+    
+    .ufsc-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .ufsc-filter {
+        margin-bottom: 0.5rem;
+    }
+    
+    .ufsc-filters-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .ufsc-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ufsc-evolution-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .ufsc-charts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .ufsc-table {
+        font-size: var(--ufsc-font-size-base);
+    }
+
+    .ufsc-table th,
+    .ufsc-table td {
+        padding: 0.5rem;
+    }
+
+    .ufsc-table--spacious th,
+    .ufsc-table--spacious td {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .ufsc-section-header--tight {
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.25rem;
+    }
+}
+
+/* Navigation */
+.ufsc-dashboard-nav {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+}
+
+.ufsc-nav-btn {
+    background: transparent;
+    border: none;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #495057;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.ufsc-nav-btn:hover {
+    background: #e9ecef;
+    color: #2c3e50;
+}
+
+.ufsc-nav-btn.active {
+    color: #2c3e50;
+    border-bottom-color: #3498db;
+    background: white;
+}
+
+/* Content Sections */
+.ufsc-dashboard-content {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+}
+
+.ufsc-dashboard-section {
+    display: none;
+    padding: 2rem;
+}
+
+.ufsc-dashboard-section.active {
+    display: block;
+}
+
+/* Section Headers */
+.ufsc-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f8f9fa;
+}
+
+.ufsc-section-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: var(--ufsc-font-size-heading);
+    font-weight: var(--ufsc-font-weight-semibold);
+}
+
+.ufsc-section-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Buttons */
+.ufsc-btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #6c757d;
+    color: white;
+    text-decoration: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.ufsc-btn:hover {
+    background: #5a6268;
+    color: white;
+    text-decoration: none;
+    transform: translateY(-1px);
+}
+
+.ufsc-btn-primary {
+    background: #3498db;
+}
+
+.ufsc-btn-primary:hover {
+    background: #2980b9;
+}
+
+.ufsc-btn-secondary {
+    background: #6c757d;
+}
+
+.ufsc-btn-secondary:hover {
+    background: #5a6268;
+}
+
+.ufsc-btn-small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+/* Messages */
+.ufsc-message {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.ufsc-message.ufsc-success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.ufsc-message.ufsc-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.ufsc-message.ufsc-info {
+    background: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Filters */
+.ufsc-licences-filters {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+}
+
+.ufsc-filters-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    align-items: end;
+}
+
+.ufsc-filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.ufsc-filter-group label {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.ufsc-filter-group input,
+.ufsc-filter-group select {
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.ufsc-filter-group input:focus,
+.ufsc-filter-group select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+/* Tables */
+.ufsc-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.ufsc-table th {
+    background: #f8f9fa;
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    font-size: 0.9rem;
+}
+
+.ufsc-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #dee2e6;
+    font-size: 0.9rem;
+}
+
+.ufsc-table tr:hover {
+    background: #f8f9fa;
+}
+
+.ufsc-table .ufsc-actions {
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Status badges */
+.ufsc-status {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ufsc-status-brouillon {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.ufsc-status-paid {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.ufsc-status-validated {
+    background: #d4edda;
+    color: #155724;
+}
+
+.ufsc-status-applied {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+/* Statistics KPIs */
+.ufsc-stats-kpi {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.ufsc-kpi-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.ufsc-kpi-card:hover {
+    transform: translateY(-2px);
+}
+
+.ufsc-kpi-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.ufsc-kpi-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Chart placeholder */
+.ufsc-stats-chart {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.ufsc-stats-chart h4 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    font-size: 1.2rem;
+}
+
+.ufsc-chart-placeholder {
+    height: 300px;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Forms */
+.ufsc-club-form,
+.ufsc-licence-form {
+    max-width: 800px;
+}
+
+.ufsc-form-section {
+    margin-bottom: 2rem;
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 6px;
+}
+
+.ufsc-form-section h4 {
+    margin: 0 0 1rem 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.ufsc-form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.ufsc-form-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.ufsc-form-field label {
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.ufsc-form-field input,
+.ufsc-form-field select,
+.ufsc-form-field textarea {
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: border-color 0.3s ease;
+}
+
+.ufsc-form-field input:focus,
+.ufsc-form-field select:focus,
+.ufsc-form-field textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.ufsc-form-field input[readonly] {
+    background: #e9ecef;
+    color: #6c757d;
+}
+
+.ufsc-form-actions {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid #f8f9fa;
+    text-align: right;
+}
+
+/* Logo upload */
+.ufsc-logo-section {
+    margin: 1rem 0;
+}
+
+.ufsc-logo-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+
+.ufsc-logo-preview img {
+    max-width: 100px;
+    max-height: 100px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.ufsc-logo-upload {
+    text-align: center;
+    padding: 2rem;
+    border: 2px dashed #dee2e6;
+    border-radius: 4px;
+    background: white;
+}
+
+.ufsc-upload-label {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: #3498db;
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.3s ease;
+}
+
+.ufsc-upload-label:hover {
+    background: #2980b9;
+}
+
+.ufsc-logo-upload input[type="file"] {
+    display: none;
+}
+
+.ufsc-help-text {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Readonly fields */
+.ufsc-readonly-fields {
+    background: white;
+    padding: 1rem;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+}
+
+.ufsc-readonly-fields p {
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+}
+
+.ufsc-readonly-fields strong {
+    color: #495057;
+    font-weight: 600;
+}
+
+/* Quota info */
+.ufsc-quota-info {
+    background: #e3f2fd;
+    padding: 1rem;
+    border-radius: 4px;
+    border-left: 4px solid #2196f3;
+}
+
+.ufsc-quota-info p {
+    margin: 0;
+    font-weight: 500;
+    color: #1565c0;
+}
+
+/* Validation notice */
+.ufsc-validation-notice {
+    background: #fff3e0;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    border-left: 4px solid #ff9800;
+    margin: 0;
+    font-size: 0.9rem;
+    color: #e65100;
+    font-weight: 500;
+}
+
+/* Season info */
+.ufsc-season-info {
+    background: #f3e5f5;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    border-left: 4px solid #9c27b0;
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6a1b9a;
+    font-weight: 500;
+}
+
+/* Pagination */
+.ufsc-pagination {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.ufsc-pagination-wrapper {
+    display: inline-flex;
+    gap: 0.25rem;
+}
+
+.ufsc-page-link {
+    display: inline-block;
+    padding: 0.5rem 0.75rem;
+    background: white;
+    color: #495057;
+    text-decoration: none;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.ufsc-page-link:hover {
+    background: #e9ecef;
+    color: #495057;
+    text-decoration: none;
+}
+
+.ufsc-page-link.current {
+    background: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+/* Modal */
+.ufsc-modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    animation: fadeIn 0.3s ease;
+}
+
+.ufsc-modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+    animation: slideIn 0.3s ease;
+}
+
+.ufsc-modal-close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    cursor: pointer;
+}
+
+.ufsc-modal-close:hover {
+    color: #000;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .ufsc-dashboard-nav {
+        flex-direction: column;
+    }
+    
+    .ufsc-nav-btn {
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+        border-right: none;
+    }
+    
+    .ufsc-nav-btn.active {
+        border-bottom-color: #dee2e6;
+        border-left: 3px solid #3498db;
+    }
+    
+    .ufsc-dashboard-section {
+        padding: 1rem;
+    }
+    
+    .ufsc-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .ufsc-stats-kpi {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .ufsc-form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .ufsc-filters-form {
+        grid-template-columns: 1fr;
+    }
+
+    .ufsc-table {
+        font-size: var(--ufsc-font-size-base);
+    }
+
+    .ufsc-table th,
+    .ufsc-table td {
+        padding: 0.5rem;
+    }
+
+    .ufsc-table--spacious th,
+    .ufsc-table--spacious td {
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .ufsc-section-header--tight {
+        margin-bottom: 0.5rem;
+        padding-bottom: 0.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .ufsc-stats-kpi {
+        grid-template-columns: 1fr;
+    }
+    
+    .ufsc-kpi-value {
+        font-size: 2rem;
+    }
+    
+    .ufsc-section-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .ufsc-btn {
+        text-align: center;
+    }
+}
+
+/* Accessibility improvements */
+.ufsc-btn:focus,
+.ufsc-nav-btn:focus,
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid #3498db;
+    outline-offset: 2px;
+}
+
+/* Screen reader only content */
+.ufsc-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Loading states */
+.ufsc-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.ufsc-loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Text utilities */
+.ufsc-text-muted {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.ufsc-text-center {
+    text-align: center;
+}
+
+.ufsc-text-right {
+    text-align: right;
+}
+
+.ufsc-text-left {
+    text-align: left;
+}
+
+/* Legacy compatibility for existing forms */
+.ufsc-form .ufsc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.ufsc-form .ufsc-field label{display:block;margin-bottom:6px;font-weight:600}
+.ufsc-form .ufsc-field input[type=text], .ufsc-form .ufsc-field input[type=number], .ufsc-form .ufsc-field textarea, .ufsc-form .ufsc-field select{width:100%}
+.ufsc-card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:16px;margin:10px 0}
+.ufsc-alert{background:#f0f6ff;border:1px solid #cfe1ff;padding:10px;border-radius:6px;margin:10px 0}
+
+/* Documents Management Styles */
+.ufsc-documents-panel {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+}
+
+.ufsc-documents-panel h3 {
+    margin: 0 0 1.5rem 0;
+    color: #2c3e50;
+    font-size: 1.2rem;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 0.5rem;
+}
+
+.ufsc-documents-panel h4 {
+    margin: 0 0 1rem 0;
+    color: #495057;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.ufsc-documents-list {
+    margin: 1rem 0;
+}
+
+.ufsc-document-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    transition: background-color 0.3s ease;
+}
+
+.ufsc-document-item:hover {
+    background: #f8f9fa;
+}
+
+.ufsc-document-label {
+    font-weight: 500;
+    color: #495057;
+    flex: 1;
+}
+
+.ufsc-document-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ufsc-no-documents {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 2rem;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin: 1rem 0;
+}
+
+/* Admin Documents Panel */
+.ufsc-documents-panel input[type="file"] {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background: white;
+}
+
+.ufsc-documents-panel label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.25rem;
+    color: #495057;
+}
+
+.ufsc-documents-panel img {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    margin-bottom: 0.5rem;
+}
+
+.ufsc-documents-panel input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+/* Logo constraints for all contexts */
+.ufsc-club-profile .ufsc-logo img,
+.ufsc-logo-preview img,
+.ufsc-logo img {
+    max-width: 240px;
+    max-height: 160px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Dashboard header CTA spacing */
+.ufsc-dashboard-actions {
+    margin-top: 8px;
+}
+
+.ufsc-dashboard-actions .ufsc-btn {
+    padding: 10px 14px;
+    font-weight: 600;
+}
+
+/* // UFSC: Document Cards */
+.ufsc-documents-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.ufsc-document-card {
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.ufsc-document-header {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-bottom: 1px solid #e1e5e9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ufsc-document-header h5 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.ufsc-document-status .ufsc-status-transmitted {
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.ufsc-document-status .ufsc-status-pending {
+    color: #f39c12;
+    font-weight: 600;
+}
+
+.ufsc-document-content {
+    padding: 1rem;
+}
+
+.ufsc-document-current {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.ufsc-document-name {
+    font-weight: 500;
+    margin: 0 0 0.5rem 0;
+    color: #2c3e50;
+}
+
+.ufsc-document-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ufsc-document-upload .ufsc-file-input {
+    display: none;
+}
+
+.ufsc-upload-label {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #3498db;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.3s ease;
+}
+
+.ufsc-upload-label:hover {
+    background: #2980b9;
+}
+
+.ufsc-help-text {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.8rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* // UFSC: Club Profile Sections */
+.ufsc-club-profile .ufsc-section h4 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.2rem;
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.5rem;
+}
+
+.ufsc-form-field {
+    margin-bottom: 1rem;
+}
+
+.ufsc-form-field label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.ufsc-form-field input,
+.ufsc-form-field textarea,
+.ufsc-form-field select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.ufsc-form-field input:focus,
+.ufsc-form-field textarea:focus,
+.ufsc-form-field select:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.ufsc-form-field input[readonly] {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.ufsc-form-actions {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e1e5e9;
+}
+
+/* // UFSC: Conditional Fields */
+.ufsc-conditional-field {
+    display: none;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 2px dashed #ddd;
+    border-radius: 6px;
+    background: #f9f9f9;
+}
+
+.ufsc-conditional-field.active {
+    display: block;
+}
+
+.ufsc-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.ufsc-checkbox-label input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+/* // UFSC: Enhanced License Form */
+.ufsc-licence-form .ufsc-grid {
+    margin-bottom: 2rem;
+}
+
+.ufsc-licence-form .ufsc-section h4 {
+    margin: 0 0 1.5rem 0;
+    font-size: 1.1rem;
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.5rem;
+}
+
+.ufsc-quota-info {
+    padding: 1rem;
+    background: #e8f4f8;
+    border: 1px solid #bee5eb;
+    border-radius: 6px;
+    color: #0c5460;
+}
+
+.ufsc-quota-info p {
+    margin: 0;
+    font-weight: 600;
+}
+
+/* // UFSC: Form validation states */
+.ufsc-form-field.has-error input,
+.ufsc-form-field.has-error textarea,
+.ufsc-form-field.has-error select {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.ufsc-field-error {
+    color: #dc3545;
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.ufsc-form-field.has-success input,
+.ufsc-form-field.has-success textarea,
+.ufsc-form-field.has-success select {
+    border-color: #28a745;
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+/* // UFSC: Help text styling */
+.ufsc-help-text {
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* // UFSC: Loading and disabled states */
+.ufsc-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.ufsc-form-loading {
+    position: relative;
+}
+
+.ufsc-form-loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 10;
+}
+
+.ufsc-form-loading::after {
+    content: '⏳ Traitement en cours...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 11;
+    background: white;
+    padding: 1rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
