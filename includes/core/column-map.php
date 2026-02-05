@@ -234,7 +234,9 @@ function ufsc_get_mapped_column_if_exists( $table_name, $logical_key, $table_typ
         return false;
     }
 
-    $columns = $wpdb->get_col( "DESCRIBE `{$table_name}`" );
+    $columns = function_exists( 'ufsc_table_columns' )
+        ? ufsc_table_columns( $table_name )
+        : $wpdb->get_col( "DESCRIBE `{$table_name}`" );
     if ( empty( $columns ) || ! is_array( $columns ) ) {
         return false;
     }

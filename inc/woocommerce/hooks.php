@@ -48,17 +48,9 @@ function ufsc_init_woocommerce_hooks() {
         3
     );
 
-    // Hook into order processing
+    // Hook into order processing with idempotent handler
     add_action( 'woocommerce_order_status_processing', 'ufsc_handle_order_processing' );
     add_action( 'woocommerce_order_status_completed', 'ufsc_handle_order_completed' );
-
-    // Validate paid items when order is processed or completed
-    add_action( 'woocommerce_order_status_processing', 'ufsc_wc_validate_paid_items' );
-    add_action( 'woocommerce_order_status_completed', 'ufsc_wc_validate_paid_items' );
-
-    // Track consumption of included licences
-    add_action( 'woocommerce_order_status_processing', 'ufsc_wc_increment_included_quota' );
-    add_action( 'woocommerce_order_status_completed', 'ufsc_wc_increment_included_quota' );
 
     // UFSC PATCH: Retry payment handling on failed/cancelled orders.
     add_action( 'woocommerce_order_status_failed', 'ufsc_handle_order_failed_or_cancelled' );
@@ -71,7 +63,7 @@ function ufsc_init_woocommerce_hooks() {
  * @param int $order_id Order ID
  */
 function ufsc_handle_order_processing( $order_id ) {
-    ufsc_process_order_items( $order_id );
+    ufsc_wc_process_order_once( $order_id );
 }
 
 /**
@@ -80,7 +72,73 @@ function ufsc_handle_order_processing( $order_id ) {
  * @param int $order_id Order ID
  */
 function ufsc_handle_order_completed( $order_id ) {
+    ufsc_wc_process_order_once( $order_id );
+}
+
+/**
+ * UFSC PATCH: Process order once per season (idempotent).
+ *
+ * @param int $order_id Order ID.
+ * @return void
+ */
+function ufsc_wc_process_order_once( $order_id ) {
+    if ( ! ufsc_is_woocommerce_active() ) {
+        return;
+    }
+
+    $order = wc_get_order( $order_id );
+    if ( ! $order ) {
+        return;
+    }
+
+    $settings = ufsc_get_woocommerce_settings();
+    $season   = $settings['season'];
+
+    if ( ufsc_wc_order_already_processed( $order, $season ) ) {
+        return;
+    }
+
     ufsc_process_order_items( $order_id );
+    ufsc_wc_validate_paid_items( $order_id );
+    ufsc_wc_increment_included_quota( $order_id );
+
+    ufsc_wc_mark_order_processed( $order, $season );
+}
+
+/**
+ * UFSC PATCH: Get order meta key for processed flag.
+ *
+ * @param string $season Season label.
+ * @return string
+ */
+function ufsc_wc_get_processed_meta_key( $season ) {
+    $season_key = preg_replace( '/[^a-z0-9_]/', '_', strtolower( (string) $season ) );
+    return 'ufsc_processed_' . $season_key;
+}
+
+/**
+ * UFSC PATCH: Check if order already processed for season.
+ *
+ * @param WC_Order $order Order object.
+ * @param string   $season Season label.
+ * @return bool
+ */
+function ufsc_wc_order_already_processed( $order, $season ) {
+    $meta_key = ufsc_wc_get_processed_meta_key( $season );
+    return (bool) $order->get_meta( $meta_key, true );
+}
+
+/**
+ * UFSC PATCH: Mark order as processed for season.
+ *
+ * @param WC_Order $order Order object.
+ * @param string   $season Season label.
+ * @return void
+ */
+function ufsc_wc_mark_order_processed( $order, $season ) {
+    $meta_key = ufsc_wc_get_processed_meta_key( $season );
+    $order->update_meta_data( $meta_key, 1 );
+    $order->save();
 }
 
 /**
@@ -103,19 +161,18 @@ function ufsc_wc_validate_paid_items( $order_id ) {
     $affiliation_product_id = $settings['product_affiliation_id'];
     $license_product_id     = $settings['product_license_id'];
 
+    if ( ufsc_wc_order_already_processed( $order, $season ) ) {
+        return;
+    }
+
     foreach ( $order->get_items() as $item ) {
         $product_id = $item->get_product_id();
 
         if ( $product_id == $license_product_id ) {
-            $license_ids = $item->get_meta( '_ufsc_licence_ids' );
-            if ( empty( $license_ids ) ) {
-                $license_ids = $item->get_meta( 'ufsc_licence_ids' );
-            }
-            if ( ! empty( $license_ids ) && is_array( $license_ids ) ) {
-                foreach ( $license_ids as $license_id ) {
-                    if ( class_exists( 'UFSC_SQL' ) ) {
-                        UFSC_SQL::mark_licence_as_paid_and_validated( $license_id, $season );
-                    }
+            $license_ids = ufsc_get_item_licence_ids( $item );
+            foreach ( $license_ids as $license_id ) {
+                if ( class_exists( 'UFSC_SQL' ) ) {
+                    UFSC_SQL::mark_licence_as_paid_and_validated( $license_id, $season );
                 }
             }
         }
@@ -151,6 +208,13 @@ function ufsc_wc_increment_included_quota( $order_id ) {
 
     $order = wc_get_order( $order_id );
     if ( ! $order ) {
+        return;
+    }
+
+    $settings = ufsc_get_woocommerce_settings();
+    $season   = $settings['season'];
+
+    if ( ufsc_wc_order_already_processed( $order, $season ) ) {
         return;
     }
 
@@ -214,6 +278,59 @@ function ufsc_handle_order_failed_or_cancelled( $order_id ) {
 }
 
 /**
+ * UFSC PATCH: Parse licence IDs from stored meta.
+ *
+ * @param mixed $value Meta value.
+ * @return int[]
+ */
+function ufsc_parse_licence_ids_from_meta( $value ) {
+    if ( empty( $value ) ) {
+        return array();
+    }
+
+    if ( is_numeric( $value ) ) {
+        return array( absint( $value ) );
+    }
+
+    if ( is_string( $value ) ) {
+        $decoded = json_decode( $value, true );
+        if ( JSON_ERROR_NONE === json_last_error() && is_array( $decoded ) ) {
+            $value = $decoded;
+        } else {
+            $parts = array_map( 'trim', explode( ',', $value ) );
+            return array_values( array_unique( array_filter( array_map( 'absint', $parts ) ) ) );
+        }
+    }
+
+    if ( is_array( $value ) ) {
+        return array_values( array_unique( array_filter( array_map( 'absint', $value ) ) ) );
+    }
+
+    return array();
+}
+
+/**
+ * UFSC PATCH: Extract licence IDs from a line item.
+ *
+ * @param WC_Order_Item_Product $item Line item.
+ * @return int[]
+ */
+function ufsc_get_item_licence_ids( $item ) {
+    $ids = $item->get_meta( '_ufsc_licence_ids' );
+    if ( empty( $ids ) ) {
+        $ids = $item->get_meta( 'ufsc_licence_ids' );
+    }
+
+    $parsed = ufsc_parse_licence_ids_from_meta( $ids );
+    if ( empty( $parsed ) ) {
+        $single_id = $item->get_meta( '_ufsc_licence_id' );
+        $parsed    = ufsc_parse_licence_ids_from_meta( $single_id );
+    }
+
+    return $parsed;
+}
+
+/**
  * UFSC PATCH: Extract licence IDs from an order.
  *
  * @param WC_Order $order Order object.
@@ -223,19 +340,7 @@ function ufsc_get_order_licence_ids( $order ) {
     $licence_ids = array();
 
     foreach ( $order->get_items() as $item ) {
-        $ids = $item->get_meta( '_ufsc_licence_ids' );
-        if ( empty( $ids ) ) {
-            $ids = $item->get_meta( 'ufsc_licence_ids' );
-        }
-
-        if ( ! empty( $ids ) && is_array( $ids ) ) {
-            $licence_ids = array_merge( $licence_ids, array_map( 'absint', $ids ) );
-        }
-
-        $single_id = $item->get_meta( '_ufsc_licence_id' );
-        if ( $single_id ) {
-            $licence_ids[] = absint( $single_id );
-        }
+        $licence_ids = array_merge( $licence_ids, ufsc_get_item_licence_ids( $item ) );
     }
 
     return array_values( array_unique( array_filter( $licence_ids ) ) );
@@ -256,7 +361,9 @@ function ufsc_update_licence_payment_status( $licence_id, $status, $payment_stat
 
     global $wpdb;
     $table   = ufsc_get_licences_table();
-    $columns = $wpdb->get_col( "DESCRIBE `{$table}`" );
+    $columns = function_exists( 'ufsc_table_columns' )
+        ? ufsc_table_columns( $table )
+        : $wpdb->get_col( "DESCRIBE `{$table}`" );
 
     $data  = array();
     $types = array();
@@ -410,16 +517,9 @@ function ufsc_handle_additional_license_payment( $order, $item, $quantity ) {
     $club_id = ufsc_get_user_club_id( $user_id );
 
     // Check if specific license IDs are attached to this line item
-    $license_ids = $item->get_meta( '_ufsc_licence_ids' );
+    $license_ids = ufsc_get_item_licence_ids( $item );
 
-    if ( empty( $license_ids ) ) {
-        $single_id = $item->get_meta( '_ufsc_licence_id' );
-        if ( $single_id ) {
-            $license_ids = array( $single_id );
-        }
-    }
-
-    if ( ! empty( $license_ids ) && is_array( $license_ids ) ) {
+    if ( ! empty( $license_ids ) ) {
         // Mark specific licenses as paid
         foreach ( $license_ids as $license_id ) {
             ufsc_mark_licence_paid( $license_id, $season );
@@ -528,16 +628,27 @@ if ( ! function_exists( 'ufsc_mark_licence_paid' ) ) {
         }
 
         $licences_table = ufsc_get_licences_table();
-        $updated        = $wpdb->update(
+        $data  = array(
+            'statut'      => 'en_attente',
+            'is_included' => 0,
+            'paid_season' => $season,
+            'paid_date'   => current_time( 'mysql' ),
+        );
+        $types = array( '%s', '%d', '%s', '%s' );
+
+        if ( function_exists( 'ufsc_table_columns' ) && function_exists( 'ufsc_get_season_end_year_from_label' ) ) {
+            $columns = ufsc_table_columns( $licences_table );
+            if ( in_array( 'season_end_year', $columns, true ) ) {
+                $data['season_end_year'] = ufsc_get_season_end_year_from_label( $season );
+                $types[]                 = '%d';
+            }
+        }
+
+        $updated = $wpdb->update(
             $licences_table,
-            array(
-                'statut'      => 'en_attente',
-                'is_included' => 0,
-                'paid_season' => $season,
-                'paid_date'   => current_time( 'mysql' ),
-            ),
+            $data,
             array( 'id' => $license_id ),
-            array( '%s', '%d', '%s', '%s' ),
+            $types,
             array( '%d' )
         );
 

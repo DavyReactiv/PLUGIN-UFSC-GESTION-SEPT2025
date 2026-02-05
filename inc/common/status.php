@@ -59,3 +59,56 @@ function ufsc_status_select_options( $selected = '' ) {
     
     return $options;
 }
+
+/**
+ * UFSC PATCH: Check if a club is validated/active.
+ *
+ * @param int        $club_id Club ID.
+ * @param object|nil $club    Optional club record.
+ * @return bool
+ */
+function ufsc_is_club_validated( $club_id, $club = null ) {
+    $status = '';
+
+    if ( $club ) {
+        if ( isset( $club->statut ) ) {
+            $status = (string) $club->statut;
+        } elseif ( isset( $club->status ) ) {
+            $status = (string) $club->status;
+        } elseif ( isset( $club->validated ) ) {
+            $status = (string) $club->validated;
+        }
+    }
+
+    if ( '' === $status ) {
+        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
+            return false;
+        }
+
+        global $wpdb;
+        $clubs_table = ufsc_get_clubs_table();
+        $columns     = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $clubs_table ) : $wpdb->get_col( "DESCRIBE `{$clubs_table}`" );
+
+        $status_column = null;
+        foreach ( array( 'status', 'statut', 'validated', 'validation' ) as $col ) {
+            if ( in_array( $col, $columns, true ) ) {
+                $status_column = $col;
+                break;
+            }
+        }
+
+        if ( ! $status_column ) {
+            return false;
+        }
+
+        $status = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT `{$status_column}` FROM `{$clubs_table}` WHERE id = %d LIMIT 1",
+                $club_id
+            )
+        );
+    }
+
+    $valid_statuses = array( 'actif', 'active', 'valide', 'validé', 'validée', 'approved', 'validate', 'validated' );
+    return $status && in_array( strtolower( $status ), $valid_statuses, true );
+}
