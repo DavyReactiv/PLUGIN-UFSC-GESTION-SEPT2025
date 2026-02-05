@@ -217,9 +217,24 @@ class UFSC_SQL {
         );
         $types = array( '%s', '%d', '%s', '%s' );
 
-        if ( function_exists( 'ufsc_table_columns' ) && function_exists( 'ufsc_get_season_end_year_from_label' ) ) {
-            $columns = ufsc_table_columns( $table );
-            if ( in_array( 'season_end_year', $columns, true ) ) {
+// UFSC PATCH: Store season end year when column exists.
+if ( function_exists( 'ufsc_get_season_end_year_from_label' ) ) {
+
+	$has_col = false;
+
+	if ( function_exists( 'ufsc_table_columns' ) ) {
+		$columns = ufsc_table_columns( $table );
+		$has_col = in_array( 'season_end_year', $columns, true );
+	} elseif ( function_exists( 'ufsc_table_has_column' ) ) {
+		$has_col = ufsc_table_has_column( $table, 'season_end_year' );
+	}
+
+	if ( $has_col ) {
+		$data['season_end_year'] = ufsc_get_season_end_year_from_label( $season );
+		$types[]                 = '%d';
+	}
+}
+
                 // UFSC PATCH: Store season end year when column exists.
                 $data['season_end_year'] = ufsc_get_season_end_year_from_label( $season );
                 $types[]                 = '%d';

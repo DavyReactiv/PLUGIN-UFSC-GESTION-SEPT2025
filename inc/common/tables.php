@@ -8,25 +8,25 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * Get the configured table names
- * 
+ *
  * @return array Table names
  */
 function ufsc_get_table_names() {
     global $wpdb;
-    
+
     $options = get_option( 'ufsc_gestion_settings', array() );
-    
+
     $defaults = array(
-        'clubs_table' => $wpdb->prefix . 'ufsc_clubs',
-        'licences_table' => $wpdb->prefix . 'ufsc_licences'
+        'clubs_table'    => $wpdb->prefix . 'ufsc_clubs',
+        'licences_table' => $wpdb->prefix . 'ufsc_licences',
     );
-    
+
     return wp_parse_args( $options, $defaults );
 }
 
 /**
  * Get the clubs table name
- * 
+ *
  * @return string Clubs table name
  */
 function ufsc_get_clubs_table() {
@@ -36,7 +36,7 @@ function ufsc_get_clubs_table() {
 
 /**
  * Get the licences table name
- * 
+ *
  * @return string Licences table name
  */
 function ufsc_get_licences_table() {
@@ -46,7 +46,7 @@ function ufsc_get_licences_table() {
 
 /**
  * Sanitize table name - allow only alphanumeric and underscore
- * 
+ *
  * @param string $table_name Table name to sanitize
  * @return string Sanitized table name
  */
@@ -56,18 +56,18 @@ function ufsc_sanitize_table_name( $table_name ) {
 
 /**
  * Check if a table exists in the database
- * 
+ *
  * @param string $table_name Table name to check
  * @return bool True if table exists
  */
 function ufsc_table_exists( $table_name ) {
     global $wpdb;
-    
+
     $sanitized_table = ufsc_sanitize_table_name( $table_name );
     if ( empty( $sanitized_table ) ) {
         return false;
     }
-    
+
     $result = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $sanitized_table ) );
     return $result === $sanitized_table;
 }
@@ -138,3 +138,20 @@ function ufsc_flush_table_columns_cache( $table_name = null ) {
         wp_cache_flush();
     }
 }
+
+/**
+ * UFSC PATCH: Check if a column exists using cached columns list.
+ *
+ * @param string $table_name Table name.
+ * @param string $column     Column name.
+ * @return bool
+ */
+function ufsc_table_has_column( $table_name, $column ) {
+    if ( empty( $table_name ) || empty( $column ) ) {
+        return false;
+    }
+
+    $columns = ufsc_table_columns( $table_name );
+    return in_array( $column, $columns, true );
+}
+

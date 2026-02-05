@@ -23,10 +23,12 @@ function ufsc_get_affiliation_attestation_data( $club_id, $club = null ) {
     $attachment_id = 0;
     $url           = '';
 
+    // 1) Direct club field (legacy/fast path)
     if ( $club && ! empty( $club->attestation_url ) ) {
         $url = esc_url_raw( $club->attestation_url );
     }
 
+    // 2) Options (attachment id or URL)
     $option_keys = array(
         'ufsc_club_doc_attestation_affiliation_' . $club_id,
         'ufsc_club_doc_attestation_ufsc_' . $club_id,
@@ -49,17 +51,33 @@ function ufsc_get_affiliation_attestation_data( $club_id, $club = null ) {
         }
     }
 
-    if ( ! $url && function_exists( 'ufsc_get_clubs_table' ) && function_exists( 'ufsc_table_columns' ) ) {
+    // 3) DB fallback: read attestation_url if column exists
+    if ( ! $url && function_exists( 'ufsc_get_clubs_table' ) ) {
         global $wpdb;
         $clubs_table = ufsc_get_clubs_table();
-        $columns     = ufsc_table_columns( $clubs_table );
-        if ( in_array( 'attestation_url', $columns, true ) ) {
-            $url = $wpdb->get_var(
+
+        $has_col = false;
+
+        // Preferred: cached helper
+        if ( function_exists( 'ufsc_table_has_column' ) ) {
+            $has_col = ufsc_table_has_column( $clubs_table, 'attestation_url' );
+        } elseif ( function_exists( 'ufsc_table_columns' ) ) {
+            // Legacy helper fallback
+            $columns = ufsc_table_columns( $clubs_table );
+            $has_col = is_array( $columns ) && in_array( 'attestation_url', $columns, true );
+        }
+
+        if ( $has_col ) {
+            $db_url = $wpdb->get_var(
                 $wpdb->prepare( "SELECT attestation_url FROM {$clubs_table} WHERE id = %d", $club_id )
             );
+            if ( $db_url && is_string( $db_url ) ) {
+                $url = $db_url;
+            }
         }
     }
 
+    // 4) Legacy club field doc_attestation_affiliation (id or URL)
     if ( ! $url && $club && ! empty( $club->doc_attestation_affiliation ) ) {
         if ( is_numeric( $club->doc_attestation_affiliation ) ) {
             $attachment_id = (int) $club->doc_attestation_affiliation;
@@ -69,6 +87,7 @@ function ufsc_get_affiliation_attestation_data( $club_id, $club = null ) {
         }
     }
 
+    // 5) Last resort: PDF generator helper
     if ( ! $url && class_exists( 'UFSC_PDF_Attestations' ) ) {
         $url = UFSC_PDF_Attestations::get_attestation_for_club( $club_id );
     }
