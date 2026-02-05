@@ -133,6 +133,8 @@ class UFSC_Licences_List_Table {
      */
     private static function build_where_conditions( $filters, $search ) {
         global $wpdb;
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
         $conditions = array();
 
         // Search query
@@ -176,7 +178,18 @@ class UFSC_Licences_List_Table {
 
         // Medical certificate filter
         if ( $filters['medical'] == 1 ) {
-            $conditions[] = "l.attestation_url IS NOT NULL AND l.attestation_url != ''";
+            $has_col = false;
+
+            if ( function_exists( 'ufsc_table_columns' ) ) {
+                $columns = ufsc_table_columns( $licences_table );
+                $has_col = is_array( $columns ) && in_array( 'attestation_url', $columns, true );
+            } elseif ( function_exists( 'ufsc_table_has_column' ) ) {
+                $has_col = ufsc_table_has_column( $licences_table, 'attestation_url' );
+            }
+
+            if ( $has_col ) {
+                $conditions[] = "l.attestation_url IS NOT NULL AND l.attestation_url != ''";
+            }
         }
 
         // Date range filters
