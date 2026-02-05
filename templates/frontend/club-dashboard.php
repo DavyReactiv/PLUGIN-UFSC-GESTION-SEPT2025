@@ -12,6 +12,9 @@ $ufsc_stats    = new UFSC_Stats();
 $stats_gender  = $ufsc_stats->get_gender_counts();
 $stats_practice = $ufsc_stats->get_practice_counts();
 $stats_age     = $ufsc_stats->get_age_group_counts();
+$attestation_data = function_exists( 'ufsc_get_affiliation_attestation_data' )
+    ? ufsc_get_affiliation_attestation_data( $club->id, $club )
+    : array( 'url' => '', 'status' => 'pending', 'can_view' => false );
 
 ?>
 
@@ -62,13 +65,19 @@ $stats_age     = $ufsc_stats->get_age_group_counts();
                 </div>
             </div>
             
-            <?php if ( isset( $attestation_affiliation ) && $attestation_affiliation ) : ?>
-            <div class="ufsc-attestation-download">
-                <a href="<?php echo esc_url( $attestation_affiliation ); ?>" class="button button-primary" target="_blank">
-                    <span class="dashicons dashicons-download" aria-hidden="true"></span>
-                    <?php echo esc_html__( 'Télécharger attestation d\'affiliation', 'ufsc-clubs' ); ?>
-                </a>
-            </div>
+            <?php if ( ! empty( $attestation_data['can_view'] ) ) : ?>
+                <div class="ufsc-attestation-download">
+                    <?php if ( ! empty( $attestation_data['url'] ) ) : ?>
+                        <a href="<?php echo esc_url( $attestation_data['url'] ); ?>" class="button button-primary" target="_blank" rel="noopener">
+                            <span class="dashicons dashicons-download" aria-hidden="true"></span>
+                            <?php echo esc_html__( 'Télécharger attestation d\'affiliation', 'ufsc-clubs' ); ?>
+                        </a>
+                    <?php else : ?>
+                        <span class="ufsc-badge ufsc-document-status -pending">
+                            <?php echo esc_html__( 'Attestation en cours de génération', 'ufsc-clubs' ); ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
             <?php endif; ?>
         </div>
     </div>

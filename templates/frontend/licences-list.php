@@ -31,10 +31,15 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                 }
             }
             ?>
+            <?php
+            $status_raw  = $licence->statut ?? ( $licence->status ?? '' );
+            $status_norm = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $status_raw ) : $status_raw;
+            $status_class = $status_norm ? sanitize_html_class( $status_norm ) : 'pending';
+            ?>
             <div class="ufsc-card ufsc-licence-card">
                 <div class="ufsc-licence-card-header">
                     <h4 class="ufsc-licence-name"><?php echo esc_html( $full_name ); ?></h4>
-                    <?php echo UFSC_Badges::render_licence_badge( $licence->statut ?? '', array( 'custom_class' => 'ufsc-badge ufsc-badge-' . ( $licence->statut ?? 'pending' ) ) ); ?>
+                    <?php echo UFSC_Badges::render_licence_badge( $status_norm, array( 'custom_class' => 'ufsc-badge ufsc-badge-' . $status_class ) ); ?>
                 </div>
                 <div class="ufsc-licence-meta">
                     <?php if ( $gender ) : ?><span><?php echo esc_html( $gender ); ?></span><?php endif; ?>
@@ -43,17 +48,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                 </div>
                 <div class="ufsc-licence-actions">
                     <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'view', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
-                    <?php if ( 'pending' === ( $licence->statut ?? '' ) ) : ?>
+                    <?php if ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status_raw ) : ( 'pending' === $status_norm ) ) : ?>
                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'edit', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
                     <?php endif; ?>
                 </div>
             </div>
 
-<?php if ( isset( $quota_info['remaining'] ) ) : ?>
-    <p class="ufsc-quota-remaining">
-        <?php printf( esc_html__( 'Quota restant : %d', 'ufsc-clubs' ), intval( $quota_info['remaining'] ) ); ?>
-    </p>
-<?php endif; ?>
 <table class="ufsc-table ufsc-licences-table">
     <thead>
         <tr>
@@ -66,19 +66,20 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
     <tbody>
     <?php if ( ! empty( $licences ) ) : ?>
         <?php foreach ( $licences as $licence ) : ?>
+            <?php
+            $status_raw  = $licence->statut ?? ( $licence->status ?? '' );
+            $status_norm = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $status_raw ) : $status_raw;
+            ?>
             <tr>
                 <td><?php echo esc_html( trim( ( $licence->prenom ?? '' ) . ' ' . ( $licence->nom ?? '' ) ) ); ?></td>
                 <td><?php echo esc_html( $licence->role ?? '' ); ?></td>
                 <td>
-                    <?php echo UFSC_Badges::render_licence_badge( $licence->statut ?? '', array( 'custom_class' => 'ufsc-badge' ) ); ?>
-                    <?php if ( ! empty( $licence->is_included ) ) : ?>
-                        <span class="ufsc-badge badge-success ufsc-badge-included"><?php esc_html_e( 'Incluse', 'ufsc-clubs' ); ?></span>
-                    <?php endif; ?>
+                    <?php echo UFSC_Badges::render_licence_badge( $status_norm, array( 'custom_class' => 'ufsc-badge' ) ); ?>
                 </td>
                 <td>
                     <div class="ufsc-actions">
                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'view', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
-                        <?php if ( empty( $licence->statut ) || ! UFSC_Badges::is_active_licence_status( $licence->statut ) ) : ?>
+                        <?php if ( empty( $status_norm ) || ! UFSC_Badges::is_active_licence_status( $status_norm ) ) : ?>
                             <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'edit', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
                             <?php if ( current_user_can( 'manage_options' ) ) : ?>
                                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-inline-form">
@@ -100,4 +101,3 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
         <p class="ufsc-no-items"><?php esc_html_e( 'Aucune licence trouvée.', 'ufsc-clubs' ); ?></p>
     <?php endif; ?>
 </div>
-

@@ -41,6 +41,10 @@ if ( ! function_exists( 'ufsc_wc_log' ) ) {
  * @return bool  True if quota exhausted, false otherwise.
  */
 function ufsc_should_charge_license( $club_id, $season ) {
+    if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
+        return false;
+    }
+
     global $wpdb;
 
     if ( ! function_exists( 'ufsc_get_clubs_table' ) || ! function_exists( 'ufsc_get_licences_table' ) ) {

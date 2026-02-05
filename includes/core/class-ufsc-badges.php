@@ -26,6 +26,7 @@ class UFSC_Badges {
             'desactive' => array('type' => 'danger', 'label' => 'Désactivée'),
             'pending' => array('type' => 'info', 'label' => 'En attente'),
             'validated' => array('type' => 'success', 'label' => 'Validée'),
+            'refuse' => array('type' => 'danger', 'label' => 'Refusée'),
             'expired' => array('type' => 'warning', 'label' => 'Expirée'),
             'rejected' => array('type' => 'danger', 'label' => 'Rejetée'),
         ),
@@ -59,6 +60,11 @@ class UFSC_Badges {
      * @return string HTML badge
      */
     public static function render_status_badge( $status, $context = 'generic', $options = array() ) {
+        // UFSC PATCH: Normalize licence statuses before rendering.
+        if ( 'licence' === $context && function_exists( 'ufsc_normalize_licence_status' ) ) {
+            $status = ufsc_normalize_licence_status( $status );
+        }
+
         // Get status mapping
         $mappings = isset( self::STATUS_MAPPINGS[$context] ) ? self::STATUS_MAPPINGS[$context] : self::STATUS_MAPPINGS['generic'];
         
@@ -75,6 +81,8 @@ class UFSC_Badges {
         // Allow custom label override
         if ( isset( $options['custom_label'] ) ) {
             $label = $options['custom_label'];
+        } elseif ( 'licence' === $context && function_exists( 'ufsc_get_licence_status_label_fr' ) ) {
+            $label = ufsc_get_licence_status_label_fr( $status );
         }
         
         // Get CSS class

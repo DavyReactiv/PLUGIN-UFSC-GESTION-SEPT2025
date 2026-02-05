@@ -160,8 +160,10 @@ class UFSC_Woo_Sync {
 
         $club_id = $wpdb->get_var( $wpdb->prepare( "SELECT club_id FROM {$licences_table} WHERE id = %d", $licence_id ) );
         if ( $club_id ) {
-            $clubs_table = ufsc_get_clubs_table();
-            $wpdb->query( $wpdb->prepare( "UPDATE {$clubs_table} SET quota_licences = GREATEST(COALESCE(quota_licences,0)-1,0) WHERE id = %d", $club_id ) );
+            if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
+                $clubs_table = ufsc_get_clubs_table();
+                $wpdb->query( $wpdb->prepare( "UPDATE {$clubs_table} SET quota_licences = GREATEST(COALESCE(quota_licences,0)-1,0) WHERE id = %d", $club_id ) );
+            }
         }
     }
 
@@ -188,8 +190,10 @@ class UFSC_Woo_Sync {
 
         $club_id = $wpdb->get_var( $wpdb->prepare( "SELECT club_id FROM {$licences_table} WHERE id = %d", $licence_id ) );
         if ( $club_id ) {
-            $clubs_table = ufsc_get_clubs_table();
-            $wpdb->query( $wpdb->prepare( "UPDATE {$clubs_table} SET quota_licences = COALESCE(quota_licences,0) + 1 WHERE id = %d", $club_id ) );
+            if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
+                $clubs_table = ufsc_get_clubs_table();
+                $wpdb->query( $wpdb->prepare( "UPDATE {$clubs_table} SET quota_licences = COALESCE(quota_licences,0) + 1 WHERE id = %d", $club_id ) );
+            }
         }
     }
 

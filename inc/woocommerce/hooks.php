@@ -59,6 +59,10 @@ function ufsc_init_woocommerce_hooks() {
     // Track consumption of included licences
     add_action( 'woocommerce_order_status_processing', 'ufsc_wc_increment_included_quota' );
     add_action( 'woocommerce_order_status_completed', 'ufsc_wc_increment_included_quota' );
+
+    // UFSC PATCH: Retry payment handling on failed/cancelled orders.
+    add_action( 'woocommerce_order_status_failed', 'ufsc_handle_order_failed_or_cancelled' );
+    add_action( 'woocommerce_order_status_cancelled', 'ufsc_handle_order_failed_or_cancelled' );
 }
 
 /**
@@ -141,6 +145,10 @@ function ufsc_wc_increment_included_quota( $order_id ) {
         return;
     }
 
+    if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
+        return;
+    }
+
     $order = wc_get_order( $order_id );
     if ( ! $order ) {
         return;
@@ -174,6 +182,150 @@ function ufsc_wc_increment_included_quota( $order_id ) {
             );
         }
     }
+}
+
+/**
+ * UFSC PATCH: Handle failed/cancelled orders by unlocking licence payment.
+ *
+ * @param int $order_id Order ID.
+ */
+function ufsc_handle_order_failed_or_cancelled( $order_id ) {
+    if ( ! ufsc_is_woocommerce_active() ) {
+        return;
+    }
+
+    $order = wc_get_order( $order_id );
+    if ( ! $order ) {
+        return;
+    }
+
+    $licence_ids  = ufsc_get_order_licence_ids( $order );
+    $order_status = $order->get_status();
+    if ( empty( $licence_ids ) ) {
+        return;
+    }
+
+    foreach ( $licence_ids as $licence_id ) {
+        if ( function_exists( 'ufsc_is_validated_licence' ) && ufsc_is_validated_licence( $licence_id ) ) {
+            continue;
+        }
+        ufsc_update_licence_payment_status( $licence_id, 'non_payee', $order_status );
+    }
+}
+
+/**
+ * UFSC PATCH: Extract licence IDs from an order.
+ *
+ * @param WC_Order $order Order object.
+ * @return int[]
+ */
+function ufsc_get_order_licence_ids( $order ) {
+    $licence_ids = array();
+
+    foreach ( $order->get_items() as $item ) {
+        $ids = $item->get_meta( '_ufsc_licence_ids' );
+        if ( empty( $ids ) ) {
+            $ids = $item->get_meta( 'ufsc_licence_ids' );
+        }
+
+        if ( ! empty( $ids ) && is_array( $ids ) ) {
+            $licence_ids = array_merge( $licence_ids, array_map( 'absint', $ids ) );
+        }
+
+        $single_id = $item->get_meta( '_ufsc_licence_id' );
+        if ( $single_id ) {
+            $licence_ids[] = absint( $single_id );
+        }
+    }
+
+    return array_values( array_unique( array_filter( $licence_ids ) ) );
+}
+
+/**
+ * UFSC PATCH: Update licence status/payment status with column existence checks.
+ *
+ * @param int    $licence_id Licence ID.
+ * @param string $status     Licence status.
+ * @param string $payment_status Payment status.
+ * @return void
+ */
+function ufsc_update_licence_payment_status( $licence_id, $status, $payment_status = '' ) {
+    if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+        return;
+    }
+
+    global $wpdb;
+    $table   = ufsc_get_licences_table();
+    $columns = $wpdb->get_col( "DESCRIBE `{$table}`" );
+
+    $data  = array();
+    $types = array();
+
+    if ( in_array( 'statut', $columns, true ) ) {
+        $data['statut'] = $status;
+        $types[]        = '%s';
+    }
+
+    if ( $payment_status && in_array( 'payment_status', $columns, true ) ) {
+        $data['payment_status'] = $payment_status;
+        $types[]                = '%s';
+    }
+
+    if ( empty( $data ) ) {
+        return;
+    }
+
+    $wpdb->update( $table, $data, array( 'id' => $licence_id ), $types, array( '%d' ) );
+
+    $club_id = $wpdb->get_var( $wpdb->prepare( "SELECT club_id FROM {$table} WHERE id = %d", $licence_id ) );
+    if ( $club_id ) {
+        do_action( 'ufsc_licence_updated', (int) $club_id );
+    }
+}
+
+/**
+ * UFSC PATCH: Get latest order status for a licence ID.
+ *
+ * @param int $licence_id Licence ID.
+ * @return string
+ */
+function ufsc_get_latest_licence_order_status( $licence_id ) {
+    if ( ! ufsc_is_woocommerce_active() ) {
+        return '';
+    }
+
+    global $wpdb;
+    $licence_id = absint( $licence_id );
+    if ( ! $licence_id ) {
+        return '';
+    }
+
+    $order_items   = $wpdb->prefix . 'woocommerce_order_items';
+    $order_itemmeta = $wpdb->prefix . 'woocommerce_order_itemmeta';
+
+    $like_value = '%\"' . $wpdb->esc_like( (string) $licence_id ) . '\"%';
+
+    $order_id = (int) $wpdb->get_var( $wpdb->prepare(
+        "SELECT oi.order_id
+         FROM {$order_items} oi
+         INNER JOIN {$order_itemmeta} oim ON oim.order_item_id = oi.order_item_id
+         WHERE oi.order_item_type = 'line_item'
+         AND (
+             (oim.meta_key = '_ufsc_licence_id' AND oim.meta_value = %d)
+             OR (oim.meta_key IN ('_ufsc_licence_ids','ufsc_licence_ids') AND oim.meta_value LIKE %s)
+         )
+         ORDER BY oi.order_id DESC
+         LIMIT 1",
+        $licence_id,
+        $like_value
+    ) );
+
+    if ( ! $order_id ) {
+        return '';
+    }
+
+    $order = wc_get_order( $order_id );
+    return $order ? $order->get_status() : '';
 }
 
 /**
@@ -403,6 +555,10 @@ if ( ! function_exists( 'ufsc_mark_licence_paid' ) ) {
 function ufsc_quota_add_included( $club_id, $quantity, $season ) {
     global $wpdb;
 
+    if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
+        return false;
+    }
+
     if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
         return false;
     }
@@ -428,6 +584,10 @@ function ufsc_quota_add_included( $club_id, $quantity, $season ) {
  */
 function ufsc_quota_add_paid( $club_id, $quantity, $season ) {
     global $wpdb;
+
+    if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
+        return false;
+    }
 
     if ( ! function_exists( 'ufsc_get_clubs_table' ) ) {
         return false;

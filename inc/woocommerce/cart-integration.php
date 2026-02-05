@@ -285,6 +285,10 @@ function ufsc_apply_included_quota_to_cart( $cart ) {
         return;
     }
 
+    if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
+        return;
+    }
+
     $settings           = ufsc_get_woocommerce_settings();
     $licence_product_id = (int) $settings['product_license_id'];
     $club_remaining     = array();
