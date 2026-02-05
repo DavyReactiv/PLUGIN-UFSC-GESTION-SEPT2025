@@ -145,19 +145,19 @@ class UFSC_Cache_Manager {
         );
         
         foreach ( $results as $result ) {
-            switch ( $result->statut ) {
-                case 'validee':
-                    $kpis['licences_validees'] = intval( $result->count );
+            $normalized = function_exists( 'ufsc_normalize_licence_status' )
+                ? ufsc_normalize_licence_status( $result->statut )
+                : $result->statut;
+
+            switch ( $normalized ) {
+                case 'valide':
+                    $kpis['licences_validees'] += intval( $result->count );
                     break;
-                case 'payee':
-                    $kpis['licences_payees'] = intval( $result->count );
-                    break;
-                case 'brouillon':
-                case 'non_payee':
+                case 'en_attente':
                     $kpis['licences_attente'] += intval( $result->count );
                     break;
-                case 'rejected':
-                    $kpis['licences_rejected'] = intval( $result->count );
+                case 'refuse':
+                    $kpis['licences_rejected'] += intval( $result->count );
                     break;
             }
         }

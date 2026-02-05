@@ -22,26 +22,22 @@ class UFSC_Frontend_Shortcodes {
     private static function get_status_badge_front($status, $label = '')
     {
         if (empty($label)) {
-            $label = UFSC_SQL::statuses()[$status] ?? $status;
+            if ( function_exists( 'ufsc_get_licence_status_label_fr' ) ) {
+                $label = ufsc_get_licence_status_label_fr( $status );
+            } else {
+                $label = UFSC_SQL::statuses()[$status] ?? $status;
+            }
         }
 
         // Map status to CSS class
+        $normalized = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $status ) : $status;
         $status_map = array(
-            'valide' => 'valid',
-            'validee' => 'valid',
-            'active' => 'valid',
+            'valide'     => 'valid',
             'en_attente' => 'pending',
-            'attente' => 'pending',
-            'pending' => 'pending',
-            'a_regler' => 'pending',
-            'refuse' => 'rejected',
-            'rejected' => 'rejected',
-            'desactive' => 'inactive',
-            'inactive' => 'inactive',
-            'off' => 'inactive'
+            'refuse'     => 'rejected',
         );
 
-        $css_class = isset($status_map[$status]) ? $status_map[$status] : 'inactive';
+        $css_class = isset($status_map[$normalized]) ? $status_map[$normalized] : 'inactive';
 
         return '<span class="ufsc-status-badge ufsc-status-' . esc_attr($css_class) . '">' .
                '<span class="ufsc-status-dot"></span>' .
@@ -86,30 +82,36 @@ class UFSC_Frontend_Shortcodes {
         $wc_settings = ufsc_get_woocommerce_settings();
         $season = $wc_settings['season'];
         $stats = self::get_club_stats( $club_id, $season );
+        $licence_stats_labels = array(
+            esc_html__( 'Total', 'ufsc-clubs' ),
+            esc_html__( 'Payées', 'ufsc-clubs' ),
+            esc_html__( 'Validées', 'ufsc-clubs' ),
+            esc_html__( 'Homme', 'ufsc-clubs' ),
+            esc_html__( 'Femme', 'ufsc-clubs' ),
+            esc_html__( 'Loisir', 'ufsc-clubs' ),
+            esc_html__( 'Compétition', 'ufsc-clubs' ),
+        );
+        $licence_stats_data = array(
+            (int) $stats['total_licences'],
+            (int) $stats['paid_licences'],
+            (int) $stats['validated_licences'],
+            (int) $stats['by_gender']['M'],
+            (int) $stats['by_gender']['F'],
+            (int) $stats['by_practice'][0],
+            (int) @$stats['by_practice'][1],
+        );
+
+        if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
+            $licence_stats_labels[] = esc_html__( 'Quota restant', 'ufsc-clubs' );
+            $licence_stats_data[]   = (int) $stats['quota_remaining'];
+        }
+
         wp_localize_script(
             'chart-js',
             'ufscLicenceStats',
             array(
-                'labels' => array(
-                    esc_html__( 'Total', 'ufsc-clubs' ),
-                    esc_html__( 'Payées', 'ufsc-clubs' ),
-                    esc_html__( 'Validées', 'ufsc-clubs' ),
-                    esc_html__( 'Homme', 'ufsc-clubs' ),
-                    esc_html__( 'Femme', 'ufsc-clubs' ),
-                    esc_html__( 'Loisir', 'ufsc-clubs' ),
-                    esc_html__( 'Compétition', 'ufsc-clubs' ),
-                    esc_html__( 'Quota restant', 'ufsc-clubs' ),
-                ),
-                'data'   => array(
-                    (int) $stats['total_licences'],
-                    (int) $stats['paid_licences'],
-                    (int) $stats['validated_licences'],
-                    (int) $stats['by_gender']['M'],
-                    (int) $stats['by_gender']['F'],
-                    (int) $stats['by_practice'][0],
-                    (int) @$stats['by_practice'][1],
-                    (int) $stats['quota_remaining'],
-                ),
+                'labels' => $licence_stats_labels,
+                'data'   => $licence_stats_data,
                 'datasetLabel' => esc_html__( 'Licences', 'ufsc-clubs' ),
             )
         );
@@ -349,7 +351,9 @@ class UFSC_Frontend_Shortcodes {
 
         $club_name  = self::get_club_name( $atts['club_id'] );
         $wc_settings = ufsc_get_woocommerce_settings();
-        $quota_info = self::get_club_quota_info( $atts['club_id'] );
+        $quota_info = ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() )
+            ? array()
+            : self::get_club_quota_info( $atts['club_id'] );
 
 
         ob_start();
@@ -483,7 +487,8 @@ class UFSC_Frontend_Shortcodes {
                                         $gender = $licence->sexe ?? '';
                                 }
 
-                                $status = $licence->status ?? '';
+                                $status_raw = $licence->statut ?? ( $licence->status ?? '' );
+                                $status     = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $status_raw ) : $status_raw;
 
                                 $practice = isset( $licence->competition ) && $licence->competition
                                     ? __( 'Compétition', 'ufsc-clubs' )
@@ -501,12 +506,12 @@ class UFSC_Frontend_Shortcodes {
                                     <td><?php echo esc_html( $nom ); ?></td>
                                     <td><?php echo esc_html( $prenom ); ?></td>
                                     <td><?php echo esc_html( $gender ); ?></td>
-                                    <td><?php echo self::get_status_badge_front($status) ?></td>
+                                    <td><?php echo self::get_status_badge_front($status); ?></td>
                                     <td><?php echo esc_html( $practice ); ?></td>
                                     <td><?php echo '' !== $age ? intval($age) : ''; ?></td>
                                     <td>
                                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
-                                        <?php if ( 'pending' === $statut ) : ?>
+                                        <?php if ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status_raw ) : ( 'pending' === $status ) ) : ?>
                                             | <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
                                         <?php endif; ?>
                                     </td>
@@ -577,6 +582,9 @@ class UFSC_Frontend_Shortcodes {
                     }
 
                     $exclude = array( 'club_id', 'responsable_id' );
+                    if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
+                        $exclude[] = 'is_included';
+                    }
                     foreach ( $fields as $field_key => $field_info ) {
                         if ( in_array( $field_key, $exclude, true ) ) {
                             continue;
@@ -626,8 +634,11 @@ class UFSC_Frontend_Shortcodes {
             </table>
             <div class="ufsc-row-actions">
                 <?php
-                $licence_status = $licence->statut ?? '';
-                if ( 'non_payee' === $licence_status ) :
+                $licence_status_raw = $licence->statut ?? ( $licence->status ?? '' );
+                $licence_status     = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $licence_status_raw ) : $licence_status_raw;
+                $can_retry_payment  = function_exists( 'ufsc_can_retry_licence_payment' ) ? ufsc_can_retry_licence_payment( $licence->id ?? 0 ) : false;
+
+                if ( 'non_payee' === $licence_status_raw || $can_retry_payment ) :
                     ?>
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
                         <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
@@ -640,7 +651,7 @@ class UFSC_Frontend_Shortcodes {
                     </form>
                 <?php endif; ?>
 
-                <?php if ( in_array( $licence_status, array( 'brouillon', 'non_payee' ), true ) ) : ?>
+                <?php if ( in_array( $licence_status_raw, array( 'brouillon', 'non_payee' ), true ) ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>" class="ufsc-btn ufsc-btn-small">
                         <?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?>
                     </a>
@@ -719,10 +730,12 @@ class UFSC_Frontend_Shortcodes {
                     <div class="ufsc-kpi-label"><?php esc_html_e( 'Licences Validées', 'ufsc-clubs' ); ?></div>
                 </div>
 
-                <div class="ufsc-kpi-card">
-                    <div class="ufsc-kpi-value"><?php echo esc_html( $stats['quota_remaining'] ); ?></div>
-                    <div class="ufsc-kpi-label"><?php esc_html_e( 'Quota Restant', 'ufsc-clubs' ); ?></div>
-                </div>
+                <?php if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) : ?>
+                    <div class="ufsc-kpi-card">
+                        <div class="ufsc-kpi-value"><?php echo esc_html( $stats['quota_remaining'] ); ?></div>
+                        <div class="ufsc-kpi-label"><?php esc_html_e( 'Quota Restant', 'ufsc-clubs' ); ?></div>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <div class="ufsc-stats-chart">
@@ -847,22 +860,32 @@ class UFSC_Frontend_Shortcodes {
                 <input type="hidden" name="club_id" value="<?= (int) $club->id ?>" />
                 <?php wp_nonce_field( 'ufsc_save_club', 'ufsc_club_nonce' ); ?>
 
-                 <?php
-                    // Attestation UFSC section
-                    $attestation_id = get_option('ufsc_club_doc_attestation_affiliation_' . $club->id);
-                        if ($attestation_id) {
-                            $attestation_url = wp_get_attachment_url($attestation_id);
-                            echo '<div class="div-attestation">';
-                            echo '<h3 class="title-attestation club front">' . esc_html__('Attestation UFSC', 'ufsc-clubs') . '</h3>';
-                            echo '<div class="ufsc-current-file">';
-                            echo '<img src="' . esc_url($attestation_url) . '" class="img-attestation-club-front">';
-                            echo '<p>';
-                            echo '<a href="' . esc_url($attestation_url) . '" download class="button" id="btn-telechrager-attestation">' . esc_html__('Télécharger', 'ufsc-clubs') . '</a>';
-                            echo '</p>';
-                            echo '</div>';
-                        }
-                    echo '</div>';
+                <?php
+                    // UFSC PATCH: Attestation UFSC section (stable + legacy fallback).
+                    $attestation = function_exists( 'ufsc_get_affiliation_attestation_data' )
+                        ? ufsc_get_affiliation_attestation_data( $club->id, $club )
+                        : array( 'url' => '', 'status' => 'pending', 'can_view' => false );
+                    if ( $attestation['can_view'] ) :
                 ?>
+                    <div class="div-attestation">
+                        <h3 class="title-attestation club front"><?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?></h3>
+                        <?php if ( $attestation['url'] ) : ?>
+                            <div class="ufsc-current-file">
+                                <p class="ufsc-document-status"><?php esc_html_e( 'Disponible', 'ufsc-clubs' ); ?></p>
+                                <div class="ufsc-document-actions">
+                                    <a href="<?php echo esc_url( $attestation['url'] ); ?>" target="_blank" rel="noopener" class="button">
+                                        <?php esc_html_e( 'Voir', 'ufsc-clubs' ); ?>
+                                    </a>
+                                    <a href="<?php echo esc_url( $attestation['url'] ); ?>" download class="button" id="btn-telechrager-attestation">
+                                        <?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?>
+                                    </a>
+                                </div>
+                            </div>
+                        <?php else : ?>
+                            <p class="ufsc-document-status"><?php esc_html_e( 'En cours de génération', 'ufsc-clubs' ); ?></p>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
                 <!-- // UFSC: Identité du club -->
                 <div class="ufsc-card ufsc-section">
                     <h4><?php esc_html_e( 'Identité du club', 'ufsc-clubs' ); ?></h4>
@@ -970,7 +993,9 @@ class UFSC_Frontend_Shortcodes {
 
                     <div class="ufsc-grid">
                         <?php self::render_field( 'num_affiliation', $club, __( 'N° d\'affiliation', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                        <?php self::render_field( 'quota_licences', $club, __( 'Quota licences', 'ufsc-clubs' ), 'number', false, $is_admin ); ?>
+                        <?php if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) : ?>
+                            <?php self::render_field( 'quota_licences', $club, __( 'Quota licences', 'ufsc-clubs' ), 'number', false, $is_admin ); ?>
+                        <?php endif; ?>
                         <?php self::render_field( 'date_creation', $club, __( 'Date de création', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
                         <?php self::render_field( 'date_affiliation', $club, __( 'Date d\'affiliation', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
                         <?php self::render_field( 'responsable_id', $club, __( 'ID responsable', 'ufsc-clubs' ), 'number', true, false ); ?>
@@ -1124,8 +1149,10 @@ class UFSC_Frontend_Shortcodes {
             exit;
         }
 
-        // Check quota
-        $quota_info  = self::get_club_quota_info( $atts['club_id'] );
+        // UFSC PATCH: Quotas disabled via feature flag.
+        $quota_info  = ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() )
+            ? array()
+            : self::get_club_quota_info( $atts['club_id'] );
         $form_data   = array();
         $form_errors = array();
 
@@ -1140,7 +1167,9 @@ class UFSC_Frontend_Shortcodes {
         }
 
 
-        $quota_info = self::get_club_quota_info( $atts['club_id'] );
+        if ( empty( $quota_info ) && ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) ) {
+            $quota_info = self::get_club_quota_info( $atts['club_id'] );
+        }
 
 
         // Handle form submission
@@ -1167,15 +1196,17 @@ class UFSC_Frontend_Shortcodes {
         <div class="ufsc-add-licence-section">
             <div class="ufsc-section-header">
                 <h3><?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?></h3>
-                <div class="ufsc-quota-info">
-                    <p>
-                        <?php echo sprintf(
-                            esc_html__( 'Quota disponible: %d / %d', 'ufsc-clubs' ),
-                            $quota_info['remaining'],
-                            $quota_info['total']
-                        ); ?>
-                    </p>
-                </div>
+                <?php if ( ! empty( $quota_info ) ) : ?>
+                    <div class="ufsc-quota-info">
+                        <p>
+                            <?php echo sprintf(
+                                esc_html__( 'Quota disponible: %d / %d', 'ufsc-clubs' ),
+                                $quota_info['remaining'],
+                                $quota_info['total']
+                            ); ?>
+                        </p>
+                    </div>
+                <?php endif; ?>
             </div>
 
             <?php if ( ! empty( $form_errors ) ) : ?>
@@ -1718,6 +1749,10 @@ class UFSC_Frontend_Shortcodes {
                 $stats = array( 'total_licences' => 0, 'paid_licences' => 0, 'validated_licences' => 0, 'quota_remaining' => 10 );
             }
 
+            if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
+                $stats['quota_remaining'] = 0;
+            }
+
             //set_transient( $cache_key, $stats, HOUR_IN_SECONDS );
         //}
 
@@ -1800,30 +1835,25 @@ class UFSC_Frontend_Shortcodes {
      * Get licence status label
      */
     private static function get_licence_status_label( $status ) {
-        $labels = array(
-            'brouillon' => __( 'Brouillon', 'ufsc-clubs' ),
-            'paid' => __( 'Payée', 'ufsc-clubs' ),
-            'validated' => __( 'Validée', 'ufsc-clubs' ),
-            'applied' => __( 'Appliquée', 'ufsc-clubs' ),
-            'rejected' => __( 'Refusée', 'ufsc-clubs' )
-        );
+        if ( function_exists( 'ufsc_get_licence_status_label_fr' ) ) {
+            return ufsc_get_licence_status_label_fr( $status );
+        }
 
-        return $labels[ $status ] ?? $status;
+        return $status;
     }
 
     /**
      * Map licence status to badge class
      */
     private static function get_licence_status_badge_class( $status ) {
+        $normalized = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $status ) : $status;
         $classes = array(
-            'brouillon' => '-draft',
-            'paid'      => '-pending',
-            'validated' => '-ok',
-            'applied'   => '-ok',
-            'rejected'  => '-rejected',
+            'valide'     => '-ok',
+            'en_attente' => '-pending',
+            'refuse'     => '-rejected',
         );
 
-        return $classes[ $status ] ?? '-draft';
+        return $classes[ $normalized ] ?? '-draft';
     }
 
     /**
@@ -1854,6 +1884,10 @@ class UFSC_Frontend_Shortcodes {
      */
     private static function get_club_quota_info( $club_id ) {
         global $wpdb;
+
+        if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
+            return array( 'total' => 0, 'used' => 0, 'remaining' => 0 );
+        }
 
         if ( ! class_exists( 'UFSC_SQL' ) ) {
             return array( 'total' => 0, 'used' => 0, 'remaining' => 0 );
@@ -2228,8 +2262,12 @@ class UFSC_Frontend_Shortcodes {
 
 
 
-        $quota_info   = self::get_club_quota_info( $club_id );
-        $needs_payment = $quota_info['remaining'] <= 0;
+        if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
+            $needs_payment = false;
+        } else {
+            $quota_info    = self::get_club_quota_info( $club_id );
+            $needs_payment = $quota_info['remaining'] <= 0;
+        }
 
         global $wpdb;
         $settings       = UFSC_SQL::get_settings();
@@ -2439,6 +2477,10 @@ if ( ! function_exists( 'ufsc_is_validated_licence' ) ) {
 
         if ( ! $status ) {
             return false;
+        }
+
+        if ( function_exists( 'ufsc_normalize_licence_status' ) ) {
+            return 'valide' === ufsc_normalize_licence_status( $status );
         }
 
         $valid_statuses = array( 'valide', 'validé', 'validée', 'validated', 'applied', 'approved' );

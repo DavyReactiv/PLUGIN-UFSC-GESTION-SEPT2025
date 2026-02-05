@@ -92,7 +92,7 @@ class UFSC_Clubs_List_Table {
      * Get current filters
      */
     private static function get_filters() {
-        return array(
+        $filters = array(
             'region' => isset( $_GET['region'] ) ? sanitize_text_field( $_GET['region'] ) : '',
             'statut' => isset( $_GET['statut'] ) ? sanitize_text_field( $_GET['statut'] ) : '',
             'created_from' => isset( $_GET['created_from'] ) ? sanitize_text_field( $_GET['created_from'] ) : '',
@@ -100,6 +100,13 @@ class UFSC_Clubs_List_Table {
             'quota_min' => isset( $_GET['quota_min'] ) ? (int) $_GET['quota_min'] : 0,
             'quota_max' => isset( $_GET['quota_max'] ) ? (int) $_GET['quota_max'] : 0
         );
+
+        if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
+            $filters['quota_min'] = 0;
+            $filters['quota_max'] = 0;
+        }
+
+        return $filters;
     }
 
     /**
@@ -171,12 +178,14 @@ class UFSC_Clubs_List_Table {
         }
 
         // Quota range filters
-        if ( $filters['quota_min'] > 0 ) {
-            $conditions[] = $wpdb->prepare( "quota_licences >= %d", $filters['quota_min'] );
-        }
+        if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
+            if ( $filters['quota_min'] > 0 ) {
+                $conditions[] = $wpdb->prepare( "quota_licences >= %d", $filters['quota_min'] );
+            }
 
-        if ( $filters['quota_max'] > 0 ) {
-            $conditions[] = $wpdb->prepare( "quota_licences <= %d", $filters['quota_max'] );
+            if ( $filters['quota_max'] > 0 ) {
+                $conditions[] = $wpdb->prepare( "quota_licences <= %d", $filters['quota_max'] );
+            }
         }
 
         return $conditions;
@@ -245,7 +254,9 @@ class UFSC_Clubs_List_Table {
         echo '<div class="ufsc-filters-row">';
 
         // Quota range filters
-        self::render_quota_filters( $filters['quota_min'], $filters['quota_max'] );
+        if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
+            self::render_quota_filters( $filters['quota_min'], $filters['quota_max'] );
+        }
 
         echo '</div>';
 
@@ -364,7 +375,9 @@ class UFSC_Clubs_List_Table {
         echo '<th>' . self::get_sortable_header( 'region', __( 'Région', 'ufsc-clubs' ), $sorting ) . '</th>';
         echo '<th>' . esc_html__( 'N° Affiliation', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Statut', 'ufsc-clubs' ) . '</th>';
-        echo '<th>' . esc_html__( 'Quota', 'ufsc-clubs' ) . '</th>';
+        if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
+            echo '<th>' . esc_html__( 'Quota', 'ufsc-clubs' ) . '</th>';
+        }
         echo '<th>' . esc_html__( 'Documents', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . self::get_sortable_header( 'date_creation', __( 'Créé le', 'ufsc-clubs' ), $sorting ) . '</th>';
         echo '<th>' . esc_html__( 'Actions', 'ufsc-clubs' ) . '</th>';
@@ -379,7 +392,8 @@ class UFSC_Clubs_List_Table {
                 self::render_club_row( $club );
             }
         } else {
-            echo '<tr><td colspan="9">' . esc_html__( 'Aucun club trouvé.', 'ufsc-clubs' ) . '</td></tr>';
+            $column_count = ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) ? 9 : 8;
+            echo '<tr><td colspan="' . (int) $column_count . '">' . esc_html__( 'Aucun club trouvé.', 'ufsc-clubs' ) . '</td></tr>';
         }
 
         echo '</tbody>';
@@ -419,9 +433,11 @@ class UFSC_Clubs_List_Table {
     echo '<td>' . self::render_status_badge( $club->statut ) . '</td>';
 
     // Quota
-    echo '<td>';
-    echo isset( $club->quota_licences ) ? (int) $club->quota_licences : '<em>' . esc_html__( 'Non défini', 'ufsc-clubs' ) . '</em>';
-    echo '</td>';
+    if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
+        echo '<td>';
+        echo isset( $club->quota_licences ) ? (int) $club->quota_licences : '<em>' . esc_html__( 'Non défini', 'ufsc-clubs' ) . '</em>';
+        echo '</td>';
+    }
 
     // Documents
     echo '<td>' . self::render_documents_badge( $club ) . '</td>';
@@ -708,4 +724,3 @@ class UFSC_Clubs_List_Table {
 
 
 }
-

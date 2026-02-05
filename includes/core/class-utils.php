@@ -110,7 +110,8 @@ class UFSC_CL_Utils {
         }
 
         // Validation du quota de licences (nombre positif)
-        if ( !empty($data['quota_licences']) && (!is_numeric($data['quota_licences']) || $data['quota_licences'] < 0) ) {
+        if ( ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() )
+            && !empty($data['quota_licences']) && (!is_numeric($data['quota_licences']) || $data['quota_licences'] < 0) ) {
             $errors['quota_licences'] = __('Le quota doit être un nombre positif', 'ufsc-clubs');
         }
 
