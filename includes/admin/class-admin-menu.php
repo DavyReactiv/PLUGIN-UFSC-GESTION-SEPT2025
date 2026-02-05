@@ -275,9 +275,17 @@ class UFSC_CL_Admin_Menu {
             $data['licenses_rejected'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics` WHERE statut IN ('refuse', 'rejected')");
 
             // Expiring licenses (if certificat_expiration field exists)
-            $columns = $wpdb->get_col("DESCRIBE `$t_lics`");
-            if (in_array('certificat_expiration', $columns) || in_array('date_expiration', $columns)) {
-                $expiration_field = in_array('certificat_expiration', $columns) ? 'certificat_expiration' : 'date_expiration';
+            $columns = function_exists( 'ufsc_table_columns' )
+                ? ufsc_table_columns( $t_lics )
+                : $wpdb->get_col("DESCRIBE `$t_lics`");
+            $has_certificat = function_exists( 'ufsc_table_has_column' )
+                ? ufsc_table_has_column( $t_lics, 'certificat_expiration' )
+                : in_array( 'certificat_expiration', $columns, true );
+            $has_expiration = function_exists( 'ufsc_table_has_column' )
+                ? ufsc_table_has_column( $t_lics, 'date_expiration' )
+                : in_array( 'date_expiration', $columns, true );
+            if ( $has_certificat || $has_expiration ) {
+                $expiration_field = $has_certificat ? 'certificat_expiration' : 'date_expiration';
                 $thirty_days_from_now = date('Y-m-d', strtotime('+30 days'));
                 $data['licenses_expiring_soon'] = (int) $wpdb->get_var($wpdb->prepare(
                     "SELECT COUNT(*) FROM `$t_lics` WHERE `$expiration_field` IS NOT NULL AND `$expiration_field` <= %s AND statut IN ('valide', 'validee', 'active')",

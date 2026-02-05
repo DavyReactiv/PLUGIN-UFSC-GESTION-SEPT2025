@@ -30,10 +30,12 @@ class UFSC_Frontend_Shortcodes {
         }
 
         // Map status to CSS class
-        $normalized = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $status ) : $status;
+        $normalized = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status ) : $status;
         $status_map = array(
-            'valide'     => 'valid',
+            'brouillon'  => 'pending',
+            'non_payee'  => 'pending',
             'en_attente' => 'pending',
+            'valide'     => 'valid',
             'refuse'     => 'rejected',
         );
 
@@ -411,14 +413,17 @@ class UFSC_Frontend_Shortcodes {
                             <option value="brouillon" <?php selected( $atts['status'], 'brouillon' ); ?>>
                                 <?php esc_html_e( 'Brouillon', 'ufsc-clubs' ); ?>
                             </option>
-                            <option value="paid" <?php selected( $atts['status'], 'paid' ); ?>>
-                                <?php esc_html_e( 'Payée', 'ufsc-clubs' ); ?>
+                            <option value="non_payee" <?php selected( $atts['status'], 'non_payee' ); ?>>
+                                <?php esc_html_e( 'Non payée', 'ufsc-clubs' ); ?>
                             </option>
-                            <option value="validated" <?php selected( $atts['status'], 'validated' ); ?>>
+                            <option value="en_attente" <?php selected( $atts['status'], 'en_attente' ); ?>>
+                                <?php esc_html_e( 'En attente', 'ufsc-clubs' ); ?>
+                            </option>
+                            <option value="valide" <?php selected( $atts['status'], 'valide' ); ?>>
                                 <?php esc_html_e( 'Validée', 'ufsc-clubs' ); ?>
                             </option>
-                            <option value="applied" <?php selected( $atts['status'], 'applied' ); ?>>
-                                <?php esc_html_e( 'Appliquée', 'ufsc-clubs' ); ?>
+                            <option value="refuse" <?php selected( $atts['status'], 'refuse' ); ?>>
+                                <?php esc_html_e( 'Refusée', 'ufsc-clubs' ); ?>
                             </option>
                         </select>
                     </div>
@@ -465,6 +470,7 @@ class UFSC_Frontend_Shortcodes {
                                 <th><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Sexe', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Status', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Saison', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Pratique', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Âge', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( '', 'ufsc-clubs' ); ?></th>
@@ -487,8 +493,9 @@ class UFSC_Frontend_Shortcodes {
                                         $gender = $licence->sexe ?? '';
                                 }
 
-                                $status_raw = $licence->statut ?? ( $licence->status ?? '' );
-                                $status     = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $status_raw ) : $status_raw;
+                                $status_raw = function_exists( 'ufsc_get_licence_status_raw' ) ? ufsc_get_licence_status_raw( $licence ) : ( $licence->statut ?? ( $licence->status ?? '' ) );
+                                $status     = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw;
+                                $season     = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
 
                                 $practice = isset( $licence->competition ) && $licence->competition
                                     ? __( 'Compétition', 'ufsc-clubs' )
@@ -507,11 +514,12 @@ class UFSC_Frontend_Shortcodes {
                                     <td><?php echo esc_html( $prenom ); ?></td>
                                     <td><?php echo esc_html( $gender ); ?></td>
                                     <td><?php echo self::get_status_badge_front($status); ?></td>
+                                    <td><?php echo esc_html( $season ); ?></td>
                                     <td><?php echo esc_html( $practice ); ?></td>
                                     <td><?php echo '' !== $age ? intval($age) : ''; ?></td>
                                     <td>
                                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
-                                        <?php if ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status_raw ) : ( 'pending' === $status ) ) : ?>
+                                        <?php if ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status ) : ( 'en_attente' === $status ) ) : ?>
                                             | <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
                                         <?php endif; ?>
                                     </td>
@@ -629,16 +637,63 @@ class UFSC_Frontend_Shortcodes {
                         }
                         echo '<tr><th>' . esc_html( $label ) . '</th><td>' . $formatted . '</td></tr>';
                     }
+                    $season_label = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
+                    if ( $season_label ) {
+                        echo '<tr><th>' . esc_html__( 'Saison', 'ufsc-clubs' ) . '</th><td>' . esc_html( $season_label ) . '</td></tr>';
+                    }
                     ?>
                 </tbody>
             </table>
+            <?php
+            $licence_doc = function_exists( 'ufsc_get_licence_document_data' ) ? ufsc_get_licence_document_data( $licence ) : array( 'url' => '', 'attachment_id' => 0, 'status' => 'missing' );
+            $can_manage_doc = function_exists( 'ufsc_can_manage_licence_document' ) ? ufsc_can_manage_licence_document( $licence->id ?? 0, $club_id ) : false;
+            ?>
+            <div class="ufsc-licence-documents">
+                <h4><?php esc_html_e( 'Certificat médical', 'ufsc-clubs' ); ?></h4>
+                <?php if ( ! empty( $licence_doc['url'] ) ) : ?>
+                    <p class="ufsc-document-status"><?php esc_html_e( 'Disponible', 'ufsc-clubs' ); ?></p>
+                    <p>
+                        <a href="<?php echo esc_url( $licence_doc['url'] ); ?>" target="_blank" rel="noopener" class="ufsc-btn ufsc-btn-small">
+                            <?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?>
+                        </a>
+                    </p>
+                <?php else : ?>
+                    <p class="ufsc-document-status"><?php esc_html_e( 'Non transmis', 'ufsc-clubs' ); ?></p>
+                <?php endif; ?>
+
+                <?php if ( $can_manage_doc ) : ?>
+                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-licence-doc-form">
+                        <?php wp_nonce_field( 'ufsc_upload_licence_document_' . ( $licence->id ?? 0 ) ); ?>
+                        <input type="hidden" name="action" value="ufsc_upload_licence_document">
+                        <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
+                        <input type="file" name="licence_document" accept=".pdf" />
+                        <button type="submit" class="ufsc-btn ufsc-btn-small ufsc-btn-secondary">
+                            <?php echo ! empty( $licence_doc['url'] ) ? esc_html__( 'Remplacer le PDF', 'ufsc-clubs' ) : esc_html__( 'Ajouter le PDF', 'ufsc-clubs' ); ?>
+                        </button>
+                    </form>
+                    <?php if ( ! empty( $licence_doc['url'] ) ) : ?>
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-doc-remove-form">
+                            <?php wp_nonce_field( 'ufsc_remove_licence_document_' . ( $licence->id ?? 0 ) ); ?>
+                            <input type="hidden" name="action" value="ufsc_remove_licence_document">
+                            <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
+                            <label>
+                                <input type="checkbox" name="delete_attachment" value="1">
+                                <?php esc_html_e( 'Supprimer le fichier (si non utilisé ailleurs)', 'ufsc-clubs' ); ?>
+                            </label>
+                            <button type="submit" class="ufsc-btn ufsc-btn-small ufsc-btn-danger">
+                                <?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?>
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
             <div class="ufsc-row-actions">
                 <?php
-                $licence_status_raw = $licence->statut ?? ( $licence->status ?? '' );
-                $licence_status     = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $licence_status_raw ) : $licence_status_raw;
+                $licence_status_raw = function_exists( 'ufsc_get_licence_status_raw' ) ? ufsc_get_licence_status_raw( $licence ) : ( $licence->statut ?? ( $licence->status ?? '' ) );
+                $licence_status     = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $licence_status_raw ) : $licence_status_raw;
                 $can_retry_payment  = function_exists( 'ufsc_can_retry_licence_payment' ) ? ufsc_can_retry_licence_payment( $licence->id ?? 0 ) : false;
 
-                if ( 'non_payee' === $licence_status_raw || $can_retry_payment ) :
+                if ( 'non_payee' === $licence_status || $can_retry_payment ) :
                     ?>
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
                         <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
@@ -651,7 +706,7 @@ class UFSC_Frontend_Shortcodes {
                     </form>
                 <?php endif; ?>
 
-                <?php if ( in_array( $licence_status_raw, array( 'brouillon', 'non_payee' ), true ) ) : ?>
+                <?php if ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $licence_status ) : in_array( $licence_status, array( 'brouillon', 'non_payee', 'en_attente' ), true ) ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>" class="ufsc-btn ufsc-btn-small">
                         <?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?>
                     </a>
@@ -1592,7 +1647,9 @@ class UFSC_Frontend_Shortcodes {
         $args = wp_parse_args( $args, $defaults );
 
         // Colonnes disponibles
-        $columns = $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
+        $columns = function_exists( 'ufsc_table_columns' )
+            ? ufsc_table_columns( $licences_table )
+            : $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
 
         // Clauses et valeurs de préparation
         $clauses = array( 'club_id = %d' );
@@ -1621,8 +1678,12 @@ class UFSC_Frontend_Shortcodes {
                 if ( in_array( $col, $columns, true ) ) { $status_col = $col; break; }
             }
             if ( $status_col ) {
-                $clauses[] = "`{$status_col}` = %s";
-                $values[]  = $args['status'];
+                $raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
+                    ? ufsc_get_licence_status_raw_values_for_norm( $args['status'] )
+                    : array( $args['status'] );
+                $placeholders = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
+                $clauses[]    = "`{$status_col}` IN ({$placeholders})";
+                $values       = array_merge( $values, $raw_values );
             }
         }
 
@@ -1684,7 +1745,9 @@ class UFSC_Frontend_Shortcodes {
         );
         $args = wp_parse_args( $args, $defaults );
 
-        $columns = $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
+        $columns = function_exists( 'ufsc_table_columns' )
+            ? ufsc_table_columns( $licences_table )
+            : $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
 
         $clauses = array( 'club_id = %d' );
         $values  = array( (int) $club_id );
@@ -1712,8 +1775,12 @@ class UFSC_Frontend_Shortcodes {
                 if ( in_array( $col, $columns, true ) ) { $status_col = $col; break; }
             }
             if ( $status_col ) {
-                $clauses[] = "`{$status_col}` = %s";
-                $values[]  = $args['status'];
+                $raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
+                    ? ufsc_get_licence_status_raw_values_for_norm( $args['status'] )
+                    : array( $args['status'] );
+                $placeholders = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
+                $clauses[]    = "`{$status_col}` IN ({$placeholders})";
+                $values       = array_merge( $values, $raw_values );
             }
         }
 
@@ -1796,29 +1863,11 @@ class UFSC_Frontend_Shortcodes {
      * Check if club is validated
      */
     private static function is_validated_club( $club_id ) {
-        global $wpdb;
-
-        if ( ! function_exists( 'ufsc_get_clubs_table' ) ) { return false; }
-        $clubs_table = ufsc_get_clubs_table();
-
-        // Check for common status/validation columns
-        $columns = $wpdb->get_col( "DESCRIBE `{$clubs_table}`" );
-        $status_column = null;
-        foreach ( ['status', 'statut', 'validated', 'validation'] as $col ) {
-            if ( in_array( $col, $columns ) ) {
-                $status_column = $col;
-                break;
-            }
+        if ( function_exists( 'ufsc_is_club_validated' ) ) {
+            return ufsc_is_club_validated( $club_id );
         }
 
-        if ( ! $status_column ) { return false; }
-
-        $status = $wpdb->get_var( $wpdb->prepare(
-            "SELECT `{$status_column}` FROM `{$clubs_table}` WHERE id = %d LIMIT 1",
-            $club_id
-        ) );
-
-        return $status && in_array( strtolower( $status ), [ 'actif', 'validé', 'validée', 'approved', 'validate', 'validated' ] );
+        return false;
     }
 
     /**
@@ -1846,8 +1895,10 @@ class UFSC_Frontend_Shortcodes {
      * Map licence status to badge class
      */
     private static function get_licence_status_badge_class( $status ) {
-        $normalized = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $status ) : $status;
+        $normalized = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status ) : $status;
         $classes = array(
+            'brouillon'  => '-draft',
+            'non_payee'  => '-pending',
             'valide'     => '-ok',
             'en_attente' => '-pending',
             'refuse'     => '-rejected',
@@ -2479,8 +2530,8 @@ if ( ! function_exists( 'ufsc_is_validated_licence' ) ) {
             return false;
         }
 
-        if ( function_exists( 'ufsc_normalize_licence_status' ) ) {
-            return 'valide' === ufsc_normalize_licence_status( $status );
+        if ( function_exists( 'ufsc_get_licence_status_norm' ) ) {
+            return 'valide' === ufsc_get_licence_status_norm( $status );
         }
 
         $valid_statuses = array( 'valide', 'validé', 'validée', 'validated', 'applied', 'approved' );

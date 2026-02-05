@@ -115,7 +115,9 @@ class UFSC_Stats {
         $where = $wpdb->prepare( 'club_id = %d', $club_id );
         if ( null !== $season ) {
             // Season column optional; only add if exists.
-            $columns = $wpdb->get_col( "DESCRIBE `{$table}`" );
+            $columns = function_exists( 'ufsc_table_columns' )
+                ? ufsc_table_columns( $table )
+                : $wpdb->get_col( "DESCRIBE `{$table}`" );
             if ( in_array( 'season', $columns, true ) ) {
                 $where .= $wpdb->prepare( ' AND season = %d', $season );
             }

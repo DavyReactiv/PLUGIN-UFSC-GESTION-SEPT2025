@@ -26,6 +26,10 @@ class UFSC_Unified_Handlers {
         add_action( 'admin_post_ufsc_update_licence_status', array( __CLASS__, 'handle_update_licence_status' ) );
         add_action( 'admin_post_nopriv_ufsc_update_licence_status', array( __CLASS__, 'handle_update_licence_status' ) );
 
+        // UFSC PATCH: Licence document handlers
+        add_action( 'admin_post_ufsc_upload_licence_document', array( __CLASS__, 'handle_upload_licence_document' ) );
+        add_action( 'admin_post_ufsc_remove_licence_document', array( __CLASS__, 'handle_remove_licence_document' ) );
+
 
         
         // Club handlers
@@ -166,8 +170,7 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $non_editable_statuses = array( 'payee', 'validee' );
-        if ( in_array( $licence_status, $non_editable_statuses ) ) {
+        if ( function_exists( 'ufsc_is_editable_licence_status' ) && ! ufsc_is_editable_licence_status( $licence_status ) ) {
             wp_safe_redirect( add_query_arg( 'view_licence', $licence_id, wp_get_referer() ) );
             exit;
         }
@@ -229,6 +232,11 @@ class UFSC_Unified_Handlers {
             return;
         }
 
+        if ( function_exists( 'ufsc_is_editable_licence_status' ) && ! ufsc_is_editable_licence_status( $licence_status ) ) {
+            self::redirect_with_error( 'Suppression non autorisée' );
+            return;
+        }
+
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
         $table    = $settings['table_licences'];
@@ -286,6 +294,185 @@ class UFSC_Unified_Handlers {
             'updated_status' => 1,
             'licence_id'     => $licence_id
         ), wp_get_referer() );
+        wp_safe_redirect( $redirect_url );
+        exit;
+    }
+
+    /**
+     * UFSC PATCH: Handle licence document upload (PDF).
+     */
+    public static function handle_upload_licence_document() {
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        $licence_id = isset( $_POST['licence_id'] ) ? absint( $_POST['licence_id'] ) : 0;
+        check_admin_referer( 'ufsc_upload_licence_document_' . $licence_id );
+
+        if ( ! is_user_logged_in() || ! $licence_id ) {
+            self::redirect_with_error( 'Paramètres invalides', $licence_id );
+            return;
+        }
+
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $table    = $settings['table_licences'];
+
+        $licence = $wpdb->get_row(
+            $wpdb->prepare( "SELECT id, club_id FROM {$table} WHERE id = %d", $licence_id )
+        );
+        if ( ! $licence ) {
+            self::redirect_with_error( 'Licence non trouvée', $licence_id );
+            return;
+        }
+
+        if ( function_exists( 'ufsc_can_manage_licence_document' ) && ! ufsc_can_manage_licence_document( $licence_id, $licence->club_id ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        if ( empty( $_FILES['licence_document']['name'] ) ) {
+            self::redirect_with_error( 'Aucun fichier fourni', $licence_id );
+            return;
+        }
+
+        $upload = wp_handle_upload(
+            $_FILES['licence_document'],
+            array(
+                'test_form' => false,
+                'mimes'     => array( 'pdf' => 'application/pdf' ),
+            )
+        );
+
+        if ( isset( $upload['error'] ) ) {
+            self::redirect_with_error( $upload['error'], $licence_id );
+            return;
+        }
+
+        $attachment = array(
+            'post_mime_type' => $upload['type'],
+            'post_title'     => sanitize_file_name( $_FILES['licence_document']['name'] ),
+            'post_content'   => '',
+            'post_status'    => 'inherit',
+        );
+
+        $attachment_id = wp_insert_attachment( $attachment, $upload['file'] );
+        if ( $attachment_id ) {
+            require_once ABSPATH . 'wp-admin/includes/image.php';
+            wp_update_attachment_metadata( $attachment_id, wp_generate_attachment_metadata( $attachment_id, $upload['file'] ) );
+        }
+
+        if ( ! $attachment_id ) {
+            self::redirect_with_error( 'Erreur lors de l\'enregistrement du document', $licence_id );
+            return;
+        }
+
+        update_option( 'ufsc_licence_document_' . $licence_id, $attachment_id );
+
+        if ( function_exists( 'ufsc_table_columns' ) ) {
+            $columns   = ufsc_table_columns( $table );
+            $doc_url   = wp_get_attachment_url( $attachment_id );
+            $doc_field = '';
+            if ( in_array( 'certificat_url', $columns, true ) ) {
+                $doc_field = 'certificat_url';
+            } elseif ( in_array( 'attestation_url', $columns, true ) ) {
+                $doc_field = 'attestation_url';
+            }
+
+            if ( $doc_field ) {
+                $wpdb->update(
+                    $table,
+                    array( $doc_field => $doc_url ),
+                    array( 'id' => $licence_id ),
+                    array( '%s' ),
+                    array( '%d' )
+                );
+            }
+        }
+
+        $redirect_url = add_query_arg( 'doc_updated', 1, wp_get_referer() );
+        wp_safe_redirect( $redirect_url );
+        exit;
+    }
+
+    /**
+     * UFSC PATCH: Handle licence document removal.
+     */
+    public static function handle_remove_licence_document() {
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        $licence_id = isset( $_POST['licence_id'] ) ? absint( $_POST['licence_id'] ) : 0;
+        check_admin_referer( 'ufsc_remove_licence_document_' . $licence_id );
+
+        if ( ! is_user_logged_in() || ! $licence_id ) {
+            self::redirect_with_error( 'Paramètres invalides', $licence_id );
+            return;
+        }
+
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $table    = $settings['table_licences'];
+
+        $licence = $wpdb->get_row(
+            $wpdb->prepare( "SELECT id, club_id FROM {$table} WHERE id = %d", $licence_id )
+        );
+        if ( ! $licence ) {
+            self::redirect_with_error( 'Licence non trouvée', $licence_id );
+            return;
+        }
+
+        if ( function_exists( 'ufsc_can_manage_licence_document' ) && ! ufsc_can_manage_licence_document( $licence_id, $licence->club_id ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        $attachment_id = (int) get_option( 'ufsc_licence_document_' . $licence_id );
+        delete_option( 'ufsc_licence_document_' . $licence_id );
+
+        if ( function_exists( 'ufsc_table_columns' ) ) {
+            $columns   = ufsc_table_columns( $table );
+            $doc_field = '';
+            if ( in_array( 'certificat_url', $columns, true ) ) {
+                $doc_field = 'certificat_url';
+            } elseif ( in_array( 'attestation_url', $columns, true ) ) {
+                $doc_field = 'attestation_url';
+            }
+
+            if ( $doc_field ) {
+                $wpdb->update(
+                    $table,
+                    array( $doc_field => '' ),
+                    array( 'id' => $licence_id ),
+                    array( '%s' ),
+                    array( '%d' )
+                );
+            }
+        }
+
+        if ( $attachment_id && ! empty( $_POST['delete_attachment'] ) ) {
+            $usage_count = 0;
+            $patterns    = array(
+                $wpdb->esc_like( 'ufsc_licence_document_' ) . '%',
+                $wpdb->esc_like( 'ufsc_club_doc_attestation_' ) . '%',
+                $wpdb->esc_like( 'ufsc_attestation_' ) . '%',
+            );
+
+            foreach ( $patterns as $pattern ) {
+                $usage_count += (int) $wpdb->get_var(
+                    $wpdb->prepare(
+                        "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_value = %s AND option_name LIKE %s",
+                        (string) $attachment_id,
+                        $pattern
+                    )
+                );
+            }
+
+            if ( $usage_count <= 1 ) {
+                wp_delete_attachment( $attachment_id, true );
+            }
+        }
+
+        $redirect_url = add_query_arg( 'doc_removed', 1, wp_get_referer() );
         wp_safe_redirect( $redirect_url );
         exit;
     }
@@ -501,8 +688,7 @@ class UFSC_Unified_Handlers {
                 self::store_form_and_redirect( $_POST, array( __( 'Licence non trouvée', 'ufsc-clubs' ) ), $licence_id );
             }
 
-            $non_editable_statuses = array( 'payee', 'validee' );
-            if ( in_array( $licence_status, $non_editable_statuses, true ) ) {
+            if ( function_exists( 'ufsc_is_editable_licence_status' ) && ! ufsc_is_editable_licence_status( $licence_status ) ) {
                 self::store_form_and_redirect( $_POST, array( __( 'Modification non autorisée', 'ufsc-clubs' ) ), $licence_id );
             }
         }

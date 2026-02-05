@@ -6,6 +6,24 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 
 /**
+ * Get raw status value from a licence record.
+ *
+ * @param object|array $licence Licence record.
+ * @return string
+ */
+function ufsc_get_licence_status_raw( $licence ) {
+    if ( is_array( $licence ) ) {
+        return (string) ( $licence['statut'] ?? ( $licence['status'] ?? '' ) );
+    }
+
+    if ( is_object( $licence ) ) {
+        return (string) ( $licence->statut ?? ( $licence->status ?? '' ) );
+    }
+
+    return '';
+}
+
+/**
  * Normalize a licence status to a consistent internal value.
  *
  * @param string $status Raw status.
@@ -18,7 +36,24 @@ function ufsc_normalize_licence_status( $status ) {
     }
 
     $map = array(
+        // Canonical
+        'brouillon'   => 'brouillon',
+        'non_payee'   => 'non_payee',
+        'non_payée'   => 'non_payee',
+        'en_attente'  => 'en_attente',
         'valide'      => 'valide',
+        'refuse'      => 'refuse',
+
+        // Legacy mappings
+        'draft'       => 'brouillon',
+        'pending'     => 'en_attente',
+        'pending_payment' => 'en_attente',
+        'attente'     => 'en_attente',
+        'a_regler'    => 'en_attente',
+        'paid'        => 'en_attente',
+        'payee'       => 'en_attente',
+        'payée'       => 'en_attente',
+
         'valid'       => 'valide',
         'validé'      => 'valide',
         'validé'     => 'valide',
@@ -29,20 +64,7 @@ function ufsc_normalize_licence_status( $status ) {
         'active'      => 'valide',
         'actif'       => 'valide',
         'applied'     => 'valide',
-        'payee'       => 'valide',
-        'payée'       => 'valide',
-        'paid'        => 'valide',
 
-        'en_attente'  => 'en_attente',
-        'attente'     => 'en_attente',
-        'pending'     => 'en_attente',
-        'pending_payment' => 'en_attente',
-        'a_regler'    => 'en_attente',
-        'non_payee'   => 'en_attente',
-        'non_payée'   => 'en_attente',
-        'brouillon'   => 'en_attente',
-
-        'refuse'      => 'refuse',
         'refusé'      => 'refuse',
         'refusee'     => 'refuse',
         'refusée'     => 'refuse',
@@ -54,14 +76,46 @@ function ufsc_normalize_licence_status( $status ) {
 }
 
 /**
+ * Normalize a raw status value.
+ *
+ * @param string $raw Raw status.
+ * @return string
+ */
+function ufsc_get_licence_status_norm( $raw ) {
+    return ufsc_normalize_licence_status( $raw );
+}
+
+/**
+ * Get raw status values that map to a normalized status.
+ *
+ * @param string $normalized Normalized status.
+ * @return array
+ */
+function ufsc_get_licence_status_raw_values_for_norm( $normalized ) {
+    $normalized = ufsc_get_licence_status_norm( $normalized );
+
+    $map = array(
+        'brouillon'  => array( 'brouillon', 'draft' ),
+        'non_payee'  => array( 'non_payee', 'non_payée' ),
+        'en_attente' => array( 'en_attente', 'attente', 'pending', 'pending_payment', 'a_regler', 'paid', 'payee', 'payée' ),
+        'valide'     => array( 'valide', 'valid', 'validé', 'validé', 'validee', 'validée', 'validated', 'approved', 'active', 'actif', 'applied' ),
+        'refuse'     => array( 'refuse', 'refusé', 'refusee', 'refusée', 'rejected', 'denied' ),
+    );
+
+    return $map[ $normalized ] ?? array( $normalized );
+}
+
+/**
  * Get the French label for a licence status.
  *
  * @param string $status Raw or normalized status.
  * @return string
  */
 function ufsc_get_licence_status_label_fr( $status ) {
-    $normalized = ufsc_normalize_licence_status( $status );
+    $normalized = ufsc_get_licence_status_norm( $status );
     $labels     = array(
+        'brouillon'  => __( 'Brouillon', 'ufsc-clubs' ),
+        'non_payee'  => __( 'Non payée', 'ufsc-clubs' ),
         'valide'     => __( 'Validé', 'ufsc-clubs' ),
         'en_attente' => __( 'En attente', 'ufsc-clubs' ),
         'refuse'     => __( 'Refusé', 'ufsc-clubs' ),
@@ -77,13 +131,8 @@ function ufsc_get_licence_status_label_fr( $status ) {
  * @return string
  */
 function ufsc_get_licence_status_from_record( $licence ) {
-    if ( is_array( $licence ) ) {
-        $raw = $licence['statut'] ?? ( $licence['status'] ?? '' );
-    } else {
-        $raw = $licence->statut ?? ( $licence->status ?? '' );
-    }
-
-    return ufsc_normalize_licence_status( $raw );
+    $raw = ufsc_get_licence_status_raw( $licence );
+    return ufsc_get_licence_status_norm( $raw );
 }
 
 /**
@@ -93,8 +142,8 @@ function ufsc_get_licence_status_from_record( $licence ) {
  * @return bool
  */
 function ufsc_is_editable_licence_status( $status ) {
-    $normalized = ufsc_normalize_licence_status( $status );
-    return in_array( $normalized, array( 'en_attente' ), true );
+    $normalized = ufsc_get_licence_status_norm( $status );
+    return in_array( $normalized, array( 'brouillon', 'non_payee', 'en_attente' ), true );
 }
 
 /**

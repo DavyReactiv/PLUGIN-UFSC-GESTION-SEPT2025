@@ -71,3 +71,86 @@ function ufsc_table_exists( $table_name ) {
     $result = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $sanitized_table ) );
     return $result === $sanitized_table;
 }
+
+/**
+ * UFSC PATCH: Cached table columns helper to avoid repeated DESCRIBE calls.
+ *
+ * @param string $table_name Table name to inspect.
+ * @param bool   $force      Force refresh cache.
+ * @return array Column names.
+ */
+function ufsc_table_columns( $table_name, $force = false ) {
+    global $wpdb;
+
+    $sanitized_table = ufsc_sanitize_table_name( $table_name );
+    if ( empty( $sanitized_table ) ) {
+        return array();
+    }
+
+    $cache_key = 'ufsc_table_columns_' . md5( $sanitized_table );
+    $group     = 'ufsc_table_columns';
+
+    if ( ! $force ) {
+        $cached = wp_cache_get( $cache_key, $group );
+        if ( false !== $cached ) {
+            return is_array( $cached ) ? $cached : array();
+        }
+
+        $cached = get_transient( $cache_key );
+        if ( false !== $cached ) {
+            wp_cache_set( $cache_key, $cached, $group, 10 * MINUTE_IN_SECONDS );
+            return is_array( $cached ) ? $cached : array();
+        }
+    }
+
+    $columns = $wpdb->get_col( "DESCRIBE `{$sanitized_table}`" );
+    if ( empty( $columns ) || ! is_array( $columns ) ) {
+        $columns = array();
+    }
+
+    wp_cache_set( $cache_key, $columns, $group, 10 * MINUTE_IN_SECONDS );
+    set_transient( $cache_key, $columns, 10 * MINUTE_IN_SECONDS );
+
+    return $columns;
+}
+
+/**
+ * UFSC PATCH: Flush cached table columns.
+ *
+ * @param string|null $table_name Optional table to flush.
+ * @return void
+ */
+function ufsc_flush_table_columns_cache( $table_name = null ) {
+    $group = 'ufsc_table_columns';
+
+    if ( $table_name ) {
+        $sanitized_table = ufsc_sanitize_table_name( $table_name );
+        if ( ! $sanitized_table ) {
+            return;
+        }
+        $cache_key = 'ufsc_table_columns_' . md5( $sanitized_table );
+        wp_cache_delete( $cache_key, $group );
+        delete_transient( $cache_key );
+        return;
+    }
+
+    if ( function_exists( 'wp_cache_flush' ) ) {
+        wp_cache_flush();
+    }
+}
+
+/**
+ * UFSC PATCH: Check if a column exists using cached columns list.
+ *
+ * @param string $table_name Table name.
+ * @param string $column     Column name.
+ * @return bool
+ */
+function ufsc_table_has_column( $table_name, $column ) {
+    if ( empty( $table_name ) || empty( $column ) ) {
+        return false;
+    }
+
+    $columns = ufsc_table_columns( $table_name );
+    return in_array( $column, $columns, true );
+}

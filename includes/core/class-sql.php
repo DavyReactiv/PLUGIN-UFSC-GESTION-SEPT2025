@@ -208,17 +208,28 @@ class UFSC_SQL {
             return false;
         }
 
-        $table   = ufsc_get_licences_table();
+        $table = ufsc_get_licences_table();
+        $data  = array(
+            'statut'      => 'valide',
+            'is_included' => 0,
+            'paid_season' => $season,
+            'paid_date'   => current_time( 'mysql' ),
+        );
+        $types = array( '%s', '%d', '%s', '%s' );
+
+        if ( function_exists( 'ufsc_table_has_column' ) && function_exists( 'ufsc_get_season_end_year_from_label' ) ) {
+            if ( ufsc_table_has_column( $table, 'season_end_year' ) ) {
+                // UFSC PATCH: Store season end year when column exists.
+                $data['season_end_year'] = ufsc_get_season_end_year_from_label( $season );
+                $types[]                 = '%d';
+            }
+        }
+
         $updated = $wpdb->update(
             $table,
-            array(
-                'statut'      => 'valide',
-                'is_included' => 0,
-                'paid_season' => $season,
-                'paid_date'   => current_time( 'mysql' ),
-            ),
+            $data,
             array( 'id' => $licence_id ),
-            array( '%s', '%d', '%s', '%s' ),
+            $types,
             array( '%d' )
         );
 

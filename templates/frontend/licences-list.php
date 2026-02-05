@@ -1,11 +1,12 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
+// UFSC PATCH: Cards-only licence list (stable HTML structure).
 ?>
 
 <div class="ufsc-licence-grid">
     <?php if ( ! empty( $licences ) ) : ?>
         <?php foreach ( $licences as $licence ) :
-            $full_name = trim( ( $licence->prenom ?? '' ) . ' ' . ( $licence->nom ?? '' ) );
+            $full_name   = trim( ( $licence->prenom ?? '' ) . ' ' . ( $licence->nom ?? '' ) );
             $gender_code = strtolower( $licence->sexe ?? '' );
             switch ( $gender_code ) {
                 case 'm':
@@ -30,11 +31,11 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                     $age = floor( ( current_time( 'timestamp' ) - $birth ) / YEAR_IN_SECONDS );
                 }
             }
-            ?>
-            <?php
-            $status_raw  = $licence->statut ?? ( $licence->status ?? '' );
-            $status_norm = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $status_raw ) : $status_raw;
-            $status_class = $status_norm ? sanitize_html_class( $status_norm ) : 'pending';
+
+            $status_raw   = function_exists( 'ufsc_get_licence_status_raw' ) ? ufsc_get_licence_status_raw( $licence ) : ( $licence->statut ?? ( $licence->status ?? '' ) );
+            $status_norm  = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw;
+            $status_class = $status_norm ? sanitize_html_class( $status_norm ) : 'en_attente';
+            $season_label = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
             ?>
             <div class="ufsc-card ufsc-licence-card">
                 <div class="ufsc-licence-card-header">
@@ -45,59 +46,19 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                     <?php if ( $gender ) : ?><span><?php echo esc_html( $gender ); ?></span><?php endif; ?>
                     <span><?php echo esc_html( $practice ); ?></span>
                     <?php if ( '' !== $age ) : ?><span><?php echo intval( $age ); ?> <?php esc_html_e( 'ans', 'ufsc-clubs' ); ?></span><?php endif; ?>
+                    <?php if ( $season_label ) : ?><span><?php echo esc_html( $season_label ); ?></span><?php endif; ?>
                 </div>
                 <div class="ufsc-licence-actions">
                     <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'view', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
-                    <?php if ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status_raw ) : ( 'pending' === $status_norm ) ) : ?>
+                    <?php if ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status_norm ) : ( 'en_attente' === $status_norm ) ) : ?>
                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'edit', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
                     <?php endif; ?>
                 </div>
             </div>
-
-<table class="ufsc-table ufsc-licences-table">
-    <thead>
-        <tr>
-            <th><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
-            <th><?php esc_html_e( 'R\u00f4le', 'ufsc-clubs' ); ?></th>
-            <th><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></th>
-            <th><?php esc_html_e( 'Actions', 'ufsc-clubs' ); ?></th>
-        </tr>
-    </thead>
-    <tbody>
-    <?php if ( ! empty( $licences ) ) : ?>
-        <?php foreach ( $licences as $licence ) : ?>
-            <?php
-            $status_raw  = $licence->statut ?? ( $licence->status ?? '' );
-            $status_norm = function_exists( 'ufsc_normalize_licence_status' ) ? ufsc_normalize_licence_status( $status_raw ) : $status_raw;
-            ?>
-            <tr>
-                <td><?php echo esc_html( trim( ( $licence->prenom ?? '' ) . ' ' . ( $licence->nom ?? '' ) ) ); ?></td>
-                <td><?php echo esc_html( $licence->role ?? '' ); ?></td>
-                <td>
-                    <?php echo UFSC_Badges::render_licence_badge( $status_norm, array( 'custom_class' => 'ufsc-badge' ) ); ?>
-                </td>
-                <td>
-                    <div class="ufsc-actions">
-                        <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'view', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
-                        <?php if ( empty( $status_norm ) || ! UFSC_Badges::is_active_licence_status( $status_norm ) ) : ?>
-                            <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'edit', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
-                            <?php if ( current_user_can( 'manage_options' ) ) : ?>
-                                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-inline-form">
-                                    <input type="hidden" name="action" value="ufsc_delete_licence" />
-                                    <input type="hidden" name="licence_id" value="<?php echo intval( $licence->id ); ?>" />
-                                    <?php wp_nonce_field( 'ufsc_delete_licence' ); ?>
-                                    <button type="submit" class="ufsc-action ufsc-delete">
-                                        <?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?>
-                                    </button>
-                                </form>
-                            <?php endif; ?>
-                        <?php endif; ?>
-                    </div>
-                </td>
-            </tr>
-
         <?php endforeach; ?>
     <?php else : ?>
-        <p class="ufsc-no-items"><?php esc_html_e( 'Aucune licence trouvée.', 'ufsc-clubs' ); ?></p>
+        <div class="ufsc-message ufsc-info">
+            <?php esc_html_e( 'Aucune licence trouvée.', 'ufsc-clubs' ); ?>
+        </div>
     <?php endif; ?>
 </div>
