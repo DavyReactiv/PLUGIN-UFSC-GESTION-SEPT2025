@@ -978,20 +978,33 @@ class UFSC_SQL_Admin
                     update_option('ufsc_club_doc_attestation_ufsc_' . $club_id, $doc_attachment_id);
                     update_option('ufsc_attestation_' . $club_id, $doc_attachment_id);
                     delete_transient( "ufsc_documents_{$club_id}" );
-                    if ( function_exists( 'ufsc_get_clubs_table' ) && function_exists( 'ufsc_table_has_column' ) ) {
-                        global $wpdb;
-                        $clubs_table = ufsc_get_clubs_table();
-                        if ( ufsc_table_has_column( $clubs_table, 'attestation_url' ) ) {
-                            // UFSC PATCH: Persist attestation URL when column exists.
-                            $wpdb->update(
-                                $clubs_table,
-                                array( 'attestation_url' => wp_get_attachment_url( $doc_attachment_id ) ),
-                                array( 'id' => $club_id ),
-                                array( '%s' ),
-                                array( '%d' )
-                            );
-                        }
-                    }
+// UFSC PATCH: Persist attestation URL when column exists.
+if ( function_exists( 'ufsc_get_clubs_table' ) ) {
+	global $wpdb;
+
+	$clubs_table = ufsc_get_clubs_table();
+
+	$has_col = false;
+
+	// Prefer ufsc_table_columns() when available.
+	if ( function_exists( 'ufsc_table_columns' ) ) {
+		$columns = (array) ufsc_table_columns( $clubs_table );
+		$has_col = in_array( 'attestation_url', $columns, true );
+	} elseif ( function_exists( 'ufsc_table_has_column' ) ) {
+		$has_col = (bool) ufsc_table_has_column( $clubs_table, 'attestation_url' );
+	}
+
+	if ( $has_col ) {
+		$wpdb->update(
+			$clubs_table,
+			array( 'attestation_url' => wp_get_attachment_url( $doc_attachment_id ) ),
+			array( 'id' => (int) $club_id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+	}
+}
+
                     if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) {
                         ufsc_flush_table_columns_cache();
                     }
@@ -1010,19 +1023,31 @@ class UFSC_SQL_Admin
                 delete_option('ufsc_club_doc_attestation_ufsc_' . $club_id);
                 delete_option('ufsc_attestation_' . $club_id);
                 delete_transient( "ufsc_documents_{$club_id}" );
-                if ( function_exists( 'ufsc_get_clubs_table' ) && function_exists( 'ufsc_table_has_column' ) ) {
-                    global $wpdb;
-                    $clubs_table = ufsc_get_clubs_table();
-                    if ( ufsc_table_has_column( $clubs_table, 'attestation_url' ) ) {
-                        $wpdb->update(
-                            $clubs_table,
-                            array( 'attestation_url' => '' ),
-                            array( 'id' => $club_id ),
-                            array( '%s' ),
-                            array( '%d' )
-                        );
-                    }
-                }
+if ( function_exists( 'ufsc_get_clubs_table' ) ) {
+	global $wpdb;
+
+	$clubs_table = ufsc_get_clubs_table();
+
+	$has_col = false;
+
+	if ( function_exists( 'ufsc_table_columns' ) ) {
+		$columns = (array) ufsc_table_columns( $clubs_table );
+		$has_col = in_array( 'attestation_url', $columns, true );
+	} elseif ( function_exists( 'ufsc_table_has_column' ) ) {
+		$has_col = (bool) ufsc_table_has_column( $clubs_table, 'attestation_url' );
+	}
+
+	if ( $has_col ) {
+		$wpdb->update(
+			$clubs_table,
+			array( 'attestation_url' => '' ),
+			array( 'id' => (int) $club_id ),
+			array( '%s' ),
+			array( '%d' )
+		);
+	}
+}
+
                 UFSC_CL_Utils::log('Attestation UFSC removed for club ID ' . $club_id, 'info');
             }
         }
