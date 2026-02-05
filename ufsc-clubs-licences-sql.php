@@ -64,8 +64,11 @@ require_once UFSC_CL_DIR.'includes/cli/class-wp-cli-commands.php';
 require_once UFSC_CL_DIR.'inc/common/regions.php';
 require_once UFSC_CL_DIR.'inc/common/statuts.php';
 require_once UFSC_CL_DIR.'inc/common/status.php';
+require_once UFSC_CL_DIR.'inc/common/logging.php';
+require_once UFSC_CL_DIR.'inc/common/seasons.php';
 require_once UFSC_CL_DIR.'inc/common/feature-flags.php';
 require_once UFSC_CL_DIR.'inc/common/licence-status.php';
+require_once UFSC_CL_DIR.'inc/common/licence-documents.php';
 require_once UFSC_CL_DIR.'inc/common/attestations.php';
 require_once UFSC_CL_DIR.'inc/common/tables.php';
 require_once UFSC_CL_DIR.'inc/settings.php';
@@ -144,6 +147,9 @@ final class UFSC_CL_Bootstrap {
 
         if ( ! wp_next_scheduled( 'ufsc_daily' ) ) {
             wp_schedule_event( time(), 'daily', 'ufsc_daily' );
+        }
+        if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) {
+            ufsc_flush_table_columns_cache();
         }
         UFSC_DB_Migrations::run_migrations();
         flush_rewrite_rules();

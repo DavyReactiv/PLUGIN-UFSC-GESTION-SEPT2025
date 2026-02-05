@@ -275,7 +275,9 @@ class UFSC_CL_Admin_Menu {
             $data['licenses_rejected'] = (int) $wpdb->get_var("SELECT COUNT(*) FROM `$t_lics` WHERE statut IN ('refuse', 'rejected')");
 
             // Expiring licenses (if certificat_expiration field exists)
-            $columns = $wpdb->get_col("DESCRIBE `$t_lics`");
+            $columns = function_exists( 'ufsc_table_columns' )
+                ? ufsc_table_columns( $t_lics )
+                : $wpdb->get_col("DESCRIBE `$t_lics`");
             if (in_array('certificat_expiration', $columns) || in_array('date_expiration', $columns)) {
                 $expiration_field = in_array('certificat_expiration', $columns) ? 'certificat_expiration' : 'date_expiration';
                 $thirty_days_from_now = date('Y-m-d', strtotime('+30 days'));

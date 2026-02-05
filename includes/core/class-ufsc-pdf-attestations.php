@@ -35,6 +35,12 @@ class UFSC_PDF_Attestations {
      * Render admin page for PDF management
      */
     public static function render_admin_page() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        $current_page = isset( $_GET['ufsc_club_page'] ) ? max( 1, absint( $_GET['ufsc_club_page'] ) ) : 1;
+        $per_page     = 200;
         ?>
         <div class="wrap">
             <h1><?php echo esc_html__( 'Gestion des Attestations PDF', 'ufsc-clubs' ); ?></h1>
@@ -109,8 +115,9 @@ class UFSC_PDF_Attestations {
                                 <td>
                                     <select name="target_club" id="target_club">
                                         <option value=""><?php echo esc_html__( 'Sélectionner un club', 'ufsc-clubs' ); ?></option>
-                                        <?php echo self::get_clubs_options(); ?>
+                                        <?php echo self::get_clubs_options( $current_page, $per_page ); ?>
                                     </select>
+                                    <?php self::render_clubs_pagination( $current_page, $per_page ); ?>
                                 </td>
                             </tr>
 
@@ -164,19 +171,86 @@ class UFSC_PDF_Attestations {
     /**
      * Get clubs options for select dropdown
      */
-    private static function get_clubs_options() {
+    private static function get_clubs_options( $page = 1, $per_page = 200 ) {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return '';
+        }
+
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
         $table = $settings['table_clubs'];
 
-        $clubs = $wpdb->get_results( "SELECT id, nom FROM `$table` ORDER BY nom" );
+        $offset = ( max( 1, absint( $page ) ) - 1 ) * max( 1, absint( $per_page ) );
+        $limit  = max( 1, absint( $per_page ) );
+
+        $clubs = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, nom FROM `$table` ORDER BY nom LIMIT %d OFFSET %d",
+                $limit,
+                $offset
+            )
+        );
         $options = '';
+
+        if ( empty( $clubs ) ) {
+            $total_clubs = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$table`" );
+            if ( function_exists( 'ufsc_admin_debug_log' ) ) {
+                $user = wp_get_current_user();
+                ufsc_admin_debug_log(
+                    'UFSC PDF Attestations: clubs list empty',
+                    array(
+                        'total_clubs' => $total_clubs,
+                        'where'       => 'none',
+                        'user_id'     => get_current_user_id(),
+                        'roles'       => $user ? $user->roles : array(),
+                        'page'        => $page,
+                        'per_page'    => $per_page,
+                    )
+                );
+            }
+        }
 
         foreach ( $clubs as $club ) {
             $options .= '<option value="' . esc_attr( $club->id ) . '">' . esc_html( $club->nom ) . '</option>';
         }
 
         return $options;
+    }
+
+    /**
+     * Render pagination controls for clubs selector.
+     *
+     * @param int $page Current page.
+     * @param int $per_page Per page.
+     * @return void
+     */
+    private static function render_clubs_pagination( $page, $per_page ) {
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $table    = $settings['table_clubs'];
+
+        $total   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$table`" );
+        $pages   = max( 1, (int) ceil( $total / max( 1, $per_page ) ) );
+        $page    = min( max( 1, (int) $page ), $pages );
+
+        if ( $pages <= 1 ) {
+            return;
+        }
+
+        $prev_url = add_query_arg( 'ufsc_club_page', max( 1, $page - 1 ) );
+        $next_url = add_query_arg( 'ufsc_club_page', min( $pages, $page + 1 ) );
+
+        echo '<p class="description" style="margin-top:8px;">';
+        echo sprintf(
+            /* translators: 1: current page, 2: total pages */
+            esc_html__( 'Page %1$d sur %2$d', 'ufsc-clubs' ),
+            (int) $page,
+            (int) $pages
+        );
+        echo ' &mdash; ';
+        echo '<a href="' . esc_url( $prev_url ) . '">' . esc_html__( 'Précédent', 'ufsc-clubs' ) . '</a> | ';
+        echo '<a href="' . esc_url( $next_url ) . '">' . esc_html__( 'Suivant', 'ufsc-clubs' ) . '</a>';
+        echo '</p>';
     }
 
     /**

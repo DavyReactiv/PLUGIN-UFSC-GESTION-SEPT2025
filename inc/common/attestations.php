@@ -16,16 +16,21 @@ function ufsc_get_affiliation_attestation_data( $club_id, $club = null ) {
     $club_id = (int) $club_id;
 
     $can_view = current_user_can( 'manage_options' );
-    if ( ! $can_view && class_exists( 'UFSC_CL_Permissions' ) ) {
-        $can_view = UFSC_CL_Permissions::ufsc_user_can_edit_club( $club_id );
+    if ( ! $can_view && function_exists( 'ufsc_is_club_validated' ) ) {
+        $can_view = ufsc_is_club_validated( $club_id, $club );
     }
 
     $attachment_id = 0;
     $url           = '';
 
+    if ( $club && ! empty( $club->attestation_url ) ) {
+        $url = esc_url_raw( $club->attestation_url );
+    }
+
     $option_keys = array(
         'ufsc_club_doc_attestation_affiliation_' . $club_id,
         'ufsc_club_doc_attestation_ufsc_' . $club_id,
+        'ufsc_attestation_' . $club_id,
     );
 
     foreach ( $option_keys as $key ) {
@@ -41,6 +46,17 @@ function ufsc_get_affiliation_attestation_data( $club_id, $club = null ) {
         if ( is_string( $value ) && filter_var( $value, FILTER_VALIDATE_URL ) ) {
             $url = $value;
             break;
+        }
+    }
+
+    if ( ! $url && function_exists( 'ufsc_get_clubs_table' ) && function_exists( 'ufsc_table_columns' ) ) {
+        global $wpdb;
+        $clubs_table = ufsc_get_clubs_table();
+        $columns     = ufsc_table_columns( $clubs_table );
+        if ( in_array( 'attestation_url', $columns, true ) ) {
+            $url = $wpdb->get_var(
+                $wpdb->prepare( "SELECT attestation_url FROM {$clubs_table} WHERE id = %d", $club_id )
+            );
         }
     }
 
