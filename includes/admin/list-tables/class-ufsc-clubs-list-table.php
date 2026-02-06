@@ -654,7 +654,7 @@ class UFSC_Clubs_List_Table {
     }
 
     public static function handle_bulk_actions() {
-        if (!isset($_GET['page']) || $_GET['page'] !== 'ufsc-clubs') {
+        if (!isset($_GET['page']) || $_GET['page'] !== 'ufsc-sql-clubs') {
             return;
         }
 

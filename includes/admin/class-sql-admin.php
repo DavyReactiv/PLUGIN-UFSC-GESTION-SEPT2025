@@ -814,7 +814,7 @@ class UFSC_SQL_Admin
         foreach ($documents as $doc_key => $label) {
             $doc_id = get_post_meta($club_id, $doc_key, true);
             $url    = wp_get_attachment_url($doc_id);
-            $status = get_post_meta($club_id, $doc_key . '_status', true);
+            $status = get_option('ufsc_club_' . $doc_key . '_status_' . $club_id);
             echo '<div style="margin-bottom: 20px;">';
             echo '<h4>' . esc_html($label) . '</h4>';
             if ($url) {
@@ -859,9 +859,11 @@ class UFSC_SQL_Admin
 
         $data = [];
         foreach ($fields as $k => $conf) {
-            $data[$k] = isset($_POST[$k]) ? stripslashes(sanitize_text_field($_POST[$k])) : null;
+            if (array_key_exists($k, $_POST)) {
+                $data[$k] = sanitize_text_field(wp_unslash($_POST[$k]));
+            }
         }
-        if (empty($data['statut'])) {
+        if (! isset($data['statut']) || $data['statut'] === '') {
             $data['statut'] = 'en_attente';
         }
 
@@ -957,9 +959,10 @@ class UFSC_SQL_Admin
                 // Update document statuses
                 $documents = ['doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer'];
                 foreach ($documents as $doc_key) {
-                    if (isset($_POST[$doc_key . '_status'])) {
-                        $status = sanitize_text_field($_POST[$doc_key . '_status']);
-                        update_post_meta($id, $doc_key . '_status', $status);
+                    $status_key = $doc_key . '_status';
+                    if (array_key_exists($status_key, $_POST)) {
+                        $status = sanitize_text_field(wp_unslash($_POST[$status_key]));
+                        update_option('ufsc_club_' . $status_key . '_' . $id, $status);
                     }
                 }
             }
@@ -1798,14 +1801,18 @@ class UFSC_SQL_Admin
             if ($k === 'certificat_url') {
                 continue;
             }
+            if (! array_key_exists($k, $_POST)) {
+                continue;
+            }
 
             $type = $conf[1];
             if ($type === 'bool') {
-                $data[$k] = isset($_POST[$k]) ? ($_POST[$k] == '1' ? 1 : 0) : 0;
+                $data[$k] = wp_unslash($_POST[$k]) == '1' ? 1 : 0;
             } elseif ($type === 'sex') {
-                $data[$k] = in_array($_POST[$k] ?? 'M', ['M', 'F'], true) ? $_POST[$k] : 'M';
+                $value = wp_unslash($_POST[$k]);
+                $data[$k] = in_array($value, ['M', 'F'], true) ? $value : 'M';
             } else {
-                $data[$k] = isset($_POST[$k]) ? sanitize_text_field($_POST[$k]) : null;
+                $data[$k] = sanitize_text_field(wp_unslash($_POST[$k]));
             }
         }
 
@@ -3443,7 +3450,7 @@ class UFSC_SQL_Admin
     public static function handle_bulk_actions()
     {
 
-        if (! isset($_GET['page']) || $_GET['page'] !== 'ufsc-licences') {
+        if (! isset($_GET['page']) || $_GET['page'] !== 'ufsc-sql-licences') {
             return;
         }
 
@@ -3455,10 +3462,11 @@ class UFSC_SQL_Admin
         }
 
         if (! isset($_POST['licence_ids']) || empty($_POST['licence_ids'])) {
-            add_action('admin_notices', function () use ($item_ids) {
+            add_action('admin_notices', function () {
                 echo '<div class="notice notice-warning is-dismissible"><p>Aucun élément sélectionné';
                 echo '</p></div>';
             });
+            return;
         }
 
         $settings = UFSC_SQL::get_settings();
