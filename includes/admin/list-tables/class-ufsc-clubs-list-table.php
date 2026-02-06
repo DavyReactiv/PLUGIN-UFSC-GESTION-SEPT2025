@@ -15,6 +15,7 @@ class UFSC_Clubs_List_Table {
 
         $settings = UFSC_SQL::get_settings();
         $clubs_table = $settings['table_clubs'];
+        $club_columns = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $clubs_table ) : array();
 
         // Handle filters and search
         $filters = self::get_filters();
@@ -23,11 +24,11 @@ class UFSC_Clubs_List_Table {
         $sorting = self::get_sorting_params();
 
         // Build WHERE conditions
-        $where_conditions = self::build_where_conditions( $filters, $search );
+        $where_conditions = self::build_where_conditions( $filters, $search, $club_columns, $clubs_table );
         $where_clause = ! empty( $where_conditions ) ? 'WHERE ' . implode( ' AND ', $where_conditions ) : '';
 
         // Build ORDER BY clause
-        $order_clause = self::build_order_clause( $sorting );
+        $order_clause = self::build_order_clause( $sorting, $club_columns, $clubs_table );
 
         // Get total count for pagination
         $total_query = "SELECT COUNT(*) FROM `{$clubs_table}` {$where_clause}";
@@ -68,7 +69,7 @@ class UFSC_Clubs_List_Table {
         self::render_action_buttons();
 
         // Filters
-        self::render_filters( $filters );
+        self::render_filters( $filters, $club_columns, $clubs_table );
 
         // Search
         self::render_search( $search );
@@ -145,45 +146,57 @@ class UFSC_Clubs_List_Table {
     /**
      * Build WHERE conditions
      */
-    private static function build_where_conditions( $filters, $search ) {
+    private static function build_where_conditions( $filters, $search, $columns, $clubs_table ) {
         global $wpdb;
         $conditions = array();
 
         // Search query
         if ( ! empty( $search ) ) {
             $search_like = '%' . $wpdb->esc_like( $search ) . '%';
-            $conditions[] = $wpdb->prepare(
-                "(nom LIKE %s OR email LIKE %s)",
-                $search_like, $search_like
-            );
+            $search_parts = array();
+            $search_values = array();
+
+            foreach ( array( 'nom', 'email' ) as $column ) {
+                if ( self::has_column( $columns, $clubs_table, $column ) ) {
+                    $search_parts[]  = "{$column} LIKE %s";
+                    $search_values[] = $search_like;
+                }
+            }
+
+            if ( ! empty( $search_parts ) ) {
+                $conditions[] = $wpdb->prepare(
+                    '(' . implode( ' OR ', $search_parts ) . ')',
+                    $search_values
+                );
+            }
         }
 
         // Region filter
-        if ( ! empty( $filters['region'] ) ) {
+        if ( ! empty( $filters['region'] ) && self::has_column( $columns, $clubs_table, 'region' ) ) {
             $conditions[] = $wpdb->prepare( "region = %s", $filters['region'] );
         }
 
         // Status filter
-        if ( ! empty( $filters['statut'] ) ) {
+        if ( ! empty( $filters['statut'] ) && self::has_column( $columns, $clubs_table, 'statut' ) ) {
             $conditions[] = $wpdb->prepare( "statut = %s", $filters['statut'] );
         }
 
         // Date range filters
-        if ( ! empty( $filters['created_from'] ) && self::is_valid_date( $filters['created_from'] ) ) {
+        if ( ! empty( $filters['created_from'] ) && self::is_valid_date( $filters['created_from'] ) && self::has_column( $columns, $clubs_table, 'date_creation' ) ) {
             $conditions[] = $wpdb->prepare( "DATE(date_creation) >= %s", $filters['created_from'] );
         }
 
-        if ( ! empty( $filters['created_to'] ) && self::is_valid_date( $filters['created_to'] ) ) {
+        if ( ! empty( $filters['created_to'] ) && self::is_valid_date( $filters['created_to'] ) && self::has_column( $columns, $clubs_table, 'date_creation' ) ) {
             $conditions[] = $wpdb->prepare( "DATE(date_creation) <= %s", $filters['created_to'] );
         }
 
         // Quota range filters
         if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
-            if ( $filters['quota_min'] > 0 ) {
+            if ( $filters['quota_min'] > 0 && self::has_column( $columns, $clubs_table, 'quota_licences' ) ) {
                 $conditions[] = $wpdb->prepare( "quota_licences >= %d", $filters['quota_min'] );
             }
 
-            if ( $filters['quota_max'] > 0 ) {
+            if ( $filters['quota_max'] > 0 && self::has_column( $columns, $clubs_table, 'quota_licences' ) ) {
                 $conditions[] = $wpdb->prepare( "quota_licences <= %d", $filters['quota_max'] );
             }
         }
@@ -194,14 +207,22 @@ class UFSC_Clubs_List_Table {
     /**
      * Build ORDER BY clause
      */
-    private static function build_order_clause( $sorting ) {
+    private static function build_order_clause( $sorting, $columns, $clubs_table ) {
         $orderby_map = array(
             'nom' => 'nom',
             'date_creation' => 'date_creation',
             'region' => 'region'
         );
 
-        $orderby = isset( $orderby_map[ $sorting['orderby'] ] ) ? $orderby_map[ $sorting['orderby'] ] : 'date_creation';
+        $requested = isset( $orderby_map[ $sorting['orderby'] ] ) ? $orderby_map[ $sorting['orderby'] ] : 'date_creation';
+        if ( ! self::has_column( $columns, $clubs_table, $requested ) ) {
+            $requested = self::has_column( $columns, $clubs_table, 'id' ) ? 'id' : 'date_creation';
+        }
+        if ( ! self::has_column( $columns, $clubs_table, $requested ) ) {
+            $requested = '1';
+        }
+
+        $orderby = isset( $orderby_map[ $requested ] ) ? $orderby_map[ $requested ] : $requested;
         $order = strtoupper( $sorting['order'] );
 
         return "ORDER BY {$orderby} {$order}";
@@ -233,7 +254,7 @@ class UFSC_Clubs_List_Table {
     /**
      * Render filters
      */
-    private static function render_filters( $filters ) {
+    private static function render_filters( $filters, $columns, $clubs_table ) {
         echo '<div class="ufsc-filters-panel">';
         echo '<form method="get" class="ufsc-filters-form">';
         echo '<input type="hidden" name="page" value="ufsc-sql-clubs">';
@@ -241,7 +262,7 @@ class UFSC_Clubs_List_Table {
         echo '<div class="ufsc-filters-row">';
 
         // Region filter
-        self::render_region_filter( $filters['region'] );
+        self::render_region_filter( $filters['region'], $columns, $clubs_table );
 
         // Status filter
         self::render_status_filter( $filters['statut'] );
@@ -409,28 +430,31 @@ class UFSC_Clubs_List_Table {
     echo '<tr>';
 
     // Checkbox
-    echo '<th class="check-column"><input type="checkbox" name="club_ids[]" value="' . (int) $club->id . '" /></th>';
+    echo '<th class="check-column"><input type="checkbox" name="club_ids[]" value="' . (int) ( $club->id ?? 0 ) . '" /></th>';
 
     // ID
-    echo '<td>' . (int) $club->id . '</td>';
+    echo '<td>' . (int) ( $club->id ?? 0 ) . '</td>';
 
     // Nom + Email
-    echo '<td><strong>' . esc_html( $club->nom ) . '</strong>';
-    if ( ! empty( $club->email ) ) {
-        echo '<br><small>' . esc_html( $club->email ) . '</small>';
+    $club_name = isset( $club->nom ) ? $club->nom : '';
+    $club_email = isset( $club->email ) ? $club->email : '';
+    echo '<td><strong>' . esc_html( $club_name ) . '</strong>';
+    if ( ! empty( $club_email ) ) {
+        echo '<br><small>' . esc_html( $club_email ) . '</small>';
     }
     echo '</td>';
 
     // Région
-    echo '<td>' . esc_html( $club->region ) . '</td>';
+    echo '<td>' . esc_html( isset( $club->region ) ? $club->region : '' ) . '</td>';
 
     // Numéro d’affiliation
     echo '<td>';
-    echo $club->num_affiliation ? esc_html( $club->num_affiliation ) : '<em>' . esc_html__( 'Non attribué', 'ufsc-clubs' ) . '</em>';
+    echo ! empty( $club->num_affiliation ) ? esc_html( $club->num_affiliation ) : '<em>' . esc_html__( 'Non attribué', 'ufsc-clubs' ) . '</em>';
     echo '</td>';
 
     // Statut
-    echo '<td>' . self::render_status_badge( $club->statut ) . '</td>';
+    $status_value = isset( $club->statut ) ? $club->statut : '';
+    echo '<td>' . self::render_status_badge( $status_value ) . '</td>';
 
     // Quota
     if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
@@ -443,14 +467,16 @@ class UFSC_Clubs_List_Table {
     echo '<td>' . self::render_documents_badge( $club ) . '</td>';
 
     // Date de création
-    echo '<td>' . esc_html( mysql2date( 'd/m/Y', $club->date_creation ) ) . '</td>';
+    $date_creation = isset( $club->date_creation ) ? $club->date_creation : '';
+    echo '<td>' . ( $date_creation ? esc_html( mysql2date( 'd/m/Y', $date_creation ) ) : '<em>' . esc_html__( 'Non défini', 'ufsc-clubs' ) . '</em>' ) . '</td>';
 
     // Actions
     echo '<td>';
-    $view_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=view&id=' . $club->id );
-    $edit_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=edit&id=' . $club->id );
+    $club_id = (int) ( $club->id ?? 0 );
+    $view_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=view&id=' . $club_id );
+    $edit_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=edit&id=' . $club_id );
     $delete_url = wp_nonce_url(
-        admin_url( 'admin-post.php?action=ufsc_sql_delete_club&id=' . $club->id ),
+        admin_url( 'admin-post.php?action=ufsc_sql_delete_club&id=' . $club_id ),
         'ufsc_sql_delete_club'
     );
     echo '<a href="' . esc_url( $view_url ) . '" class="button button-small">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a> ';
@@ -507,10 +533,16 @@ class UFSC_Clubs_List_Table {
     /**
      * Helper methods for rendering filters
      */
-    private static function render_region_filter( $selected ) {
+    private static function render_region_filter( $selected, $columns, $clubs_table ) {
         global $wpdb;
-        $settings = UFSC_SQL::get_settings();
-        $regions = $wpdb->get_col( "SELECT DISTINCT region FROM `{$settings['table_clubs']}` WHERE region IS NOT NULL AND region != '' ORDER BY region" );
+        if ( ! self::has_column( $columns, $clubs_table, 'region' ) ) {
+            echo '<select name="region" disabled="disabled">';
+            echo '<option value="">' . esc_html__( '— Régions indisponibles —', 'ufsc-clubs' ) . '</option>';
+            echo '</select>';
+            return;
+        }
+
+        $regions = $wpdb->get_col( "SELECT DISTINCT region FROM `{$clubs_table}` WHERE region IS NOT NULL AND region != '' ORDER BY region" );
 
         echo '<select name="region">';
         echo '<option value="">' . esc_html__( '— Toutes les régions —', 'ufsc-clubs' ) . '</option>';
@@ -596,13 +628,33 @@ class UFSC_Clubs_List_Table {
         }
     }
 
+    /**
+     * Check if a column exists.
+     */
+    private static function has_column( $columns, $table, $column ) {
+        if ( is_array( $columns ) && ! empty( $columns ) ) {
+            return in_array( $column, $columns, true );
+        }
+
+        if ( function_exists( 'ufsc_table_has_column' ) ) {
+            return ufsc_table_has_column( $table, $column );
+        }
+
+        if ( function_exists( 'ufsc_table_columns' ) ) {
+            $fetched = ufsc_table_columns( $table );
+            return is_array( $fetched ) && in_array( $column, $fetched, true );
+        }
+
+        return true;
+    }
+
     private static function is_valid_date( $date ) {
         $d = DateTime::createFromFormat( 'Y-m-d', $date );
         return $d && $d->format( 'Y-m-d' ) === $date;
     }
 
     public static function handle_bulk_actions() {
-        if (!isset($_GET['page']) || $_GET['page'] !== 'ufsc-clubs') {
+        if (!isset($_GET['page']) || $_GET['page'] !== 'ufsc-sql-clubs') {
             return;
         }
 
@@ -639,6 +691,9 @@ class UFSC_Clubs_List_Table {
                 break;
         }
 
+        if ( defined( 'WP_CLI' ) && WP_CLI ) {
+            return;
+        }
         wp_redirect(add_query_arg('processed', count($item_ids), $_POST['_wp_http_referer']));
         exit;
     }
