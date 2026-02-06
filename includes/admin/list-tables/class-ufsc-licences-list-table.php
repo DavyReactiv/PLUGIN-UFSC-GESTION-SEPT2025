@@ -23,12 +23,22 @@ class UFSC_Licences_List_Table {
         $pagination = self::get_pagination_params();
         $sorting = self::get_sorting_params();
 
+        $licence_columns = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $licences_table ) : array();
+        $club_columns    = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $clubs_table ) : array();
+
         // Build WHERE conditions
-        $where_conditions = self::build_where_conditions( $filters, $search );
+        $where_conditions = self::build_where_conditions(
+            $filters,
+            $search,
+            $licence_columns,
+            $licences_table,
+            $club_columns,
+            $clubs_table
+        );
         $where_clause = ! empty( $where_conditions ) ? 'WHERE ' . implode( ' AND ', $where_conditions ) : '';
 
         // Build ORDER BY clause
-        $order_clause = self::build_order_clause( $sorting );
+        $order_clause = self::build_order_clause( $sorting, $licence_columns, $licences_table );
 
         // Get total count for pagination
         $total_query = "SELECT COUNT(*) FROM `{$licences_table}` l LEFT JOIN `{$clubs_table}` c ON l.club_id = c.id {$where_clause}";
@@ -131,19 +141,30 @@ class UFSC_Licences_List_Table {
     /**
      * Build WHERE conditions
      */
-    private static function build_where_conditions( $filters, $search ) {
+    private static function build_where_conditions( $filters, $search, $columns, $licences_table, $club_columns, $clubs_table ) {
         global $wpdb;
-        $settings       = UFSC_SQL::get_settings();
-        $licences_table = $settings['table_licences'];
         $conditions = array();
 
         // Search query
         if ( ! empty( $search ) ) {
             $search_like = '%' . $wpdb->esc_like( $search ) . '%';
-            $conditions[] = $wpdb->prepare(
-                "(l.prenom LIKE %s OR l.nom_licence LIKE %s OR l.email LIKE %s OR l.numero_licence_delegataire LIKE %s)",
-                $search_like, $search_like, $search_like, $search_like
-            );
+            $search_columns = array( 'prenom', 'nom_licence', 'email', 'numero_licence_delegataire' );
+            $search_parts   = array();
+            $search_values  = array();
+
+            foreach ( $search_columns as $column ) {
+                if ( self::has_column( $columns, $licences_table, $column ) ) {
+                    $search_parts[]  = "l.{$column} LIKE %s";
+                    $search_values[] = $search_like;
+                }
+            }
+
+            if ( ! empty( $search_parts ) ) {
+                $conditions[] = $wpdb->prepare(
+                    '(' . implode( ' OR ', $search_parts ) . ')',
+                    $search_values
+                );
+            }
         }
 
         // Club filter
@@ -152,52 +173,47 @@ class UFSC_Licences_List_Table {
         }
 
         // Region filter
-        if ( ! empty( $filters['club_region'] ) ) {
+        if ( ! empty( $filters['club_region'] ) && self::has_column( $club_columns, $clubs_table, 'region' ) ) {
             $conditions[] = $wpdb->prepare( "c.region = %s", $filters['club_region'] );
         }
 
         // Status filter
-        if ( ! empty( $filters['statut'] ) ) {
+        if ( ! empty( $filters['statut'] ) && self::has_column( $columns, $licences_table, 'statut' ) ) {
             $conditions[] = $wpdb->prepare( "l.statut = %s", $filters['statut'] );
         }
 
         // Payment status filter
-        if ( ! empty( $filters['payment_status'] ) ) {
+        if ( ! empty( $filters['payment_status'] ) && self::has_column( $columns, $licences_table, 'payment_status' ) ) {
             $conditions[] = $wpdb->prepare( "l.payment_status = %s", $filters['payment_status'] );
         }
 
         // Category filter
-        if ( ! empty( $filters['categorie'] ) ) {
+        if ( ! empty( $filters['categorie'] ) && self::has_column( $columns, $licences_table, 'categorie' ) ) {
             $conditions[] = $wpdb->prepare( "l.categorie = %s", $filters['categorie'] );
         }
 
         // Gender filter
-        if ( ! empty( $filters['sexe'] ) ) {
+        if ( ! empty( $filters['sexe'] ) && self::has_column( $columns, $licences_table, 'sexe' ) ) {
             $conditions[] = $wpdb->prepare( "l.sexe = %s", $filters['sexe'] );
         }
 
         // Medical certificate filter
         if ( $filters['medical'] == 1 ) {
-            $has_col = false;
-
-            if ( function_exists( 'ufsc_table_columns' ) ) {
-                $columns = ufsc_table_columns( $licences_table );
-                $has_col = is_array( $columns ) && in_array( 'attestation_url', $columns, true );
-            } elseif ( function_exists( 'ufsc_table_has_column' ) ) {
-                $has_col = ufsc_table_has_column( $licences_table, 'attestation_url' );
-            }
-
-            if ( $has_col ) {
+            if ( self::has_column( $columns, $licences_table, 'attestation_url' ) ) {
                 $conditions[] = "l.attestation_url IS NOT NULL AND l.attestation_url != ''";
             }
         }
 
         // Date range filters
-        if ( ! empty( $filters['created_from'] ) && self::is_valid_date( $filters['created_from'] ) ) {
+        if ( ! empty( $filters['created_from'] ) && self::is_valid_date( $filters['created_from'] )
+            && self::has_column( $columns, $licences_table, 'date_creation' )
+        ) {
             $conditions[] = $wpdb->prepare( "DATE(l.date_creation) >= %s", $filters['created_from'] );
         }
 
-        if ( ! empty( $filters['created_to'] ) && self::is_valid_date( $filters['created_to'] ) ) {
+        if ( ! empty( $filters['created_to'] ) && self::is_valid_date( $filters['created_to'] )
+            && self::has_column( $columns, $licences_table, 'date_creation' )
+        ) {
             $conditions[] = $wpdb->prepare( "DATE(l.date_creation) <= %s", $filters['created_to'] );
         }
 
@@ -207,7 +223,7 @@ class UFSC_Licences_List_Table {
     /**
      * Build ORDER BY clause
      */
-    private static function build_order_clause( $sorting ) {
+    private static function build_order_clause( $sorting, $columns, $licences_table ) {
         $orderby_map = array(
             'last_name' => 'l.nom_licence',
             'date_creation' => 'l.date_creation',
@@ -216,10 +232,37 @@ class UFSC_Licences_List_Table {
             'numero_licence_delegataire' => 'l.numero_licence_delegataire'
         );
 
-        $orderby = isset( $orderby_map[ $sorting['orderby'] ] ) ? $orderby_map[ $sorting['orderby'] ] : 'l.date_creation';
+        $requested = isset( $orderby_map[ $sorting['orderby'] ] ) ? $sorting['orderby'] : 'date_creation';
+        $fallback  = self::has_column( $columns, $licences_table, 'date_creation' ) ? 'date_creation' : 'id';
+
+        if ( ! self::has_column( $columns, $licences_table, $requested === 'last_name' ? 'nom_licence' : $requested ) ) {
+            $requested = $fallback;
+        }
+
+        $orderby = isset( $orderby_map[ $requested ] ) ? $orderby_map[ $requested ] : 'l.id';
         $order = strtoupper( $sorting['order'] );
 
         return "ORDER BY {$orderby} {$order}";
+    }
+
+    /**
+     * Check if a column exists.
+     */
+    private static function has_column( $columns, $table, $column ) {
+        if ( is_array( $columns ) && ! empty( $columns ) ) {
+            return in_array( $column, $columns, true );
+        }
+
+        if ( function_exists( 'ufsc_table_has_column' ) ) {
+            return ufsc_table_has_column( $table, $column );
+        }
+
+        if ( function_exists( 'ufsc_table_columns' ) ) {
+            $fetched = ufsc_table_columns( $table );
+            return is_array( $fetched ) && in_array( $column, $fetched, true );
+        }
+
+        return true;
     }
 
     /**
