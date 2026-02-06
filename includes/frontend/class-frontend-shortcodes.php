@@ -2082,7 +2082,19 @@ class UFSC_Frontend_Shortcodes {
             return array( 'success' => false, 'message' => __( 'Adresse email invalide.', 'ufsc-clubs' ) );
         }
 
-        $result = $wpdb->update( $clubs_table, $update_data, array( 'id' => $club_id ), array(), array( '%d' ) );
+        if ( function_exists( 'ufsc_table_columns' ) ) {
+            $columns = (array) ufsc_table_columns( $clubs_table );
+            if ( ! empty( $columns ) ) {
+                $update_data = array_intersect_key( $update_data, array_flip( $columns ) );
+            }
+        }
+
+        if ( empty( $update_data ) ) {
+            return array( 'success' => false, 'message' => __( 'Aucune donnée à mettre à jour.', 'ufsc-clubs' ) );
+        }
+
+        $data_formats = array_fill( 0, count( $update_data ), '%s' );
+        $result       = $wpdb->update( $clubs_table, $update_data, array( 'id' => $club_id ), $data_formats, array( '%d' ) );
 
         if ( $result !== false ) {
             return array( 'success' => true, 'message' => __( 'Club mis à jour avec succès.', 'ufsc-clubs' ) );
