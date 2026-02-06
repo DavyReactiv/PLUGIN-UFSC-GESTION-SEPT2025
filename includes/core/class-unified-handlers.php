@@ -110,8 +110,8 @@ class UFSC_Unified_Handlers {
             ),
             wp_get_referer()
         );
-        wp_safe_redirect( $redirect_url );
-        exit;
+        self::maybe_redirect( $redirect_url );
+        return;
     }
 
     /**
@@ -152,8 +152,8 @@ class UFSC_Unified_Handlers {
         // Ensure current user can manage the target club
         if ( ! current_user_can( 'manage_options' ) && $managed_club !== $target_club_id ) {
             set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
-            wp_safe_redirect( wp_get_referer() );
-            exit; // Abort processing when permission check fails
+            self::maybe_redirect( wp_get_referer() );
+            return; // Abort processing when permission check fails
         }
 
         $club_id = $target_club_id;
@@ -171,8 +171,8 @@ class UFSC_Unified_Handlers {
         }
 
         if ( function_exists( 'ufsc_is_editable_licence_status' ) && ! ufsc_is_editable_licence_status( $licence_status ) ) {
-            wp_safe_redirect( add_query_arg( 'view_licence', $licence_id, wp_get_referer() ) );
-            exit;
+            self::maybe_redirect( add_query_arg( 'view_licence', $licence_id, wp_get_referer() ) );
+            return;
         }
 
         $data = self::process_licence_data( $_POST );
@@ -198,8 +198,8 @@ class UFSC_Unified_Handlers {
             ),
             wp_get_referer()
         );
-        wp_safe_redirect( $redirect_url );
-        exit;
+        self::maybe_redirect( $redirect_url );
+        return;
     }
 
     /**
@@ -244,8 +244,8 @@ class UFSC_Unified_Handlers {
         $wpdb->delete( $table, array( 'id' => $licence_id, 'club_id' => $club_id ) );
 
         $redirect_url = add_query_arg( 'deleted', 1, wp_get_referer() );
-        wp_safe_redirect( $redirect_url );
-        exit;
+        self::maybe_redirect( $redirect_url );
+        return;
     }
 
     /**
@@ -294,8 +294,8 @@ class UFSC_Unified_Handlers {
             'updated_status' => 1,
             'licence_id'     => $licence_id
         ), wp_get_referer() );
-        wp_safe_redirect( $redirect_url );
-        exit;
+        self::maybe_redirect( $redirect_url );
+        return;
     }
 
     /**
@@ -390,8 +390,8 @@ class UFSC_Unified_Handlers {
         }
 
         $redirect_url = add_query_arg( 'doc_updated', 1, wp_get_referer() );
-        wp_safe_redirect( $redirect_url );
-        exit;
+        self::maybe_redirect( $redirect_url );
+        return;
     }
 
     /**
@@ -473,8 +473,8 @@ class UFSC_Unified_Handlers {
         }
 
         $redirect_url = add_query_arg( 'doc_removed', 1, wp_get_referer() );
-        wp_safe_redirect( $redirect_url );
-        exit;
+        self::maybe_redirect( $redirect_url );
+        return;
     }
 
     /**
@@ -504,8 +504,8 @@ class UFSC_Unified_Handlers {
         // Ensure the current user can manage the requested club
         if ( ! current_user_can( 'manage_options' ) && $managed_club !== $target_club_id ) {
             set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
-            wp_safe_redirect( wp_get_referer() );
-            exit; // Abort if user doesn't manage this club
+            self::maybe_redirect( wp_get_referer() );
+            return; // Abort if user doesn't manage this club
         }
 
         $club_id = $target_club_id;
@@ -540,8 +540,8 @@ class UFSC_Unified_Handlers {
         
         // Success redirect
         $redirect_url = esc_url_raw( add_query_arg( 'updated', 1, wp_get_referer() ) );
-        wp_safe_redirect( $redirect_url );
-        exit;
+        self::maybe_redirect( $redirect_url );
+        return;
     }
 
     /**
@@ -615,8 +615,8 @@ class UFSC_Unified_Handlers {
             if ( function_exists( 'wc_add_notice' ) ) {
                 wc_add_notice( __( 'Produit d\'affiliation ajouté au panier.', 'ufsc-clubs' ), 'success' );
             }
-            wp_safe_redirect( $checkout_url );
-            exit;
+            self::maybe_redirect( $checkout_url );
+            return;
         }
 
         if ( function_exists( 'wc_create_order' ) ) {
@@ -629,8 +629,8 @@ class UFSC_Unified_Handlers {
                     if ( function_exists( 'wc_add_notice' ) ) {
                         wc_add_notice( __( 'Commande d\'affiliation créée.', 'ufsc-clubs' ), 'success' );
                     }
-                    wp_safe_redirect( $order->get_checkout_payment_url() );
-                    exit;
+                    self::maybe_redirect( $order->get_checkout_payment_url() );
+                    return;
                 }
             }
         }
@@ -638,8 +638,8 @@ class UFSC_Unified_Handlers {
         if ( function_exists( 'wc_add_notice' ) ) {
             wc_add_notice( __( 'Impossible d\'ajouter le produit au panier.', 'ufsc-clubs' ), 'error' );
         }
-        wp_safe_redirect( $checkout_url );
-        exit;
+        self::maybe_redirect( $checkout_url );
+        return;
     }
 
     /**
@@ -745,8 +745,8 @@ class UFSC_Unified_Handlers {
                 wc_add_notice( __( 'Quota de licences dépassé : licence ajoutée au panier.', 'ufsc-clubs' ), 'notice' );
             }
             if ( function_exists( 'wc_get_cart_url' ) ) {
-                wp_safe_redirect( wc_get_cart_url() );
-                exit;
+                self::maybe_redirect( wc_get_cart_url() );
+                return;
             }
         }
 
@@ -779,8 +779,8 @@ class UFSC_Unified_Handlers {
 
             self::update_licence_status_db( $new_id, 'pending' );
             if ( function_exists( 'wc_get_cart_url' ) ) {
-                wp_safe_redirect( wc_get_cart_url() );
-                exit;
+                self::maybe_redirect( wc_get_cart_url() );
+                return;
             }
         }
 
@@ -791,8 +791,8 @@ class UFSC_Unified_Handlers {
             ),
             wp_get_referer()
         ) );
-        wp_safe_redirect( $redirect_url );
-        exit;
+        self::maybe_redirect( $redirect_url );
+        return;
     }
 
     /**
@@ -809,8 +809,8 @@ class UFSC_Unified_Handlers {
         if ( $licence_id ) {
             $redirect = add_query_arg( 'licence_id', $licence_id, $redirect );
         }
-        wp_safe_redirect( $redirect );
-        exit;
+        self::maybe_redirect( $redirect );
+        return;
     }
 
     /**
@@ -1032,11 +1032,31 @@ class UFSC_Unified_Handlers {
         // Whitelist fields against known licence columns
         $fields = UFSC_SQL::get_licence_fields();
         $data   = array_intersect_key( $data, $fields );
+
+        $columns = array();
+        if ( function_exists( 'ufsc_table_columns' ) ) {
+            $columns = (array) ufsc_table_columns( $licences_table );
+        }
+        if ( ! empty( $columns ) ) {
+            $data = array_intersect_key( $data, array_flip( $columns ) );
+        }
         $data['club_id'] = $club_id;
-        
+
+        $column_exists = function( $column ) use ( $columns, $licences_table ) {
+            if ( ! empty( $columns ) ) {
+                return in_array( $column, $columns, true );
+            }
+            if ( function_exists( 'ufsc_table_has_column' ) ) {
+                return ufsc_table_has_column( $licences_table, $column );
+            }
+            return true;
+        };
+
         if ( $licence_id > 0 ) {
             // Update
-            $data['date_modification'] = current_time( 'mysql' );
+            if ( $column_exists( 'date_modification' ) ) {
+                $data['date_modification'] = current_time( 'mysql' );
+            }
             $result = $wpdb->update( $licences_table, $data, array( 'id' => $licence_id ) );
             if ( $result === false ) {
                 return new WP_Error( 'update_failed', __( 'Erreur lors de la mise à jour', 'ufsc-clubs' ) );
@@ -1044,7 +1064,9 @@ class UFSC_Unified_Handlers {
             return $licence_id;
         } else {
             // Create
-            $data['date_creation'] = current_time( 'mysql' );
+            if ( $column_exists( 'date_creation' ) ) {
+                $data['date_creation'] = current_time( 'mysql' );
+            }
             $data['statut'] = 'brouillon';
             $result = $wpdb->insert( $licences_table, $data );
             if ( $result === false ) {
@@ -1061,6 +1083,13 @@ class UFSC_Unified_Handlers {
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
         $clubs_table = $settings['table_clubs'];
+
+        if ( function_exists( 'ufsc_table_columns' ) ) {
+            $columns = (array) ufsc_table_columns( $clubs_table );
+            if ( ! empty( $columns ) ) {
+                $data = array_intersect_key( $data, array_flip( $columns ) );
+            }
+        }
         
         $result = $wpdb->update( $clubs_table, $data, array( 'id' => $club_id ) );
         if ( $result === false ) {
@@ -1158,6 +1187,15 @@ class UFSC_Unified_Handlers {
         return ufsc_get_user_club_id( $user_id ) === $club_id;
     }
 
+    private static function maybe_redirect( $url ) {
+        if ( function_exists( 'ufsc_is_wp_cli' ) && ufsc_is_wp_cli() ) {
+            return;
+        }
+
+        wp_safe_redirect( $url );
+        exit;
+    }
+
     private static function redirect_with_error( $message, $licence_id = null ) {
         $redirect_url = wp_get_referer() ?: home_url();
         $redirect_url = remove_query_arg( 'ufsc_error', $redirect_url );
@@ -1167,8 +1205,8 @@ class UFSC_Unified_Handlers {
             $args['licence_id'] = $licence_id;
         }
 
-        wp_safe_redirect( add_query_arg( $args, $redirect_url ) );
-        exit;
+        self::maybe_redirect( add_query_arg( $args, $redirect_url ) );
+        return;
     }
 
     /**
