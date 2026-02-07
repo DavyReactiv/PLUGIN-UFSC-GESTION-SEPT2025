@@ -37,6 +37,56 @@ class UFSC_CL_Utils {
     }
 
     /**
+     * Get counts of valid licences per club with transient caching.
+     *
+     * @return array<int,int> Map of club_id => count.
+     */
+    public static function get_valid_licence_counts_by_club() {
+        $cache_key = 'ufsc_admin_valid_licence_counts';
+        $cached    = get_transient( $cache_key );
+
+        if ( is_array( $cached ) ) {
+            return $cached;
+        }
+
+        global $wpdb;
+        $licences_table = function_exists( 'ufsc_get_licences_table' )
+            ? ufsc_get_licences_table()
+            : ( class_exists( 'UFSC_SQL' ) ? UFSC_SQL::get_settings()['table_licences'] : $wpdb->prefix . 'ufsc_licences' );
+
+        if ( function_exists( 'ufsc_sanitize_table_name' ) ) {
+            $licences_table = ufsc_sanitize_table_name( $licences_table );
+        }
+
+        if ( function_exists( 'ufsc_table_exists' ) && ! ufsc_table_exists( $licences_table ) ) {
+            return array();
+        }
+
+        $query = $wpdb->prepare(
+            "SELECT club_id, COUNT(*) AS total
+             FROM `{$licences_table}`
+             WHERE statut = %s
+             AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')
+             GROUP BY club_id",
+            'valide'
+        );
+
+        $results = $wpdb->get_results( $query );
+        $counts  = array();
+
+        foreach ( (array) $results as $row ) {
+            $club_id = (int) ( $row->club_id ?? 0 );
+            if ( $club_id ) {
+                $counts[ $club_id ] = (int) $row->total;
+            }
+        }
+
+        set_transient( $cache_key, $counts, 5 * MINUTE_IN_SECONDS );
+
+        return $counts;
+    }
+
+    /**
      * Validation des données de club
      *
      * @param array $data Club data to validate

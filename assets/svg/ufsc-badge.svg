@@ -1,0 +1,7 @@
+<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="UFSC">
+  <path d="M48 6L80 18V44C80 62.5 66.3 80.5 48 90C29.7 80.5 16 62.5 16 44V18L48 6Z" fill="#2271B1"/>
+  <path d="M48 16L70 24V42C70 56.3 59.7 70 48 76C36.3 70 26 56.3 26 42V24L48 16Z" fill="#ffffff" opacity="0.2"/>
+  <circle cx="48" cy="44" r="14" fill="#ffffff"/>
+  <path d="M41 44H55" stroke="#2271B1" stroke-width="4" stroke-linecap="round"/>
+  <path d="M48 37V51" stroke="#2271B1" stroke-width="4" stroke-linecap="round"/>
+</svg>

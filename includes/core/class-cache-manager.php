@@ -20,6 +20,11 @@ class UFSC_Cache_Manager {
         add_action( 'ufsc_licence_created', array( __CLASS__, 'clear_club_cache' ) );
         add_action( 'ufsc_licence_deleted', array( __CLASS__, 'clear_club_cache' ) );
         add_action( 'ufsc_club_updated', array( __CLASS__, 'clear_club_cache' ) );
+
+        // Admin counts cache for valid licences
+        add_action( 'ufsc_licence_updated', array( __CLASS__, 'clear_admin_licence_counts_cache' ) );
+        add_action( 'ufsc_licence_created', array( __CLASS__, 'clear_admin_licence_counts_cache' ) );
+        add_action( 'ufsc_licence_deleted', array( __CLASS__, 'clear_admin_licence_counts_cache' ) );
     }
 
     /**
@@ -102,6 +107,15 @@ class UFSC_Cache_Manager {
                 delete_transient( $key );
             }
         }
+    }
+
+    /**
+     * Clear cached admin counts for valid licences.
+     *
+     * @return void
+     */
+    public static function clear_admin_licence_counts_cache( $club_id = 0 ) {
+        delete_transient( 'ufsc_admin_valid_licence_counts' );
     }
 
     /**

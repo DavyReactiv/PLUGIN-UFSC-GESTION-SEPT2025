@@ -579,10 +579,10 @@ class UFSC_SQL_Admin
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="clubs_sql.csv"');
         $out = fopen('php://output', 'w');
-        fputcsv($out, ['id', 'nom', 'region', 'statut', 'quota_licences']);
+        fputcsv($out, ['id', 'nom', 'region', 'statut']);
         if ($rows) {
             foreach ($rows as $r) {
-                fputcsv($out, [$r->id, $r->nom, $r->region, $r->statut, $r->quota_licences]);
+                fputcsv($out, [$r->id, $r->nom, $r->region, $r->statut]);
             }
         }
         fclose($out);
@@ -621,6 +621,9 @@ class UFSC_SQL_Admin
 
         echo '<div class="ufsc-grid">';
         foreach ($fields as $k => $conf) {
+            if ( 'quota_licences' === $k ) {
+                continue;
+            }
             $val = $row ? (isset($row->$k) ? $row->$k : '') : '';
             self::render_field_club($k, $conf, $val, $readonly);
         }
@@ -1633,6 +1636,9 @@ class UFSC_SQL_Admin
 
         echo '<div class="ufsc-grid">';
         foreach ($fields as $k => $conf) {
+            if ( 'is_included' === $k ) {
+                continue;
+            }
             $val = $row ? (isset($row->$k) ? $row->$k : '') : '';
             self::render_field_licence($k, $conf, $val, $readonly);
         }
