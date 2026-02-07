@@ -36,7 +36,35 @@ class UFSC_Documents {
             wp_die( __( 'Aucun fichier fourni.', 'ufsc-clubs' ) );
         }
 
-        $file = wp_handle_upload( $_FILES['ufsc_document'], array( 'test_form' => false ) );
+        $allowed_mimes = array(
+            'pdf'  => 'application/pdf',
+            'jpg'  => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
+            'png'  => 'image/png',
+        );
+        $max_size = (int) apply_filters( 'ufsc_club_document_max_size', 5 * MB_IN_BYTES );
+
+        if ( ! empty( $_FILES['ufsc_document']['size'] ) && $_FILES['ufsc_document']['size'] > $max_size ) {
+            wp_die( __( 'Fichier trop volumineux.', 'ufsc-clubs' ) );
+        }
+
+        $filetype = wp_check_filetype_and_ext(
+            $_FILES['ufsc_document']['tmp_name'],
+            $_FILES['ufsc_document']['name'],
+            $allowed_mimes
+        );
+
+        if ( empty( $filetype['ext'] ) || empty( $filetype['type'] ) ) {
+            wp_die( __( 'Type de fichier non autorisé.', 'ufsc-clubs' ) );
+        }
+
+        $file = wp_handle_upload(
+            $_FILES['ufsc_document'],
+            array(
+                'test_form' => false,
+                'mimes'     => $allowed_mimes,
+            )
+        );
 
         if ( isset( $file['error'] ) ) {
             wp_die( esc_html( $file['error'] ) );

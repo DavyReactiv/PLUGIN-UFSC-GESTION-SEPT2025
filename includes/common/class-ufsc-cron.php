@@ -23,6 +23,10 @@ class UFSC_Cron {
         $licences_table = $settings['table_licences'];
         $clubs_table    = $settings['table_clubs'];
 
+        if ( function_exists( 'ufsc_table_has_column' ) && ! ufsc_table_has_column( $licences_table, 'expires_at' ) ) {
+            return;
+        }
+
         // Expire licences past their expiration date.
         $expired_ids = $wpdb->get_col(
             "SELECT id FROM {$licences_table} WHERE expires_at IS NOT NULL AND expires_at < NOW() AND statut <> 'expired'"
