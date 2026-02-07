@@ -103,11 +103,6 @@ class UFSC_Frontend_Shortcodes {
             (int) @$stats['by_practice'][1],
         );
 
-        if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
-            $licence_stats_labels[] = esc_html__( 'Quota restant', 'ufsc-clubs' );
-            $licence_stats_data[]   = (int) $stats['quota_remaining'];
-        }
-
         wp_localize_script(
             'chart-js',
             'ufscLicenceStats',
@@ -134,15 +129,20 @@ class UFSC_Frontend_Shortcodes {
         ?>
         <div class="ufsc-club-dashboard" id="ufsc-dashboard">
             <div class="ufsc-dashboard-header">
-                <h2><?php esc_html_e( 'Tableau de bord - Mon Club', 'ufsc-clubs' ); ?></h2>
-                <p class="ufsc-dashboard-subtitle">
-                    <?php
-                    $club_name = self::get_club_name( $club_id );
-                    if ( $club_name ) {
-                        echo sprintf( esc_html__( 'Club: %s', 'ufsc-clubs' ), esc_html( $club_name ) );
-                    }
-                    ?>
-                </p>
+                <div class="ufsc-dashboard-brand">
+                    <img class="ufsc-dashboard-logo" src="<?php echo esc_url( plugins_url( 'assets/svg/ufsc-badge.svg', UFSC_CL_DIR . 'ufsc-clubs-licences-sql.php' ) ); ?>" alt="<?php esc_attr_e( 'UFSC', 'ufsc-clubs' ); ?>">
+                    <div class="ufsc-dashboard-title">
+                        <h2><?php esc_html_e( 'Tableau de bord - Mon Club', 'ufsc-clubs' ); ?></h2>
+                        <p class="ufsc-dashboard-subtitle">
+                            <?php
+                            $club_name = self::get_club_name( $club_id );
+                            if ( $club_name ) {
+                                echo sprintf( esc_html__( 'Club: %s', 'ufsc-clubs' ), esc_html( $club_name ) );
+                            }
+                            ?>
+                        </p>
+                    </div>
+                </div>
                 <?php if ( in_array( 'add_licence', $sections ) ): ?>
                     <div class="ufsc-dashboard-actions">
                         <a href="#ufsc-section-add_licence" class="ufsc-btn ufsc-btn-primary" onclick="document.querySelector('[data-section=\"add_licence\"]').click(); return false;">
@@ -353,9 +353,6 @@ class UFSC_Frontend_Shortcodes {
 
         $club_name  = self::get_club_name( $atts['club_id'] );
         $wc_settings = ufsc_get_woocommerce_settings();
-        $quota_info = ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() )
-            ? array()
-            : self::get_club_quota_info( $atts['club_id'] );
 
 
         ob_start();
@@ -589,10 +586,7 @@ class UFSC_Frontend_Shortcodes {
                         $fields['payment_status'] = array( __( 'Statut de paiement', 'ufsc-clubs' ), 'payment_status' );
                     }
 
-                    $exclude = array( 'club_id', 'responsable_id' );
-                    if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
-                        $exclude[] = 'is_included';
-                    }
+                    $exclude = array( 'club_id', 'responsable_id', 'is_included' );
                     foreach ( $fields as $field_key => $field_info ) {
                         if ( in_array( $field_key, $exclude, true ) ) {
                             continue;
@@ -785,12 +779,6 @@ class UFSC_Frontend_Shortcodes {
                     <div class="ufsc-kpi-label"><?php esc_html_e( 'Licences Validées', 'ufsc-clubs' ); ?></div>
                 </div>
 
-                <?php if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) : ?>
-                    <div class="ufsc-kpi-card">
-                        <div class="ufsc-kpi-value"><?php echo esc_html( $stats['quota_remaining'] ); ?></div>
-                        <div class="ufsc-kpi-label"><?php esc_html_e( 'Quota Restant', 'ufsc-clubs' ); ?></div>
-                    </div>
-                <?php endif; ?>
             </div>
 
             <div class="ufsc-stats-chart">
@@ -942,6 +930,8 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 <?php endif; ?>
                 <!-- // UFSC: Identité du club -->
+                <div class="ufsc-club-profile-layout">
+                    <div class="ufsc-club-profile-main">
                 <div class="ufsc-card ufsc-section">
                     <h4><?php esc_html_e( 'Identité du club', 'ufsc-clubs' ); ?></h4>
 
@@ -1048,9 +1038,6 @@ class UFSC_Frontend_Shortcodes {
 
                     <div class="ufsc-grid">
                         <?php self::render_field( 'num_affiliation', $club, __( 'N° d\'affiliation', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                        <?php if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) : ?>
-                            <?php self::render_field( 'quota_licences', $club, __( 'Quota licences', 'ufsc-clubs' ), 'number', false, $is_admin ); ?>
-                        <?php endif; ?>
                         <?php self::render_field( 'date_creation', $club, __( 'Date de création', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
                         <?php self::render_field( 'date_affiliation', $club, __( 'Date d\'affiliation', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
                         <?php self::render_field( 'responsable_id', $club, __( 'ID responsable', 'ufsc-clubs' ), 'number', true, false ); ?>
@@ -1065,84 +1052,121 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_field( 'precision_distribution', $club, __( 'Précision distribution', 'ufsc-clubs' ), 'textarea', false, $is_admin ); ?>
                     </div>
                 </fieldset>
+                    </div>
 
                 <!-- // UFSC: Documents Section - 6 mandatory documents -->
-                <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Mes documents', 'ufsc-clubs' ); ?></legend>
+                <div class="ufsc-club-profile-documents">
+                    <fieldset class="ufsc-form-section">
+                        <legend><?php esc_html_e( 'Mes documents', 'ufsc-clubs' ); ?></legend>
 
-                    <?php
-                    // // UFSC: 6 mandatory documents as per requirements
-                    $mandatory_documents = array(
-                        'doc_statuts' => __( 'Statuts', 'ufsc-clubs' ),
-                        'doc_recepisse' => __( 'Récépissé', 'ufsc-clubs' ),
-                        'doc_jo' => __( 'Journal Officiel', 'ufsc-clubs' ),
-                        'doc_pv_ag' => __( 'PV Assemblée Générale', 'ufsc-clubs' ),
-                        'doc_cer' => __( 'CER', 'ufsc-clubs' ),
-                        'doc_attestation_cer' => __( 'Attestation CER', 'ufsc-clubs' )
-                    );
-                    ?>
+                        <?php
+                        // // UFSC: 6 mandatory documents as per requirements
+                        $mandatory_documents = array(
+                            'doc_statuts' => __( 'Statuts', 'ufsc-clubs' ),
+                            'doc_recepisse' => __( 'Récépissé', 'ufsc-clubs' ),
+                            'doc_jo' => __( 'Journal Officiel', 'ufsc-clubs' ),
+                            'doc_pv_ag' => __( 'PV Assemblée Générale', 'ufsc-clubs' ),
+                            'doc_cer' => __( 'CER', 'ufsc-clubs' ),
+                            'doc_attestation_cer' => __( 'Attestation CER', 'ufsc-clubs' )
+                        );
 
-                    <div class="ufsc-grid ufsc-documents-grid">
-                        <?php foreach ( $mandatory_documents as $doc_key => $doc_label ):
-                            $upload_key = str_replace( 'doc_', '', $doc_key ) . '_upload';
-                            ?>
-                            <div class="ufsc-card ufsc-document-card">
-                                <div class="ufsc-document-header">
-                                    <h5><?php echo esc_html( $doc_label ); ?></h5>
-                                    <span class="ufsc-document-status">
-                                        <?php
-                                        $doc_value = isset( $club->$doc_key ) ? $club->$doc_key : '';
-                                        if ( ! empty( $doc_value ) ):
-                                        ?>
-                                            <span class="ufsc-badge ufsc-badge-success" aria-label="<?php esc_attr_e( 'Transmis', 'ufsc-clubs' ); ?>">✅</span>
-                                        <?php else: ?>
-                                            <span class="ufsc-badge ufsc-badge-pending" aria-label="<?php esc_attr_e( 'En attente', 'ufsc-clubs' ); ?>">⏳</span>
-                                        <?php endif; ?>
-                                    </span>
-                                </div>
+                        $documents_state = array();
+                        $missing_docs    = array();
 
-                                <div class="ufsc-document-content">
-                                    <?php if ( ! empty( $doc_value ) ):
-                                        $doc_url = wp_get_attachment_url($doc_value);
-                                        ?>
-                                        <div class="ufsc-document-current">
-                                            <p class="ufsc-document-name"><?php echo esc_html( basename( $doc_url ) ); ?></p>
-                                            <div class="ufsc-document-actions">
-                                                <a href="<?php echo esc_url( $doc_url ); ?>" target="_blank" class="ufsc-btn-small">
-                                                    <?php esc_html_e( 'Voir', 'ufsc-clubs' ); ?>
-                                                </a>
-                                                <a href="<?php echo esc_url( $doc_url ); ?>" download class="ufsc-btn-small">
-                                                    <?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?>
-                                                </a>
+                        foreach ( $mandatory_documents as $doc_key => $doc_label ) {
+                            $doc_value = isset( $club->$doc_key ) ? $club->$doc_key : '';
+                            $doc_url   = $doc_value ? wp_get_attachment_url( $doc_value ) : '';
+                            $is_missing = empty( $doc_value ) || empty( $doc_url );
+
+                            if ( $is_missing ) {
+                                $missing_docs[ $doc_key ] = $doc_label;
+                            }
+
+                            $documents_state[ $doc_key ] = array(
+                                'label' => $doc_label,
+                                'value' => $doc_value,
+                                'url'   => $doc_url,
+                                'missing' => $is_missing,
+                            );
+                        }
+
+                        $total_docs   = count( $mandatory_documents );
+                        $received_docs = $total_docs - count( $missing_docs );
+                        ?>
+
+                        <div class="ufsc-document-summary">
+                            <p class="ufsc-document-summary-count">
+                                <?php echo esc_html( sprintf( __( 'Documents: %d / %d reçus', 'ufsc-clubs' ), $received_docs, $total_docs ) ); ?>
+                            </p>
+                            <?php if ( ! empty( $missing_docs ) ) : ?>
+                                <p class="ufsc-document-summary-missing-label"><?php esc_html_e( 'Documents manquants :', 'ufsc-clubs' ); ?></p>
+                                <ul class="ufsc-document-missing-list">
+                                    <?php foreach ( $missing_docs as $missing_label ) : ?>
+                                        <li><?php echo esc_html( $missing_label ); ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="ufsc-grid ufsc-documents-grid">
+                            <?php foreach ( $documents_state as $doc_key => $doc_state ) :
+                                $upload_key = str_replace( 'doc_', '', $doc_key ) . '_upload';
+                                ?>
+                                <div class="ufsc-card ufsc-document-card">
+                                    <div class="ufsc-document-header">
+                                        <h5><?php echo esc_html( $doc_state['label'] ); ?></h5>
+                                        <span class="ufsc-document-status">
+                                            <?php if ( ! $doc_state['missing'] ) : ?>
+                                                <span class="ufsc-badge ufsc-badge-success" aria-label="<?php esc_attr_e( 'Transmis', 'ufsc-clubs' ); ?>">✅</span>
+                                            <?php else : ?>
+                                                <span class="ufsc-badge ufsc-badge-pending" aria-label="<?php esc_attr_e( 'En attente', 'ufsc-clubs' ); ?>">⏳</span>
+                                                <span class="ufsc-badge ufsc-badge-warning" aria-label="<?php esc_attr_e( 'Document manquant', 'ufsc-clubs' ); ?>">⚠ <?php esc_html_e( 'Document manquant', 'ufsc-clubs' ); ?></span>
+                                            <?php endif; ?>
+                                        </span>
+                                    </div>
+
+                                    <div class="ufsc-document-content">
+                                        <?php if ( ! empty( $doc_state['url'] ) ) : ?>
+                                            <div class="ufsc-document-current">
+                                                <p class="ufsc-document-name"><?php echo esc_html( basename( $doc_state['url'] ) ); ?></p>
+                                                <div class="ufsc-document-actions">
+                                                    <a href="<?php echo esc_url( $doc_state['url'] ); ?>" target="_blank" class="ufsc-btn-small">
+                                                        <?php esc_html_e( 'Voir', 'ufsc-clubs' ); ?>
+                                                    </a>
+                                                    <a href="<?php echo esc_url( $doc_state['url'] ); ?>" download class="ufsc-btn-small">
+                                                        <?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?>
+                                                    </a>
+                                                </div>
                                             </div>
-                                        </div>
-                                    <?php endif; ?>
+                                        <?php endif; ?>
 
-                                    <?php if ( $can_edit ): ?>
-                                        <div class="ufsc-document-upload">
-                                            <input type="file"
-                                                   id="<?php echo esc_attr( $upload_key ); ?>"
-                                                   name="<?php echo esc_attr( $upload_key ); ?>"
-                                                   accept=".pdf,.jpg,.jpeg,.png"
-                                                   class="ufsc-file-input">
-                                            <label for="<?php echo esc_attr( $upload_key ); ?>" class="ufsc-upload-label">
-                                                <?php if ( ! empty( $doc_value ) ): ?>
-                                                    <?php esc_html_e( 'Remplacer le document', 'ufsc-clubs' ); ?>
-                                                <?php else: ?>
-                                                    <?php esc_html_e( 'Choisir un fichier', 'ufsc-clubs' ); ?>
-                                                <?php endif; ?>
-                                            </label>
-                                            <p class="ufsc-help-text">
-                                                <?php esc_html_e( 'Formats: PDF, JPG, PNG - Max 5MB', 'ufsc-clubs' ); ?>
-                                            </p>
-                                            <div class="ufsc-upload-feedback" role="status" aria-live="polite"></div>
-                                        </div>
-                                    <?php endif; ?>
+                                        <?php if ( $can_edit ): ?>
+                                            <div class="ufsc-document-upload">
+                                                <input type="file"
+                                                       id="<?php echo esc_attr( $upload_key ); ?>"
+                                                       name="<?php echo esc_attr( $upload_key ); ?>"
+                                                       accept=".pdf,.jpg,.jpeg,.png"
+                                                       class="ufsc-file-input">
+                                                <label for="<?php echo esc_attr( $upload_key ); ?>" class="ufsc-upload-label">
+                                                    <?php if ( ! empty( $doc_state['url'] ) ): ?>
+                                                        <?php esc_html_e( 'Remplacer le document', 'ufsc-clubs' ); ?>
+                                                    <?php else: ?>
+                                                        <?php esc_html_e( 'Choisir un fichier', 'ufsc-clubs' ); ?>
+                                                    <?php endif; ?>
+                                                </label>
+                                                <p class="ufsc-help-text">
+                                                    <?php esc_html_e( 'Formats: PDF, JPG, PNG - Max 5MB', 'ufsc-clubs' ); ?>
+                                                </p>
+                                                <div class="ufsc-upload-feedback" role="status" aria-live="polite"></div>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                 </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </fieldset>
+                            <?php endforeach; ?>
+                        </div>
+                    </fieldset>
+                </div>
+                </div>
 
 
                 <!-- // UFSC: Submit section -->
@@ -1195,7 +1219,7 @@ class UFSC_Frontend_Shortcodes {
         );
 
         if ($club_data && strtolower($club_data['statut']) === 'en_attente') {
-             wc_add_notice(__( '⚠ Vous devez régler les frais du club pour bénéficier des 7 licences gratuites restantes.', 'ufsc-clubs' ),'error');
+             wc_add_notice(__( '⚠ Vous devez régler les frais du club pour continuer.', 'ufsc-clubs' ),'error');
             $cart = WC()->cart;
             if(empty($cart) || empty($cart->cart_contents)){
                 ufsc_add_affiliation_to_cart($atts['club_id']);
@@ -1204,10 +1228,6 @@ class UFSC_Frontend_Shortcodes {
             exit;
         }
 
-        // UFSC PATCH: Quotas disabled via feature flag.
-        $quota_info  = ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() )
-            ? array()
-            : self::get_club_quota_info( $atts['club_id'] );
         $form_data   = array();
         $form_errors = array();
 
@@ -1222,11 +1242,6 @@ class UFSC_Frontend_Shortcodes {
         }
 
 
-        if ( empty( $quota_info ) && ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) ) {
-            $quota_info = self::get_club_quota_info( $atts['club_id'] );
-        }
-
-
         // Handle form submission
         if ( isset( $_POST['ufsc_add_licence'] ) && wp_verify_nonce( $_POST['_wpnonce'], 'ufsc_add_licence' ) ) {
             $result = self::handle_licence_creation( $atts['club_id'], $_POST );
@@ -1234,7 +1249,7 @@ class UFSC_Frontend_Shortcodes {
                 echo '<div class="ufsc-message ufsc-success">' . esc_html( $result['message'] ) . '</div>';
                 if ( isset( $result['payment_url'] ) ) {
                     echo '<div class="ufsc-message ufsc-info">';
-                    echo '<p>' . esc_html__( 'Quota atteint. Paiement requis:', 'ufsc-clubs' ) . '</p>';
+                    echo '<p>' . esc_html__( 'Paiement requis :', 'ufsc-clubs' ) . '</p>';
                     echo '<a href="' . esc_url( $result['payment_url'] ) . '" class="ufsc-btn ufsc-btn-primary">';
                     echo esc_html__( 'Procéder au paiement', 'ufsc-clubs' );
                     echo '</a>';
@@ -1251,17 +1266,6 @@ class UFSC_Frontend_Shortcodes {
         <div class="ufsc-add-licence-section">
             <div class="ufsc-section-header">
                 <h3><?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?></h3>
-                <?php if ( ! empty( $quota_info ) ) : ?>
-                    <div class="ufsc-quota-info">
-                        <p>
-                            <?php echo sprintf(
-                                esc_html__( 'Quota disponible: %d / %d', 'ufsc-clubs' ),
-                                $quota_info['remaining'],
-                                $quota_info['total']
-                            ); ?>
-                        </p>
-                    </div>
-                <?php endif; ?>
             </div>
 
             <?php if ( ! empty( $form_errors ) ) : ?>

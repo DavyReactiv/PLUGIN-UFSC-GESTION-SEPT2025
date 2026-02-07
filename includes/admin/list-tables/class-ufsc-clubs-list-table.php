@@ -81,7 +81,8 @@ class UFSC_Clubs_List_Table {
         self::render_results_info( $total_items, $pagination );
 
         // Main table
-        self::render_clubs_table( $clubs, $sorting );
+        $licence_counts = UFSC_CL_Utils::get_valid_licence_counts_by_club();
+        self::render_clubs_table( $clubs, $sorting, $licence_counts );
 
         // Pagination
         self::render_pagination( $pagination['paged'], $total_pages );
@@ -97,15 +98,8 @@ class UFSC_Clubs_List_Table {
             'region' => isset( $_GET['region'] ) ? sanitize_text_field( $_GET['region'] ) : '',
             'statut' => isset( $_GET['statut'] ) ? sanitize_text_field( $_GET['statut'] ) : '',
             'created_from' => isset( $_GET['created_from'] ) ? sanitize_text_field( $_GET['created_from'] ) : '',
-            'created_to' => isset( $_GET['created_to'] ) ? sanitize_text_field( $_GET['created_to'] ) : '',
-            'quota_min' => isset( $_GET['quota_min'] ) ? (int) $_GET['quota_min'] : 0,
-            'quota_max' => isset( $_GET['quota_max'] ) ? (int) $_GET['quota_max'] : 0
+            'created_to' => isset( $_GET['created_to'] ) ? sanitize_text_field( $_GET['created_to'] ) : ''
         );
-
-        if ( function_exists( 'ufsc_quotas_enabled' ) && ! ufsc_quotas_enabled() ) {
-            $filters['quota_min'] = 0;
-            $filters['quota_max'] = 0;
-        }
 
         return $filters;
     }
@@ -190,17 +184,6 @@ class UFSC_Clubs_List_Table {
             $conditions[] = $wpdb->prepare( "DATE(date_creation) <= %s", $filters['created_to'] );
         }
 
-        // Quota range filters
-        if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
-            if ( $filters['quota_min'] > 0 && self::has_column( $columns, $clubs_table, 'quota_licences' ) ) {
-                $conditions[] = $wpdb->prepare( "quota_licences >= %d", $filters['quota_min'] );
-            }
-
-            if ( $filters['quota_max'] > 0 && self::has_column( $columns, $clubs_table, 'quota_licences' ) ) {
-                $conditions[] = $wpdb->prepare( "quota_licences <= %d", $filters['quota_max'] );
-            }
-        }
-
         return $conditions;
     }
 
@@ -269,15 +252,6 @@ class UFSC_Clubs_List_Table {
 
         // Date range filters
         self::render_date_filters( $filters['created_from'], $filters['created_to'] );
-
-        echo '</div>';
-
-        echo '<div class="ufsc-filters-row">';
-
-        // Quota range filters
-        if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
-            self::render_quota_filters( $filters['quota_min'], $filters['quota_max'] );
-        }
 
         echo '</div>';
 
@@ -361,7 +335,7 @@ class UFSC_Clubs_List_Table {
     /**
      * Render main clubs table
      */
-    private static function render_clubs_table( $clubs, $sorting ) {
+    private static function render_clubs_table( $clubs, $sorting, $licence_counts ) {
         // Affichage des notices
         if ( isset($_GET['processed']) ) {
             if ( $_GET['processed'] == '1' ) {
@@ -396,9 +370,7 @@ class UFSC_Clubs_List_Table {
         echo '<th>' . self::get_sortable_header( 'region', __( 'Région', 'ufsc-clubs' ), $sorting ) . '</th>';
         echo '<th>' . esc_html__( 'N° Affiliation', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Statut', 'ufsc-clubs' ) . '</th>';
-        if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
-            echo '<th>' . esc_html__( 'Quota', 'ufsc-clubs' ) . '</th>';
-        }
+        echo '<th>' . esc_html__( 'Licences', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Documents', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . self::get_sortable_header( 'date_creation', __( 'Créé le', 'ufsc-clubs' ), $sorting ) . '</th>';
         echo '<th>' . esc_html__( 'Actions', 'ufsc-clubs' ) . '</th>';
@@ -410,11 +382,10 @@ class UFSC_Clubs_List_Table {
 
         if ( $clubs ) {
             foreach ( $clubs as $club ) {
-                self::render_club_row( $club );
+                self::render_club_row( $club, $licence_counts );
             }
         } else {
-            $column_count = ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) ? 9 : 8;
-            echo '<tr><td colspan="' . (int) $column_count . '">' . esc_html__( 'Aucun club trouvé.', 'ufsc-clubs' ) . '</td></tr>';
+            echo '<tr><td colspan="10">' . esc_html__( 'Aucun club trouvé.', 'ufsc-clubs' ) . '</td></tr>';
         }
 
         echo '</tbody>';
@@ -426,7 +397,7 @@ class UFSC_Clubs_List_Table {
     /**
      * Render individual club row
      */
-    private static function render_club_row( $club ) {
+    private static function render_club_row( $club, $licence_counts ) {
     echo '<tr>';
 
     // Checkbox
@@ -456,12 +427,19 @@ class UFSC_Clubs_List_Table {
     $status_value = isset( $club->statut ) ? $club->statut : '';
     echo '<td>' . self::render_status_badge( $status_value ) . '</td>';
 
-    // Quota
-    if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
-        echo '<td>';
-        echo isset( $club->quota_licences ) ? (int) $club->quota_licences : '<em>' . esc_html__( 'Non défini', 'ufsc-clubs' ) . '</em>';
-        echo '</td>';
-    }
+    // Licences validées
+    $club_id = (int) ( $club->id ?? 0 );
+    $licence_count = isset( $licence_counts[ $club_id ] ) ? (int) $licence_counts[ $club_id ] : 0;
+    $licence_url = add_query_arg(
+        array(
+            'page' => 'ufsc-sql-licences',
+            'filter_club' => $club_id,
+            'filter_status' => 'valide',
+            'filter_active' => 1
+        ),
+        admin_url( 'admin.php' )
+    );
+    echo '<td><a href="' . esc_url( $licence_url ) . '">' . esc_html( $licence_count ) . '</a></td>';
 
     // Documents
     echo '<td>' . self::render_documents_badge( $club ) . '</td>';

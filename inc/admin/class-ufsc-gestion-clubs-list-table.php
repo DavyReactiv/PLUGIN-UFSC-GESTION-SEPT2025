@@ -9,6 +9,12 @@ if ( ! class_exists( 'WP_List_Table' ) ) {
  * WP_List_Table implementation for UFSC clubs.
  */
 class UFSC_Gestion_Clubs_List_Table extends WP_List_Table {
+    /**
+     * Cached licence counts per club.
+     *
+     * @var array<int,int>
+     */
+    private $licence_counts = array();
 
     /**
      * Constructor.
@@ -34,7 +40,7 @@ class UFSC_Gestion_Clubs_List_Table extends WP_List_Table {
             'nom'            => __( 'Nom', 'ufsc-clubs' ),
             'region'         => __( 'Région', 'ufsc-clubs' ),
             'statut'         => __( 'Statut', 'ufsc-clubs' ),
-            'quota_licences' => __( 'Quota', 'ufsc-clubs' ),
+            'licences'       => __( 'Licences', 'ufsc-clubs' ),
             'date_creation'  => __( 'Créé le', 'ufsc-clubs' ),
         );
     }
@@ -82,13 +88,32 @@ class UFSC_Gestion_Clubs_List_Table extends WP_List_Table {
     }
 
     /**
+     * Render licences column with link to filtered admin list.
+     */
+    protected function column_licences( $item ) {
+        $club_id = (int) ( $item['id'] ?? 0 );
+        $count   = isset( $this->licence_counts[ $club_id ] ) ? (int) $this->licence_counts[ $club_id ] : 0;
+
+        $url = add_query_arg(
+            array(
+                'page'         => 'ufsc-sql-licences',
+                'filter_club'  => $club_id,
+                'filter_status'=> 'valide',
+                'filter_active'=> 1,
+            ),
+            admin_url( 'admin.php' )
+        );
+
+        return sprintf( '<a href="%s">%d</a>', esc_url( $url ), $count );
+    }
+
+    /**
      * Default column handler.
      */
     protected function column_default( $item, $column_name ) {
         switch ( $column_name ) {
             case 'region':
             case 'statut':
-            case 'quota_licences':
                 return esc_html( $item[ $column_name ] );
             case 'date_creation':
                 return esc_html( mysql2date( 'Y-m-d', $item['date_creation'] ) );
@@ -133,14 +158,14 @@ class UFSC_Gestion_Clubs_List_Table extends WP_List_Table {
         $current_page = $this->get_pagenum();
         $offset       = ( $current_page - 1 ) * $per_page;
 
-        $allowed_orderby = array( 'id', 'nom', 'region', 'statut', 'quota_licences', 'date_creation' );
+        $allowed_orderby = array( 'id', 'nom', 'region', 'statut', 'date_creation' );
         $orderby = isset( $_REQUEST['orderby'] ) && in_array( $_REQUEST['orderby'], $allowed_orderby, true ) ? $_REQUEST['orderby'] : 'date_creation';
         $order   = isset( $_REQUEST['order'] ) && 'asc' === strtolower( $_REQUEST['order'] ) ? 'ASC' : 'DESC';
 
         $total_items = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$clubs_table}`" );
 
         $query = $wpdb->prepare(
-            "SELECT id, nom, region, statut, quota_licences, date_creation FROM `{$clubs_table}` ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
+            "SELECT id, nom, region, statut, date_creation FROM `{$clubs_table}` ORDER BY {$orderby} {$order} LIMIT %d OFFSET %d",
             $per_page,
             $offset
         );
@@ -148,6 +173,7 @@ class UFSC_Gestion_Clubs_List_Table extends WP_List_Table {
         $items = $wpdb->get_results( $query, ARRAY_A );
 
         $this->items = $items;
+        $this->licence_counts = UFSC_CL_Utils::get_valid_licence_counts_by_club();
 
         $this->set_pagination_args(
             array(
@@ -162,4 +188,3 @@ class UFSC_Gestion_Clubs_List_Table extends WP_List_Table {
         $this->_column_headers = array( $columns, $hidden, $sortable );
     }
 }
-

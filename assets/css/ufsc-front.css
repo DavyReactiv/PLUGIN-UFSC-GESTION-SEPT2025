@@ -112,11 +112,45 @@
     outline-offset: 2px;
 }
 
+/* Dashboard header branding */
+.ufsc-club-dashboard .ufsc-dashboard-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ufsc-spacing-sm);
+}
+.ufsc-club-dashboard .ufsc-dashboard-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--ufsc-spacing-md);
+    flex-wrap: wrap;
+}
+.ufsc-club-dashboard .ufsc-dashboard-logo {
+    width: 56px;
+    height: 56px;
+    flex: 0 0 auto;
+}
+
 /* Club profile grids */
 .ufsc-club-profile .ufsc-card .ufsc-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: var(--ufsc-spacing-md);
+}
+
+/* Club profile two-column layout */
+.ufsc-club-profile .ufsc-club-profile-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--ufsc-spacing-lg);
+    align-items: start;
+}
+@media (min-width: var(--desktop)) {
+    .ufsc-club-profile .ufsc-club-profile-layout {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+.ufsc-club-profile .ufsc-club-profile-documents .ufsc-documents-grid {
+    grid-template-columns: 1fr;
 }
 
 /* Club profile typography and spacing */
@@ -135,6 +169,28 @@
     background: #ffffff;
     border: 1px solid #e1e5e9;
     border-radius: 8px;
+}
+
+.ufsc-club-profile .ufsc-document-summary {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: var(--ufsc-spacing-sm);
+    margin-bottom: var(--ufsc-spacing-md);
+}
+.ufsc-club-profile .ufsc-document-summary-count {
+    font-weight: 600;
+    margin: 0 0 var(--ufsc-spacing-xs);
+}
+.ufsc-club-profile .ufsc-document-summary-missing-label {
+    margin: 0 0 var(--ufsc-spacing-xs);
+    color: var(--ufsc-warning);
+    font-weight: 600;
+}
+.ufsc-club-profile .ufsc-document-missing-list {
+    margin: 0;
+    padding-left: 1.2rem;
+    color: var(--ufsc-neutral);
 }
 
 /* Field */

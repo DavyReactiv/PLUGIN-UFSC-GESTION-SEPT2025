@@ -579,10 +579,10 @@ class UFSC_SQL_Admin
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="clubs_sql.csv"');
         $out = fopen('php://output', 'w');
-        fputcsv($out, ['id', 'nom', 'region', 'statut', 'quota_licences']);
+        fputcsv($out, ['id', 'nom', 'region', 'statut']);
         if ($rows) {
             foreach ($rows as $r) {
-                fputcsv($out, [$r->id, $r->nom, $r->region, $r->statut, $r->quota_licences]);
+                fputcsv($out, [$r->id, $r->nom, $r->region, $r->statut]);
             }
         }
         fclose($out);
@@ -621,6 +621,9 @@ class UFSC_SQL_Admin
 
         echo '<div class="ufsc-grid">';
         foreach ($fields as $k => $conf) {
+            if ( 'quota_licences' === $k ) {
+                continue;
+            }
             $val = $row ? (isset($row->$k) ? $row->$k : '') : '';
             self::render_field_club($k, $conf, $val, $readonly);
         }
@@ -1252,6 +1255,7 @@ class UFSC_SQL_Admin
         $filter_region = isset($_GET['filter_region']) ? sanitize_text_field($_GET['filter_region']) : '';
         $filter_club   = isset($_GET['filter_club']) ? intval($_GET['filter_club']) : 0;
         $filter_status = isset($_GET['filter_status']) ? sanitize_text_field($_GET['filter_status']) : '';
+        $filter_active = isset($_GET['filter_active']) ? (int) $_GET['filter_active'] : 0;
 
         // Pagination
         $per_page = 20;
@@ -1291,6 +1295,10 @@ class UFSC_SQL_Admin
 
         if (! empty($filter_status) && in_array('statut', $licence_columns, true)) {
             $where_conditions[] = $wpdb->prepare("l.statut = %s", $filter_status);
+        }
+
+        if ( $filter_active && in_array( 'deleted_at', $licence_columns, true ) ) {
+            $where_conditions[] = "(l.deleted_at IS NULL OR l.deleted_at = '0000-00-00 00:00:00')";
         }
 
         $where_clause = ! empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
@@ -1376,6 +1384,9 @@ class UFSC_SQL_Admin
         echo '<div class="ufsc-list-filters" style="background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px;">';
         echo '<form method="get" class="ufsc-filters-form">';
         echo '<input type="hidden" name="page" value="ufsc-sql-licences" />';
+        if ( $filter_active ) {
+            echo '<input type="hidden" name="filter_active" value="1" />';
+        }
 
         echo '<div style="display: grid; grid-template-columns: 1fr 200px 200px 150px auto; gap: 10px; align-items: end;">';
 
@@ -1633,6 +1644,9 @@ class UFSC_SQL_Admin
 
         echo '<div class="ufsc-grid">';
         foreach ($fields as $k => $conf) {
+            if ( 'is_included' === $k ) {
+                continue;
+            }
             $val = $row ? (isset($row->$k) ? $row->$k : '') : '';
             self::render_field_licence($k, $conf, $val, $readonly);
         }

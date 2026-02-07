@@ -550,6 +550,10 @@ class UFSC_Import_Export
             ]);
         }
 
+        if ( $imported > 0 ) {
+            do_action( 'ufsc_flush_valid_licence_counts_cache', (int) $club_id );
+        }
+
         return [
             'success'          => true,
             'imported'         => $imported,
