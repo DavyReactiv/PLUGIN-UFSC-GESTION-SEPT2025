@@ -487,20 +487,24 @@ class UFSC_CL_Club_Form_Handler {
     */
     public static function display_save_club_results()
     {
-        if ($_GET['ufsc_error']) {
-            $errors = explode(',', $_GET['ufsc_error']);
+        if ( isset( $_GET['ufsc_error'] ) && '' !== $_GET['ufsc_error'] ) {
+            $errors = explode( ',', sanitize_text_field( wp_unslash( $_GET['ufsc_error'] ) ) );
 
             echo '<div class="ufsc-notice ufsc-notice-error is-dismissible"><p>';
 
             echo '<span class="dashicons dashicons-error" style="color: #ffb900;"></span> <br/>';
-            echo implode('<br/>', $errors);
+            $safe_errors = array();
+            foreach ( $errors as $error ) {
+                $safe_errors[] = esc_html( $error );
+            }
+            echo implode( '<br/>', $safe_errors );
             echo '</p></div>';
 
         } 
         
-        if ($_GET['ufsc_success']) {
+        if ( isset( $_GET['ufsc_success'] ) && '' !== $_GET['ufsc_success'] ) {
             echo '<div class="ufsc-notice ufsc-notice-success is-dismissible"><p>';
-            echo $_GET['ufsc_success'];
+            echo esc_html( sanitize_text_field( wp_unslash( $_GET['ufsc_success'] ) ) );
             echo '</p></div>';
         }
     }

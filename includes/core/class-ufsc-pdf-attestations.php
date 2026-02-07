@@ -14,7 +14,9 @@ class UFSC_PDF_Attestations {
         //add_action( 'admin_menu', array( __CLASS__, 'add_admin_menu' ) );
         add_action( 'admin_init', array( __CLASS__, 'handle_upload' ) );
         add_action( 'wp_ajax_ufsc_download_attestation', array( __CLASS__, 'handle_secure_download' ) );
-        add_action( 'wp_ajax_nopriv_ufsc_download_attestation', array( __CLASS__, 'handle_secure_download' ) );
+        if ( apply_filters( 'ufsc_allow_public_attestation_download', false ) ) {
+            add_action( 'wp_ajax_nopriv_ufsc_download_attestation', array( __CLASS__, 'handle_secure_download' ) );
+        }
     }
 
     /**
@@ -481,6 +483,15 @@ class UFSC_PDF_Attestations {
      */
     public static function handle_secure_download() {
         $attestation_id = intval( $_GET['id'] );
+        $allow_public   = apply_filters( 'ufsc_allow_public_attestation_download', false, $attestation_id );
+
+        if ( ! is_user_logged_in() && ! $allow_public ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        if ( is_user_logged_in() && ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
 
         if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'ufsc_download_' . $attestation_id ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );

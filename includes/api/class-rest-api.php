@@ -78,7 +78,7 @@ class UFSC_REST_API {
         register_rest_route( 'ufsc/v1', '/attestation/(?P<type>[a-z_]+)/(?P<nonce>[a-z0-9]+)', array(
             'methods' => 'GET',
             'callback' => array( __CLASS__, 'handle_attestation_download' ),
-            'permission_callback' => '__return_true' // Public with nonce verification
+            'permission_callback' => array( __CLASS__, 'check_attestation_permissions' )
         ));
 
         // // UFSC: Enhanced dashboard endpoints
@@ -256,6 +256,30 @@ class UFSC_REST_API {
         // Clean up temporary file
         unlink( $file_path );
         exit;
+    }
+
+    /**
+     * Check permissions for attestation download endpoint.
+     *
+     * @param WP_REST_Request $request
+     * @return bool|WP_Error
+     */
+    public static function check_attestation_permissions( $request ) {
+        if ( is_user_logged_in() ) {
+            return true;
+        }
+
+        if ( apply_filters( 'ufsc_attestation_rest_public_allowed', false, $request ) ) {
+            return true;
+        }
+
+        $type  = $request->get_param( 'type' );
+        $nonce = $request->get_param( 'nonce' );
+        if ( $type && $nonce && self::verify_attestation_nonce( $type, $nonce ) ) {
+            return true;
+        }
+
+        return new WP_Error( 'rest_forbidden', __( 'Accès refusé.', 'ufsc-clubs' ), array( 'status' => 403 ) );
     }
 
     /**
