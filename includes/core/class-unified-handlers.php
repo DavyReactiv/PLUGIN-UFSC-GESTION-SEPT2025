@@ -25,6 +25,7 @@ class UFSC_Unified_Handlers {
         add_action( 'admin_post_nopriv_ufsc_delete_licence', array( __CLASS__, 'handle_delete_licence' ) );
         add_action( 'admin_post_ufsc_update_licence_status', array( __CLASS__, 'handle_update_licence_status' ) );
         add_action( 'admin_post_nopriv_ufsc_update_licence_status', array( __CLASS__, 'handle_update_licence_status' ) );
+        add_action( 'admin_post_ufsc_sync_licence_statuses', array( __CLASS__, 'handle_sync_licence_statuses' ) );
 
         // UFSC PATCH: Licence document handlers
         add_action( 'admin_post_ufsc_upload_licence_document', array( __CLASS__, 'handle_upload_licence_document' ) );
@@ -263,10 +264,11 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $licence_id = isset( $_POST['licence_id'] ) ? intval( $_POST['licence_id'] ) : 0;
-        $new_status = isset( $_POST['status'] ) ? sanitize_text_field( $_POST['status'] ) : '';
-        $user_id    = get_current_user_id();
-        $club_id    = ufsc_get_user_club_id( $user_id );
+        $licence_id     = isset( $_POST['licence_id'] ) ? intval( $_POST['licence_id'] ) : 0;
+        $new_status_raw = isset( $_POST['status'] ) ? sanitize_text_field( $_POST['status'] ) : '';
+        $new_status     = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::normalize( $new_status_raw ) : strtolower( trim( $new_status_raw ) );
+        $user_id        = get_current_user_id();
+        $club_id        = ufsc_get_user_club_id( $user_id );
 
         if ( ! $licence_id || ! $club_id || ! $new_status ) {
             self::redirect_with_error( 'Paramètres invalides' );
@@ -278,8 +280,8 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $valid_statuses = array_keys( UFSC_SQL::statuses() );
-        if ( ! in_array( $new_status, $valid_statuses ) ) {
+        $valid_statuses = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::allowed() : array_keys( UFSC_SQL::statuses() );
+        if ( ! in_array( $new_status, $valid_statuses, true ) ) {
             self::redirect_with_error( 'Statut invalide', $licence_id );
             return;
         }
@@ -288,7 +290,11 @@ class UFSC_Unified_Handlers {
         $settings = UFSC_SQL::get_settings();
         $table    = $settings['table_licences'];
 
-        $wpdb->update( $table, array( 'statut' => $new_status ), array( 'id' => $licence_id, 'club_id' => $club_id ) );
+        if ( class_exists( 'UFSC_Licence_Status' ) ) {
+            UFSC_Licence_Status::update_status_columns( $table, array( 'id' => $licence_id, 'club_id' => $club_id ), $new_status, array( '%d', '%d' ) );
+        } else {
+            $wpdb->update( $table, array( 'statut' => $new_status ), array( 'id' => $licence_id, 'club_id' => $club_id ) );
+        }
 
         $redirect_url = add_query_arg( array(
             'updated_status' => 1,
@@ -296,6 +302,28 @@ class UFSC_Unified_Handlers {
         ), wp_get_referer() );
         self::maybe_redirect( $redirect_url );
         return;
+    }
+
+    /**
+     * Handle admin sync for legacy licence status column.
+     */
+    public static function handle_sync_licence_statuses() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        check_admin_referer( 'ufsc_sync_licence_statuses' );
+
+        $updated = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::sync_legacy_status_column() : 0;
+
+        $redirect_url = add_query_arg(
+            array(
+                'ufsc_status_sync' => $updated,
+            ),
+            wp_get_referer()
+        );
+
+        self::maybe_redirect( $redirect_url );
     }
 
     /**
@@ -820,7 +848,11 @@ class UFSC_Unified_Handlers {
         global $wpdb;
         $settings       = UFSC_SQL::get_settings();
         $licences_table = $settings['table_licences'];
-        $wpdb->update( $licences_table, array( 'statut' => $status ), array( 'id' => $licence_id ), array( '%s' ), array( '%d' ) );
+        if ( class_exists( 'UFSC_Licence_Status' ) ) {
+            UFSC_Licence_Status::update_status_columns( $licences_table, array( 'id' => $licence_id ), $status, array( '%d' ) );
+        } else {
+            $wpdb->update( $licences_table, array( 'statut' => $status ), array( 'id' => $licence_id ), array( '%s' ), array( '%d' ) );
+        }
 
         $club_id = $wpdb->get_var( $wpdb->prepare( "SELECT club_id FROM {$licences_table} WHERE id = %d", $licence_id ) );
         if ( $club_id ) {

@@ -493,8 +493,8 @@ class UFSC_Frontend_Shortcodes {
                                         $gender = $licence->sexe ?? '';
                                 }
 
-                                $status_raw = function_exists( 'ufsc_get_licence_status_raw' ) ? ufsc_get_licence_status_raw( $licence ) : ( $licence->statut ?? ( $licence->status ?? '' ) );
-                                $status     = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw;
+                                $status_raw = $licence->licence_statut ?? ( $licence->statut ?? '' );
+                                $status     = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::display_status( $status_raw ) : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw );
                                 $season     = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
 
                                 $practice = isset( $licence->competition ) && $licence->competition
@@ -689,8 +689,8 @@ class UFSC_Frontend_Shortcodes {
             </div>
             <div class="ufsc-row-actions">
                 <?php
-                $licence_status_raw = function_exists( 'ufsc_get_licence_status_raw' ) ? ufsc_get_licence_status_raw( $licence ) : ( $licence->statut ?? ( $licence->status ?? '' ) );
-                $licence_status     = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $licence_status_raw ) : $licence_status_raw;
+                $licence_status_raw = $licence->licence_statut ?? ( $licence->statut ?? '' );
+                $licence_status     = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::display_status( $licence_status_raw ) : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $licence_status_raw ) : $licence_status_raw );
                 $can_retry_payment  = function_exists( 'ufsc_can_retry_licence_payment' ) ? ufsc_can_retry_licence_payment( $licence->id ?? 0 ) : false;
 
                 if ( 'non_payee' === $licence_status || $can_retry_payment ) :
@@ -1567,7 +1567,16 @@ class UFSC_Frontend_Shortcodes {
             return null;
         }
         $table = ufsc_get_licences_table();
-        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d AND club_id = %d", $licence_id, $club_id ) );
+        $columns = function_exists( 'ufsc_table_columns' )
+            ? ufsc_table_columns( $table )
+            : $wpdb->get_col( "DESCRIBE `{$table}`" );
+
+        $select_fields = '*';
+        if ( in_array( 'statut', $columns, true ) ) {
+            $select_fields = "*, `statut` AS licence_statut";
+        }
+
+        return $wpdb->get_row( $wpdb->prepare( "SELECT {$select_fields} FROM `{$table}` WHERE id = %d AND club_id = %d", $licence_id, $club_id ) );
     }
 
     // Helper methods
@@ -1672,19 +1681,13 @@ class UFSC_Frontend_Shortcodes {
         }
 
         // Statut
-        if ( ! empty( $args['status'] ) ) {
-            $status_col = null;
-            foreach ( array( 'status', 'statut' ) as $col ) {
-                if ( in_array( $col, $columns, true ) ) { $status_col = $col; break; }
-            }
-            if ( $status_col ) {
-                $raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
-                    ? ufsc_get_licence_status_raw_values_for_norm( $args['status'] )
-                    : array( $args['status'] );
-                $placeholders = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
-                $clauses[]    = "`{$status_col}` IN ({$placeholders})";
-                $values       = array_merge( $values, $raw_values );
-            }
+        if ( ! empty( $args['status'] ) && in_array( 'statut', $columns, true ) ) {
+            $raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
+                ? ufsc_get_licence_status_raw_values_for_norm( $args['status'] )
+                : array( $args['status'] );
+            $placeholders = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
+            $clauses[]    = "`statut` IN ({$placeholders})";
+            $values       = array_merge( $values, $raw_values );
         }
 
         // Saison
@@ -1720,7 +1723,12 @@ class UFSC_Frontend_Shortcodes {
         $offset   = ( $page - 1 ) * $per_page;
 
         $where_sql = $clauses ? 'WHERE ' . implode( ' AND ', $clauses ) : '';
-        $sql       = "SELECT * FROM `{$licences_table}` {$where_sql} ORDER BY {$order_by} LIMIT %d OFFSET %d";
+        $select_fields = '*';
+        if ( in_array( 'statut', $columns, true ) ) {
+            $select_fields = "*, `statut` AS licence_statut";
+        }
+
+        $sql       = "SELECT {$select_fields} FROM `{$licences_table}` {$where_sql} ORDER BY {$order_by} LIMIT %d OFFSET %d";
         $values[]  = $per_page;
         $values[]  = $offset;
 
@@ -1769,19 +1777,13 @@ class UFSC_Frontend_Shortcodes {
         }
 
         // Statut
-        if ( ! empty( $args['status'] ) ) {
-            $status_col = null;
-            foreach ( array( 'status', 'statut' ) as $col ) {
-                if ( in_array( $col, $columns, true ) ) { $status_col = $col; break; }
-            }
-            if ( $status_col ) {
-                $raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
-                    ? ufsc_get_licence_status_raw_values_for_norm( $args['status'] )
-                    : array( $args['status'] );
-                $placeholders = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
-                $clauses[]    = "`{$status_col}` IN ({$placeholders})";
-                $values       = array_merge( $values, $raw_values );
-            }
+        if ( ! empty( $args['status'] ) && in_array( 'statut', $columns, true ) ) {
+            $raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
+                ? ufsc_get_licence_status_raw_values_for_norm( $args['status'] )
+                : array( $args['status'] );
+            $placeholders = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
+            $clauses[]    = "`statut` IN ({$placeholders})";
+            $values       = array_merge( $values, $raw_values );
         }
 
         // Saison

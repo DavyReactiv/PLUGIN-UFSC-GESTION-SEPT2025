@@ -32,8 +32,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                 }
             }
 
-            $status_raw   = function_exists( 'ufsc_get_licence_status_raw' ) ? ufsc_get_licence_status_raw( $licence ) : ( $licence->statut ?? ( $licence->status ?? '' ) );
-            $status_norm  = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw;
+            $status_raw   = $licence->licence_statut ?? ( $licence->statut ?? '' );
+            $status_norm  = function_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::display_status( $status_raw ) : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw );
             $status_class = $status_norm ? sanitize_html_class( $status_norm ) : 'en_attente';
             $season_label = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
             ?>
