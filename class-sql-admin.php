@@ -4,6 +4,10 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
+if ( class_exists( 'UFSC_SQL_Admin' ) ) {
+    return;
+}
+
 class UFSC_SQL_Admin
 {
     /**
@@ -79,8 +83,13 @@ class UFSC_SQL_Admin
         if (isset($_POST['ufsc_sql_save']) && check_admin_referer('ufsc_sql_settings')) {
             $in = UFSC_CL_Utils::sanitize_text_arr($_POST);
             $opts = UFSC_SQL::get_settings();
-            $opts['table_clubs'] = $in['table_clubs'];
-            $opts['table_licences'] = $in['table_licences'];
+            if ( function_exists( 'ufsc_sanitize_table_name' ) ) {
+                $opts['table_clubs'] = ufsc_sanitize_table_name( $in['table_clubs'] );
+                $opts['table_licences'] = ufsc_sanitize_table_name( $in['table_licences'] );
+            } else {
+                $opts['table_clubs'] = $in['table_clubs'];
+                $opts['table_licences'] = $in['table_licences'];
+            }
             update_option('ufsc_sql_settings', $opts);
             echo '<div class="updated"><p>'.esc_html__('Réglages enregistrés.', 'ufsc-clubs').'</p></div>';
         }
