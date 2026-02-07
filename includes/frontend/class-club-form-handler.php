@@ -27,6 +27,9 @@ class UFSC_CL_Club_Form_Handler {
         $club_id = (int) ( $_POST['club_id'] ?? 0 );
         $affiliation = (bool) ( $_POST['affiliation'] ?? false );
         $is_edit = $club_id > 0;
+        if ( $is_edit ) {
+            UFSC_Scope::enforce_object_scope( array( 'club_id' => $club_id ) );
+        }
 
         // Permission checks
         if ( $is_edit && ! UFSC_CL_Permissions::ufsc_user_can_edit_club( $club_id ) ) {
@@ -41,6 +44,9 @@ class UFSC_CL_Club_Form_Handler {
         
         // Collect and sanitize input data
         $data = self::collect_and_sanitize_data();
+        if ( isset( $data['region'] ) ) {
+            UFSC_Scope::enforce_object_scope( array( 'region' => $data['region'] ) );
+        }
 
         // Validate required fields
         $validation_errors = UFSC_CL_Utils::validate_club_data( $data, $affiliation );

@@ -184,6 +184,10 @@ class UFSC_Clubs_List_Table {
             $conditions[] = $wpdb->prepare( "DATE(date_creation) <= %s", $filters['created_to'] );
         }
 
+        if ( self::has_column( $columns, $clubs_table, 'region' ) ) {
+            $conditions = UFSC_Scope::apply_scope_to_where( $conditions, 'region' );
+        }
+
         return $conditions;
     }
 
@@ -215,6 +219,9 @@ class UFSC_Clubs_List_Table {
      * Render action buttons
      */
     private static function render_action_buttons() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
         echo '<p>';
         echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&action=new' ) ) . '" class="button button-primary">';
         echo esc_html__( 'Ajouter un club', 'ufsc-clubs' );
@@ -336,6 +343,7 @@ class UFSC_Clubs_List_Table {
      * Render main clubs table
      */
     private static function render_clubs_table( $clubs, $sorting, $licence_counts ) {
+        $can_manage = current_user_can( 'manage_options' );
         // Affichage des notices
         if ( isset($_GET['processed']) ) {
             if ( $_GET['processed'] == '1' ) {
@@ -346,25 +354,29 @@ class UFSC_Clubs_List_Table {
         }
 
         echo '<form method="post" id="bulk-actions-form">';
-        // Bulk actions
-        echo '<div class="ufsc-bulk-actions" style="margin: 15px 0;">';
+        if ( $can_manage ) {
+            // Bulk actions
+            echo '<div class="ufsc-bulk-actions" style="margin: 15px 0;">';
 
-        wp_nonce_field('ufsc_bulk_clubs_actions');
-        echo '<select name="bulk_action" id="bulk-action-selector">';
-        echo '<option value="">'.esc_html__('Actions groupées', 'ufsc-clubs').'</option>';
-        echo '<option value="delete">'.esc_html__('Supprimer', 'ufsc-clubs').'</option>';
-        echo '<option value="actif">'.esc_html__('Actif', 'ufsc-clubs').'</option>';
-        echo '<option value="en_attente">'.esc_html__('En attente', 'ufsc-clubs').'</option>';
-        echo '<option value="creating">'.esc_html__('En cours de création', 'ufsc-clubs').'</option>';
-        echo '</select>';
-        echo ' <button type="submit" class="button">'.esc_html__('Appliquer', 'ufsc-clubs').'</button>';
-        echo '</div>';
+            wp_nonce_field('ufsc_bulk_clubs_actions');
+            echo '<select name="bulk_action" id="bulk-action-selector">';
+            echo '<option value="">'.esc_html__('Actions groupées', 'ufsc-clubs').'</option>';
+            echo '<option value="delete">'.esc_html__('Supprimer', 'ufsc-clubs').'</option>';
+            echo '<option value="actif">'.esc_html__('Actif', 'ufsc-clubs').'</option>';
+            echo '<option value="en_attente">'.esc_html__('En attente', 'ufsc-clubs').'</option>';
+            echo '<option value="creating">'.esc_html__('En cours de création', 'ufsc-clubs').'</option>';
+            echo '</select>';
+            echo ' <button type="submit" class="button">'.esc_html__('Appliquer', 'ufsc-clubs').'</button>';
+            echo '</div>';
+        }
 
         //table
         echo '<table class="wp-list-table widefat fixed striped">';
         echo '<thead>';
         echo '<tr>';
-        echo '<td class="check-column"><input type="checkbox" id="select-all-club" /></td>';
+        if ( $can_manage ) {
+            echo '<td class="check-column"><input type="checkbox" id="select-all-club" /></td>';
+        }
         echo '<th>ID</th>';
         echo '<th>' . self::get_sortable_header( 'nom', __( 'Nom du club', 'ufsc-clubs' ), $sorting ) . '</th>';
         echo '<th>' . self::get_sortable_header( 'region', __( 'Région', 'ufsc-clubs' ), $sorting ) . '</th>';
@@ -382,7 +394,7 @@ class UFSC_Clubs_List_Table {
 
         if ( $clubs ) {
             foreach ( $clubs as $club ) {
-                self::render_club_row( $club, $licence_counts );
+                self::render_club_row( $club, $licence_counts, $can_manage );
             }
         } else {
             echo '<tr><td colspan="10">' . esc_html__( 'Aucun club trouvé.', 'ufsc-clubs' ) . '</td></tr>';
@@ -397,11 +409,13 @@ class UFSC_Clubs_List_Table {
     /**
      * Render individual club row
      */
-    private static function render_club_row( $club, $licence_counts ) {
+    private static function render_club_row( $club, $licence_counts, $can_manage ) {
     echo '<tr>';
 
     // Checkbox
-    echo '<th class="check-column"><input type="checkbox" name="club_ids[]" value="' . (int) ( $club->id ?? 0 ) . '" /></th>';
+    if ( $can_manage ) {
+        echo '<th class="check-column"><input type="checkbox" name="club_ids[]" value="' . (int) ( $club->id ?? 0 ) . '" /></th>';
+    }
 
     // ID
     echo '<td>' . (int) ( $club->id ?? 0 ) . '</td>';
@@ -457,8 +471,10 @@ class UFSC_Clubs_List_Table {
         'ufsc_sql_delete_club'
     );
     echo '<a href="' . esc_url( $view_url ) . '" class="button button-small">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a> ';
-    echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a> ';
-    echo '<a href="' . esc_url( $delete_url ) . '" class="button button-small button-link-delete" onclick="return confirm(\'' . esc_js( __( 'Êtes-vous sûr de vouloir supprimer ce club ?', 'ufsc-clubs' ) ) . '\')">' . esc_html__( 'Supprimer', 'ufsc-clubs' ) . '</a>';
+    if ( current_user_can( 'manage_options' ) ) {
+        echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a> ';
+        echo '<a href="' . esc_url( $delete_url ) . '" class="button button-small button-link-delete" onclick="return confirm(\'' . esc_js( __( 'Êtes-vous sûr de vouloir supprimer ce club ?', 'ufsc-clubs' ) ) . '\')">' . esc_html__( 'Supprimer', 'ufsc-clubs' ) . '</a>';
+    }
     echo '</td>';
 
     echo '</tr>';
@@ -519,10 +535,18 @@ class UFSC_Clubs_List_Table {
             return;
         }
 
-        $regions = $wpdb->get_col( "SELECT DISTINCT region FROM `{$clubs_table}` WHERE region IS NOT NULL AND region != '' ORDER BY region" );
+        $scope_slug  = UFSC_Scope::get_user_scope_region();
+        $scope_label = $scope_slug ? UFSC_Scope::get_region_label( $scope_slug ) : '';
+        if ( $scope_label ) {
+            $regions = array( $scope_label );
+        } else {
+            $regions = $wpdb->get_col( "SELECT DISTINCT region FROM `{$clubs_table}` WHERE region IS NOT NULL AND region != '' ORDER BY region" );
+        }
 
         echo '<select name="region">';
-        echo '<option value="">' . esc_html__( '— Toutes les régions —', 'ufsc-clubs' ) . '</option>';
+        if ( ! $scope_label ) {
+            echo '<option value="">' . esc_html__( '— Toutes les régions —', 'ufsc-clubs' ) . '</option>';
+        }
         foreach ( $regions as $region ) {
             echo '<option value="' . esc_attr( $region ) . '"' . selected( $selected, $region, false ) . '>';
             echo esc_html( $region );
@@ -634,6 +658,9 @@ class UFSC_Clubs_List_Table {
         if (!isset($_GET['page']) || $_GET['page'] !== 'ufsc-sql-clubs') {
             return;
         }
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
 
         if (!isset($_POST['_wpnonce']) || !wp_verify_nonce($_POST['_wpnonce'], 'ufsc_bulk_clubs_actions')) {
             return;
@@ -679,6 +706,7 @@ class UFSC_Clubs_List_Table {
         global $wpdb;
         $deleteds = [];
         foreach ($item_ids as $item_id) {
+            UFSC_Scope::assert_club_in_scope( $item_id );
             $row = $wpdb->get_row( "SELECT count(*) as nb FROM `{$settings['table_licences']}` WHERE club_id = ". (int) $item_id );
             if($row->nb <= 0){
                 $deleteds[] = $item_id;
@@ -698,6 +726,7 @@ class UFSC_Clubs_List_Table {
         global $wpdb;
 
         foreach ($item_ids as $item_id) {
+            UFSC_Scope::assert_club_in_scope( $item_id );
             $wpdb->update(
                 $table,
                 array('statut' => 'actif'),
@@ -718,6 +747,7 @@ class UFSC_Clubs_List_Table {
         global $wpdb;
 
         foreach ($item_ids as $item_id) {
+            UFSC_Scope::assert_club_in_scope( $item_id );
             $result = $wpdb->update(
                 $table,
                 array('statut' => 'en_attente'),
@@ -738,6 +768,7 @@ class UFSC_Clubs_List_Table {
         global $wpdb;
 
         foreach ($item_ids as $item_id) {
+            UFSC_Scope::assert_club_in_scope( $item_id );
             $result = $wpdb->update(
                 $table,
                 array('statut' => 'en_cours_de_creation'),

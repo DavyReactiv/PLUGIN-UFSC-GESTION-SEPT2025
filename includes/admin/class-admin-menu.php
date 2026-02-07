@@ -9,7 +9,7 @@ class UFSC_CL_Admin_Menu {
 		add_menu_page(
 			__( 'UFSC Gestion', 'ufsc-clubs' ),
 			__( 'UFSC Gestion', 'ufsc-clubs' ),
-			'manage_options',
+			UFSC_Capabilities::CAP_MANAGE_READ,
 			'ufsc-dashboard',
 			array( __CLASS__, 'render_dashboard' ),
 			'dashicons-groups',
@@ -21,7 +21,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Tableau de bord', 'ufsc-clubs' ),
 			__( 'Tableau de bord', 'ufsc-clubs' ),
-			'manage_options',
+			UFSC_Capabilities::CAP_MANAGE_READ,
 			'ufsc-dashboard',
 			array( __CLASS__, 'render_dashboard' )
 		);
@@ -30,7 +30,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Clubs', 'ufsc-clubs' ),
 			__( 'Clubs', 'ufsc-clubs' ),
-			'manage_options',
+			UFSC_Capabilities::CAP_MANAGE_READ,
 			'ufsc-clubs',
 			array( 'UFSC_SQL_Admin', 'render_clubs' )
 		);
@@ -39,7 +39,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Licences', 'ufsc-clubs' ),
 			__( 'Licences', 'ufsc-clubs' ),
-			'manage_options',
+			UFSC_Capabilities::CAP_LICENCE_READ,
 			'ufsc-licences',
 			array( 'UFSC_SQL_Admin', 'render_licences' )
 		);
@@ -48,7 +48,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Exports', 'ufsc-clubs' ),
 			__( 'Exports', 'ufsc-clubs' ),
-			'manage_options',
+			UFSC_Capabilities::CAP_MANAGE_READ,
 			'ufsc-exports',
 			array( 'UFSC_SQL_Admin', 'render_exports' )
 		);
@@ -57,7 +57,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Import', 'ufsc-clubs' ),
 			__( 'Import', 'ufsc-clubs' ),
-			'manage_options',
+			UFSC_Capabilities::CAP_MANAGE_READ,
 			'ufsc-import',
 			array( 'UFSC_SQL_Admin', 'render_import' )
 		);
@@ -66,7 +66,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Paramètres', 'ufsc-clubs' ),
 			__( 'Paramètres', 'ufsc-clubs' ),
-			'manage_options',
+			UFSC_Capabilities::CAP_MANAGE_READ,
 			'ufsc-settings',
 			array( 'UFSC_Settings_Page', 'render' )
 		);
@@ -75,7 +75,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'WooCommerce', 'ufsc-clubs' ),
 			__( 'WooCommerce', 'ufsc-clubs' ),
-			'manage_options',
+			UFSC_Capabilities::CAP_MANAGE_READ,
 			'ufsc-woocommerce',
 			array( 'UFSC_SQL_Admin', 'render_woocommerce_settings' )
 		);
@@ -127,9 +127,11 @@ class UFSC_CL_Admin_Menu {
 		echo '</div>';
 
 		// Handle cache refresh
-		if ( isset( $_GET['ufsc_refresh_cache'] ) && current_user_can( 'manage_options' ) ) {
-			check_admin_referer( 'ufsc_refresh_cache' );
-			delete_transient( 'ufsc_dashboard_data' );
+			if ( isset( $_GET['ufsc_refresh_cache'] ) && current_user_can( 'manage_options' ) ) {
+				check_admin_referer( 'ufsc_refresh_cache' );
+				$scope_slug = UFSC_Scope::get_user_scope_region();
+				delete_transient( 'ufsc_dashboard_data_' . ( $scope_slug ? $scope_slug : 'all' ) );
+				delete_transient( 'ufsc_dashboard_data' );
 
 			// UFSC PATCH: also flush columns cache (non bloquant)
 			if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) {
@@ -257,13 +259,15 @@ class UFSC_CL_Admin_Menu {
 		// Actions rapides améliorées
 		echo '<div class="ufsc-quick-actions" style="margin-top: 30px;">';
 		echo '<h2>' . esc_html__( 'Actions Rapides', 'ufsc-clubs' ) . '</h2>';
-		echo '<div class="ufsc-button-group" style="gap: 12px; flex-wrap: wrap; margin-top: 15px;">';
-		echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&action=new' ) ) . '" class="button button-primary">' . esc_html__( 'Nouveau Club', 'ufsc-clubs' ) . '</a>';
-		echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-licences&action=new' ) ) . '" class="button button-primary">' . esc_html__( 'Nouvelle Licence', 'ufsc-clubs' ) . '</a>';
-		echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs' ) ) . '" class="button">' . esc_html__( 'Gérer les Clubs', 'ufsc-clubs' ) . '</a>';
-		echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-licences' ) ) . '" class="button">' . esc_html__( 'Gérer les Licences', 'ufsc-clubs' ) . '</a>';
-		echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-settings' ) ) . '" class="button">' . esc_html__( 'Réglages', 'ufsc-clubs' ) . '</a>';
-		echo '</div>';
+		if ( current_user_can( 'manage_options' ) ) {
+			echo '<div class="ufsc-button-group" style="gap: 12px; flex-wrap: wrap; margin-top: 15px;">';
+			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&action=new' ) ) . '" class="button button-primary">' . esc_html__( 'Nouveau Club', 'ufsc-clubs' ) . '</a>';
+			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-licences&action=new' ) ) . '" class="button button-primary">' . esc_html__( 'Nouvelle Licence', 'ufsc-clubs' ) . '</a>';
+			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs' ) ) . '" class="button">' . esc_html__( 'Gérer les Clubs', 'ufsc-clubs' ) . '</a>';
+			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-licences' ) ) . '" class="button">' . esc_html__( 'Gérer les Licences', 'ufsc-clubs' ) . '</a>';
+			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-settings' ) ) . '" class="button">' . esc_html__( 'Réglages', 'ufsc-clubs' ) . '</a>';
+			echo '</div>';
+		}
 		echo '</div>';
 
 		// Add charts JavaScript
@@ -280,7 +284,8 @@ class UFSC_CL_Admin_Menu {
 	 * @return array
 	 */
 	private static function get_dashboard_data_cached( $t_clubs, $t_lics ) {
-		$cache_key   = 'ufsc_dashboard_data';
+		$scope_slug  = UFSC_Scope::get_user_scope_region();
+		$cache_key   = 'ufsc_dashboard_data_' . ( $scope_slug ? $scope_slug : 'all' );
 		$cached_data = get_transient( $cache_key );
 
 		if ( false !== $cached_data ) {
@@ -292,14 +297,18 @@ class UFSC_CL_Admin_Menu {
 
 		try {
 			// Basic club stats
-			$data['clubs_total']  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_clubs`" );
-			$data['clubs_active'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_clubs` WHERE statut IN ('actif', 'active', 'valide')" );
+			$scope_clubs = UFSC_Scope::build_scope_condition( 'region' );
+			$clubs_where = $scope_clubs ? "WHERE {$scope_clubs}" : '';
+			$data['clubs_total']  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_clubs` {$clubs_where}" );
+			$data['clubs_active'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_clubs` " . ( $clubs_where ? "{$clubs_where} AND" : 'WHERE' ) . " statut IN ('actif', 'active', 'valide')" );
 
 			// License stats by status
-			$data['licenses_total']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics`" );
-			$data['licenses_valid']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` WHERE statut IN ('valide', 'validee', 'active')" );
-			$data['licenses_pending']  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` WHERE statut IN ('en_attente', 'attente', 'pending', 'a_regler')" );
-			$data['licenses_rejected'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` WHERE statut IN ('refuse', 'rejected')" );
+			$scope_lics = UFSC_Scope::build_scope_condition( 'region' );
+			$lics_where = $scope_lics ? "WHERE {$scope_lics}" : '';
+			$data['licenses_total']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` {$lics_where}" );
+			$data['licenses_valid']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('valide', 'validee', 'active')" );
+			$data['licenses_pending']  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('en_attente', 'attente', 'pending', 'a_regler')" );
+			$data['licenses_rejected'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('refuse', 'rejected')" );
 
 			// Expiring licenses (if certificat_expiration / date_expiration exist)
 			$columns = function_exists( 'ufsc_table_columns' )
@@ -323,27 +332,34 @@ class UFSC_CL_Admin_Menu {
 						"SELECT COUNT(*) FROM `$t_lics`
 						 WHERE `$expiration_field` IS NOT NULL
 						 AND `$expiration_field` <= %s
-						 AND statut IN ('valide', 'validee', 'active')",
+						 AND statut IN ('valide', 'validee', 'active')"
+						 . ( $scope_lics ? " AND {$scope_lics}" : '' ),
 						$thirty_days_from_now
 					)
 				);
 			}
 
 			// Regional breakdown
-			$regions_query       = "SELECT region, COUNT(*) as count FROM `$t_lics` WHERE region IS NOT NULL AND region != '' GROUP BY region ORDER BY count DESC LIMIT 10";
+			$regions_query       = "SELECT region, COUNT(*) as count FROM `$t_lics` WHERE region IS NOT NULL AND region != ''"
+				. ( $scope_lics ? " AND {$scope_lics}" : '' )
+				. " GROUP BY region ORDER BY count DESC LIMIT 10";
 			$data['regions_data'] = $wpdb->get_results( $regions_query );
 
 			// License evolution (last 30 days)
 			$evolution_query        = "SELECT DATE(date_inscription) as date, COUNT(*) as count
 				FROM `$t_lics`
-				WHERE date_inscription >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+				WHERE date_inscription >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
+				. ( $scope_lics ? " AND {$scope_lics}" : '' )
+				. "
 				GROUP BY DATE(date_inscription)
 				ORDER BY date ASC";
 			$data['evolution_data'] = $wpdb->get_results( $evolution_query );
 
 			// Recent licenses (last 10)
 			$recent_query           = "SELECT prenom, nom, statut, date_inscription
-				FROM `$t_lics`
+				FROM `$t_lics`"
+				. ( $scope_lics ? " WHERE {$scope_lics}" : '' )
+				. "
 				ORDER BY date_inscription DESC
 				LIMIT 10";
 			$data['recent_licenses'] = $wpdb->get_results( $recent_query );

@@ -127,6 +127,10 @@ class UFSC_REST_API {
         if ( ! $club_id ) {
             return new WP_Error( 'rest_forbidden', __( 'Aucun club associé à votre compte.', 'ufsc-clubs' ), array( 'status' => 403 ) );
         }
+        $club_region = UFSC_Scope::get_club_region( $club_id );
+        if ( ! UFSC_Scope::is_in_scope( $club_region ) ) {
+            return new WP_Error( 'rest_forbidden', __( 'Accès refusé (hors région).', 'ufsc-clubs' ), array( 'status' => 403 ) );
+        }
 
         return true;
     }
@@ -812,4 +816,3 @@ function ufsc_invalidate_stats_cache( $club_id, $season = null ) {
     $cache_key = "ufsc_stats_{$club_id}_{$season}";
     delete_transient( $cache_key );
 }
-
