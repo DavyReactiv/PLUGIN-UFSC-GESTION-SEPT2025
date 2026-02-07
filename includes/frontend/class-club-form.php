@@ -508,12 +508,6 @@ class UFSC_CL_Club_Form {
                                 <?php endforeach; ?>
                             </select>
                         <div class="ufsc-field-error" aria-live="polite"></div></div>
-                        <?php if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) : ?>
-                            <div class="ufsc-field">
-                                <label for="quota_licences" class="ufsc-label"><?php esc_html_e( 'Quota licences', 'ufsc-clubs' ); ?></label>
-                                <input type="number" id="quota_licences" name="quota_licences" value="<?php echo esc_attr( $club_data['quota_licences'] ?? '' ); ?>" min="0" />
-                            <div class="ufsc-field-error" aria-live="polite"></div></div>
-                        <?php endif; ?>
                     </div>
                     
                     <div class="ufsc-field">

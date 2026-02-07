@@ -243,6 +243,7 @@ class UFSC_Unified_Handlers {
         $table    = $settings['table_licences'];
 
         $wpdb->delete( $table, array( 'id' => $licence_id, 'club_id' => $club_id ) );
+        do_action( 'ufsc_licence_deleted', (int) $club_id );
 
         $redirect_url = add_query_arg( 'deleted', 1, wp_get_referer() );
         self::maybe_redirect( $redirect_url );
@@ -1093,6 +1094,7 @@ class UFSC_Unified_Handlers {
             if ( $result === false ) {
                 return new WP_Error( 'update_failed', __( 'Erreur lors de la mise à jour', 'ufsc-clubs' ) );
             }
+            do_action( 'ufsc_licence_updated', (int) $club_id );
             return $licence_id;
         } else {
             // Create
@@ -1104,7 +1106,10 @@ class UFSC_Unified_Handlers {
             if ( $result === false ) {
                 return new WP_Error( 'insert_failed', __( 'Erreur lors de la création', 'ufsc-clubs' ) );
             }
-            return $wpdb->insert_id;
+            $new_id = (int) $wpdb->insert_id;
+            do_action( 'ufsc_licence_created', $new_id, (int) $club_id );
+            do_action( 'ufsc_licence_updated', (int) $club_id );
+            return $new_id;
         }
     }
 
