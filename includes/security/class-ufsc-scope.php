@@ -327,6 +327,36 @@ class UFSC_Scope {
             self::assert_in_scope( $args['region'] );
         }
     }
+
+    /**
+     * Enforce scope for a club ID.
+     *
+     * @param int $club_id
+     * @return void
+     */
+    public static function enforce_club_scope( $club_id ) {
+        self::enforce_object_scope( array( 'club_id' => (int) $club_id ) );
+    }
+
+    /**
+     * Enforce scope for a licence ID.
+     *
+     * @param int $licence_id
+     * @return void
+     */
+    public static function enforce_licence_scope( $licence_id ) {
+        self::enforce_object_scope( array( 'licence_id' => (int) $licence_id ) );
+    }
+
+    /**
+     * Enforce scope for an entry ID.
+     *
+     * @param int $entry_id
+     * @return void
+     */
+    public static function enforce_entry_scope( $entry_id ) {
+        self::enforce_object_scope( array( 'entry_id' => (int) $entry_id ) );
+    }
 }
 
 if ( ! function_exists( 'ufsc_get_user_scope_region' ) ) {
