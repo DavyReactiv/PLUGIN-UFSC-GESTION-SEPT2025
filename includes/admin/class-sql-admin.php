@@ -2178,16 +2178,17 @@ class UFSC_SQL_Admin
             wp_die();
         }
 
-        $licence_id = intval($_POST['licence_id']);
-        $new_status = sanitize_text_field($_POST['status']);
+        $licence_id     = intval($_POST['licence_id']);
+        $new_status_raw = sanitize_text_field($_POST['status']);
+        $new_status     = class_exists('UFSC_Licence_Status') ? UFSC_Licence_Status::normalize( $new_status_raw ) : strtolower( trim( $new_status_raw ) );
 
         if (! $licence_id || empty($new_status)) {
             wp_send_json_error(['message' => 'Invalid parameters']);
         }
 
         // Validate status
-        $valid_statuses = array_keys(UFSC_SQL::statuses());
-        if (! in_array($new_status, $valid_statuses)) {
+        $valid_statuses = class_exists('UFSC_Licence_Status') ? UFSC_Licence_Status::allowed() : array_keys(UFSC_SQL::statuses());
+        if (! in_array($new_status, $valid_statuses, true)) {
             wp_send_json_error(['message' => 'Invalid status']);
         }
 
@@ -2201,13 +2202,17 @@ class UFSC_SQL_Admin
         }
 
         // Update the status
-        $result = $wpdb->update(
-            $table,
-            ['statut' => $new_status],
-            [$pk => $licence_id],
-            ['%s'],
-            ['%d']
-        );
+        if ( class_exists('UFSC_Licence_Status') ) {
+            $result = UFSC_Licence_Status::update_status_columns( $table, array( $pk => $licence_id ), $new_status, array( '%d' ) );
+        } else {
+            $result = $wpdb->update(
+                $table,
+                ['statut' => $new_status],
+                [$pk => $licence_id],
+                ['%s'],
+                ['%d']
+            );
+        }
 
         if ($result !== false) {
             // Get badge class for the new status
@@ -3502,13 +3507,17 @@ class UFSC_SQL_Admin
         }
 
         foreach ($item_ids as $item_id) {
-            $wpdb->update(
-                $table,
-                ['statut' => 'valide'],
-                ['id' => $item_id],
-                ['%s'],
-                ['%d']
-            );
+            if ( class_exists( 'UFSC_Licence_Status' ) ) {
+                UFSC_Licence_Status::update_status_columns( $table, array( 'id' => $item_id ), 'valide', array( '%d' ) );
+            } else {
+                $wpdb->update(
+                    $table,
+                    ['statut' => 'valide'],
+                    ['id' => $item_id],
+                    ['%s'],
+                    ['%d']
+                );
+            }
         }
 
         add_action('admin_notices', function () use ($item_ids) {
@@ -3526,13 +3535,17 @@ class UFSC_SQL_Admin
         }
 
         foreach ($item_ids as $item_id) {
-            $result = $wpdb->update(
-                $table,
-                ['statut' => 'refuse'],
-                ['id' => $item_id],
-                ['%s'],
-                ['%d']
-            );
+            if ( class_exists( 'UFSC_Licence_Status' ) ) {
+                UFSC_Licence_Status::update_status_columns( $table, array( 'id' => $item_id ), 'refuse', array( '%d' ) );
+            } else {
+                $result = $wpdb->update(
+                    $table,
+                    ['statut' => 'refuse'],
+                    ['id' => $item_id],
+                    ['%s'],
+                    ['%d']
+                );
+            }
         }
 
         add_action('admin_notices', function () use ($item_ids) {
@@ -3550,13 +3563,17 @@ class UFSC_SQL_Admin
         }
 
         foreach ($item_ids as $item_id) {
-            $result = $wpdb->update(
-                $table,
-                ['statut' => 'en_attente'],
-                ['id' => $item_id],
-                ['%s'],
-                ['%d']
-            );
+            if ( class_exists( 'UFSC_Licence_Status' ) ) {
+                UFSC_Licence_Status::update_status_columns( $table, array( 'id' => $item_id ), 'en_attente', array( '%d' ) );
+            } else {
+                $result = $wpdb->update(
+                    $table,
+                    ['statut' => 'en_attente'],
+                    ['id' => $item_id],
+                    ['%s'],
+                    ['%d']
+                );
+            }
         }
 
         add_action('admin_notices', function () use ($item_ids) {

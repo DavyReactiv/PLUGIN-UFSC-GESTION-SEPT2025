@@ -391,6 +391,11 @@ function ufsc_update_licence_payment_status( $licence_id, $status, $payment_stat
 		$types[]        = '%s';
 	}
 
+	if ( in_array( 'status', $columns, true ) ) {
+		$data['status'] = $status;
+		$types[]        = '%s';
+	}
+
 	if ( $payment_status && in_array( 'payment_status', $columns, true ) ) {
 		$data['payment_status'] = $payment_status;
 		$types[]                = '%s';
