@@ -217,6 +217,16 @@ class UFSC_Licences_List_Table {
             $conditions[] = $wpdb->prepare( "DATE(l.date_creation) <= %s", $filters['created_to'] );
         }
 
+        $scope_condition = '';
+        if ( self::has_column( $club_columns, $clubs_table, 'region' ) ) {
+            $scope_condition = UFSC_Scope::build_scope_condition( 'region', 'c' );
+        } elseif ( self::has_column( $columns, $licences_table, 'region' ) ) {
+            $scope_condition = UFSC_Scope::build_scope_condition( 'region', 'l' );
+        }
+        if ( $scope_condition ) {
+            $conditions[] = $scope_condition;
+        }
+
         return $conditions;
     }
 
@@ -269,6 +279,9 @@ class UFSC_Licences_List_Table {
      * Render action buttons
      */
     private static function render_action_buttons() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
         echo '<p>';
         echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-licences&action=new' ) ) . '" class="button button-primary">';
         echo esc_html__( 'Ajouter une licence', 'ufsc-clubs' );
@@ -465,7 +478,9 @@ class UFSC_Licences_List_Table {
         $view_url = admin_url( 'admin.php?page=ufsc-sql-licences&action=view&id=' . $licence->id );
         $edit_url = admin_url( 'admin.php?page=ufsc-sql-licences&action=edit&id=' . $licence->id );
         echo '<a href="' . esc_url( $view_url ) . '" class="button button-small">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a> ';
-        echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a>';
+        if ( current_user_can( 'manage_options' ) ) {
+            echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a>';
+        }
         echo '</td>';
         
         echo '</tr>';
@@ -519,7 +534,9 @@ class UFSC_Licences_List_Table {
     private static function render_club_filter( $selected ) {
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
-        $clubs = $wpdb->get_results( "SELECT id, nom FROM `{$settings['table_clubs']}` ORDER BY nom" );
+        $club_scope_condition = UFSC_Scope::build_scope_condition( 'region' );
+        $club_where = $club_scope_condition ? 'WHERE ' . $club_scope_condition : '';
+        $clubs = $wpdb->get_results( "SELECT id, nom FROM `{$settings['table_clubs']}` {$club_where} ORDER BY nom" );
 
         echo '<select name="club_id">';
         echo '<option value="">' . esc_html__( '— Tous les clubs —', 'ufsc-clubs' ) . '</option>';
@@ -534,10 +551,18 @@ class UFSC_Licences_List_Table {
     private static function render_region_filter( $selected ) {
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
-        $regions = $wpdb->get_col( "SELECT DISTINCT region FROM `{$settings['table_clubs']}` WHERE region IS NOT NULL AND region != '' ORDER BY region" );
+        $scope_slug  = UFSC_Scope::get_user_scope_region();
+        $scope_label = $scope_slug ? UFSC_Scope::get_region_label( $scope_slug ) : '';
+        if ( $scope_label ) {
+            $regions = array( $scope_label );
+        } else {
+            $regions = $wpdb->get_col( "SELECT DISTINCT region FROM `{$settings['table_clubs']}` WHERE region IS NOT NULL AND region != '' ORDER BY region" );
+        }
 
         echo '<select name="club_region">';
-        echo '<option value="">' . esc_html__( '— Toutes les régions —', 'ufsc-clubs' ) . '</option>';
+        if ( ! $scope_label ) {
+            echo '<option value="">' . esc_html__( '— Toutes les régions —', 'ufsc-clubs' ) . '</option>';
+        }
         foreach ( $regions as $region ) {
             echo '<option value="' . esc_attr( $region ) . '"' . selected( $selected, $region, false ) . '>';
             echo esc_html( $region );
