@@ -1,6 +1,6 @@
 <?php
 /**
- * UFSC – SQL Admin loader
+ * UFSC - SQL Admin loader
  * (fichier bootstrap/loader : charge la vraie classe depuis /includes/admin/class-sql-admin.php)
  */
 
@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Évite tout redeclare si un autre plugin/module charge déjà UFSC_SQL_Admin.
- * (ex: UFSC Licence Competition qui partage les mêmes tables)
+ * (ex: UFSC Licence Competition partage les mêmes tables)
  */
 if ( class_exists( 'UFSC_SQL_Admin', false ) ) {
 	return;
