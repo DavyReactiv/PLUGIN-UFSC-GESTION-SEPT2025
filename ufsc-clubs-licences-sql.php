@@ -20,7 +20,7 @@ require_once UFSC_CL_DIR.'includes/security/class-ufsc-scope.php';
 require_once UFSC_CL_DIR.'includes/admin/class-admin-menu.php';
 require_once UFSC_CL_DIR.'includes/admin/class-ufsc-settings-page.php';
 require_once UFSC_CL_DIR.'includes/core/class-sql.php';
-require_once UFSC_CL_DIR.'includes/admin/class-sql-admin.php';
+require_once UFSC_CL_DIR . 'class-sql-admin.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-sql-shortcodes.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-club-form.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-club-form-handler.php';

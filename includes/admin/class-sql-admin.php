@@ -4,6 +4,10 @@ if (! defined('ABSPATH')) {
     exit;
 }
 
+if ( class_exists( 'UFSC_SQL_Admin', false ) ) {
+    return;
+}
+
 class UFSC_SQL_Admin
 {
     /**
@@ -2963,7 +2967,9 @@ class UFSC_SQL_Admin
         }
 
         // Obtenir les colonnes de la table SQL selon l'entité
-        $table_columns = self::get_table_columns($entity_type);
+        $settings     = UFSC_SQL::get_settings();
+        $table_name   = ( $entity_type === 'clubs' ) ? $settings['table_clubs'] : $settings['table_licences'];
+        $table_columns = self::get_table_columns( $table_name );
 
         // Obtenir la liste des clubs si on importe des licences
         $clubs = [];
@@ -3129,21 +3135,6 @@ class UFSC_SQL_Admin
         $string = iconv('UTF-8', 'UTF-8//IGNORE', $string);
 
         return trim($string);
-    }
-
-    /**
-     * Obtenir les colonnes de la table selon le type d'entité
-     */
-    private static function get_table_columns($entity_type)
-    {
-        global $wpdb;
-
-        $table_name = ($entity_type === 'clubs') ? 'ufsc_clubs' : 'ufsc_licences';
-        $table_name = $wpdb->prefix . $table_name;
-
-        $columns = $wpdb->get_col("DESCRIBE $table_name");
-
-        return $columns ?: [];
     }
 
     /**
