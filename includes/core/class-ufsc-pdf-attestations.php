@@ -526,6 +526,14 @@ class UFSC_PDF_Attestations {
             wp_send_json_error( array( 'message' => __( 'Fichier non trouvé.', 'ufsc-clubs' ) ), 404 );
         }
 
+        if ( headers_sent() ) {
+            wp_die( __( 'Headers already sent, cannot serve file.', 'ufsc-clubs' ) );
+        }
+        while ( ob_get_level() ) {
+            ob_end_clean();
+        }
+        nocache_headers();
+
         // Serve file
         header( 'Content-Type: application/pdf' );
         header( 'Content-Disposition: attachment; filename="' . $attestation->filename . '"' );

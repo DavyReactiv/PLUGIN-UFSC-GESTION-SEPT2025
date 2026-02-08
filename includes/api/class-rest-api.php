@@ -269,8 +269,8 @@ class UFSC_REST_API {
             return new WP_Error( 'rest_forbidden', __( 'Accès refusé.', 'ufsc-clubs' ), array( 'status' => 401 ) );
         }
 
-        $type  = $request->get_param( 'type' );
-        $nonce = $request->get_param( 'nonce' );
+        $type  = sanitize_text_field( (string) $request->get_param( 'type' ) );
+        $nonce = sanitize_text_field( (string) $request->get_param( 'nonce' ) );
         $attestation_data = ( $type && $nonce ) ? self::verify_attestation_nonce( $type, $nonce ) : false;
         if ( ! $attestation_data ) {
             return new WP_Error( 'rest_forbidden', __( 'Accès refusé.', 'ufsc-clubs' ), array( 'status' => 403 ) );
