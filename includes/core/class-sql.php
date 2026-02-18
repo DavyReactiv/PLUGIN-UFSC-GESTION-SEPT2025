@@ -8,7 +8,7 @@ class UFSC_SQL {
             'table_licences'  => 'licences',
             'pk_club'         => 'id',
             'pk_licence'      => 'id',
-            'status_values'   => array('en_attente'=>'En attente','valide'=>'Validée','a_regler'=>'À régler','desactive'=>'Désactivée'),
+            'status_values'   => array('brouillon'=>'Brouillon','en_attente'=>'En attente','valide'=>'Validée','a_regler'=>'À régler','refuse'=>'Refusée','desactive'=>'Désactivée'),
             'club_fields' => array(
                 'nom'=>array('Nom du club','text'),
                 'region'=>array('Région','region'),

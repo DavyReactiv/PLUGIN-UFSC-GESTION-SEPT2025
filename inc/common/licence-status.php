@@ -32,7 +32,7 @@ function ufsc_get_licence_status_raw( $licence ) {
 function ufsc_normalize_licence_status( $status ) {
     $status = strtolower( trim( (string) $status ) );
     if ( '' === $status ) {
-        return '';
+        return 'brouillon';
     }
 
     $map = array(
@@ -81,13 +81,86 @@ function ufsc_normalize_licence_status( $status ) {
 }
 
 /**
+ * Canonical license statuses (value => label).
+ *
+ * @return array
+ */
+function ufsc_get_license_statuses() {
+    $statuses = array(
+        'brouillon'  => __( 'Brouillon', 'ufsc-clubs' ),
+        'en_attente' => __( 'En attente', 'ufsc-clubs' ),
+        'valide'     => __( 'Validée', 'ufsc-clubs' ),
+        'refuse'     => __( 'Refusée', 'ufsc-clubs' ),
+        'desactive'  => __( 'Désactivée', 'ufsc-clubs' ),
+        'a_regler'   => __( 'À régler', 'ufsc-clubs' ),
+        'expire'     => __( 'Expirée', 'ufsc-clubs' ),
+        'non_payee'  => __( 'Non payée', 'ufsc-clubs' ),
+    );
+
+    if ( class_exists( 'UFSC_SQL' ) && method_exists( 'UFSC_SQL', 'statuses' ) ) {
+        $statuses = wp_parse_args( UFSC_SQL::statuses(), $statuses );
+    }
+
+    return $statuses;
+}
+
+/**
+ * Normalize any license status to canonical format.
+ *
+ * @param string $raw Raw status.
+ * @return string
+ */
+function ufsc_normalize_license_status( $raw ) {
+    $normalized = ufsc_normalize_licence_status( $raw );
+
+    return array_key_exists( $normalized, ufsc_get_license_statuses() )
+        ? $normalized
+        : 'brouillon';
+}
+
+/**
+ * Get status label.
+ *
+ * @param string $status Raw/normalized status.
+ * @return string
+ */
+function ufsc_license_status_label( $status ) {
+    $normalized = ufsc_normalize_license_status( $status );
+    $statuses   = ufsc_get_license_statuses();
+
+    return isset( $statuses[ $normalized ] ) ? $statuses[ $normalized ] : $statuses['brouillon'];
+}
+
+/**
+ * Get badge CSS class for a status.
+ *
+ * @param string $status Raw/normalized status.
+ * @return string
+ */
+function ufsc_license_status_badge_class( $status ) {
+    $normalized = ufsc_normalize_license_status( $status );
+    $map        = array(
+        'brouillon'  => 'badge-draft',
+        'en_attente' => 'badge-warning',
+        'valide'     => 'badge-success',
+        'refuse'     => 'badge-danger',
+        'desactive'  => 'badge-dark',
+        'a_regler'   => 'badge-warning',
+        'expire'     => 'badge-secondary',
+        'non_payee'  => 'badge-danger',
+    );
+
+    return isset( $map[ $normalized ] ) ? $map[ $normalized ] : 'badge-secondary';
+}
+
+/**
  * Normalize a raw status value.
  *
  * @param string $raw Raw status.
  * @return string
  */
 function ufsc_get_licence_status_norm( $raw ) {
-    return ufsc_normalize_licence_status( $raw );
+    return ufsc_normalize_license_status( $raw );
 }
 
 /**
@@ -128,20 +201,11 @@ function ufsc_get_licence_status_label_fr( $status ) {
     }
 
     if ( empty( $labels ) ) {
-        $labels = array(
-            'brouillon'  => __( 'Brouillon', 'ufsc-clubs' ),
-            'non_payee'  => __( 'Non payée', 'ufsc-clubs' ),
-            'valide'     => __( 'Validé', 'ufsc-clubs' ),
-            'en_attente' => __( 'En attente', 'ufsc-clubs' ),
-            'refuse'     => __( 'Refusé', 'ufsc-clubs' ),
-            'a_regler'   => __( 'À régler', 'ufsc-clubs' ),
-            'desactive'  => __( 'Désactivée', 'ufsc-clubs' ),
-            'expire'     => __( 'Expiré', 'ufsc-clubs' ),
-        );
+        $labels = ufsc_get_license_statuses();
     }
 
     if ( ! array_key_exists( $normalized, $labels ) ) {
-        $normalized = 'en_attente';
+        $normalized = 'brouillon';
     }
 
     return $labels[ $normalized ];
@@ -205,7 +269,7 @@ final class UFSC_Licence_Status {
     public static function display_status( $raw ) {
         $normalized = self::normalize( $raw );
         if ( '' === $normalized || ! self::is_valid( $normalized ) ) {
-            return 'en_attente';
+            return 'brouillon';
         }
         return $normalized;
     }

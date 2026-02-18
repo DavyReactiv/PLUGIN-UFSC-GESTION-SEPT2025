@@ -31,7 +31,7 @@ function ufsc_init_woocommerce_hooks() {
 		'woocommerce_checkout_create_order_line_item',
 		function ( $item, $cart_key, $values ) {
 			foreach ( $values as $k => $v ) {
-				if ( strpos( $k, 'ufsc_' ) === 0 ) {
+				if ( strpos( (string) ( $k ?? '' ), 'ufsc_' ) === 0 ) {
 					$item->add_meta_data( $k, $v, true );
 				}
 			}
@@ -41,12 +41,99 @@ function ufsc_init_woocommerce_hooks() {
 	);
 
 	// Hook into order processing with idempotent handler
+	add_action( 'woocommerce_payment_complete', 'ufsc_handle_woocommerce_payment_confirmed' );
+	add_action( 'woocommerce_order_status_processing', 'ufsc_handle_woocommerce_payment_confirmed' );
+	add_action( 'woocommerce_order_status_completed', 'ufsc_handle_woocommerce_payment_confirmed' );
 	add_action( 'woocommerce_order_status_processing', 'ufsc_handle_order_processing' );
 	add_action( 'woocommerce_order_status_completed', 'ufsc_handle_order_completed' );
 
 	// UFSC PATCH: Retry payment handling on failed/cancelled orders.
 	add_action( 'woocommerce_order_status_failed', 'ufsc_handle_order_failed_or_cancelled' );
 	add_action( 'woocommerce_order_status_cancelled', 'ufsc_handle_order_failed_or_cancelled' );
+}
+
+
+/**
+ * Standard WooCommerce payment handler (idempotent).
+ *
+ * @param int $order_id Order ID.
+ * @return void
+ */
+function ufsc_handle_woocommerce_payment_confirmed( $order_id ) {
+	if ( ! ufsc_is_woocommerce_active() || ! function_exists( 'ufsc_get_licences_table' ) ) {
+		return;
+	}
+
+	$order = wc_get_order( $order_id );
+	if ( ! $order ) {
+		return;
+	}
+
+	$licence_ids = array();
+	foreach ( array( 'ufsc_licence_id', 'license_id', 'licence_id', '_ufsc_licence_id' ) as $meta_key ) {
+		$licence_ids = array_merge( $licence_ids, ufsc_parse_licence_ids_from_meta( $order->get_meta( $meta_key, true ) ) );
+	}
+
+	foreach ( $order->get_items() as $item ) {
+		foreach ( array( '_ufsc_licence_id', 'ufsc_licence_id', 'license_id', 'licence_id', '_ufsc_licence_ids', 'ufsc_licence_ids' ) as $meta_key ) {
+			$licence_ids = array_merge( $licence_ids, ufsc_parse_licence_ids_from_meta( $item->get_meta( $meta_key, true ) ) );
+		}
+	}
+
+	$licence_ids = array_values( array_unique( array_filter( array_map( 'absint', $licence_ids ) ) ) );
+	if ( empty( $licence_ids ) ) {
+		return;
+	}
+
+	global $wpdb;
+	$table = ufsc_get_licences_table();
+	$columns = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $table ) : $wpdb->get_col( "DESCRIBE `{$table}`" );
+
+	foreach ( $licence_ids as $licence_id ) {
+		$current = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", $licence_id ) );
+		if ( ! $current ) {
+			continue;
+		}
+
+		$current_status = function_exists( 'ufsc_normalize_license_status' ) ? ufsc_normalize_license_status( $current->statut ?? '' ) : ( $current->statut ?? '' );
+		if ( in_array( $current_status, array( 'valide', 'refuse', 'desactive' ), true ) ) {
+			continue;
+		}
+
+		$data = array();
+		$formats = array();
+		if ( in_array( 'payment_status', $columns, true ) ) {
+			$data['payment_status'] = 'paid';
+			$formats[] = '%s';
+		}
+		foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_col ) {
+			if ( in_array( $paid_col, $columns, true ) ) {
+				$data[ $paid_col ] = 1;
+				$formats[] = '%d';
+			}
+		}
+
+		if ( 'brouillon' === $current_status ) {
+			if ( in_array( 'statut', $columns, true ) ) {
+				$data['statut'] = 'en_attente';
+				$formats[] = '%s';
+			}
+			if ( in_array( 'status', $columns, true ) ) {
+				$data['status'] = 'en_attente';
+				$formats[] = '%s';
+			}
+		}
+
+		if ( empty( $data ) ) {
+			continue;
+		}
+
+		$wpdb->update( $table, $data, array( 'id' => $licence_id ), $formats, array( '%d' ) );
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			ufsc_wc_log( 'ufsc_payment_sync', array( 'order_id' => $order_id, 'licence_id' => $licence_id, 'status' => $data['statut'] ?? $current_status ) );
+		}
+	}
 }
 
 /**
