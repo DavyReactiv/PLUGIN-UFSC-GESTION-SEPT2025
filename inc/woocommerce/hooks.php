@@ -31,7 +31,7 @@ function ufsc_init_woocommerce_hooks() {
 		'woocommerce_checkout_create_order_line_item',
 		function ( $item, $cart_key, $values ) {
 			foreach ( $values as $k => $v ) {
-				if ( strpos( $k, 'ufsc_' ) === 0 ) {
+				if ( strpos( (string) ( $k ?? '' ), 'ufsc_' ) === 0 ) {
 					$item->add_meta_data( $k, $v, true );
 				}
 			}
@@ -41,12 +41,144 @@ function ufsc_init_woocommerce_hooks() {
 	);
 
 	// Hook into order processing with idempotent handler
+	add_action( 'woocommerce_payment_complete', 'ufsc_handle_woocommerce_payment_confirmed' );
+	add_action( 'woocommerce_order_status_processing', 'ufsc_handle_woocommerce_payment_confirmed' );
+	add_action( 'woocommerce_order_status_completed', 'ufsc_handle_woocommerce_payment_confirmed' );
 	add_action( 'woocommerce_order_status_processing', 'ufsc_handle_order_processing' );
 	add_action( 'woocommerce_order_status_completed', 'ufsc_handle_order_completed' );
 
 	// UFSC PATCH: Retry payment handling on failed/cancelled orders.
 	add_action( 'woocommerce_order_status_failed', 'ufsc_handle_order_failed_or_cancelled' );
 	add_action( 'woocommerce_order_status_cancelled', 'ufsc_handle_order_failed_or_cancelled' );
+}
+
+
+/**
+ * Standard WooCommerce payment handler (idempotent).
+ *
+ * @param int $order_id Order ID.
+ * @return void
+ */
+function ufsc_handle_woocommerce_payment_confirmed( $order_id ) {
+	if ( ! ufsc_is_woocommerce_active() || ! function_exists( 'ufsc_get_licences_table' ) ) {
+		return;
+	}
+
+	$order = wc_get_order( $order_id );
+	if ( ! $order ) {
+		return;
+	}
+
+	$order_status = (string) $order->get_status();
+	$current_hook = current_filter();
+	if ( 'woocommerce_payment_complete' !== $current_hook && ! in_array( $order_status, array( 'processing', 'completed' ), true ) ) {
+		return;
+	}
+
+	$license_ids = array();
+	foreach ( array( 'ufsc_licence_id', 'license_id', 'licence_id', '_ufsc_licence_id' ) as $meta_key ) {
+		$license_ids = array_merge( $license_ids, ufsc_parse_licence_ids_from_meta( $order->get_meta( $meta_key, true ) ) );
+	}
+
+	foreach ( $order->get_items() as $item ) {
+		foreach ( array( '_ufsc_licence_id', 'ufsc_licence_id', 'license_id', 'licence_id', '_ufsc_licence_ids', 'ufsc_licence_ids' ) as $meta_key ) {
+			$license_ids = array_merge( $license_ids, ufsc_parse_licence_ids_from_meta( $item->get_meta( $meta_key, true ) ) );
+		}
+	}
+
+	/**
+	 * Allow extensions to provide/override UFSC licence IDs extracted from an order.
+	 *
+	 * @param array|int|string $license_ids Collected licence IDs.
+	 * @param WC_Order         $order       Current WooCommerce order.
+	 */
+	$license_ids = apply_filters( 'ufsc_wc_order_license_ids', $license_ids, $order );
+	$license_ids = is_array( $license_ids ) ? $license_ids : array( $license_ids );
+	$license_ids = array_values( array_unique( array_filter( array_map( 'absint', $license_ids ) ) ) );
+	if ( empty( $license_ids ) ) {
+		return;
+	}
+
+	global $wpdb;
+	$table   = ufsc_get_licences_table();
+	$columns = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $table ) : $wpdb->get_col( "DESCRIBE `{$table}`" );
+	$updated_count = 0;
+
+	foreach ( $license_ids as $licence_id ) {
+		$current = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", $licence_id ) );
+		if ( ! $current ) {
+			continue;
+		}
+
+		$current_status = function_exists( 'ufsc_normalize_license_status' ) ? ufsc_normalize_license_status( $current->statut ?? '' ) : (string) ( $current->statut ?? '' );
+		if ( in_array( $current_status, array( 'valide', 'refuse', 'desactive' ), true ) ) {
+			continue;
+		}
+
+		$is_paid_already = ufsc_wc_is_licence_paid_row( $current );
+		if ( $is_paid_already && 'brouillon' !== $current_status ) {
+			continue;
+		}
+
+		$data    = array();
+		$formats = array();
+
+		if ( in_array( 'payment_status', $columns, true ) && (string) ( $current->payment_status ?? '' ) !== 'paid' ) {
+			$data['payment_status'] = 'paid';
+			$formats[]              = '%s';
+		}
+		foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_col ) {
+			if ( in_array( $paid_col, $columns, true ) && (int) ( $current->{$paid_col} ?? 0 ) !== 1 ) {
+				$data[ $paid_col ] = 1;
+				$formats[]         = '%d';
+			}
+		}
+
+		if ( 'brouillon' === $current_status ) {
+			if ( in_array( 'statut', $columns, true ) && (string) ( $current->statut ?? '' ) !== 'en_attente' ) {
+				$data['statut'] = 'en_attente';
+				$formats[]      = '%s';
+			}
+			if ( in_array( 'status', $columns, true ) && (string) ( $current->status ?? '' ) !== 'en_attente' ) {
+				$data['status'] = 'en_attente';
+				$formats[]      = '%s';
+			}
+		}
+
+		if ( empty( $data ) ) {
+			continue;
+		}
+
+		$updated = $wpdb->update( $table, $data, array( 'id' => $licence_id ), $formats, array( '%d' ) );
+		if ( false !== $updated && $updated > 0 ) {
+			$updated_count++;
+		}
+	}
+
+	if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+		ufsc_wc_log( 'ufsc_payment_sync', array( 'order_id' => (int) $order_id, 'updated' => (int) $updated_count, 'count' => count( $license_ids ) ) );
+	}
+}
+
+/**
+ * Check if licence row is already paid using existing UFSC schema variants.
+ *
+ * @param object $row Licence row.
+ * @return bool
+ */
+function ufsc_wc_is_licence_paid_row( $row ) {
+	$payment_status = strtolower( (string) ( $row->payment_status ?? '' ) );
+	if ( in_array( $payment_status, array( 'paid', 'completed', 'processing' ), true ) ) {
+		return true;
+	}
+
+	foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_key ) {
+		if ( (int) ( $row->{$paid_key} ?? 0 ) === 1 ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 /**

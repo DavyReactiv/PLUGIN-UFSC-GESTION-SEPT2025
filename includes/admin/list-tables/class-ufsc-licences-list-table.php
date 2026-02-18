@@ -179,7 +179,15 @@ class UFSC_Licences_List_Table {
 
         // Status filter
         if ( ! empty( $filters['statut'] ) && self::has_column( $columns, $licences_table, 'statut' ) ) {
-            $conditions[] = $wpdb->prepare( "l.statut = %s", $filters['statut'] );
+            $normalized_status = function_exists( 'ufsc_normalize_license_status' )
+                ? ufsc_normalize_license_status( $filters['statut'] )
+                : $filters['statut'];
+
+            if ( 'brouillon' === $normalized_status ) {
+                $conditions[] = "(l.statut IS NULL OR l.statut = '' OR l.statut IN ('brouillon','draft'))";
+            } else {
+                $conditions[] = $wpdb->prepare( "l.statut = %s", $normalized_status );
+            }
         }
 
         // Payment status filter
@@ -572,20 +580,13 @@ class UFSC_Licences_List_Table {
     }
 
     private static function render_status_filter( $selected ) {
-        $statuses = array(
-            'draft' => __( 'Brouillon', 'ufsc-clubs' ),
-            'pending_review' => __( 'En attente de validation', 'ufsc-clubs' ),
-            'pending_payment' => __( 'En attente de paiement', 'ufsc-clubs' ),
-            'in_cart' => __( 'Dans le panier', 'ufsc-clubs' ),
-            'paid' => __( 'Payée', 'ufsc-clubs' ),
-            'active' => __( 'Active', 'ufsc-clubs' ),
-            'rejected' => __( 'Rejetée', 'ufsc-clubs' ),
-            'payment_failed' => __( 'Échec de paiement', 'ufsc-clubs' ),
-            'suspended' => __( 'Suspendue', 'ufsc-clubs' ),
-            'refunded' => __( 'Remboursée', 'ufsc-clubs' ),
-            'cancelled' => __( 'Annulée', 'ufsc-clubs' ),
-            'expired' => __( 'Expirée', 'ufsc-clubs' )
-        );
+        $statuses = function_exists( 'ufsc_get_license_statuses' )
+            ? ufsc_get_license_statuses()
+            : UFSC_SQL::statuses();
+
+        $selected = function_exists( 'ufsc_normalize_license_status' )
+            ? ufsc_normalize_license_status( $selected )
+            : $selected;
 
         echo '<select name="statut">';
         echo '<option value="">' . esc_html__( '— Tous les statuts —', 'ufsc-clubs' ) . '</option>';
@@ -675,6 +676,7 @@ class UFSC_Licences_List_Table {
     }
 
     private static function render_status_badge( $status ) {
+        $status = function_exists( 'ufsc_normalize_license_status' ) ? ufsc_normalize_license_status( $status ) : $status;
         return UFSC_Badges::render_licence_badge( $status );
     }
 

@@ -141,8 +141,8 @@ class UFSC_Auth_Shortcodes {
      * Redirect back to form on failed login
      */
     public static function handle_login_failed() {
-        $referrer = wp_get_referer();
-        if ( $referrer && false === strpos( $referrer, 'wp-login.php' ) && false === strpos( $referrer, 'wp-admin' ) ) {
+        $referrer = (string) ( wp_get_referer() ?? '' );
+        if ( '' !== $referrer && false === strpos( $referrer, 'wp-login.php' ) && false === strpos( $referrer, 'wp-admin' ) ) {
             wp_safe_redirect( add_query_arg( 'login', 'failed', $referrer ) );
             exit;
         }

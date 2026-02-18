@@ -149,6 +149,7 @@ class UFSC_Documents {
      * @return string
      */
     public static function get_file_icon( $mime ) {
+        $mime = (string) ( $mime ?? '' );
         if ( strpos( $mime, 'pdf' ) !== false ) {
             return 'dashicons-media-document';
         }

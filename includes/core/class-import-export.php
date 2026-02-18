@@ -90,7 +90,7 @@ class UFSC_Import_Export
                 $licence['suite_adresse'] ?? '',
                 $licence['ville'] ?? '',
                 $licence['code_postal'] ?? '',
-                $licence['statut'] ?? '',
+                function_exists('ufsc_license_status_label') ? ufsc_license_status_label($licence['statut'] ?? '') : ($licence['statut'] ?? ''),
                 $licence['tel_fixe'] ?? '',
                 $reduction_benevole,
                 $reduction_postier,
@@ -267,7 +267,7 @@ class UFSC_Import_Export
                 $sheet->setCellValue("I{$row}", $licence['suite_adresse'] ?? '');
                 $sheet->setCellValue("J{$row}", $licence['ville'] ?? '');
                 $sheet->setCellValue("K{$row}", $licence['code_postal'] ?? '');
-                $sheet->setCellValue("L{$row}", $licence['statut'] ?? '');
+                $sheet->setCellValue("L{$row}", function_exists('ufsc_license_status_label') ? ufsc_license_status_label($licence['statut'] ?? '') : ($licence['statut'] ?? ''));
                 $sheet->setCellValue("M{$row}", $licence['tel_fixe'] ?? '');
                 $sheet->setCellValue("N{$row}", $reduction_benevole);
                 $sheet->setCellValue("O{$row}", $reduction_postier);
@@ -420,7 +420,7 @@ class UFSC_Import_Export
             }
 
             // Validate date format if provided
-            $raw_date = str_replace('/', '-', $row_data['date_naissance']);
+            $raw_date = str_replace('/', '-', (string) ( $row_data['date_naissance'] ?? '' ));
             $date     = DateTime::createFromFormat('Y-m-d', $raw_date);
 
             if (! $date || $date->format('Y-m-d') !== date('Y-m-d', strtotime($raw_date))) {
@@ -582,8 +582,15 @@ class UFSC_Import_Export
         $values = [$club_id];
 
         if (! empty($filters['status'])) {
-            $where[]  = 'statut = %s';
-            $values[] = sanitize_text_field($filters['status']);
+            $status_filter = sanitize_text_field($filters['status']);
+            $normalized_status = function_exists('ufsc_normalize_license_status') ? ufsc_normalize_license_status($status_filter) : $status_filter;
+
+            if ($normalized_status === 'brouillon') {
+                $where[] = "(statut IS NULL OR statut = '' OR statut IN ('brouillon','draft'))";
+            } else {
+                $where[]  = 'statut = %s';
+                $values[] = $normalized_status;
+            }
         }
 
         if (! empty($filters['season'])) {
