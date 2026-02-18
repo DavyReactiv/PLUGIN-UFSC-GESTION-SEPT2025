@@ -82,12 +82,14 @@ class UFSC_CL_Admin_Menu {
 	}
 
 	public static function enqueue_admin( $hook ) {
-		if ( strpos( $hook, 'ufsc' ) !== false ) {
+		$hook = (string) ( $hook ?? '' );
+		$page = isset( $_GET['page'] ) ? (string) wp_unslash( $_GET['page'] ) : '';
+		if ( 0 === strpos( $page, 'ufsc-' ) || false !== strpos( $hook, 'ufsc' ) ) {
 			wp_enqueue_style( 'ufsc-admin', UFSC_CL_URL . 'assets/admin/css/admin.css', array(), UFSC_CL_VERSION );
 			wp_enqueue_script( 'ufsc-admin', UFSC_CL_URL . 'assets/admin/js/admin.js', array( 'jquery' ), UFSC_CL_VERSION, true );
 
 			// Enqueue license form validation script on license pages
-			if ( strpos( $hook, 'ufsc-sql-licences' ) !== false || ( isset( $_GET['page'] ) && $_GET['page'] === 'ufsc-sql-licences' ) ) {
+			if ( false !== strpos( $hook, 'ufsc-sql-licences' ) || 'ufsc-sql-licences' === $page || 'ufsc-licences' === $page ) {
 				wp_enqueue_script( 'ufsc-license-form', UFSC_CL_URL . 'assets/js/ufsc-license-form.js', array( 'jquery' ), UFSC_CL_VERSION, true );
 			}
 		}
@@ -202,6 +204,34 @@ class UFSC_CL_Admin_Menu {
 
 		echo '</div>';
 
+
+		// Licence creation KPIs
+		echo '<div class="ufsc-dashboard-card">';
+		echo '<div class="card-label">' . esc_html__( 'Licences (7 jours)', 'ufsc-clubs' ) . '</div>';
+		echo '<div class="card-value">' . esc_html( (int) $dashboard_data['licenses_new_7d'] ) . '</div>';
+		echo '<div class="card-description">' . sprintf( esc_html__( '%d sur 30 jours', 'ufsc-clubs' ), (int) $dashboard_data['licenses_new_30d'] ) . '</div>';
+		echo '</div>';
+
+		echo '<div class="ufsc-dashboard-card">';
+		echo '<div class="card-label">' . esc_html__( 'Paiement', 'ufsc-clubs' ) . '</div>';
+		echo '<div class="card-value" style="color:#00a32a;">' . esc_html( (int) $dashboard_data['licenses_paid'] ) . '</div>';
+		echo '<div class="card-description">' . sprintf( esc_html__( 'À régler: %d · Taux: %s%%', 'ufsc-clubs' ), (int) $dashboard_data['licenses_unpaid'], esc_html( $dashboard_data['payment_rate'] ) ) . '</div>';
+		echo '</div>';
+
+		echo '<div class="ufsc-dashboard-card">';
+		echo '<div class="card-label">' . esc_html__( 'Brouillons', 'ufsc-clubs' ) . '</div>';
+		echo '<div class="card-value" style="color:#6c757d;">' . esc_html( (int) $dashboard_data['licenses_draft'] ) . '</div>';
+		echo '<div class="card-description">' . sprintf( esc_html__( 'Désactivées: %d', 'ufsc-clubs' ), (int) $dashboard_data['licenses_inactive'] ) . '</div>';
+		echo '</div>';
+
+		if ( ! empty( $dashboard_data['alerts_paid_draft'] ) || ! empty( $dashboard_data['alerts_paid_not_valid'] ) ) {
+			echo '<div class="ufsc-dashboard-card" style="border-left:4px solid #d63638;">';
+			echo '<div class="card-label">' . esc_html__( 'Alertes', 'ufsc-clubs' ) . '</div>';
+			echo '<div class="card-description">' . sprintf( esc_html__( 'Payées + brouillon: %d', 'ufsc-clubs' ), (int) $dashboard_data['alerts_paid_draft'] ) . '</div>';
+			echo '<div class="card-description">' . sprintf( esc_html__( 'Payées non validées: %d', 'ufsc-clubs' ), (int) $dashboard_data['alerts_paid_not_valid'] ) . '</div>';
+			echo '</div>';
+		}
+
 		// Regional breakdown chart
 		if ( ! empty( $dashboard_data['regions_data'] ) ) {
 			echo '<div class="ufsc-chart-section" style="margin-top: 30px;">';
@@ -218,6 +248,16 @@ class UFSC_CL_Admin_Menu {
 			echo '<h2>' . esc_html__( 'Évolution des Licences (30 derniers jours)', 'ufsc-clubs' ) . '</h2>';
 			echo '<div class="ufsc-chart-container">';
 			echo '<canvas id="ufsc-evolution-chart" width="400" height="200"></canvas>';
+			echo '</div>';
+			echo '</div>';
+		}
+
+
+		if ( ! empty( $dashboard_data['status_chart'] ) || ! empty( $dashboard_data['payment_chart'] ) ) {
+			echo '<div class="ufsc-chart-section" style="margin-top: 30px;">';
+			echo '<div class="ufsc-chart-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">';
+			echo '<div class="ufsc-chart-container"><canvas id="ufsc-status-chart" width="400" height="200"></canvas></div>';
+			echo '<div class="ufsc-chart-container"><canvas id="ufsc-payment-chart" width="400" height="200"></canvas></div>';
 			echo '</div>';
 			echo '</div>';
 		}
@@ -308,10 +348,50 @@ class UFSC_CL_Admin_Menu {
 			$data['licenses_pending']  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('en_attente', 'attente', 'pending', 'a_regler')" );
 			$data['licenses_rejected'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('refuse', 'rejected')" );
 
+
 			// Expiring licenses (if certificat_expiration / date_expiration exist)
 			$columns = function_exists( 'ufsc_table_columns' )
 				? ufsc_table_columns( $t_lics )
 				: $wpdb->get_col( "DESCRIBE `$t_lics`" );
+
+			$data['licenses_draft']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " (statut IS NULL OR statut = '' OR statut IN ('brouillon','draft'))" );
+			$data['licenses_inactive'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('desactive','inactive')" );
+
+			$date_source = in_array( 'date_inscription', $columns, true ) ? 'date_inscription' : ( in_array( 'date_creation', $columns, true ) ? 'date_creation' : '' );
+			if ( $date_source ) {
+				$data['licenses_new_7d'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " DATE({$date_source}) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)" );
+				$data['licenses_new_30d'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " DATE({$date_source}) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)" );
+			} else {
+				$data['licenses_new_7d'] = 0;
+				$data['licenses_new_30d'] = 0;
+			}
+
+			$paid_parts = array();
+			if ( in_array( 'payment_status', $columns, true ) ) {
+				$paid_parts[] = "payment_status IN ('paid','completed','processing')";
+			}
+			foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_col ) {
+				if ( in_array( $paid_col, $columns, true ) ) {
+					$paid_parts[] = "{$paid_col} = 1";
+				}
+			}
+			$paid_condition = ! empty( $paid_parts ) ? '(' . implode( ' OR ', $paid_parts ) . ')' : '0 = 1';
+			$data['licenses_paid']   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " {$paid_condition}" );
+			$data['licenses_unpaid'] = max( 0, (int) $data['licenses_total'] - (int) $data['licenses_paid'] );
+			$data['payment_rate']    = $data['licenses_total'] > 0 ? round( ( $data['licenses_paid'] / $data['licenses_total'] ) * 100, 1 ) : 0;
+			$data['alerts_paid_draft'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " {$paid_condition} AND (statut IS NULL OR statut = '' OR statut IN ('brouillon','draft'))" );
+			$data['alerts_paid_not_valid'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " {$paid_condition} AND statut NOT IN ('valide','validee','active')" );
+			$data['status_chart'] = array(
+				'Brouillon' => (int) $data['licenses_draft'],
+				'En attente' => (int) $data['licenses_pending'],
+				'Validée' => (int) $data['licenses_valid'],
+				'Refusée' => (int) $data['licenses_rejected'],
+				'Désactivée' => (int) $data['licenses_inactive'],
+			);
+			$data['payment_chart'] = array(
+				'Payées' => (int) $data['licenses_paid'],
+				'Non payées' => (int) $data['licenses_unpaid'],
+			);
 
 			$has_certificat = function_exists( 'ufsc_table_has_column' )
 				? ufsc_table_has_column( $t_lics, 'certificat_expiration' )
@@ -375,6 +455,17 @@ class UFSC_CL_Admin_Menu {
 				'licenses_valid'   => 0,
 				'licenses_pending' => 0,
 				'licenses_rejected'=> 0,
+				'licenses_draft'   => 0,
+				'licenses_inactive'=> 0,
+				'licenses_new_7d'  => 0,
+				'licenses_new_30d' => 0,
+				'licenses_paid'    => 0,
+				'licenses_unpaid'  => 0,
+				'payment_rate'     => 0,
+				'alerts_paid_draft' => 0,
+				'alerts_paid_not_valid' => 0,
+				'status_chart'     => array(),
+				'payment_chart'    => array(),
 				'regions_data'     => array(),
 				'evolution_data'   => array(),
 				'recent_licenses'  => array(),
@@ -467,6 +558,29 @@ document.addEventListener('DOMContentLoaded', function() {
 					title: { display: true, text: 'Licences par Région' }
 				}
 			}
+		});
+	}
+
+
+	// Status chart
+	const statusCanvas = document.getElementById('ufsc-status-chart');
+	const statusChartData = <?php echo wp_json_encode( $dashboard_data['status_chart'] ?? array() ); ?>;
+	if (statusCanvas && Object.keys(statusChartData).length > 0) {
+		new Chart(statusCanvas, {
+			type: 'doughnut',
+			data: { labels: Object.keys(statusChartData), datasets: [{ data: Object.values(statusChartData), backgroundColor: ['#6c757d','#f0ad4e','#198754','#dc3545','#343a40'] }] },
+			options: { responsive:true, maintainAspectRatio:false, plugins:{ title:{display:true,text:'Répartition par statut'} } }
+		});
+	}
+
+	// Payment chart
+	const paymentCanvas = document.getElementById('ufsc-payment-chart');
+	const paymentChartData = <?php echo wp_json_encode( $dashboard_data['payment_chart'] ?? array() ); ?>;
+	if (paymentCanvas && Object.keys(paymentChartData).length > 0) {
+		new Chart(paymentCanvas, {
+			type: 'doughnut',
+			data: { labels: Object.keys(paymentChartData), datasets: [{ data: Object.values(paymentChartData), backgroundColor: ['#198754','#dc3545'] }] },
+			options: { responsive:true, maintainAspectRatio:false, plugins:{ title:{display:true,text:'Paiement'} } }
 		});
 	}
 

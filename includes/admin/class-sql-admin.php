@@ -62,32 +62,59 @@ class UFSC_SQL_Admin
      */
     private static function get_status_badge($status, $label = '')
     {
+        $normalized = function_exists( 'ufsc_normalize_license_status' )
+            ? ufsc_normalize_license_status( $status )
+            : (string) $status;
+
         if (empty($label)) {
-            $label = UFSC_SQL::statuses()[$status] ?? $status;
+            $label = function_exists( 'ufsc_license_status_label' )
+                ? ufsc_license_status_label( $normalized )
+                : ( UFSC_SQL::statuses()[ $normalized ] ?? $normalized );
         }
 
-        // Map status to CSS class
         $status_map = [
+            'brouillon'  => 'draft',
             'en_attente' => 'pending',
-            'attente'    => 'pending',
             'valide'     => 'valid',
-            'validee'    => 'valid',
-            'active'     => 'valid',
-            'pending'    => 'pending',
             'a_regler'   => 'pending',
             'refuse'     => 'rejected',
-            'rejected'   => 'rejected',
             'desactive'  => 'inactive',
-            'inactive'   => 'inactive',
-            'off'        => 'inactive',
+            'expire'     => 'inactive',
+            'non_payee'  => 'pending',
         ];
 
-        $css_class = isset($status_map[$status]) ? $status_map[$status] : 'inactive';
+        $css_class = isset($status_map[$normalized]) ? $status_map[$normalized] : 'inactive';
 
         return '<span class="ufsc-status-badge ufsc-status-' . esc_attr($css_class) . '">' .
         '<span class="ufsc-status-dot"></span>' .
         esc_html($label) .
             '</span>';
+    }
+
+    /**
+     * Determine if a licence row is paid.
+     *
+     * @param object $row Licence row.
+     * @return bool
+     */
+    private static function is_licence_paid( $row ) {
+        $payment_status = isset( $row->payment_status ) ? strtolower( (string) $row->payment_status ) : '';
+        if ( in_array( $payment_status, array( 'paid', 'completed', 'processing' ), true ) ) {
+            return true;
+        }
+
+        foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_key ) {
+            if ( ! isset( $row->{$paid_key} ) ) {
+                continue;
+            }
+
+            $paid_value = (string) $row->{$paid_key};
+            if ( in_array( $paid_value, array( '1', 'yes', 'oui', 'true' ), true ) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -1360,7 +1387,15 @@ class UFSC_SQL_Admin
         }
 
         if (! empty($filter_status) && in_array('statut', $licence_columns, true)) {
-            $where_conditions[] = $wpdb->prepare("l.statut = %s", $filter_status);
+            $normalized_filter = function_exists( 'ufsc_normalize_license_status' )
+                ? ufsc_normalize_license_status( $filter_status )
+                : $filter_status;
+
+            if ( 'brouillon' === $normalized_filter ) {
+                $where_conditions[] = "(l.statut IS NULL OR l.statut = '' OR l.statut IN ('brouillon','draft'))";
+            } else {
+                $where_conditions[] = $wpdb->prepare("l.statut = %s", $normalized_filter);
+            }
         }
 
         $where_clause = ! empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
@@ -1380,6 +1415,10 @@ class UFSC_SQL_Admin
             self::build_select_column('l', 'club_id', $licence_columns),
             self::build_select_column('l', 'region', $licence_columns),
             self::build_select_column('l', 'statut', $licence_columns),
+            self::build_select_column('l', 'payment_status', $licence_columns),
+            self::build_select_column('l', 'paid', $licence_columns),
+            self::build_select_column('l', 'payee', $licence_columns),
+            self::build_select_column('l', 'is_paid', $licence_columns),
             self::build_select_column('l', 'date_creation', $licence_columns),
         );
 
@@ -1400,9 +1439,9 @@ class UFSC_SQL_Admin
 
         $rows = $wpdb->get_results($query);
         foreach ($rows as &$row) {
-            if (! isset($row->statut) || trim($row->statut) === '') {
-                $row->statut = 'en_attente';
-            }
+            $row->statut = function_exists( 'ufsc_normalize_license_status' )
+                ? ufsc_normalize_license_status( $row->statut ?? '' )
+                : ( $row->statut ?? 'brouillon' );
         }
         unset($row);
 
@@ -1557,10 +1596,13 @@ class UFSC_SQL_Admin
 
         if ($rows) {
             foreach ($rows as $r) {
-                $map          = ['valide' => 'success', 'a_regler' => 'info', 'desactive' => 'off', 'en_attente' => 'wait'];
-                $cls          = isset($map[$r->statut]) ? $map[$r->statut] : 'info';
-                $status_label = UFSC_SQL::statuses()[$r->statut] ?? $r->statut;
-                $badge        = UFSC_CL_Utils::esc_badge($status_label, $cls);
+                $normalized_status = function_exists( 'ufsc_normalize_license_status' )
+                    ? ufsc_normalize_license_status( $r->statut ?? '' )
+                    : ( $r->statut ?? 'brouillon' );
+                $is_paid = self::is_licence_paid( $r );
+                if ( $is_paid && 'brouillon' === $normalized_status ) {
+                    $normalized_status = 'en_attente';
+                }
 
                 $view_url     = admin_url('admin.php?page=ufsc-sql-licences&action=view&id=' . $r->$pk);
                 $edit_url     = admin_url('admin.php?page=ufsc-sql-licences&action=edit&id=' . $r->$pk);
@@ -1578,7 +1620,7 @@ class UFSC_SQL_Admin
                 echo '<td>';
 
                 // Display status badge with colored dot
-                echo self::get_status_badge($r->statut);
+                echo self::get_status_badge($normalized_status);
 
                 echo '</td>';
                 echo '<td>' . esc_html($r->date_creation ?: '') . '</td>';
@@ -1586,8 +1628,8 @@ class UFSC_SQL_Admin
                 echo '<div class="ufsc-button-group">';
                 echo '<a class="button button-small" href="' . esc_url($view_url) . '" title="' . esc_attr__('Consulter la licence', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Consulter la licence', 'ufsc-clubs') . '">' . esc_html__('Consulter', 'ufsc-clubs') . '</a>';
                 echo '<a class="button button-small" href="' . esc_url($edit_url) . '" title="' . esc_attr__('Éditer la licence', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Éditer la licence', 'ufsc-clubs') . '">' . esc_html__('Éditer', 'ufsc-clubs') . '</a>';
-                // Add payment button for valid licenses
-                if (in_array($r->statut, ['valide', 'validee', 'active'])) {
+                $is_paid = self::is_licence_paid( $r );
+                if ( ! $is_paid ) {
                     $payment_url = wp_nonce_url(admin_url('admin-post.php?action=ufsc_send_license_payment&license_id=' . $r->$pk), 'ufsc_send_license_payment_' . $r->$pk);
                     echo '<a class="button button-small" href="' . esc_url($payment_url) . '" title="' . esc_attr__('Envoyer pour paiement', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Envoyer pour paiement', 'ufsc-clubs') . '" style="background: #00a32a; border-color: #00a32a; color: white;">' . esc_html__('Paiement', 'ufsc-clubs') . '</a>';
                 }
@@ -1701,6 +1743,11 @@ class UFSC_SQL_Admin
         if (isset($_GET['updated']) && $_GET['updated'] == '1') {
             echo UFSC_CL_Utils::show_success(__('Licence enregistrée avec succès', 'ufsc-clubs'));
         }
+        if ( get_transient( 'ufsc_notice_status_adjusted_' . get_current_user_id() ) ) {
+            delete_transient( 'ufsc_notice_status_adjusted_' . get_current_user_id() );
+            echo UFSC_CL_Utils::show_success( __( 'Statut ajusté automatiquement vers « En attente » : une licence payée ne peut pas rester en brouillon.', 'ufsc-clubs' ) );
+        }
+
         if (isset($_GET['payment_sent']) && $_GET['payment_sent'] == '1') {
             $order_id = isset($_GET['order_id']) ? (int) $_GET['order_id'] : '';
             $message  = __('La licence a été enregistrée et envoyée pour paiement.', 'ufsc-clubs');
@@ -1827,9 +1874,10 @@ class UFSC_SQL_Admin
                 echo '<label><input type="radio" name="' . esc_attr($k) . '" value="M" ' . checked($val, 'M', false) . '/> M</label> <label style="margin-left:10px"><input type="radio" name="' . esc_attr($k) . '" value="F" ' . checked($val, 'F', false) . '/> F</label>';
             }
         } elseif ($type === 'licence_status') {
-            $st = UFSC_SQL::statuses();
+            $st = function_exists( 'ufsc_get_license_statuses' ) ? ufsc_get_license_statuses() : UFSC_SQL::statuses();
+            $val = function_exists( 'ufsc_normalize_license_status' ) ? ufsc_normalize_license_status( $val ) : $val;
             if (empty($val) || ! array_key_exists($val, $st)) {
-                $val = 'en_attente';
+                $val = 'brouillon';
             }
             echo '<select name="' . esc_attr($k) . '" ' . $disabled_attr . '>';
             foreach ($st as $sv => $sl) {
@@ -1924,6 +1972,27 @@ class UFSC_SQL_Admin
             } else {
                 $data[$k] = sanitize_text_field(wp_unslash($_POST[$k]));
             }
+        }
+
+        $is_paid_submission = false;
+        foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_key ) {
+            if ( isset( $data[ $paid_key ] ) && in_array( (string) $data[ $paid_key ], array( '1', 'yes', 'oui', 'true' ), true ) ) {
+                $is_paid_submission = true;
+                break;
+            }
+        }
+
+        if ( isset( $data['payment_status'] ) && in_array( strtolower( (string) $data['payment_status'] ), array( 'paid', 'completed', 'processing' ), true ) ) {
+            $is_paid_submission = true;
+        }
+
+        if ( isset( $data['statut'] ) && function_exists( 'ufsc_normalize_license_status' ) ) {
+            $data['statut'] = ufsc_normalize_license_status( $data['statut'] );
+        }
+
+        if ( isset( $data['statut'] ) && 'brouillon' === $data['statut'] && $is_paid_submission ) {
+            $data['statut'] = 'en_attente';
+            set_transient( 'ufsc_notice_status_adjusted_' . get_current_user_id(), 1, 120 );
         }
 
         // Validation
@@ -2531,7 +2600,15 @@ class UFSC_SQL_Admin
             $where_conditions[] = $wpdb->prepare("l.region = %s", $filter_region);
         }
         if (! empty($filter_status) && in_array('statut', $licence_columns, true)) {
-            $where_conditions[] = $wpdb->prepare("l.statut = %s", $filter_status);
+            $normalized_filter = function_exists( 'ufsc_normalize_license_status' )
+                ? ufsc_normalize_license_status( $filter_status )
+                : $filter_status;
+
+            if ( 'brouillon' === $normalized_filter ) {
+                $where_conditions[] = "(l.statut IS NULL OR l.statut = '' OR l.statut IN ('brouillon','draft'))";
+            } else {
+                $where_conditions[] = $wpdb->prepare("l.statut = %s", $normalized_filter);
+            }
         }
         if ( $has_club_id && in_array( 'region', $club_columns, true ) ) {
             $scope_condition = UFSC_Scope::build_scope_condition( 'region', 'c' );
