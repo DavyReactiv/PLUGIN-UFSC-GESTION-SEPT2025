@@ -3552,7 +3552,7 @@ class UFSC_SQL_Admin
      */
     private static function add_ufsc_prefix($value)
     {
-        $value = trim($value);
+        $value = trim((string) ($value ?? ''));
 
         // Normaliser la casse pour la comparaison
         $lower_value = strtolower($value);
@@ -3564,7 +3564,7 @@ class UFSC_SQL_Admin
         }
 
         // Vérifier si "UFSC" existe ailleurs dans la chaîne
-        if (strpos($lower_value, $lower_ufsc) !== false) {
+        if (strpos((string) ($lower_value ?? ''), (string) ($lower_ufsc ?? '')) !== false) {
             // Retirer toutes les occurrences de "UFSC" (insensible à la casse)
             $cleaned_value = preg_replace('/\bufsc\b/i', '', $value);
             $cleaned_value = trim(preg_replace('/\s+/', ' ', $cleaned_value)); // Nettoyer les espaces multiples

@@ -420,7 +420,7 @@ class UFSC_Import_Export
             }
 
             // Validate date format if provided
-            $raw_date = str_replace('/', '-', $row_data['date_naissance']);
+            $raw_date = str_replace('/', '-', (string) ( $row_data['date_naissance'] ?? '' ));
             $date     = DateTime::createFromFormat('Y-m-d', $raw_date);
 
             if (! $date || $date->format('Y-m-d') !== date('Y-m-d', strtotime($raw_date))) {

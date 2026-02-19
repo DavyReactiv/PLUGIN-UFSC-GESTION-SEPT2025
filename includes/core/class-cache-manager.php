@@ -99,11 +99,11 @@ class UFSC_Cache_Manager {
             $transients = $wpdb->get_col( $wpdb->prepare(
                 "SELECT option_name FROM {$wpdb->options} 
                  WHERE option_name LIKE %s",
-                '_transient_' . str_replace( '%', '%%', $pattern )
+                '_transient_' . str_replace( '%', '%%', (string) ( $pattern ?? '' ) )
             ) );
             
             foreach ( $transients as $transient ) {
-                $key = str_replace( '_transient_', '', $transient );
+                $key = str_replace( '_transient_', '', (string) ( $transient ?? '' ) );
                 delete_transient( $key );
             }
         }
