@@ -1212,7 +1212,7 @@ class UFSC_Frontend_Shortcodes {
 
         $club_data = $wpdb->get_row(
             $wpdb->prepare(
-                "SELECT statut FROM `{$table}` WHERE `{$pk}` = %d",
+                "SELECT statut, nom FROM `{$table}` WHERE `{$pk}` = %d",
                 $atts['club_id']
             ),
             ARRAY_A
@@ -1240,6 +1240,23 @@ class UFSC_Frontend_Shortcodes {
                 delete_transient( $form_key );
             }
         }
+
+        // UFSC: default checked
+        $assurance_dommage_checked = array_key_exists( 'assurance_dommage_corporel', $form_data )
+            ? ! empty( $form_data['assurance_dommage_corporel'] )
+            : true;
+        $assurance_assistance_checked = array_key_exists( 'assurance_assistance', $form_data )
+            ? ! empty( $form_data['assurance_assistance'] )
+            : true;
+
+        // UFSC: default note club name
+        $club_name = isset( $club_data['nom'] ) ? sanitize_text_field( $club_data['nom'] ) : '';
+        $default_note_prefix = $club_name
+            ? sprintf( __( 'Club : %s - ', 'ufsc-clubs' ), $club_name )
+            : __( 'Club : ', 'ufsc-clubs' );
+        $note_value = array_key_exists( 'note', $form_data )
+            ? $form_data['note']
+            : $default_note_prefix;
 
 
         // Handle form submission
@@ -1492,21 +1509,23 @@ class UFSC_Frontend_Shortcodes {
 
                         <div class="ufsc-form-field">
                             <label class="ufsc-checkbox-label">
-                                <input type="checkbox" id="assurance_dommage_corporel" name="assurance_dommage_corporel" value="1">
+                                <input type="checkbox" id="assurance_dommage_corporel" name="assurance_dommage_corporel" value="1" <?php checked( $assurance_dommage_checked ); ?>>
                                 <?php esc_html_e( 'Assurance dommage corporel', 'ufsc-clubs' ); ?>
                             </label>
                         </div>
 
                         <div class="ufsc-form-field">
                             <label class="ufsc-checkbox-label">
-                                <input type="checkbox" id="assurance_assistance" name="assurance_assistance" value="1">
+                                <input type="checkbox" id="assurance_assistance" name="assurance_assistance" value="1" <?php checked( $assurance_assistance_checked ); ?>>
                                 <?php esc_html_e( 'Assurance assistance', 'ufsc-clubs' ); ?>
                             </label>
                         </div>
 
+                        <p class="ufsc-form-hint"><?php esc_html_e( 'Ces assurances sont incluses dans votre licence.', 'ufsc-clubs' ); ?></p>
+
                         <div class="ufsc-form-field">
                             <label for="note"><?php esc_html_e( 'Note', 'ufsc-clubs' ); ?></label>
-                            <textarea id="note" name="note" rows="3"></textarea>
+                            <textarea id="note" name="note" rows="3"><?php echo esc_textarea( $note_value ); ?></textarea>
                         </div>
                     </div>
                 </div>
