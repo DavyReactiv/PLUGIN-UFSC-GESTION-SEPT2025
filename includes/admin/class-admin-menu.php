@@ -4,6 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class UFSC_CL_Admin_Menu {
 
 	public static function register() {
+		add_action( 'ufsc_licence_updated', array( __CLASS__, 'clear_dashboard_cache' ) );
 
 		// Menu principal unifié UFSC
 		add_menu_page(
@@ -81,6 +82,48 @@ class UFSC_CL_Admin_Menu {
 		);
 	}
 
+	/**
+	 * Invalidate dashboard transients after licence updates.
+	 *
+	 * @return void
+	 */
+	public static function clear_dashboard_cache() {
+		$keys = get_option( 'ufsc_dashboard_transient_keys', array() );
+		if ( ! is_array( $keys ) ) {
+			$keys = array();
+		}
+
+		foreach ( $keys as $key ) {
+			if ( is_string( $key ) && '' !== $key ) {
+				delete_transient( $key );
+			}
+		}
+
+		update_option( 'ufsc_dashboard_transient_keys', array(), false );
+	}
+
+	/**
+	 * Track dashboard transient keys for safe invalidation.
+	 *
+	 * @param string $key Transient key.
+	 * @return void
+	 */
+	private static function register_dashboard_transient_key( $key ) {
+		if ( ! is_string( $key ) || '' === $key ) {
+			return;
+		}
+
+		$keys = get_option( 'ufsc_dashboard_transient_keys', array() );
+		if ( ! is_array( $keys ) ) {
+			$keys = array();
+		}
+
+		if ( ! in_array( $key, $keys, true ) ) {
+			$keys[] = $key;
+			update_option( 'ufsc_dashboard_transient_keys', $keys, false );
+		}
+	}
+
 	public static function enqueue_admin( $hook ) {
 		$hook = (string) ( $hook ?? '' );
 		$page = isset( $_GET['page'] ) ? (string) wp_unslash( $_GET['page'] ) : '';
@@ -131,7 +174,7 @@ class UFSC_CL_Admin_Menu {
 		// Handle cache refresh
 		if ( isset( $_GET['ufsc_refresh_cache'] ) && current_user_can( 'manage_options' ) ) {
 			check_admin_referer( 'ufsc_refresh_cache' );
-			delete_transient( 'ufsc_dashboard_data' );
+			self::clear_dashboard_cache();
 
 			// UFSC PATCH: also flush columns cache (non bloquant)
 			if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) {
@@ -224,6 +267,27 @@ class UFSC_CL_Admin_Menu {
 		echo '<div class="card-description">' . sprintf( esc_html__( 'Désactivées: %d', 'ufsc-clubs' ), (int) $dashboard_data['licenses_inactive'] ) . '</div>';
 		echo '</div>';
 
+		echo '<div class="ufsc-dashboard-card">';
+		echo '<div class="card-label">' . esc_html__( 'Répartition sexe', 'ufsc-clubs' ) . '</div>';
+		echo '<div class="card-value">' . esc_html( (int) $dashboard_data['sex_distribution']['total'] ) . '</div>';
+		echo '<div class="card-description">' . esc_html( self::format_kpi_line_with_percent( __( 'Homme', 'ufsc-clubs' ), $dashboard_data['sex_distribution']['homme'], $dashboard_data['sex_distribution']['total'] ) ) . '</div>';
+		echo '<div class="card-description">' . esc_html( self::format_kpi_line_with_percent( __( 'Femme', 'ufsc-clubs' ), $dashboard_data['sex_distribution']['femme'], $dashboard_data['sex_distribution']['total'] ) ) . '</div>';
+		echo '<div class="card-description">' . esc_html( self::format_kpi_line_with_percent( __( 'Non renseigné', 'ufsc-clubs' ), $dashboard_data['sex_distribution']['unknown'], $dashboard_data['sex_distribution']['total'] ) ) . '</div>';
+		echo '</div>';
+
+		echo '<div class="ufsc-dashboard-card">';
+		echo '<div class="card-label">' . esc_html__( 'Répartition pratique', 'ufsc-clubs' ) . '</div>';
+		if ( ! empty( $dashboard_data['practice_distribution']['available'] ) ) {
+			echo '<div class="card-value">' . esc_html( (int) $dashboard_data['practice_distribution']['total'] ) . '</div>';
+			echo '<div class="card-description">' . esc_html( self::format_kpi_line_with_percent( __( 'Compétition', 'ufsc-clubs' ), $dashboard_data['practice_distribution']['competition'], $dashboard_data['practice_distribution']['total'] ) ) . '</div>';
+			echo '<div class="card-description">' . esc_html( self::format_kpi_line_with_percent( __( 'Loisir', 'ufsc-clubs' ), $dashboard_data['practice_distribution']['loisir'], $dashboard_data['practice_distribution']['total'] ) ) . '</div>';
+			echo '<div class="card-description">' . esc_html( self::format_kpi_line_with_percent( __( 'Non renseigné', 'ufsc-clubs' ), $dashboard_data['practice_distribution']['unknown'], $dashboard_data['practice_distribution']['total'] ) ) . '</div>';
+		} else {
+			echo '<div class="card-value" style="color:#6c757d;">' . esc_html__( '—', 'ufsc-clubs' ) . '</div>';
+			echo '<div class="card-description">' . esc_html__( 'Non disponible', 'ufsc-clubs' ) . '</div>';
+		}
+		echo '</div>';
+
 		if ( ! empty( $dashboard_data['alerts_paid_draft'] ) || ! empty( $dashboard_data['alerts_paid_not_valid'] ) ) {
 			echo '<div class="ufsc-dashboard-card" style="border-left:4px solid #d63638;">';
 			echo '<div class="card-label">' . esc_html__( 'Alertes', 'ufsc-clubs' ) . '</div>';
@@ -261,6 +325,23 @@ class UFSC_CL_Admin_Menu {
 			echo '</div>';
 			echo '</div>';
 		}
+
+		echo '<div class="ufsc-chart-section" style="margin-top: 30px;">';
+		echo '<div class="ufsc-chart-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">';
+		echo '<div class="ufsc-chart-container"><canvas id="ufsc-sex-chart" width="400" height="200"></canvas></div>';
+		if ( ! empty( $dashboard_data['practice_distribution']['available'] ) ) {
+			echo '<div class="ufsc-chart-container"><canvas id="ufsc-practice-chart" width="400" height="200"></canvas></div>';
+		} else {
+			echo '<div class="ufsc-chart-container" style="display:flex;align-items:center;justify-content:center;"><p style="margin:0;color:#6c757d;">' . esc_html__( 'Répartition pratique : Non disponible', 'ufsc-clubs' ) . '</p></div>';
+		}
+		echo '</div>';
+		echo '</div>';
+
+		echo '<div class="ufsc-chart-section" style="margin-top: 30px;">';
+		echo '<h2>' . esc_html__( 'Tranches d’âge', 'ufsc-clubs' ) . '</h2>';
+		echo '<p style="margin:0 0 10px; color:#6c757d;">' . esc_html( sprintf( __( 'Âge inconnu : %d', 'ufsc-clubs' ), (int) $dashboard_data['age_distribution']['unknown'] ) ) . '</p>';
+		echo '<div class="ufsc-chart-container"><canvas id="ufsc-age-chart" width="400" height="220"></canvas></div>';
+		echo '</div>';
 
 		// Recent activity
 		echo '<div class="ufsc-recent-activity" style="margin-top: 30px;">';
@@ -355,6 +436,10 @@ class UFSC_CL_Admin_Menu {
 				? ufsc_table_columns( $t_lics )
 				: $wpdb->get_col( "DESCRIBE `$t_lics`" );
 
+			$sex_column         = self::find_first_existing_column( $columns, array( 'sexe', 'gender', 'sex' ) );
+			$competition_column = self::find_first_existing_column( $columns, array( 'competition', 'is_competition' ) );
+			$birthdate_column   = self::find_first_existing_column( $columns, array( 'date_naissance' ) );
+
 			$data['licenses_draft']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " (statut IS NULL OR statut = '' OR statut IN ('brouillon','draft'))" );
 			$data['licenses_inactive'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('desactive','inactive')" );
 
@@ -393,6 +478,10 @@ class UFSC_CL_Admin_Menu {
 				'Payées' => (int) $data['licenses_paid'],
 				'Non payées' => (int) $data['licenses_unpaid'],
 			);
+
+			$data['sex_distribution']      = self::get_sex_distribution( $t_lics, $lics_where, array(), $sex_column );
+			$data['practice_distribution'] = self::get_practice_distribution( $t_lics, $lics_where, array(), $competition_column );
+			$data['age_distribution']      = self::get_age_distribution( $t_lics, $lics_where, array(), $birthdate_column );
 
 			$has_certificat = function_exists( 'ufsc_table_has_column' )
 				? ufsc_table_has_column( $t_lics, 'certificat_expiration' )
@@ -470,11 +559,15 @@ class UFSC_CL_Admin_Menu {
 				'regions_data'     => array(),
 				'evolution_data'   => array(),
 				'recent_licenses'  => array(),
+				'sex_distribution' => array( 'homme' => 0, 'femme' => 0, 'unknown' => 0, 'total' => 0 ),
+				'practice_distribution' => array( 'available' => false, 'competition' => 0, 'loisir' => 0, 'unknown' => 0, 'total' => 0 ),
+				'age_distribution' => array( 'available' => false, 'buckets' => array(), 'unknown' => 0 ),
 			);
 		}
 
 		// Cache for 10 minutes
 		set_transient( $cache_key, $data, 10 * MINUTE_IN_SECONDS );
+		self::register_dashboard_transient_key( $cache_key );
 
 		return $data;
 	}
@@ -529,6 +622,9 @@ class UFSC_CL_Admin_Menu {
 
 		$evolution_labels = array();
 		$evolution_values = array();
+		$sex_chart        = $dashboard_data['sex_distribution'] ?? array();
+		$practice_chart   = $dashboard_data['practice_distribution'] ?? array();
+		$age_chart        = $dashboard_data['age_distribution'] ?? array();
 
 		if ( ! empty( $dashboard_data['evolution_data'] ) ) {
 			foreach ( $dashboard_data['evolution_data'] as $evolution ) {
@@ -614,8 +710,190 @@ document.addEventListener('DOMContentLoaded', function() {
 			}
 		});
 	}
+
+	// Sex chart
+	const sexCanvas = document.getElementById('ufsc-sex-chart');
+	const sexChartData = <?php echo wp_json_encode( $sex_chart ); ?>;
+	if (sexCanvas && sexChartData && Number(sexChartData.total || 0) > 0) {
+		new Chart(sexCanvas, {
+			type: 'doughnut',
+			data: {
+				labels: ['Homme', 'Femme', 'Non renseigné'],
+				datasets: [{ data: [Number(sexChartData.homme || 0), Number(sexChartData.femme || 0), Number(sexChartData.unknown || 0)], backgroundColor: ['#3b82f6','#ec4899','#9ca3af'] }]
+			},
+			options: { responsive:true, maintainAspectRatio:false, plugins:{ title:{display:true,text:'Répartition sexe'} } }
+		});
+	}
+
+	// Practice chart
+	const practiceCanvas = document.getElementById('ufsc-practice-chart');
+	const practiceChartData = <?php echo wp_json_encode( $practice_chart ); ?>;
+	if (practiceCanvas && practiceChartData && practiceChartData.available) {
+		new Chart(practiceCanvas, {
+			type: 'doughnut',
+			data: {
+				labels: ['Compétition', 'Loisir', 'Non renseigné'],
+				datasets: [{ data: [Number(practiceChartData.competition || 0), Number(practiceChartData.loisir || 0), Number(practiceChartData.unknown || 0)], backgroundColor: ['#0ea5e9','#22c55e','#9ca3af'] }]
+			},
+			options: { responsive:true, maintainAspectRatio:false, plugins:{ title:{display:true,text:'Répartition pratique'} } }
+		});
+	}
+
+	// Age chart
+	const ageCanvas = document.getElementById('ufsc-age-chart');
+	const ageChartData = <?php echo wp_json_encode( $age_chart ); ?>;
+	if (ageCanvas && ageChartData && ageChartData.available && ageChartData.buckets) {
+		new Chart(ageCanvas, {
+			type: 'bar',
+			data: {
+				labels: ['<12', '12-15', '16-17', '18-34', '35-49', '50+'],
+				datasets: [{
+					label: 'Licenciés',
+					data: [
+						Number(ageChartData.buckets.under_12 || 0),
+						Number(ageChartData.buckets.from_12_15 || 0),
+						Number(ageChartData.buckets.from_16_17 || 0),
+						Number(ageChartData.buckets.from_18_34 || 0),
+						Number(ageChartData.buckets.from_35_49 || 0),
+						Number(ageChartData.buckets.over_50 || 0)
+					],
+					backgroundColor: '#6366f1'
+				}]
+			},
+			options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } }, plugins:{ title:{display:true,text:'Tranches d’âge'} } }
+		});
+	}
 });
 		<?php
 		return ob_get_clean();
+	}
+
+	private static function find_first_existing_column( $columns, $candidates ) {
+		foreach ( $candidates as $candidate ) {
+			if ( in_array( $candidate, $columns, true ) ) {
+				return $candidate;
+			}
+		}
+
+		return '';
+	}
+
+	private static function get_sex_distribution( $table, $where_sql, $where_args, $column ) {
+		global $wpdb;
+
+		if ( ! $column ) {
+			return array( 'homme' => 0, 'femme' => 0, 'unknown' => 0, 'total' => 0 );
+		}
+		$where_args = is_array( $where_args ) ? $where_args : array();
+
+		$query = "SELECT
+			COUNT(*) AS total,
+			SUM(CASE WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('homme','h','m','male','masculin') OR UPPER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('H','M') OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'h/%' OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'm/%' THEN 1 ELSE 0 END) AS homme,
+			SUM(CASE WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('femme','f','female','feminin') OR UPPER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('F') THEN 1 ELSE 0 END) AS femme,
+			SUM(CASE WHEN `{$column}` IS NULL OR TRIM(`{$column}`) = '' THEN 1
+				WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('homme','h','m','male','masculin','femme','f','female','feminin') THEN 0
+				WHEN UPPER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('H','M','F') THEN 0
+				WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'h/%' OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'm/%' OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'f/%' THEN 0
+				ELSE 1 END) AS unknown
+			FROM `{$table}` {$where_sql}";
+
+		if ( ! empty( $where_args ) ) {
+			$query = $wpdb->prepare( $query, $where_args );
+		}
+
+		$row = $wpdb->get_row( $query, ARRAY_A );
+
+		return array(
+			'homme'  => (int) ( $row['homme'] ?? 0 ),
+			'femme'  => (int) ( $row['femme'] ?? 0 ),
+			'unknown'=> (int) ( $row['unknown'] ?? 0 ),
+			'total'  => (int) ( $row['total'] ?? 0 ),
+		);
+	}
+
+	private static function get_practice_distribution( $table, $where_sql, $where_args, $column ) {
+		global $wpdb;
+
+		if ( ! $column ) {
+			return array( 'available' => false, 'competition' => 0, 'loisir' => 0, 'unknown' => 0, 'total' => 0 );
+		}
+		$where_args = is_array( $where_args ) ? $where_args : array();
+
+		if ( 'is_competition' === $column ) {
+			$query = "SELECT
+				COUNT(*) AS total,
+				SUM(CASE WHEN `{$column}` = 1 THEN 1 ELSE 0 END) AS competition,
+				SUM(CASE WHEN `{$column}` = 0 THEN 1 ELSE 0 END) AS loisir,
+				SUM(CASE WHEN `{$column}` IS NULL OR `{$column}` NOT IN (0,1) THEN 1 ELSE 0 END) AS unknown
+				FROM `{$table}` {$where_sql}";
+		} else {
+			$query = "SELECT
+				COUNT(*) AS total,
+				SUM(CASE WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('oui','yes','1','true') OR LOWER(TRIM(`{$column}`)) LIKE '%comp%' THEN 1 ELSE 0 END) AS competition,
+				SUM(CASE WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('non','no','0','false') OR LOWER(TRIM(`{$column}`)) LIKE '%lois%' THEN 1 ELSE 0 END) AS loisir,
+				SUM(CASE WHEN `{$column}` IS NULL OR TRIM(`{$column}`) = '' THEN 1
+					WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('oui','yes','1','true','non','no','0','false') THEN 0
+					WHEN LOWER(TRIM(`{$column}`)) LIKE '%comp%' OR LOWER(TRIM(`{$column}`)) LIKE '%lois%' THEN 0
+					ELSE 1 END) AS unknown
+				FROM `{$table}` {$where_sql}";
+		}
+
+		if ( ! empty( $where_args ) ) {
+			$query = $wpdb->prepare( $query, $where_args );
+		}
+
+		$row = $wpdb->get_row( $query, ARRAY_A );
+
+		return array(
+			'available'   => true,
+			'competition' => (int) ( $row['competition'] ?? 0 ),
+			'loisir'      => (int) ( $row['loisir'] ?? 0 ),
+			'unknown'     => (int) ( $row['unknown'] ?? 0 ),
+			'total'       => (int) ( $row['total'] ?? 0 ),
+		);
+	}
+
+	private static function get_age_distribution( $table, $where_sql, $where_args, $column ) {
+		global $wpdb;
+
+		if ( ! $column ) {
+			return array( 'available' => false, 'buckets' => array(), 'unknown' => 0 );
+		}
+		$where_args = is_array( $where_args ) ? $where_args : array();
+
+		$query = "SELECT
+			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) < 12 THEN 1 ELSE 0 END) AS under_12,
+			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) BETWEEN 12 AND 15 THEN 1 ELSE 0 END) AS from_12_15,
+			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) BETWEEN 16 AND 17 THEN 1 ELSE 0 END) AS from_16_17,
+			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) BETWEEN 18 AND 34 THEN 1 ELSE 0 END) AS from_18_34,
+			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) BETWEEN 35 AND 49 THEN 1 ELSE 0 END) AS from_35_49,
+			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) >= 50 THEN 1 ELSE 0 END) AS over_50,
+			SUM(CASE WHEN `{$column}` IS NULL OR `{$column}` = '0000-00-00' OR `{$column}` = '' THEN 1 ELSE 0 END) AS unknown
+			FROM `{$table}` {$where_sql}";
+
+		if ( ! empty( $where_args ) ) {
+			$query = $wpdb->prepare( $query, $where_args );
+		}
+
+		$row = $wpdb->get_row( $query, ARRAY_A );
+
+		return array(
+			'available' => true,
+			'buckets'   => array(
+				'under_12'   => (int) ( $row['under_12'] ?? 0 ),
+				'from_12_15' => (int) ( $row['from_12_15'] ?? 0 ),
+				'from_16_17' => (int) ( $row['from_16_17'] ?? 0 ),
+				'from_18_34' => (int) ( $row['from_18_34'] ?? 0 ),
+				'from_35_49' => (int) ( $row['from_35_49'] ?? 0 ),
+				'over_50'    => (int) ( $row['over_50'] ?? 0 ),
+			),
+			'unknown'   => (int) ( $row['unknown'] ?? 0 ),
+		);
+	}
+
+	private static function format_kpi_line_with_percent( $label, $value, $total ) {
+		$percent = $total > 0 ? round( ( (int) $value / (int) $total ) * 100, 1 ) : 0;
+
+		return sprintf( '%s: %d (%s%%)', $label, (int) $value, $percent );
 	}
 }
