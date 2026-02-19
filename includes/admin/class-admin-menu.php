@@ -120,7 +120,7 @@ class UFSC_CL_Admin_Menu {
 
 		if ( ! in_array( $key, $keys, true ) ) {
 			$keys[] = $key;
-			update_option( 'ufsc_dashboard_transient_keys', $keys, false );
+			update_option( 'ufsc_dashboard_transient_keys', array_values( $keys ), false );
 		}
 	}
 
@@ -247,7 +247,6 @@ class UFSC_CL_Admin_Menu {
 
 		echo '</div>';
 
-
 		// Licence creation KPIs
 		echo '<div class="ufsc-dashboard-card">';
 		echo '<div class="card-label">' . esc_html__( 'Licences (7 jours)', 'ufsc-clubs' ) . '</div>';
@@ -315,7 +314,6 @@ class UFSC_CL_Admin_Menu {
 			echo '</div>';
 			echo '</div>';
 		}
-
 
 		if ( ! empty( $dashboard_data['status_chart'] ) || ! empty( $dashboard_data['payment_chart'] ) ) {
 			echo '<div class="ufsc-chart-section" style="margin-top: 30px;">';
@@ -430,8 +428,7 @@ class UFSC_CL_Admin_Menu {
 			$data['licenses_pending']  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('en_attente', 'attente', 'pending', 'a_regler')" );
 			$data['licenses_rejected'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('refuse', 'rejected')" );
 
-
-			// Expiring licenses (if certificat_expiration / date_expiration exist)
+			// Columns
 			$columns = function_exists( 'ufsc_table_columns' )
 				? ufsc_table_columns( $t_lics )
 				: $wpdb->get_col( "DESCRIBE `$t_lics`" );
@@ -445,10 +442,10 @@ class UFSC_CL_Admin_Menu {
 
 			$date_source = in_array( 'date_inscription', $columns, true ) ? 'date_inscription' : ( in_array( 'date_creation', $columns, true ) ? 'date_creation' : '' );
 			if ( $date_source ) {
-				$data['licenses_new_7d'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " DATE({$date_source}) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)" );
+				$data['licenses_new_7d']  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " DATE({$date_source}) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)" );
 				$data['licenses_new_30d'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " DATE({$date_source}) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)" );
 			} else {
-				$data['licenses_new_7d'] = 0;
+				$data['licenses_new_7d']  = 0;
 				$data['licenses_new_30d'] = 0;
 			}
 
@@ -461,28 +458,31 @@ class UFSC_CL_Admin_Menu {
 					$paid_parts[] = "{$paid_col} = 1";
 				}
 			}
-			$paid_condition = ! empty( $paid_parts ) ? '(' . implode( ' OR ', $paid_parts ) . ')' : '0 = 1';
-			$data['licenses_paid']   = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " {$paid_condition}" );
-			$data['licenses_unpaid'] = max( 0, (int) $data['licenses_total'] - (int) $data['licenses_paid'] );
-			$data['payment_rate']    = $data['licenses_total'] > 0 ? round( ( $data['licenses_paid'] / $data['licenses_total'] ) * 100, 1 ) : 0;
-			$data['alerts_paid_draft'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " {$paid_condition} AND (statut IS NULL OR statut = '' OR statut IN ('brouillon','draft'))" );
+			$paid_condition             = ! empty( $paid_parts ) ? '(' . implode( ' OR ', $paid_parts ) . ')' : '0 = 1';
+			$data['licenses_paid']      = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " {$paid_condition}" );
+			$data['licenses_unpaid']    = max( 0, (int) $data['licenses_total'] - (int) $data['licenses_paid'] );
+			$data['payment_rate']       = $data['licenses_total'] > 0 ? round( ( $data['licenses_paid'] / $data['licenses_total'] ) * 100, 1 ) : 0;
+			$data['alerts_paid_draft']  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " {$paid_condition} AND (statut IS NULL OR statut = '' OR statut IN ('brouillon','draft'))" );
 			$data['alerts_paid_not_valid'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " {$paid_condition} AND statut NOT IN ('valide','validee','active')" );
+
 			$data['status_chart'] = array(
-				'Brouillon' => (int) $data['licenses_draft'],
-				'En attente' => (int) $data['licenses_pending'],
-				'Validée' => (int) $data['licenses_valid'],
-				'Refusée' => (int) $data['licenses_rejected'],
-				'Désactivée' => (int) $data['licenses_inactive'],
+				'Brouillon'   => (int) $data['licenses_draft'],
+				'En attente'  => (int) $data['licenses_pending'],
+				'Validée'     => (int) $data['licenses_valid'],
+				'Refusée'     => (int) $data['licenses_rejected'],
+				'Désactivée'  => (int) $data['licenses_inactive'],
 			);
 			$data['payment_chart'] = array(
-				'Payées' => (int) $data['licenses_paid'],
+				'Payées'     => (int) $data['licenses_paid'],
 				'Non payées' => (int) $data['licenses_unpaid'],
 			);
 
+			// KPIs (robustes) — we keep where_sql signature; where_args unused for now (scope string already built)
 			$data['sex_distribution']      = self::get_sex_distribution( $t_lics, $lics_where, array(), $sex_column );
 			$data['practice_distribution'] = self::get_practice_distribution( $t_lics, $lics_where, array(), $competition_column );
 			$data['age_distribution']      = self::get_age_distribution( $t_lics, $lics_where, array(), $birthdate_column );
 
+			// Expiring licenses (if certificat_expiration / date_expiration exist)
 			$has_certificat = function_exists( 'ufsc_table_has_column' )
 				? ufsc_table_has_column( $t_lics, 'certificat_expiration' )
 				: in_array( 'certificat_expiration', $columns, true );
@@ -492,8 +492,8 @@ class UFSC_CL_Admin_Menu {
 				: in_array( 'date_expiration', $columns, true );
 
 			if ( $has_certificat || $has_expiration ) {
-				$expiration_field      = $has_certificat ? 'certificat_expiration' : 'date_expiration';
-				$thirty_days_from_now  = gmdate( 'Y-m-d', strtotime( '+30 days' ) );
+				$expiration_field     = $has_certificat ? 'certificat_expiration' : 'date_expiration';
+				$thirty_days_from_now = gmdate( 'Y-m-d', strtotime( '+30 days' ) );
 
 				$data['licenses_expiring_soon'] = (int) $wpdb->get_var(
 					$wpdb->prepare(
@@ -508,7 +508,7 @@ class UFSC_CL_Admin_Menu {
 			}
 
 			// Regional breakdown
-			$regions_query       = "SELECT region, COUNT(*) as count FROM `$t_lics` WHERE region IS NOT NULL AND region != ''"
+			$regions_query        = "SELECT region, COUNT(*) as count FROM `$t_lics` WHERE region IS NOT NULL AND region != ''"
 				. ( $scope_lics ? " AND {$scope_lics}" : '' )
 				. " GROUP BY region ORDER BY count DESC LIMIT 10";
 			$data['regions_data'] = $wpdb->get_results( $regions_query );
@@ -524,7 +524,7 @@ class UFSC_CL_Admin_Menu {
 			$data['evolution_data'] = $wpdb->get_results( $evolution_query );
 
 			// Recent licenses (last 10)
-			$recent_query           = "SELECT prenom, nom, statut, date_inscription
+			$recent_query            = "SELECT prenom, nom, statut, date_inscription
 				FROM `$t_lics`"
 				. ( $scope_lics ? " WHERE {$scope_lics}" : '' )
 				. "
@@ -539,29 +539,29 @@ class UFSC_CL_Admin_Menu {
 
 			// Return default empty data
 			$data = array(
-				'clubs_total'      => 0,
-				'clubs_active'     => 0,
-				'licenses_total'   => 0,
-				'licenses_valid'   => 0,
-				'licenses_pending' => 0,
-				'licenses_rejected'=> 0,
-				'licenses_draft'   => 0,
-				'licenses_inactive'=> 0,
-				'licenses_new_7d'  => 0,
-				'licenses_new_30d' => 0,
-				'licenses_paid'    => 0,
-				'licenses_unpaid'  => 0,
-				'payment_rate'     => 0,
-				'alerts_paid_draft' => 0,
-				'alerts_paid_not_valid' => 0,
-				'status_chart'     => array(),
-				'payment_chart'    => array(),
-				'regions_data'     => array(),
-				'evolution_data'   => array(),
-				'recent_licenses'  => array(),
-				'sex_distribution' => array( 'homme' => 0, 'femme' => 0, 'unknown' => 0, 'total' => 0 ),
-				'practice_distribution' => array( 'available' => false, 'competition' => 0, 'loisir' => 0, 'unknown' => 0, 'total' => 0 ),
-				'age_distribution' => array( 'available' => false, 'buckets' => array(), 'unknown' => 0 ),
+				'clubs_total'            => 0,
+				'clubs_active'           => 0,
+				'licenses_total'         => 0,
+				'licenses_valid'         => 0,
+				'licenses_pending'       => 0,
+				'licenses_rejected'      => 0,
+				'licenses_draft'         => 0,
+				'licenses_inactive'      => 0,
+				'licenses_new_7d'        => 0,
+				'licenses_new_30d'       => 0,
+				'licenses_paid'          => 0,
+				'licenses_unpaid'        => 0,
+				'payment_rate'           => 0,
+				'alerts_paid_draft'      => 0,
+				'alerts_paid_not_valid'  => 0,
+				'status_chart'           => array(),
+				'payment_chart'          => array(),
+				'regions_data'           => array(),
+				'evolution_data'         => array(),
+				'recent_licenses'        => array(),
+				'sex_distribution'       => array( 'homme' => 0, 'femme' => 0, 'unknown' => 0, 'total' => 0 ),
+				'practice_distribution'  => array( 'available' => false, 'competition' => 0, 'loisir' => 0, 'unknown' => 0, 'total' => 0 ),
+				'age_distribution'       => array( 'available' => false, 'buckets' => array(), 'unknown' => 0 ),
 			);
 		}
 
@@ -657,7 +657,6 @@ document.addEventListener('DOMContentLoaded', function() {
 			}
 		});
 	}
-
 
 	// Status chart
 	const statusCanvas = document.getElementById('ufsc-status-chart');
@@ -784,17 +783,40 @@ document.addEventListener('DOMContentLoaded', function() {
 		if ( ! $column ) {
 			return array( 'homme' => 0, 'femme' => 0, 'unknown' => 0, 'total' => 0 );
 		}
+
 		$where_args = is_array( $where_args ) ? $where_args : array();
 
 		$query = "SELECT
 			COUNT(*) AS total,
-			SUM(CASE WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('homme','h','m','male','masculin') OR UPPER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('H','M') OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'h/%' OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'm/%' THEN 1 ELSE 0 END) AS homme,
-			SUM(CASE WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('femme','f','female','feminin') OR UPPER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('F') THEN 1 ELSE 0 END) AS femme,
-			SUM(CASE WHEN `{$column}` IS NULL OR TRIM(`{$column}`) = '' THEN 1
-				WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('homme','h','m','male','masculin','femme','f','female','feminin') THEN 0
-				WHEN UPPER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('H','M','F') THEN 0
-				WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'h/%' OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'm/%' OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'f/%' THEN 0
-				ELSE 1 END) AS unknown
+			SUM(
+				CASE
+					WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('homme','h','m','male','masculin')
+						OR UPPER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('H','M')
+						OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'h/%'
+						OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'm/%'
+					THEN 1 ELSE 0
+				END
+			) AS homme,
+			SUM(
+				CASE
+					WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('femme','f','female','feminin','féminin')
+						OR UPPER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('F')
+						OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'f/%'
+					THEN 1 ELSE 0
+				END
+			) AS femme,
+			SUM(
+				CASE
+					WHEN `{$column}` IS NULL OR TRIM(`{$column}`) = '' THEN 1
+					WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('homme','h','m','male','masculin','femme','f','female','feminin','féminin') THEN 0
+					WHEN UPPER(REPLACE(TRIM(`{$column}`), ' ', '')) IN ('H','M','F') THEN 0
+					WHEN LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'h/%'
+						OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'm/%'
+						OR LOWER(REPLACE(TRIM(`{$column}`), ' ', '')) LIKE 'f/%'
+					THEN 0
+					ELSE 1
+				END
+			) AS unknown
 			FROM `{$table}` {$where_sql}";
 
 		if ( ! empty( $where_args ) ) {
@@ -804,10 +826,10 @@ document.addEventListener('DOMContentLoaded', function() {
 		$row = $wpdb->get_row( $query, ARRAY_A );
 
 		return array(
-			'homme'  => (int) ( $row['homme'] ?? 0 ),
-			'femme'  => (int) ( $row['femme'] ?? 0 ),
-			'unknown'=> (int) ( $row['unknown'] ?? 0 ),
-			'total'  => (int) ( $row['total'] ?? 0 ),
+			'homme'   => (int) ( $row['homme'] ?? 0 ),
+			'femme'   => (int) ( $row['femme'] ?? 0 ),
+			'unknown' => (int) ( $row['unknown'] ?? 0 ),
+			'total'   => (int) ( $row['total'] ?? 0 ),
 		);
 	}
 
@@ -817,6 +839,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		if ( ! $column ) {
 			return array( 'available' => false, 'competition' => 0, 'loisir' => 0, 'unknown' => 0, 'total' => 0 );
 		}
+
 		$where_args = is_array( $where_args ) ? $where_args : array();
 
 		if ( 'is_competition' === $column ) {
@@ -859,6 +882,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		if ( ! $column ) {
 			return array( 'available' => false, 'buckets' => array(), 'unknown' => 0 );
 		}
+
 		$where_args = is_array( $where_args ) ? $where_args : array();
 
 		$query = "SELECT
@@ -893,7 +917,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	private static function format_kpi_line_with_percent( $label, $value, $total ) {
 		$percent = $total > 0 ? round( ( (int) $value / (int) $total ) * 100, 1 ) : 0;
-
 		return sprintf( '%s: %d (%s%%)', $label, (int) $value, $percent );
 	}
 }
