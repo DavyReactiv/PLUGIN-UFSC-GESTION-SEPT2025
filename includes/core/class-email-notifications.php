@@ -50,8 +50,8 @@ class UFSC_Email_Notifications {
 
         self::send_email( $club_email, $subject, $message );
 
-        // Log notification
-        ufsc_audit_log( 'email_sent', array(
+        // Log notification (fail-closed if optional audit helper is unavailable).
+        self::audit_log( 'email_sent', array(
             'type' => 'licence_created',
             'licence_id' => $licence_id,
             'club_id' => $club_id,
@@ -107,8 +107,8 @@ class UFSC_Email_Notifications {
             self::send_email( $licence_data['email'], $licence_subject, $licence_message );
         }
 
-        // Log notification
-        ufsc_audit_log( 'email_sent', array(
+        // Log notification (fail-closed if optional audit helper is unavailable).
+        self::audit_log( 'email_sent', array(
             'type' => 'licence_validated',
             'licence_id' => $licence_id,
             'club_id' => $club_id,
@@ -146,8 +146,8 @@ class UFSC_Email_Notifications {
 
         self::send_email( $club_email, $subject, $message );
 
-        // Log notification
-        ufsc_audit_log( 'email_sent', array(
+        // Log notification (fail-closed if optional audit helper is unavailable).
+        self::audit_log( 'email_sent', array(
             'type' => 'quota_exceeded',
             'club_id' => $club_id,
             'recipient' => $club_email
@@ -187,8 +187,8 @@ class UFSC_Email_Notifications {
 
         self::send_email( $club_email, $subject, $message );
 
-        // Log notification
-        ufsc_audit_log( 'email_sent', array(
+        // Log notification (fail-closed if optional audit helper is unavailable).
+        self::audit_log( 'email_sent', array(
             'type' => 'order_created',
             'order_id' => $order_id,
             'club_id' => $club_id,
@@ -253,8 +253,8 @@ class UFSC_Email_Notifications {
 
         self::send_email( $club_email, $subject, $message );
 
-        // Log notification
-        ufsc_audit_log( 'email_sent', array(
+        // Log notification (fail-closed if optional audit helper is unavailable).
+        self::audit_log( 'email_sent', array(
             'type' => 'order_completed',
             'order_id' => $order_id,
             'club_id' => $club_id,
@@ -294,6 +294,22 @@ class UFSC_Email_Notifications {
         }
 
         return $sent;
+    }
+
+    /**
+     * Safe wrapper around optional audit logger.
+     *
+     * @param string $event   Event name.
+     * @param array  $context Event context.
+     * @return void
+     */
+    private static function audit_log( $event, $context = array() ) {
+        if ( function_exists( 'ufsc_audit_log' ) ) {
+            ufsc_audit_log( $event, $context );
+            return;
+        }
+
+        error_log( '[UFSC] ufsc_audit_log() missing in UFSC_Email_Notifications::audit_log' );
     }
 
     /**

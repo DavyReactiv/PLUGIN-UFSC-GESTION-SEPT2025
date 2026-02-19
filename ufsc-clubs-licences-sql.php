@@ -175,6 +175,11 @@ final class UFSC_CL_Bootstrap {
         global $post;
         $should_enqueue = false;
 
+        // Guard against early execution before the main query is available.
+        if ( ! did_action( 'wp' ) ) {
+            return;
+        }
+
         if ( $post && has_shortcode( $post->post_content, 'ufsc_club_dashboard' ) ) {
             $should_enqueue = true;
         } elseif ( $post && (

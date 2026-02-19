@@ -208,7 +208,9 @@ function ufsc_get_licence_status_label_fr( $status ) {
         $normalized = 'brouillon';
     }
 
-    return $labels[ $normalized ];
+    return $labels[ $normalized ]
+        ?? $labels['brouillon']
+        ?? ucfirst( str_replace( '_', ' ', $normalized ) );
 }
 
 /**
