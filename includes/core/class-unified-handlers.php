@@ -122,10 +122,14 @@ class UFSC_Unified_Handlers {
         if ( ! current_user_can( 'read' ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
+        $licence_id = isset( $_POST['licence_id'] ) ? intval( $_POST['licence_id'] ) : 0;
+
+        if ( $licence_id <= 0 ) {
+            self::handle_save_licence();
+            return;
+        }
 
         check_admin_referer( 'ufsc_update_licence' );
-
-        $licence_id = isset( $_POST['licence_id'] ) ? intval( $_POST['licence_id'] ) : 0;
 
         if ( ! $licence_id ) {
             self::redirect_with_error( 'Licence ID invalide' );

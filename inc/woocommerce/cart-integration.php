@@ -32,6 +32,12 @@ function ufsc_init_cart_integration() {
  * Handle secure add to cart requests posted via admin-post.php
  */
 function ufsc_handle_add_to_cart_secure() {
+	$log_warning = static function( $event, $context = array() ) {
+		if ( function_exists( 'ufsc_wc_log' ) ) {
+			ufsc_wc_log( $event, $context, 'warning' );
+		}
+	};
+
 	$can_manage_all = false;
 	if ( class_exists( 'UFSC_Capabilities' ) && method_exists( 'UFSC_Capabilities', 'user_can' ) ) {
 		$can_manage_all = UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_MANAGE_READ );
@@ -42,9 +48,7 @@ function ufsc_handle_add_to_cart_secure() {
 
 	// Woo required.
 	if ( ! function_exists( 'wc_add_notice' ) || ! function_exists( 'wc_get_product' ) ) {
-		if ( function_exists( 'ufsc_wc_log' ) ) {
-			ufsc_wc_log( 'ufsc_add_to_cart_woo_missing', array(), 'warning' );
-		}
+		$log_warning( 'ufsc_add_to_cart_woo_missing' );
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;
 	}
@@ -52,12 +56,17 @@ function ufsc_handle_add_to_cart_secure() {
 	// Verify nonce
 	$nonce = isset( $_POST['_ufsc_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_ufsc_nonce'] ) ) : '';
 	if ( ! $nonce || ! wp_verify_nonce( $nonce, 'ufsc_add_to_cart_action' ) ) {
+		$log_warning( 'ufsc_add_to_cart_nonce_failed', array( 'user_id' => get_current_user_id() ) );
 		wc_add_notice( __( 'Action non autorisée', 'ufsc-clubs' ), 'error' );
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;
 	}
 
 	if ( ! is_user_logged_in() || ! current_user_can( 'read' ) ) {
+		$log_warning( 'ufsc_add_to_cart_auth_failed', array(
+			'logged_in' => is_user_logged_in() ? 1 : 0,
+			'user_id'   => get_current_user_id(),
+		) );
 		wc_add_notice( __( 'Vous devez être connecté pour effectuer cette action', 'ufsc-clubs' ), 'error' );
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;
@@ -65,6 +74,7 @@ function ufsc_handle_add_to_cart_secure() {
 
 	$product_id = isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0;
 	if ( ! $product_id ) {
+		$log_warning( 'ufsc_add_to_cart_product_missing', array( 'user_id' => get_current_user_id() ) );
 		wc_add_notice( __( 'Produit non trouvé', 'ufsc-clubs' ), 'error' );
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;
@@ -72,6 +82,7 @@ function ufsc_handle_add_to_cart_secure() {
 
 	$product = wc_get_product( $product_id );
 	if ( ! $product || ! $product->exists() ) {
+		$log_warning( 'ufsc_add_to_cart_product_invalid', array( 'product_id' => $product_id ) );
 		wc_add_notice( __( 'Produit non trouvé', 'ufsc-clubs' ), 'error' );
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;
@@ -80,24 +91,58 @@ function ufsc_handle_add_to_cart_secure() {
 	$quantity       = isset( $_POST['quantity'] ) ? absint( $_POST['quantity'] ) : 1;
 	$cart_item_data = array();
 
+	// Normalize license IDs early (used for admin club resolve fallback)
+	$license_ids = array();
+	if ( isset( $_POST['ufsc_license_ids'] ) ) {
+		$license_ids_string = sanitize_text_field( wp_unslash( $_POST['ufsc_license_ids'] ) );
+		$license_ids        = array_values( array_unique( array_filter( array_map( 'absint', explode( ',', $license_ids_string ) ) ) ) );
+	}
+
 	$current_user_id = get_current_user_id();
 	$user_club_id    = function_exists( 'ufsc_get_user_club_id' ) ? absint( ufsc_get_user_club_id( $current_user_id ) ) : 0;
 
-	$club_id = 0;
-	if ( $can_manage_all && isset( $_POST['ufsc_club_id'] ) ) {
-		$club_id = absint( $_POST['ufsc_club_id'] );
+	// Resolve club id:
+	// - If posted ufsc_club_id exists: take it (admin or club mode)
+	// - Admin fallback: if missing but license_ids provided, resolve club_id from first licence (fail-closed)
+	// - Fallback to user_club_id
+	$club_id = isset( $_POST['ufsc_club_id'] ) ? absint( $_POST['ufsc_club_id'] ) : 0;
+
+	if ( $can_manage_all && $club_id <= 0 && ! empty( $license_ids ) && function_exists( 'ufsc_get_licences_table' ) ) {
+		global $wpdb;
+		$table            = ufsc_get_licences_table();
+		$first_id         = absint( $license_ids[0] );
+		$resolved_club_id = (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT club_id FROM `{$table}` WHERE id = %d", $first_id )
+		);
+		if ( $resolved_club_id > 0 ) {
+			$club_id = $resolved_club_id;
+		}
 	}
+
 	if ( $club_id <= 0 ) {
 		$club_id = $user_club_id;
 	}
 
 	if ( $club_id <= 0 ) {
+		$log_warning( 'ufsc_add_to_cart_club_missing', array(
+			'user_id'      => $current_user_id,
+			'user_club_id' => $user_club_id,
+			'product_id'   => $product_id,
+			'ids_count'    => count( $license_ids ),
+		) );
 		wc_add_notice( __( 'Club invalide pour cet utilisateur.', 'ufsc-clubs' ), 'error' );
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;
 	}
 
+	// Non-admins can only use their own club.
 	if ( ! $can_manage_all && ( $user_club_id <= 0 || $club_id !== $user_club_id ) ) {
+		$log_warning( 'ufsc_add_to_cart_club_mismatch', array(
+			'user_id'      => $current_user_id,
+			'club_id'      => $club_id,
+			'user_club_id' => $user_club_id,
+			'product_id'   => $product_id,
+		) );
 		wc_add_notice( __( 'Club invalide pour cet utilisateur.', 'ufsc-clubs' ), 'error' );
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;
@@ -106,20 +151,23 @@ function ufsc_handle_add_to_cart_secure() {
 	$cart_item_data['ufsc_club_id'] = $club_id;
 
 	// Add license IDs if provided (lot)
-	if ( isset( $_POST['ufsc_license_ids'] ) ) {
-		$license_ids_string = sanitize_text_field( wp_unslash( $_POST['ufsc_license_ids'] ) );
-		$license_ids        = array_values( array_unique( array_filter( array_map( 'absint', explode( ',', $license_ids_string ) ) ) ) );
-
-		if ( ! empty( $license_ids ) ) {
-			if ( ! ufsc_validate_licence_ids_for_cart( $license_ids, $club_id ) ) {
-				wc_add_notice( __( 'Une ou plusieurs licences ne peuvent pas être ajoutées au panier.', 'ufsc-clubs' ), 'error' );
-				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
-				exit;
-			}
-
-			$cart_item_data['ufsc_license_ids'] = $license_ids;
-			$quantity                           = count( $cart_item_data['ufsc_license_ids'] ); // Override quantity to match license count
+	if ( ! empty( $license_ids ) ) {
+		if ( ! ufsc_validate_licence_ids_for_cart( $license_ids, $club_id ) ) {
+			$log_warning( 'ufsc_add_to_cart_ids_invalid', array(
+				'user_id'    => $current_user_id,
+				'club_id'    => $club_id,
+				'product_id' => $product_id,
+				'ids_count'  => count( $license_ids ),
+				// Avoid logging full IDs if you consider it sensitive. Keep count; uncomment below if needed:
+				// 'ids' => $license_ids,
+			) );
+			wc_add_notice( __( 'Une ou plusieurs licences ne peuvent pas être ajoutées au panier.', 'ufsc-clubs' ), 'error' );
+			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+			exit;
 		}
+
+		$cart_item_data['ufsc_license_ids'] = $license_ids;
+		$quantity                           = count( $cart_item_data['ufsc_license_ids'] ); // Override quantity to match license count
 	}
 
 	// Ensure cart is ready
@@ -127,6 +175,11 @@ function ufsc_handle_add_to_cart_secure() {
 		wc_load_cart();
 	}
 	if ( ! function_exists( 'WC' ) || ! WC() || ! WC()->cart ) {
+		$log_warning( 'ufsc_add_to_cart_cart_unavailable', array(
+			'user_id'    => $current_user_id,
+			'club_id'    => $club_id,
+			'product_id' => $product_id,
+		) );
 		wc_add_notice( __( 'Panier indisponible, veuillez réessayer.', 'ufsc-clubs' ), 'error' );
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;
@@ -140,11 +193,22 @@ function ufsc_handle_add_to_cart_secure() {
 			'success'
 		);
 	} else {
+		$log_warning( 'ufsc_add_to_cart_add_failed', array(
+			'user_id'    => $current_user_id,
+			'product_id' => $product_id,
+			'club_id'    => $club_id,
+			'qty'        => max( 1, $quantity ),
+			'ids_count'  => count( $license_ids ),
+		) );
 		wc_add_notice( __( 'Erreur lors de l\'ajout au panier', 'ufsc-clubs' ), 'error' );
 	}
 
 	// Redirect back to the referring page
-	wp_safe_redirect( wp_get_referer() ? wp_get_referer() : ( function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : home_url() ) );
+	wp_safe_redirect(
+		wp_get_referer()
+			? wp_get_referer()
+			: ( function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : home_url() )
+	);
 	exit;
 }
 
@@ -159,6 +223,7 @@ function ufsc_handle_add_to_cart_secure() {
  */
 function ufsc_validate_licence_ids_for_cart( $licence_ids, $club_id ) {
 	global $wpdb;
+
 	$can_manage_all = false;
 	if ( class_exists( 'UFSC_Capabilities' ) && method_exists( 'UFSC_Capabilities', 'user_can' ) ) {
 		$can_manage_all = UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_MANAGE_READ );
