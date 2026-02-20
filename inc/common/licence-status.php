@@ -228,6 +228,7 @@ function ufsc_get_licence_status_from_record( $licence ) {
  * Licence status helpers for normalization, labels, and syncing.
  */
 final class UFSC_Licence_Status {
+
     /**
      * Normalize raw input to a canonical status value.
      *
@@ -389,6 +390,7 @@ function ufsc_is_licence_paid( $licence ) {
 
     foreach ( array( 'paid', 'payee', 'is_paid' ) as $key ) {
         $value = 0;
+
         if ( is_array( $licence ) ) {
             $value = (int) ( $licence[ $key ] ?? 0 );
         } elseif ( is_object( $licence ) ) {
@@ -413,10 +415,14 @@ function ufsc_is_licence_paid( $licence ) {
 /**
  * Check if licence is locked for club-side edit/delete.
  *
+ * Fail-closed: invalid payload, unknown status => locked.
+ * Special case: order_id referenced but Woo order missing => locked ONLY if paid proof exists in payload.
+ *
  * @param object|array $licence Licence record.
  * @return bool
  */
 function ufsc_is_licence_locked_for_club( $licence ) {
+    // Fail-closed on invalid payload.
     if ( ! is_array( $licence ) && ! is_object( $licence ) ) {
         if ( function_exists( 'ufsc_wc_log' ) ) {
             ufsc_wc_log( 'ufsc_licence_lock_invalid_payload', array( 'type' => gettype( $licence ) ), 'error' );
@@ -429,6 +435,7 @@ function ufsc_is_licence_locked_for_club( $licence ) {
         : ( $licence->statut ?? ( $licence->status ?? '' ) );
     $status     = ufsc_get_licence_status_norm( $status_raw );
 
+    // Explicit admin lock.
     $locked_by_admin = is_array( $licence )
         ? (int) ( $licence['locked_by_admin'] ?? 0 )
         : (int) ( $licence->locked_by_admin ?? 0 );
@@ -436,29 +443,43 @@ function ufsc_is_licence_locked_for_club( $licence ) {
         return true;
     }
 
+    // Locked statuses.
     if ( in_array( $status, array( 'valide', 'refuse', 'desactive', 'expire', 'en_attente' ), true ) ) {
         return true;
     }
 
-    $known_raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
-        ? ufsc_get_licence_status_raw_values_for_norm( $status )
-        : array();
-    if ( '' !== trim( (string) $status_raw ) && ! in_array( strtolower( trim( (string) $status_raw ) ), array_map( 'strtolower', $known_raw_values ), true ) ) {
-        if ( function_exists( 'ufsc_wc_log' ) ) {
-            ufsc_wc_log( 'ufsc_licence_lock_unknown_status', array( 'status_raw' => (string) $status_raw ), 'error' );
+    // Fail-closed on unknown raw status value (when a raw is present but not recognized).
+    $raw_trim = strtolower( trim( (string) $status_raw ) );
+    if ( '' !== $raw_trim && function_exists( 'ufsc_get_licence_status_raw_values_for_norm' ) ) {
+        $known_raw_values = ufsc_get_licence_status_raw_values_for_norm( $status );
+        $known_raw_values = array_map(
+            static function( $v ) {
+                return strtolower( trim( (string) $v ) );
+            },
+            is_array( $known_raw_values ) ? $known_raw_values : array()
+        );
+
+        if ( ! in_array( $raw_trim, $known_raw_values, true ) ) {
+            if ( function_exists( 'ufsc_wc_log' ) ) {
+                ufsc_wc_log( 'ufsc_licence_lock_unknown_status', array( 'status_raw' => (string) $status_raw ), 'error' );
+            }
+            return true;
         }
-        return true;
     }
 
+    // If an order is referenced, try to validate payment proof via Woo.
     $order_id = is_array( $licence ) ? absint( $licence['order_id'] ?? 0 ) : absint( $licence->order_id ?? 0 );
     if ( $order_id > 0 && function_exists( 'wc_get_order' ) ) {
         $order = wc_get_order( $order_id );
+
+        // Special case: order missing => lock ONLY if paid proof exists in payload, else allow edits (and warn).
         if ( ! $order ) {
             $payment_status = is_array( $licence )
                 ? strtolower( (string) ( $licence['payment_status'] ?? '' ) )
                 : strtolower( (string) ( $licence->payment_status ?? '' ) );
 
             $has_paid_proof = in_array( $payment_status, array( 'paid', 'completed', 'processing' ), true );
+
             if ( ! $has_paid_proof ) {
                 foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_key ) {
                     $paid_value = is_array( $licence )
@@ -482,11 +503,13 @@ function ufsc_is_licence_locked_for_club( $licence ) {
             return $has_paid_proof;
         }
 
+        // Consider paid states as locked.
         if ( in_array( (string) $order->get_status(), array( 'processing', 'completed' ), true ) ) {
             return true;
         }
     }
 
+    // Fallback on schema-compatible "paid" markers.
     return ufsc_is_licence_paid( $licence );
 }
 
