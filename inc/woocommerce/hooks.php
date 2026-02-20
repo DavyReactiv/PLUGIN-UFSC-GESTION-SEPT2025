@@ -78,6 +78,11 @@ function ufsc_handle_woocommerce_payment_confirmed( $order_id ) {
 		return;
 	}
 
+	$already_processed = 'yes' === (string) $order->get_meta( '_ufsc_licences_processed', true );
+	if ( $already_processed && ! ufsc_wc_order_has_missing_licence_ids( $order ) ) {
+		return;
+	}
+
 	// Guard: only run on real paid transitions (except payment_complete which is paid by definition).
 	$current_hook = current_filter();
 	$order_status = (string) $order->get_status();
@@ -167,8 +172,8 @@ function ufsc_handle_woocommerce_payment_confirmed( $order_id ) {
 			}
 		}
 
-		// If it was draft, promote to "en_attente" after payment.
-		if ( 'brouillon' === $current_status ) {
+		// Promote editable/unpaid statuses to "en_attente" after payment.
+		if ( in_array( $current_status, array( 'brouillon', 'non_payee', 'a_regler' ), true ) ) {
 			if ( in_array( 'statut', $columns, true ) && (string) ( $current->statut ?? '' ) !== 'en_attente' ) {
 				$data['statut'] = 'en_attente';
 				$formats[]      = '%s';
@@ -202,6 +207,9 @@ function ufsc_handle_woocommerce_payment_confirmed( $order_id ) {
 			)
 		);
 	}
+
+	$order->update_meta_data( '_ufsc_licences_processed', 'yes' );
+	$order->save();
 }
 
 /**
@@ -272,7 +280,7 @@ function ufsc_wc_maybe_generate_order_licences( $order ) {
 
 		$item->update_meta_data( '_ufsc_licence_ids', $merged_ids );
 		$item->update_meta_data( 'ufsc_licence_ids', $merged_ids );
-		if ( ! $item->get_meta( '_ufsc_licence_id', true ) && ! empty( $merged_ids ) ) {
+		if ( ! empty( $merged_ids ) ) {
 			$item->update_meta_data( '_ufsc_licence_id', (int) $merged_ids[0] );
 			$item->update_meta_data( 'ufsc_licence_id', (int) $merged_ids[0] );
 		}

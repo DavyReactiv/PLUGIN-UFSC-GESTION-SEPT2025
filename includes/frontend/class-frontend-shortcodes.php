@@ -487,6 +487,7 @@ class UFSC_Frontend_Shortcodes {
 
                                 $status_raw = $licence->licence_statut ?? ( $licence->statut ?? '' );
                                 $status     = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::display_status( $status_raw ) : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw );
+                                $is_locked  = function_exists( 'ufsc_is_licence_locked_for_club' ) ? ufsc_is_licence_locked_for_club( $licence ) : ! ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status ) : false );
                                 $season     = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
 
                                 $practice = isset( $licence->competition ) && $licence->competition
@@ -511,7 +512,7 @@ class UFSC_Frontend_Shortcodes {
                                     <td><?php echo '' !== $age ? intval($age) : ''; ?></td>
                                     <td>
                                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
-                                        <?php if ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status ) : ( 'en_attente' === $status ) ) : ?>
+                                        <?php if ( ! $is_locked ) : ?>
                                             | <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
                                         <?php endif; ?>
                                     </td>
@@ -680,9 +681,15 @@ class UFSC_Frontend_Shortcodes {
                 <?php
                 $licence_status_raw = $licence->licence_statut ?? ( $licence->statut ?? '' );
                 $licence_status     = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::display_status( $licence_status_raw ) : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $licence_status_raw ) : $licence_status_raw );
+                $is_locked          = function_exists( 'ufsc_is_licence_locked_for_club' ) ? ufsc_is_licence_locked_for_club( $licence ) : ! ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $licence_status ) : false );
                 $can_retry_payment  = function_exists( 'ufsc_can_retry_licence_payment' ) ? ufsc_can_retry_licence_payment( $licence->id ?? 0 ) : false;
+                $is_in_cart         = self::is_licence_in_cart( (int) ( $licence->id ?? 0 ) );
 
-                if ( 'non_payee' === $licence_status || $can_retry_payment ) :
+                if ( ! $is_locked ) {
+                    echo self::render_pre_payment_warning_block();
+                }
+
+                if ( ! $is_locked || $can_retry_payment ) :
                     ?>
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
                         <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
@@ -690,12 +697,12 @@ class UFSC_Frontend_Shortcodes {
                         <input type="hidden" name="product_id" value="<?php echo esc_attr( $wc_settings['product_license_id'] ); ?>">
                         <input type="hidden" name="ufsc_license_ids" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
                         <button type="submit" class="ufsc-btn ufsc-btn-small">
-                            <?php esc_html_e( 'Payer la licence', 'ufsc-clubs' ); ?>
+                            <?php echo $is_in_cart ? esc_html__( 'Payer maintenant / Voir panier', 'ufsc-clubs' ) : esc_html__( 'Ajouter au panier', 'ufsc-clubs' ); ?>
                         </button>
                     </form>
                 <?php endif; ?>
 
-                <?php if ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $licence_status ) : in_array( $licence_status, array( 'brouillon', 'non_payee', 'en_attente' ), true ) ) : ?>
+                <?php if ( ! $is_locked ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>" class="ufsc-btn ufsc-btn-small">
                         <?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?>
                     </a>
@@ -1523,6 +1530,7 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <div class="ufsc-form-actions">
+                    <?php echo self::render_pre_payment_warning_block(); ?>
                     <button type="submit" class="ufsc-btn ufsc-btn-primary" onclick="document.getElementById('ufsc_submit_action').value='save';">
                         <?php esc_html_e( 'Enregistrer', 'ufsc-clubs' ); ?>
                     </button>
@@ -1641,6 +1649,50 @@ class UFSC_Frontend_Shortcodes {
             $club_id
         ) );
         return $name ? $name : "Club #{$club_id}";
+    }
+
+    /**
+     * Render pre-payment warning (Option B).
+     *
+     * @return string
+     */
+    private static function render_pre_payment_warning_block() {
+        return '<div class="ufsc-message ufsc-info" style="margin:10px 0;">'
+            . '<strong>' . esc_html__( 'Vérification obligatoire avant paiement', 'ufsc-clubs' ) . '</strong><br>'
+            . esc_html__( 'Merci de contrôler les informations saisies (nom/prénom, date de naissance, catégorie, coordonnées).', 'ufsc-clubs' ) . '<br>'
+            . esc_html__( 'Une fois le paiement effectué, la licence passe en traitement et ne peut plus être modifiée en autonomie.', 'ufsc-clubs' ) . '<br>'
+            . esc_html__( 'Toute correction demandée après paiement est soumise à des frais de traitement administratif de 5 €.', 'ufsc-clubs' )
+            . '</div>';
+    }
+
+    /**
+     * Check if a specific licence is already present in current cart.
+     *
+     * @param int $licence_id Licence ID.
+     * @return bool
+     */
+    private static function is_licence_in_cart( $licence_id ) {
+        if ( $licence_id <= 0 || ! function_exists( 'WC' ) || ! WC()->cart ) {
+            return false;
+        }
+
+        foreach ( WC()->cart->get_cart() as $item ) {
+            $ids = array();
+
+            if ( isset( $item['ufsc_license_ids'] ) && is_array( $item['ufsc_license_ids'] ) ) {
+                $ids = array_merge( $ids, $item['ufsc_license_ids'] );
+            }
+            if ( isset( $item['ufsc_licence_id'] ) ) {
+                $ids[] = $item['ufsc_licence_id'];
+            }
+
+            $ids = array_map( 'absint', $ids );
+            if ( in_array( $licence_id, $ids, true ) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
