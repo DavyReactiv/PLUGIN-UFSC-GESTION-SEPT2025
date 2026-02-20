@@ -954,6 +954,10 @@ class UFSC_Unified_Handlers {
             }
         }
 
+        if ( isset( $data['note'] ) && '' !== $data['note'] ) {
+            $data['note'] = trim( (string) preg_replace( '/^\s*club\s*:\s*/i', '', $data['note'] ) );
+        }
+
         // Boolean fields
         $boolean_fields = array(
             'reduction_benevole',
