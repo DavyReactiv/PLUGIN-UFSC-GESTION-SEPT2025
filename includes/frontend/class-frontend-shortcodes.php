@@ -329,12 +329,14 @@ class UFSC_Frontend_Shortcodes {
             $atts['sort'] = sanitize_text_field( $_GET['ufsc_sort'] );
         }
 
-        if ( isset( $_GET['view_licence'] ) ) {
+        $is_delete_success = isset( $_GET['ufsc_message'] ) && false !== strpos( strtolower( sanitize_text_field( wp_unslash( $_GET['ufsc_message'] ) ) ), 'supprim' );
+
+        if ( ! $is_delete_success && isset( $_GET['view_licence'] ) ) {
             $licence_id = intval( $_GET['view_licence'] );
             return self::render_single_licence( $licence_id );
         }
 
-        if ( isset( $_GET['edit_licence'] ) ) {
+        if ( ! $is_delete_success && isset( $_GET['edit_licence'] ) ) {
             $licence_id = intval( $_GET['edit_licence'] );
             return self::render_add_licence( array(
                 'club_id'    => $atts['club_id'],
@@ -694,6 +696,7 @@ class UFSC_Frontend_Shortcodes {
                         <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
                         <input type="hidden" name="action" value="ufsc_add_to_cart">
                         <input type="hidden" name="product_id" value="<?php echo esc_attr( $wc_settings['product_license_id'] ); ?>">
+                        <input type="hidden" name="ufsc_club_id" value="<?php echo esc_attr( (int) ( $licence->club_id ?? $club_id ?? 0 ) ); ?>">
                         <input type="hidden" name="ufsc_license_ids" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
                         <button type="submit" class="ufsc-btn ufsc-btn-small">
                             <?php echo $is_in_cart ? esc_html__( 'Payer maintenant / Voir panier', 'ufsc-clubs' ) : esc_html__( 'Ajouter au panier', 'ufsc-clubs' ); ?>
