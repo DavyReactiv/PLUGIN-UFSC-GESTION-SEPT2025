@@ -88,7 +88,7 @@ function ufsc_normalize_licence_status( $status ) {
 function ufsc_get_license_statuses() {
     $statuses = array(
         'brouillon'  => __( 'Brouillon', 'ufsc-clubs' ),
-        'en_attente' => __( 'En attente', 'ufsc-clubs' ),
+        'en_attente' => __( 'En attente de validation', 'ufsc-clubs' ),
         'valide'     => __( 'Validée', 'ufsc-clubs' ),
         'refuse'     => __( 'Refusée', 'ufsc-clubs' ),
         'desactive'  => __( 'Désactivée', 'ufsc-clubs' ),
@@ -365,7 +365,129 @@ final class UFSC_Licence_Status {
  */
 function ufsc_is_editable_licence_status( $status ) {
     $normalized = ufsc_get_licence_status_norm( $status );
-    return in_array( $normalized, array( 'brouillon', 'non_payee', 'en_attente' ), true );
+    return in_array( $normalized, array( 'brouillon', 'non_payee', 'a_regler' ), true );
+}
+
+/**
+ * Check if a licence is paid using schema-compatible markers.
+ *
+ * @param object|array $licence Licence record.
+ * @return bool
+ */
+function ufsc_is_licence_paid( $licence ) {
+    $payment_status = '';
+
+    if ( is_array( $licence ) ) {
+        $payment_status = strtolower( (string) ( $licence['payment_status'] ?? '' ) );
+    } elseif ( is_object( $licence ) ) {
+        $payment_status = strtolower( (string) ( $licence->payment_status ?? '' ) );
+    }
+
+    if ( in_array( $payment_status, array( 'paid', 'completed', 'processing' ), true ) ) {
+        return true;
+    }
+
+    foreach ( array( 'paid', 'payee', 'is_paid' ) as $key ) {
+        $value = 0;
+        if ( is_array( $licence ) ) {
+            $value = (int) ( $licence[ $key ] ?? 0 );
+        } elseif ( is_object( $licence ) ) {
+            $value = (int) ( $licence->{$key} ?? 0 );
+        }
+
+        if ( 1 === $value ) {
+            return true;
+        }
+    }
+
+    $order_id = 0;
+    if ( is_array( $licence ) ) {
+        $order_id = absint( $licence['order_id'] ?? 0 );
+    } elseif ( is_object( $licence ) ) {
+        $order_id = absint( $licence->order_id ?? 0 );
+    }
+
+    return $order_id > 0;
+}
+
+/**
+ * Check if licence is locked for club-side edit/delete.
+ *
+ * @param object|array $licence Licence record.
+ * @return bool
+ */
+function ufsc_is_licence_locked_for_club( $licence ) {
+    if ( ! is_array( $licence ) && ! is_object( $licence ) ) {
+        if ( function_exists( 'ufsc_wc_log' ) ) {
+            ufsc_wc_log( 'ufsc_licence_lock_invalid_payload', array( 'type' => gettype( $licence ) ), 'error' );
+        }
+        return true;
+    }
+
+    $status_raw = is_array( $licence )
+        ? ( $licence['statut'] ?? ( $licence['status'] ?? '' ) )
+        : ( $licence->statut ?? ( $licence->status ?? '' ) );
+    $status     = ufsc_get_licence_status_norm( $status_raw );
+
+    $locked_by_admin = is_array( $licence )
+        ? (int) ( $licence['locked_by_admin'] ?? 0 )
+        : (int) ( $licence->locked_by_admin ?? 0 );
+    if ( 1 === $locked_by_admin ) {
+        return true;
+    }
+
+    if ( in_array( $status, array( 'valide', 'refuse', 'desactive', 'expire', 'en_attente' ), true ) ) {
+        return true;
+    }
+
+    $known_raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
+        ? ufsc_get_licence_status_raw_values_for_norm( $status )
+        : array();
+    if ( '' !== trim( (string) $status_raw ) && ! in_array( strtolower( trim( (string) $status_raw ) ), array_map( 'strtolower', $known_raw_values ), true ) ) {
+        if ( function_exists( 'ufsc_wc_log' ) ) {
+            ufsc_wc_log( 'ufsc_licence_lock_unknown_status', array( 'status_raw' => (string) $status_raw ), 'error' );
+        }
+        return true;
+    }
+
+    $order_id = is_array( $licence ) ? absint( $licence['order_id'] ?? 0 ) : absint( $licence->order_id ?? 0 );
+    if ( $order_id > 0 && function_exists( 'wc_get_order' ) ) {
+        $order = wc_get_order( $order_id );
+        if ( ! $order ) {
+            $payment_status = is_array( $licence )
+                ? strtolower( (string) ( $licence['payment_status'] ?? '' ) )
+                : strtolower( (string) ( $licence->payment_status ?? '' ) );
+
+            $has_paid_proof = in_array( $payment_status, array( 'paid', 'completed', 'processing' ), true );
+            if ( ! $has_paid_proof ) {
+                foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_key ) {
+                    $paid_value = is_array( $licence )
+                        ? (int) ( $licence[ $paid_key ] ?? 0 )
+                        : (int) ( $licence->{$paid_key} ?? 0 );
+                    if ( 1 === $paid_value ) {
+                        $has_paid_proof = true;
+                        break;
+                    }
+                }
+            }
+
+            if ( function_exists( 'ufsc_wc_log' ) ) {
+                ufsc_wc_log(
+                    $has_paid_proof ? 'ufsc_licence_lock_order_missing_but_paid' : 'ufsc_licence_lock_order_missing_not_paid',
+                    array( 'order_id' => $order_id, 'has_paid_proof' => $has_paid_proof ),
+                    $has_paid_proof ? 'error' : 'warning'
+                );
+            }
+
+            return $has_paid_proof;
+        }
+
+        if ( in_array( (string) $order->get_status(), array( 'processing', 'completed' ), true ) ) {
+            return true;
+        }
+    }
+
+    return ufsc_is_licence_paid( $licence );
 }
 
 /**
