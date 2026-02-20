@@ -443,10 +443,10 @@ function ufsc_is_licence_locked_for_club( $licence ) {
         return true;
     }
 
-    // Locked statuses.
-    if ( in_array( $status, array( 'valide', 'refuse', 'desactive', 'expire', 'en_attente' ), true ) ) {
-        return true;
-    }
+	// Locked statuses.
+	if ( in_array( $status, array( 'valide', 'refuse', 'desactive', 'expire' ), true ) ) {
+		return true;
+	}
 
     // Fail-closed on unknown raw status value (when a raw is present but not recognized).
     $raw_trim = strtolower( trim( (string) $status_raw ) );
@@ -465,6 +465,24 @@ function ufsc_is_licence_locked_for_club( $licence ) {
             }
             return true;
         }
+    }
+
+
+    // en_attente is locked only when a reliable payment/order linkage exists.
+    if ( 'en_attente' === $status ) {
+        if ( ufsc_is_licence_paid( $licence ) ) {
+            return true;
+        }
+
+        $order_id = is_array( $licence ) ? absint( $licence['order_id'] ?? 0 ) : absint( $licence->order_id ?? 0 );
+        if ( $order_id > 0 && function_exists( 'wc_get_order' ) ) {
+            $order = wc_get_order( $order_id );
+            if ( $order && ! in_array( (string) $order->get_status(), array( 'cancelled', 'failed', 'refunded', 'trash' ), true ) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // If an order is referenced, try to validate payment proof via Woo.
