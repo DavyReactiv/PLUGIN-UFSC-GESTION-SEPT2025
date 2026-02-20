@@ -7,8 +7,9 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  *
  * NOTE: This file was normalized to remove merge-conflict markers and to be fail-closed.
  * - Keeps existing public metas/keys as-is (ufsc_club_id, ufsc_license_ids, ufsc_licence_ids, etc.)
- * - Fixes ufsc_validate_licence_ids_for_cart(): was returning TRUE on missing prerequisites (unsafe).
+ * - Fixes ufsc_validate_licence_ids_for_cart(): fail-closed (was unsafe in some branches).
  * - Adds defensive guards (Woo not loaded, WC()->cart null, etc.)
+ * - Adds filter ufsc_cart_max_licence_ids (default 50, bounded 1..500)
  */
 
 /**
@@ -83,7 +84,7 @@ function ufsc_handle_add_to_cart_secure() {
 		}
 	}
 
-	// Add license IDs if provided
+	// Add license IDs if provided (lot)
 	if ( isset( $_POST['ufsc_license_ids'] ) ) {
 		$license_ids_string = sanitize_text_field( wp_unslash( $_POST['ufsc_license_ids'] ) );
 		$license_ids        = array_filter( array_map( 'absint', explode( ',', $license_ids_string ) ) );
@@ -147,8 +148,10 @@ function ufsc_validate_licence_ids_for_cart( $licence_ids, $club_id ) {
 		return false;
 	}
 
-	// Anti-abuse: keep reasonable maximum.
-	if ( count( $licence_ids ) > 50 ) {
+	$max_ids = (int) apply_filters( 'ufsc_cart_max_licence_ids', 50 );
+	$max_ids = max( 1, min( $max_ids, 500 ) );
+
+	if ( count( $licence_ids ) > $max_ids ) {
 		return false;
 	}
 
@@ -202,19 +205,19 @@ function ufsc_validate_licence_ids_for_cart( $licence_ids, $club_id ) {
 /**
  * Transfer custom meta from cart to order line items
  *
- * @param WC_Order_Item_Product $item Order line item
- * @param string               $cart_item_key Cart item key
- * @param array                $values Cart item values
- * @param WC_Order             $order Order object
+ * @param WC_Order_Item_Product $item          Order line item
+ * @param string               $cart_item_key  Cart item key
+ * @param array                $values         Cart item values
+ * @param WC_Order             $order          Order object
  */
 function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $order ) {
-	// Transfer club ID
+	// Transfer club ID (store both underscored + public for compatibility)
 	if ( isset( $values['ufsc_club_id'] ) ) {
 		$item->add_meta_data( '_ufsc_club_id', absint( $values['ufsc_club_id'] ) );
 		$item->add_meta_data( 'ufsc_club_id', absint( $values['ufsc_club_id'] ) );
 	}
 
-	// Transfer single licence ID (legacy)
+	// Transfer single licence ID (legacy compatibility)
 	if ( isset( $values['ufsc_licence_id'] ) ) {
 		$item->add_meta_data( '_ufsc_licence_id', absint( $values['ufsc_licence_id'] ) );
 		$item->add_meta_data( 'ufsc_licence_id', absint( $values['ufsc_licence_id'] ) );
@@ -222,7 +225,7 @@ function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $orde
 
 	/**
 	 * Transfer licence IDs (lot)
-	 * NOTE: cart uses 'ufsc_license_ids' (EN spelling) in this file.
+	 * NOTE: cart uses 'ufsc_license_ids' (EN spelling).
 	 * Order metas stored as both _ufsc_licence_ids and ufsc_licence_ids for compatibility.
 	 */
 	if ( isset( $values['ufsc_license_ids'] ) && is_array( $values['ufsc_license_ids'] ) ) {
@@ -270,7 +273,7 @@ function ufsc_display_cart_item_data( $item_data, $cart_item ) {
 		}
 	}
 
-	// Display license IDs
+	// Display license IDs (lot)
 	if ( isset( $cart_item['ufsc_license_ids'] ) && is_array( $cart_item['ufsc_license_ids'] ) ) {
 		$license_count = count( $cart_item['ufsc_license_ids'] );
 		$item_data[]   = array(

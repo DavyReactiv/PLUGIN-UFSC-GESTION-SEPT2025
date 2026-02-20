@@ -415,7 +415,8 @@ function ufsc_is_licence_paid( $licence ) {
 /**
  * Check if licence is locked for club-side edit/delete.
  *
- * Fail-closed: invalid payload, unknown status, missing Woo order when referenced => locked.
+ * Fail-closed: invalid payload, unknown status => locked.
+ * Special case: order_id referenced but Woo order missing => locked ONLY if paid proof exists in payload.
  *
  * @param object|array $licence Licence record.
  * @return bool
@@ -466,15 +467,40 @@ function ufsc_is_licence_locked_for_club( $licence ) {
         }
     }
 
-    // If an order is referenced, try to validate payment proof via Woo. Missing order => fail-closed.
+    // If an order is referenced, try to validate payment proof via Woo.
     $order_id = is_array( $licence ) ? absint( $licence['order_id'] ?? 0 ) : absint( $licence->order_id ?? 0 );
     if ( $order_id > 0 && function_exists( 'wc_get_order' ) ) {
         $order = wc_get_order( $order_id );
+
+        // Special case: order missing => lock ONLY if paid proof exists in payload, else allow edits (and warn).
         if ( ! $order ) {
-            if ( function_exists( 'ufsc_wc_log' ) ) {
-                ufsc_wc_log( 'ufsc_licence_lock_order_missing', array( 'order_id' => $order_id ), 'error' );
+            $payment_status = is_array( $licence )
+                ? strtolower( (string) ( $licence['payment_status'] ?? '' ) )
+                : strtolower( (string) ( $licence->payment_status ?? '' ) );
+
+            $has_paid_proof = in_array( $payment_status, array( 'paid', 'completed', 'processing' ), true );
+
+            if ( ! $has_paid_proof ) {
+                foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_key ) {
+                    $paid_value = is_array( $licence )
+                        ? (int) ( $licence[ $paid_key ] ?? 0 )
+                        : (int) ( $licence->{$paid_key} ?? 0 );
+                    if ( 1 === $paid_value ) {
+                        $has_paid_proof = true;
+                        break;
+                    }
+                }
             }
-            return true;
+
+            if ( function_exists( 'ufsc_wc_log' ) ) {
+                ufsc_wc_log(
+                    $has_paid_proof ? 'ufsc_licence_lock_order_missing_but_paid' : 'ufsc_licence_lock_order_missing_not_paid',
+                    array( 'order_id' => $order_id, 'has_paid_proof' => $has_paid_proof ),
+                    $has_paid_proof ? 'error' : 'warning'
+                );
+            }
+
+            return $has_paid_proof;
         }
 
         // Consider paid states as locked.
