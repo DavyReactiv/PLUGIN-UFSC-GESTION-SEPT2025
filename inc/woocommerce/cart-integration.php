@@ -26,6 +26,278 @@ function ufsc_init_cart_integration() {
 
 	// Transfer meta data from cart to order
 	add_action( 'woocommerce_checkout_create_order_line_item', 'ufsc_transfer_cart_meta_to_order', 10, 4 );
+
+	// Revert pending licence status when cart items are removed without real order linkage.
+	add_action( 'woocommerce_remove_cart_item', 'ufsc_handle_remove_cart_item_licence_revert', 10, 2 );
+	add_action( 'woocommerce_cart_item_removed', 'ufsc_handle_cart_item_removed_licence_revert', 10, 2 );
+	add_action( 'woocommerce_before_cart_emptied', 'ufsc_snapshot_cart_before_empty', 10, 1 );
+	add_action( 'woocommerce_cart_emptied', 'ufsc_handle_cart_emptied_licence_revert', 10 );
+}
+
+/**
+ * Snapshot cart items before emptying.
+ *
+ * @param WC_Cart $cart Cart object.
+ */
+function ufsc_snapshot_cart_before_empty( $cart ) {
+	if ( ! $cart || ! is_object( $cart ) || ! method_exists( $cart, 'get_cart' ) ) {
+		return;
+	}
+
+	if ( function_exists( 'WC' ) && WC() && WC()->session ) {
+		WC()->session->set( 'ufsc_cart_empty_snapshot', $cart->get_cart() );
+	}
+}
+
+/**
+ * Handle licence status revert on cart emptied.
+ */
+function ufsc_handle_cart_emptied_licence_revert() {
+	if ( ! function_exists( 'WC' ) || ! WC() || ! WC()->session ) {
+		if ( function_exists( 'ufsc_wc_log' ) ) {
+			ufsc_wc_log( 'ufsc_cart_empty_woo_missing', array(), 'warning' );
+		}
+		return;
+	}
+
+	$snapshot = WC()->session->get( 'ufsc_cart_empty_snapshot', array() );
+	WC()->session->set( 'ufsc_cart_empty_snapshot', null );
+
+	if ( ! is_array( $snapshot ) || empty( $snapshot ) ) {
+		return;
+	}
+
+	foreach ( $snapshot as $cart_item ) {
+		ufsc_maybe_revert_licences_from_cart_item( $cart_item );
+	}
+}
+
+/**
+ * Handle remove_cart_item hook.
+ *
+ * @param string  $cart_item_key Cart item key.
+ * @param WC_Cart $cart          Cart object.
+ */
+function ufsc_handle_remove_cart_item_licence_revert( $cart_item_key, $cart ) {
+	if ( ! $cart || ! is_object( $cart ) || ! isset( $cart->removed_cart_contents[ $cart_item_key ] ) ) {
+		return;
+	}
+
+	ufsc_maybe_revert_licences_from_cart_item( $cart->removed_cart_contents[ $cart_item_key ] );
+}
+
+/**
+ * Handle cart_item_removed hook.
+ *
+ * @param string  $cart_item_key Cart item key.
+ * @param WC_Cart $cart          Cart object.
+ */
+function ufsc_handle_cart_item_removed_licence_revert( $cart_item_key, $cart ) {
+	if ( ! $cart || ! is_object( $cart ) || ! isset( $cart->removed_cart_contents[ $cart_item_key ] ) ) {
+		return;
+	}
+
+	ufsc_maybe_revert_licences_from_cart_item( $cart->removed_cart_contents[ $cart_item_key ] );
+}
+
+/**
+ * Extract licence IDs from cart item payload.
+ *
+ * @param array $cart_item Cart item data.
+ * @return int[]
+ */
+function ufsc_extract_licence_ids_from_cart_item( $cart_item ) {
+	$ids = array();
+
+	if ( isset( $cart_item['ufsc_licence_id'] ) ) {
+		$ids[] = absint( $cart_item['ufsc_licence_id'] );
+	}
+
+	foreach ( array( 'ufsc_license_ids', 'ufsc_licence_ids' ) as $key ) {
+		if ( isset( $cart_item[ $key ] ) && is_array( $cart_item[ $key ] ) ) {
+			$ids = array_merge( $ids, array_map( 'absint', $cart_item[ $key ] ) );
+		}
+	}
+
+	return array_values( array_unique( array_filter( $ids ) ) );
+}
+
+/**
+ * Check whether a licence is already linked to a Woo order.
+ *
+ * @param int $licence_id Licence ID.
+ * @return bool|null True if linked, false if not linked, null on uncertainty (fail-closed).
+ */
+function ufsc_is_licence_linked_to_order( $licence_id ) {
+	global $wpdb;
+
+	$licence_id = absint( $licence_id );
+	if ( $licence_id <= 0 ) {
+		return null;
+	}
+
+	if ( ! function_exists( 'wc_get_order' ) ) {
+		return null;
+	}
+
+	$order_itemmeta = $wpdb->prefix . 'woocommerce_order_itemmeta';
+	$order_items    = $wpdb->prefix . 'woocommerce_order_items';
+	$posts          = $wpdb->posts;
+
+	$single_item_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT order_item_id FROM {$order_itemmeta} WHERE meta_key IN ('_ufsc_licence_id','ufsc_licence_id') AND meta_value = %s",
+			(string) $licence_id
+		)
+	);
+
+	$serialized_like = '%"' . $wpdb->esc_like( (string) $licence_id ) . '"%';
+	$lot_item_ids    = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT order_item_id FROM {$order_itemmeta} WHERE meta_key IN ('_ufsc_licence_ids','ufsc_licence_ids') AND meta_value LIKE %s",
+			$serialized_like
+		)
+	);
+
+	$item_ids = array_values( array_unique( array_map( 'absint', array_merge( (array) $single_item_ids, (array) $lot_item_ids ) ) ) );
+	if ( empty( $item_ids ) ) {
+		return false;
+	}
+
+	$in = implode( ',', array_fill( 0, count( $item_ids ), '%d' ) );
+	$order_ids = $wpdb->get_col(
+		$wpdb->prepare(
+			"SELECT DISTINCT p.ID
+			 FROM {$order_items} oi
+			 INNER JOIN {$posts} p ON p.ID = oi.order_id
+			 WHERE oi.order_item_id IN ({$in})
+			   AND p.post_type IN ('shop_order','shop_order_refund')",
+			$item_ids
+		)
+	);
+
+	if ( ! is_array( $order_ids ) ) {
+		return null;
+	}
+
+	foreach ( $order_ids as $order_id ) {
+		$order = wc_get_order( absint( $order_id ) );
+		if ( ! $order ) {
+			continue;
+		}
+
+		$status = (string) $order->get_status();
+		if ( ! in_array( $status, array( 'cancelled', 'failed', 'refunded', 'trash' ), true ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Revert pending licences from removed cart item when safe.
+ *
+ * @param array $cart_item Cart item data.
+ */
+function ufsc_maybe_revert_licences_from_cart_item( $cart_item ) {
+	global $wpdb;
+
+	if ( ! is_array( $cart_item ) ) {
+		return;
+	}
+
+	$licence_ids = ufsc_extract_licence_ids_from_cart_item( $cart_item );
+	if ( empty( $licence_ids ) ) {
+		if ( function_exists( 'ufsc_wc_log' ) ) {
+			ufsc_wc_log( 'ufsc_cart_remove_missing_ids', array(), 'warning' );
+		}
+		return;
+	}
+
+	$club_id = isset( $cart_item['ufsc_club_id'] ) ? absint( $cart_item['ufsc_club_id'] ) : 0;
+	if ( $club_id <= 0 ) {
+		if ( function_exists( 'ufsc_wc_log' ) ) {
+			ufsc_wc_log( 'ufsc_cart_remove_missing_club', array( 'licence_ids' => $licence_ids ), 'warning' );
+		}
+		return;
+	}
+
+	if ( ! class_exists( 'UFSC_SQL' ) ) {
+		return;
+	}
+
+	$settings = UFSC_SQL::get_settings();
+	$table    = isset( $settings['table_licences'] ) ? $settings['table_licences'] : '';
+	if ( '' === $table ) {
+		return;
+	}
+
+	$can_manage_all = false;
+	if ( class_exists( 'UFSC_Capabilities' ) && method_exists( 'UFSC_Capabilities', 'user_can' ) ) {
+		$can_manage_all = UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_MANAGE_READ );
+	}
+	if ( ! $can_manage_all ) {
+		$can_manage_all = current_user_can( 'manage_options' );
+	}
+
+	$current_user_club_id = function_exists( 'ufsc_get_user_club_id' ) ? absint( ufsc_get_user_club_id( get_current_user_id() ) ) : 0;
+	if ( ! $can_manage_all && $current_user_club_id > 0 && $current_user_club_id !== $club_id ) {
+		if ( function_exists( 'ufsc_wc_log' ) ) {
+			ufsc_wc_log( 'ufsc_cart_remove_club_mismatch', array( 'club_id' => $club_id, 'user_club_id' => $current_user_club_id ), 'warning' );
+		}
+		return;
+	}
+
+	foreach ( $licence_ids as $licence_id ) {
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $licence_id ) );
+		if ( ! $row ) {
+			if ( function_exists( 'ufsc_wc_log' ) ) {
+				ufsc_wc_log( 'ufsc_cart_remove_licence_not_found', array( 'licence_id' => $licence_id ), 'warning' );
+			}
+			continue;
+		}
+
+		$row_club_id = absint( $row->club_id ?? 0 );
+		if ( $row_club_id <= 0 || $row_club_id !== $club_id ) {
+			if ( function_exists( 'ufsc_wc_log' ) ) {
+				ufsc_wc_log( 'ufsc_cart_remove_licence_club_mismatch', array( 'licence_id' => $licence_id, 'row_club_id' => $row_club_id, 'club_id' => $club_id ), 'warning' );
+			}
+			continue;
+		}
+
+		$status_raw = (string) ( $row->statut ?? '' );
+		$status     = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::normalize( $status_raw ) : strtolower( trim( $status_raw ) );
+		if ( ! in_array( $status, array( 'en_attente', 'pending' ), true ) ) {
+			continue;
+		}
+
+		$order_linked = ufsc_is_licence_linked_to_order( $licence_id );
+		if ( null === $order_linked ) {
+			if ( function_exists( 'ufsc_wc_log' ) ) {
+				ufsc_wc_log( 'ufsc_cart_remove_order_link_unknown', array( 'licence_id' => $licence_id ), 'warning' );
+			}
+			continue;
+		}
+
+		if ( true === $order_linked ) {
+			if ( function_exists( 'ufsc_wc_log' ) ) {
+				ufsc_wc_log( 'ufsc_cart_remove_order_linked_detected', array( 'licence_id' => $licence_id ), 'warning' );
+			}
+			continue;
+		}
+
+		if ( class_exists( 'UFSC_Licence_Status' ) ) {
+			UFSC_Licence_Status::update_status_columns( $table, array( 'id' => $licence_id ), 'brouillon', array( '%d' ) );
+		} else {
+			$wpdb->update( $table, array( 'statut' => 'brouillon' ), array( 'id' => $licence_id ), array( '%s' ), array( '%d' ) );
+		}
+
+		do_action( 'ufsc_licence_updated', (int) $club_id );
+		if ( function_exists( 'ufsc_wc_log' ) ) {
+			ufsc_wc_log( 'ufsc_cart_remove_revert_performed', array( 'licence_id' => $licence_id, 'from_status' => $status, 'to_status' => 'brouillon' ), 'warning' );
+		}
+	}
 }
 
 /**
@@ -158,8 +430,6 @@ function ufsc_handle_add_to_cart_secure() {
 				'club_id'    => $club_id,
 				'product_id' => $product_id,
 				'ids_count'  => count( $license_ids ),
-				// Avoid logging full IDs if you consider it sensitive. Keep count; uncomment below if needed:
-				// 'ids' => $license_ids,
 			) );
 			wc_add_notice( __( 'Une ou plusieurs licences ne peuvent pas être ajoutées au panier.', 'ufsc-clubs' ), 'error' );
 			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
