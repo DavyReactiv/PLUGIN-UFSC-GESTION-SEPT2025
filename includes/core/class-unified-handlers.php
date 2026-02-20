@@ -143,15 +143,17 @@ class UFSC_Unified_Handlers {
         }
 
 
-        $user_id = get_current_user_id();
-        $club_id = ufsc_get_user_club_id( $user_id );
-
         $user_id        = get_current_user_id();
         $managed_club   = ufsc_get_user_club_id( $user_id );
         $target_club_id = isset( $_POST['club_id'] ) ? intval( $_POST['club_id'] ) : $managed_club;
+        $can_manage_all = self::can_manage_all_clubs();
+
+        if ( $target_club_id <= 0 && $can_manage_all ) {
+            $target_club_id = self::resolve_licence_club_id( $licence_id );
+        }
 
         // Ensure current user can manage the target club
-        if ( ! current_user_can( 'manage_options' ) && $managed_club !== $target_club_id ) {
+        if ( ! $can_manage_all && $managed_club !== $target_club_id ) {
             set_transient( 'ufsc_error_' . $user_id, __( 'Permissions insuffisantes', 'ufsc-clubs' ), 30 );
             self::maybe_redirect( wp_get_referer() );
             return; // Abort processing when permission check fails
@@ -221,6 +223,11 @@ class UFSC_Unified_Handlers {
         $licence_id = isset( $_POST['licence_id'] ) ? intval( $_POST['licence_id'] ) : 0;
         $user_id    = get_current_user_id();
         $club_id    = ufsc_get_user_club_id( $user_id );
+        $can_manage_all = self::can_manage_all_clubs();
+
+        if ( $licence_id && $can_manage_all && $club_id <= 0 ) {
+            $club_id = self::resolve_licence_club_id( $licence_id );
+        }
 
         if ( ! $licence_id || ! $club_id ) {
             self::redirect_with_error( 'Paramètres invalides' );
@@ -242,11 +249,15 @@ class UFSC_Unified_Handlers {
         $settings = UFSC_SQL::get_settings();
         $table    = $settings['table_licences'];
 
-        $wpdb->delete( $table, array( 'id' => $licence_id, 'club_id' => $club_id ) );
+        $deleted = $wpdb->delete( $table, array( 'id' => $licence_id, 'club_id' => $club_id ) );
+        if ( false === $deleted ) {
+            self::redirect_with_error( 'Suppression impossible pour le moment' );
+            return;
+        }
+
         do_action( 'ufsc_licence_deleted', (int) $club_id );
 
-        $redirect_url = add_query_arg( 'deleted', 1, wp_get_referer() );
-        self::maybe_redirect( $redirect_url );
+        self::redirect_with_success( 'Licence supprimée.' );
         return;
     }
 
@@ -1232,6 +1243,30 @@ class UFSC_Unified_Handlers {
         return ufsc_get_user_club_id( $user_id ) === $club_id;
     }
 
+    private static function can_manage_all_clubs() {
+        if ( class_exists( 'UFSC_Capabilities' ) && method_exists( 'UFSC_Capabilities', 'user_can' ) ) {
+            if ( UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_MANAGE_READ ) ) {
+                return true;
+            }
+        }
+
+        return current_user_can( 'manage_options' );
+    }
+
+    private static function resolve_licence_club_id( $licence_id ) {
+        global $wpdb;
+
+        $licence_id = absint( $licence_id );
+        if ( ! $licence_id ) {
+            return 0;
+        }
+
+        $settings = UFSC_SQL::get_settings();
+        $table    = $settings['table_licences'];
+
+        return (int) $wpdb->get_var( $wpdb->prepare( "SELECT club_id FROM {$table} WHERE id = %d", $licence_id ) );
+    }
+
     private static function maybe_redirect( $url ) {
         if ( function_exists( 'ufsc_is_wp_cli' ) && ufsc_is_wp_cli() ) {
             return;
@@ -1251,6 +1286,13 @@ class UFSC_Unified_Handlers {
         }
 
         self::maybe_redirect( add_query_arg( $args, $redirect_url ) );
+        return;
+    }
+
+    private static function redirect_with_success( $message ) {
+        $redirect_url = wp_get_referer() ?: home_url();
+        $redirect_url = remove_query_arg( array( 'ufsc_error', 'ufsc_message', 'deleted', 'view_licence', 'edit_licence', 'licence_id' ), $redirect_url );
+        self::maybe_redirect( add_query_arg( 'ufsc_message', rawurlencode( $message ), $redirect_url ) );
         return;
     }
 

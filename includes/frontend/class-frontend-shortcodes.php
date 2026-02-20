@@ -315,7 +315,6 @@ class UFSC_Frontend_Shortcodes {
                    esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) .
                    '</div>';
         }
-
         // Handle pagination and filters from URL
         if ( isset( $_GET['ufsc_page'] ) ) {
             $atts['page'] = max( 1, intval( $_GET['ufsc_page'] ) );
@@ -807,7 +806,8 @@ class UFSC_Frontend_Shortcodes {
     public static function render_club_profile( $atts = array() ) {
         wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
         $atts = shortcode_atts( array(
-            'club_id' => 0
+            'club_id'    => 0,
+            'licence_id' => 0,
         ), $atts );
 
         if ( ! $atts['club_id'] && is_user_logged_in() ) {
@@ -1192,7 +1192,8 @@ class UFSC_Frontend_Shortcodes {
     public static function render_add_licence( $atts = array() ) {
 
         $atts = shortcode_atts( array(
-            'club_id' => 0
+            'club_id'    => 0,
+            'licence_id' => 0,
         ), $atts );
 
         if ( ! $atts['club_id'] && is_user_logged_in() ) {
@@ -1204,6 +1205,15 @@ class UFSC_Frontend_Shortcodes {
                    esc_html__( 'Club non trouvé.', 'ufsc-clubs' ) .
                    '</div>';
         }
+
+        $edit_licence_id = absint( $atts['licence_id'] );
+        if ( $edit_licence_id <= 0 && isset( $_GET['edit_licence'] ) ) {
+            $edit_licence_id = absint( $_GET['edit_licence'] );
+        }
+
+        $edit_licence = null;
+        $is_edit_mode = $edit_licence_id > 0;
+        $is_locked_licence = false;
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
         $table    = $settings['table_clubs'];
@@ -1218,13 +1228,23 @@ class UFSC_Frontend_Shortcodes {
         );
 
         if ($club_data && strtolower($club_data['statut']) === 'en_attente') {
-             wc_add_notice(__( '⚠ Vous devez régler les frais du club pour continuer.', 'ufsc-clubs' ),'error');
-            $cart = WC()->cart;
-            if(empty($cart) || empty($cart->cart_contents)){
+            if ( function_exists( 'wc_add_notice' ) ) {
+                wc_add_notice(__( '⚠ Vous devez régler les frais du club pour continuer.', 'ufsc-clubs' ),'error');
+            }
+            $cart = ( function_exists( 'WC' ) && WC() ) ? WC()->cart : null;
+            if ( empty( $cart ) || empty( $cart->cart_contents ) ) {
                 ufsc_add_affiliation_to_cart($atts['club_id']);
             }
-            wp_redirect(site_url('/checkout'));
+            wp_safe_redirect(site_url('/checkout'));
             exit;
+        }
+
+        if ( $is_edit_mode ) {
+            $edit_licence = self::get_licence( $atts['club_id'], $edit_licence_id );
+            if ( ! $edit_licence ) {
+                return '<div class="ufsc-message ufsc-error">' . esc_html__( 'Licence non trouvée.', 'ufsc-clubs' ) . '</div>';
+            }
+            $is_locked_licence = function_exists( 'ufsc_is_licence_locked_for_club' ) ? ufsc_is_licence_locked_for_club( $edit_licence ) : false;
         }
 
         $form_data   = array();
@@ -1238,6 +1258,10 @@ class UFSC_Frontend_Shortcodes {
                 $form_errors = $stored['errors'] ?? array();
                 delete_transient( $form_key );
             }
+        }
+
+        if ( empty( $form_data ) && $edit_licence ) {
+            $form_data = (array) $edit_licence;
         }
 
         // UFSC: default checked (stable + no regression)
@@ -1282,7 +1306,7 @@ class UFSC_Frontend_Shortcodes {
         ?>
         <div class="ufsc-add-licence-section">
             <div class="ufsc-section-header">
-                <h3><?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?></h3>
+                <h3><?php echo $is_edit_mode ? esc_html__( 'Modifier une licence', 'ufsc-clubs' ) : esc_html__( 'Ajouter une Licence', 'ufsc-clubs' ); ?></h3>
             </div>
 
             <?php if ( ! empty( $form_errors ) ) : ?>
@@ -1298,6 +1322,7 @@ class UFSC_Frontend_Shortcodes {
                 <input type="hidden" name="action" value="ufsc_save_licence">
                 <?php wp_nonce_field( 'ufsc_save_licence' ); ?>
                 <input type="hidden" name="ufsc_submit_action" id="ufsc_submit_action" value="save">
+                <input type="hidden" name="licence_id" value="<?php echo esc_attr( $edit_licence_id ); ?>">
 
                 <div class="ufsc-notices" aria-live="polite"></div>
 
@@ -1530,15 +1555,36 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <div class="ufsc-form-actions">
-                    <?php echo self::render_pre_payment_warning_block(); ?>
-                    <button type="submit" class="ufsc-btn ufsc-btn-primary" onclick="document.getElementById('ufsc_submit_action').value='save';">
-                        <?php esc_html_e( 'Enregistrer', 'ufsc-clubs' ); ?>
-                    </button>
-                    <button type="submit" class="ufsc-btn ufsc-btn-secondary" onclick="document.getElementById('ufsc_submit_action').value='add_to_cart';">
-                        <?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?>
-                    </button>
+                    <?php if ( ! $is_locked_licence ) : ?>
+                        <?php echo self::render_pre_payment_warning_block(); ?>
+                        <button type="submit" class="ufsc-btn ufsc-btn-primary" onclick="document.getElementById('ufsc_submit_action').value='save';">
+                            <?php esc_html_e( 'Enregistrer', 'ufsc-clubs' ); ?>
+                        </button>
+                        <button type="submit" class="ufsc-btn ufsc-btn-secondary" onclick="document.getElementById('ufsc_submit_action').value='add_to_cart';">
+                            <?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?>
+                        </button>
+                        <?php if ( $is_edit_mode ) : ?>
+                            <button type="submit" form="ufsc-delete-licence-from-edit" class="ufsc-btn ufsc-btn-danger">
+                                <?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?>
+                            </button>
+                        <?php endif; ?>
+                    <?php else : ?>
+                        <div class="ufsc-message ufsc-info">
+                            <?php esc_html_e( 'Licence en traitement/validée : modification et suppression désactivées.', 'ufsc-clubs' ); ?>
+                        </div>
+                        <a href="<?php echo esc_url( remove_query_arg( 'edit_licence' ) ); ?>" class="ufsc-btn ufsc-btn-secondary">
+                            <?php esc_html_e( 'Retour aux licences', 'ufsc-clubs' ); ?>
+                        </a>
+                    <?php endif; ?>
                 </div>
             </form>
+            <?php if ( $is_edit_mode && ! $is_locked_licence ) : ?>
+                <form id="ufsc-delete-licence-from-edit" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:none;">
+                    <?php wp_nonce_field( 'ufsc_delete_licence' ); ?>
+                    <input type="hidden" name="action" value="ufsc_delete_licence">
+                    <input type="hidden" name="licence_id" value="<?php echo esc_attr( $edit_licence_id ); ?>">
+                </form>
+            <?php endif; ?>
         </div>
         <?php
         return ob_get_clean();
