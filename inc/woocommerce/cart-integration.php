@@ -83,7 +83,10 @@ function ufsc_handle_add_to_cart_secure() {
 	$current_user_id = get_current_user_id();
 	$user_club_id    = function_exists( 'ufsc_get_user_club_id' ) ? absint( ufsc_get_user_club_id( $current_user_id ) ) : 0;
 
-	$club_id = isset( $_POST['ufsc_club_id'] ) ? absint( $_POST['ufsc_club_id'] ) : 0;
+	$club_id = 0;
+	if ( $can_manage_all && isset( $_POST['ufsc_club_id'] ) ) {
+		$club_id = absint( $_POST['ufsc_club_id'] );
+	}
 	if ( $club_id <= 0 ) {
 		$club_id = $user_club_id;
 	}
@@ -105,7 +108,7 @@ function ufsc_handle_add_to_cart_secure() {
 	// Add license IDs if provided (lot)
 	if ( isset( $_POST['ufsc_license_ids'] ) ) {
 		$license_ids_string = sanitize_text_field( wp_unslash( $_POST['ufsc_license_ids'] ) );
-		$license_ids        = array_filter( array_map( 'absint', explode( ',', $license_ids_string ) ) );
+		$license_ids        = array_values( array_unique( array_filter( array_map( 'absint', explode( ',', $license_ids_string ) ) ) ) );
 
 		if ( ! empty( $license_ids ) ) {
 			if ( ! ufsc_validate_licence_ids_for_cart( $license_ids, $club_id ) ) {
@@ -114,7 +117,7 @@ function ufsc_handle_add_to_cart_secure() {
 				exit;
 			}
 
-			$cart_item_data['ufsc_license_ids'] = array_values( array_unique( $license_ids ) );
+			$cart_item_data['ufsc_license_ids'] = $license_ids;
 			$quantity                           = count( $cart_item_data['ufsc_license_ids'] ); // Override quantity to match license count
 		}
 	}
@@ -224,12 +227,12 @@ function ufsc_validate_licence_ids_for_cart( $licence_ids, $club_id ) {
 		return false;
 	}
 
-	$clubs_ids = array_map( 'absint', array_keys( $clubs ) );
-	if ( empty( $clubs_ids ) ) {
+	$club_ids = array_map( 'absint', array_keys( $clubs ) );
+	if ( empty( $club_ids ) ) {
 		return false;
 	}
 
-	if ( $club_id > 0 && (int) $clubs_ids[0] !== (int) absint( $club_id ) ) {
+	if ( $club_id > 0 && (int) $club_ids[0] !== (int) absint( $club_id ) ) {
 		return false;
 	}
 
@@ -274,13 +277,13 @@ function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $orde
 
 	// Transfer personal data
 	if ( isset( $values['ufsc_nom'] ) ) {
-		$item->add_meta_data( '_ufsc_nom', sanitize_text_field( $values['ufsc_nom'] ) );
+		$item->add_meta_data( '_ufsc_nom', sanitize_text_field( (string) $values['ufsc_nom'] ) );
 	}
 	if ( isset( $values['ufsc_prenom'] ) ) {
-		$item->add_meta_data( '_ufsc_prenom', sanitize_text_field( $values['ufsc_prenom'] ) );
+		$item->add_meta_data( '_ufsc_prenom', sanitize_text_field( (string) $values['ufsc_prenom'] ) );
 	}
 	if ( isset( $values['ufsc_date_naissance'] ) ) {
-		$item->add_meta_data( '_ufsc_date_naissance', sanitize_text_field( $values['ufsc_date_naissance'] ) );
+		$item->add_meta_data( '_ufsc_date_naissance', sanitize_text_field( (string) $values['ufsc_date_naissance'] ) );
 	}
 }
 
