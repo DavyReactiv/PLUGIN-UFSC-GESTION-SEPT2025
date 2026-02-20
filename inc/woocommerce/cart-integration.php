@@ -57,11 +57,18 @@ function ufsc_handle_add_to_cart_secure() {
     $quantity       = isset( $_POST['quantity'] ) ? absint( $_POST['quantity'] ) : 1;
     $cart_item_data = array();
 
+    $current_user_id = get_current_user_id();
+    $user_club_id    = function_exists( 'ufsc_get_user_club_id' ) ? absint( ufsc_get_user_club_id( $current_user_id ) ) : 0;
+
     // Add club ID if provided
     if ( isset( $_POST['ufsc_club_id'] ) ) {
         $club_id = absint( $_POST['ufsc_club_id'] );
-        if ( $club_id > 0 ) {
+        if ( $club_id > 0 && ( current_user_can( 'manage_options' ) || ( $user_club_id > 0 && $club_id === $user_club_id ) ) ) {
             $cart_item_data['ufsc_club_id'] = $club_id;
+        } elseif ( $club_id > 0 ) {
+            wc_add_notice( __( 'Club invalide pour cet utilisateur.', 'ufsc-clubs' ), 'error' );
+            wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+            exit;
         }
     }
 
@@ -71,6 +78,12 @@ function ufsc_handle_add_to_cart_secure() {
         $license_ids        = array_filter( array_map( 'absint', explode( ',', $license_ids_string ) ) );
 
         if ( ! empty( $license_ids ) ) {
+            if ( ! ufsc_validate_licence_ids_for_cart( $license_ids, $user_club_id ) ) {
+                wc_add_notice( __( 'Une ou plusieurs licences ne peuvent pas être ajoutées au panier.', 'ufsc-clubs' ), 'error' );
+                wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+                exit;
+            }
+
             $cart_item_data['ufsc_license_ids'] = $license_ids;
             $quantity                           = count( $license_ids ); // Override quantity to match license count
         }
@@ -97,6 +110,43 @@ function ufsc_handle_add_to_cart_secure() {
 }
 
 /**
+ * Validate club ownership and lock/payment state before cart add.
+ *
+ * @param array $licence_ids Licence IDs.
+ * @param int   $club_id     Current user club ID.
+ * @return bool
+ */
+function ufsc_validate_licence_ids_for_cart( $licence_ids, $club_id ) {
+    global $wpdb;
+
+    if ( empty( $licence_ids ) || ! function_exists( 'ufsc_get_licences_table' ) ) {
+        return true;
+    }
+
+    if ( ! current_user_can( 'manage_options' ) && $club_id <= 0 ) {
+        return false;
+    }
+
+    $table = ufsc_get_licences_table();
+    foreach ( $licence_ids as $licence_id ) {
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", absint( $licence_id ) ) );
+        if ( ! $row ) {
+            return false;
+        }
+
+        if ( ! current_user_can( 'manage_options' ) && absint( $row->club_id ?? 0 ) !== absint( $club_id ) ) {
+            return false;
+        }
+
+        if ( function_exists( 'ufsc_is_licence_locked_for_club' ) && ufsc_is_licence_locked_for_club( $row ) ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/**
  * Transfer custom meta from cart to order line items
  * 
  * @param WC_Order_Item_Product $item Order line item
@@ -117,7 +167,13 @@ function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $orde
 
     // Transfer license IDs
     if ( isset( $values['ufsc_license_ids'] ) && is_array( $values['ufsc_license_ids'] ) ) {
-        $item->add_meta_data( '_ufsc_licence_ids', $values['ufsc_license_ids'] );
+        $ids = array_values( array_filter( array_map( 'absint', $values['ufsc_license_ids'] ) ) );
+        $item->add_meta_data( '_ufsc_licence_ids', $ids );
+        $item->add_meta_data( 'ufsc_licence_ids', $ids );
+        if ( ! empty( $ids ) ) {
+            $item->add_meta_data( '_ufsc_licence_id', (int) $ids[0], true );
+            $item->add_meta_data( 'ufsc_licence_id', (int) $ids[0], true );
+        }
     }
 
     // Transfer personal data

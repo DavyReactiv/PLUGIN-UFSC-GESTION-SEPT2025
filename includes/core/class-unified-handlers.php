@@ -165,13 +165,13 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $licence_status = self::get_licence_status( $licence_id, $club_id );
-        if ( ! $licence_status ) {
+        $licence = self::get_licence_row( $licence_id, $club_id );
+        if ( ! $licence ) {
             self::redirect_with_error( 'Licence non trouvée', $licence_id );
             return;
         }
 
-        if ( function_exists( 'ufsc_is_editable_licence_status' ) && ! ufsc_is_editable_licence_status( $licence_status ) ) {
+        if ( function_exists( 'ufsc_is_licence_locked_for_club' ) && ufsc_is_licence_locked_for_club( $licence ) ) {
             self::maybe_redirect( add_query_arg( 'view_licence', $licence_id, wp_get_referer() ) );
             return;
         }
@@ -227,13 +227,13 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $licence_status = self::get_licence_status( $licence_id, $club_id );
-        if ( ! $licence_status ) {
+        $licence = self::get_licence_row( $licence_id, $club_id );
+        if ( ! $licence ) {
             self::redirect_with_error( 'Licence non trouvée' );
             return;
         }
 
-        if ( function_exists( 'ufsc_is_editable_licence_status' ) && ! ufsc_is_editable_licence_status( $licence_status ) ) {
+        if ( function_exists( 'ufsc_is_licence_locked_for_club' ) && ufsc_is_licence_locked_for_club( $licence ) ) {
             self::redirect_with_error( 'Suppression non autorisée' );
             return;
         }
@@ -686,7 +686,6 @@ class UFSC_Unified_Handlers {
 
         $user_id = get_current_user_id();
         $club_id = ufsc_get_user_club_id( $user_id );
-        error_log('Club ID: ' . $club_id);
         // global $wpdb;
         // $settings = UFSC_SQL::get_settings();
         // $table    = $settings['table_clubs'];
@@ -712,12 +711,12 @@ class UFSC_Unified_Handlers {
         }
 
         if ( $licence_id > 0 ) {
-            $licence_status = self::get_licence_status( $licence_id, $club_id );
-            if ( ! $licence_status ) {
+            $licence = self::get_licence_row( $licence_id, $club_id );
+            if ( ! $licence ) {
                 self::store_form_and_redirect( $_POST, array( __( 'Licence non trouvée', 'ufsc-clubs' ) ), $licence_id );
             }
 
-            if ( function_exists( 'ufsc_is_editable_licence_status' ) && ! ufsc_is_editable_licence_status( $licence_status ) ) {
+            if ( function_exists( 'ufsc_is_licence_locked_for_club' ) && ufsc_is_licence_locked_for_club( $licence ) ) {
                 self::store_form_and_redirect( $_POST, array( __( 'Modification non autorisée', 'ufsc-clubs' ) ), $licence_id );
             }
         }
@@ -1213,12 +1212,17 @@ class UFSC_Unified_Handlers {
      * Helper functions
      */
     private static function get_licence_status( $licence_id, $club_id ) {
+        $row = self::get_licence_row( $licence_id, $club_id );
+        return $row ? (string) ( $row->statut ?? '' ) : '';
+    }
+
+    private static function get_licence_row( $licence_id, $club_id ) {
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
         $licences_table = $settings['table_licences'];
-        
-        return $wpdb->get_var( $wpdb->prepare(
-            "SELECT statut FROM {$licences_table} WHERE id = %d AND club_id = %d",
+
+        return $wpdb->get_row( $wpdb->prepare(
+            "SELECT * FROM {$licences_table} WHERE id = %d AND club_id = %d",
             $licence_id, $club_id
         ) );
     }

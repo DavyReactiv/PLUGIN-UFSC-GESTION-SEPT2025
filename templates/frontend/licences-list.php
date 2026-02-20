@@ -34,6 +34,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
             $status_raw   = $licence->licence_statut ?? ( $licence->statut ?? '' );
             $status_norm  = function_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::display_status( $status_raw ) : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw );
+            $is_locked    = function_exists( 'ufsc_is_licence_locked_for_club' ) ? ufsc_is_licence_locked_for_club( $licence ) : ! ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status_norm ) : false );
             $status_class = $status_norm ? sanitize_html_class( $status_norm ) : 'en_attente';
             $season_label = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
             ?>
@@ -50,7 +51,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                 </div>
                 <div class="ufsc-licence-actions">
                     <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'view', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
-                    <?php if ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status_norm ) : ( 'en_attente' === $status_norm ) ) : ?>
+                    <?php if ( ! $is_locked ) : ?>
                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'edit', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
                     <?php endif; ?>
                 </div>
