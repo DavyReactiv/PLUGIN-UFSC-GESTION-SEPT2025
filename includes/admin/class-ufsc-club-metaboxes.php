@@ -80,10 +80,10 @@ class UFSC_CL_Club_Metaboxes {
     public static function render_licences_metabox( $post ) {
         global $wpdb;
 
-        $club_id = $post->ID;
-        $settings = UFSC_SQL::get_settings();
+        $club_id   = $post->ID;
+        $settings  = UFSC_SQL::get_settings();
         $lic_table = $settings['table_licences'];
-        $club_col = ufsc_lic_col( 'club_id' );
+        $club_col  = ufsc_lic_col( 'club_id' );
 
         $count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM `{$lic_table}` WHERE `{$club_col}` = %d", $club_id ) );
         $link  = admin_url( 'admin.php?page=ufsc-licences&club_id=' . $club_id );
@@ -92,23 +92,31 @@ class UFSC_CL_Club_Metaboxes {
         echo '<p><a href="' . esc_url( $link ) . '">' . esc_html__( 'Voir les licences', 'ufsc-clubs' ) . '</a></p>';
     }
 
-
-
     /**
      * Render season and affiliation renewal controls.
      */
     public static function render_renewal_metabox( $post ) {
-        $club_id         = absint( $post->ID );
-        $current_season  = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
-        $next_season     = function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '';
-        $renew_open      = function_exists( 'ufsc_is_renewal_window_open' ) ? ufsc_is_renewal_window_open() : false;
-        $aff_season      = function_exists( 'ufsc_get_affiliation_season' ) ? ufsc_get_affiliation_season( $club_id ) : '';
-        $renewed         = function_exists( 'ufsc_is_affiliation_renewed' ) ? ufsc_is_affiliation_renewed( $club_id, $next_season ) : false;
-        $wc_settings     = function_exists( 'ufsc_get_woocommerce_settings' ) ? ufsc_get_woocommerce_settings() : array();
+        $club_id        = absint( $post->ID );
+        $current_season = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
+        $next_season    = function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '';
+        $renew_open     = function_exists( 'ufsc_is_renewal_window_open' ) ? ufsc_is_renewal_window_open() : false;
+
+        // Affiliation season (club)
+        $aff_season = function_exists( 'ufsc_get_affiliation_season' ) ? ufsc_get_affiliation_season( $club_id ) : '';
+
+        // Anti-double affiliation renewal marker
+        $renewed = function_exists( 'ufsc_is_affiliation_renewed' ) ? ufsc_is_affiliation_renewed( $club_id, $next_season ) : false;
+
+        $wc_settings = function_exists( 'ufsc_get_woocommerce_settings' ) ? ufsc_get_woocommerce_settings() : array();
+
+        // Pretty label for renewal opening date (dynamic if helper exists)
+        $renew_start_ts   = function_exists( 'ufsc_get_renewal_window_start_ts' ) ? (int) ufsc_get_renewal_window_start_ts() : 0;
+        $renew_open_label = $renew_start_ts > 0 ? wp_date( 'd/m/Y', $renew_start_ts ) : __( '30/07', 'ufsc-clubs' );
 
         echo '<p><strong>' . esc_html__( 'Saison courante :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $current_season ) . '</p>';
         echo '<p><strong>' . esc_html__( 'Affiliation :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $aff_season ? $aff_season : __( 'Non définie', 'ufsc-clubs' ) ) . '</p>';
 
+        // Button: renew affiliation (only if window open, not renewed, and club not already on next season)
         if ( $renew_open && ! $renewed && $aff_season !== $next_season && ! empty( $wc_settings['product_affiliation_id'] ) ) {
             echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
             wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' );
@@ -120,7 +128,8 @@ class UFSC_CL_Club_Metaboxes {
             echo '<button type="submit" class="button button-primary">' . esc_html__( 'Renouveler affiliation', 'ufsc-clubs' ) . '</button>';
             echo '</form>';
         } elseif ( ! $renew_open ) {
-            echo '<p>' . esc_html__( 'Renouvellement ouvert à partir du 30 juillet.', 'ufsc-clubs' ) . '</p>';
+            // Info message: renewal not open yet (show real date if calculated)
+            echo '<p>' . esc_html( sprintf( __( 'Renouvellement %1$s ouvert à partir du %2$s', 'ufsc-clubs' ), $next_season, $renew_open_label ) ) . '</p>';
         }
     }
 

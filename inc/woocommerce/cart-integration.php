@@ -716,6 +716,20 @@ function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $orde
 		}
 	}
 
+
+	if ( isset( $values['ufsc_action'] ) ) {
+		$item->add_meta_data( '_ufsc_action', sanitize_key( $values['ufsc_action'] ) );
+		$item->add_meta_data( 'ufsc_action', sanitize_key( $values['ufsc_action'] ) );
+	}
+	if ( isset( $values['ufsc_target_season'] ) ) {
+		$item->add_meta_data( '_ufsc_target_season', sanitize_text_field( (string) $values['ufsc_target_season'] ) );
+		$item->add_meta_data( 'ufsc_target_season', sanitize_text_field( (string) $values['ufsc_target_season'] ) );
+	}
+	if ( isset( $values['ufsc_renew_from_licence_id'] ) ) {
+		$item->add_meta_data( '_ufsc_renew_from_licence_id', absint( $values['ufsc_renew_from_licence_id'] ) );
+		$item->add_meta_data( 'ufsc_renew_from_licence_id', absint( $values['ufsc_renew_from_licence_id'] ) );
+	}
+
 	// Transfer personal data
 	if ( isset( $values['ufsc_nom'] ) ) {
 		$item->add_meta_data( '_ufsc_nom', sanitize_text_field( (string) $values['ufsc_nom'] ) );
