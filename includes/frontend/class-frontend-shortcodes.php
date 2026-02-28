@@ -489,6 +489,14 @@ class UFSC_Frontend_Shortcodes {
                                 $status_raw = $licence->licence_statut ?? ( $licence->statut ?? '' );
                                 $status     = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::display_status( $status_raw ) : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw );
                                 $is_locked  = function_exists( 'ufsc_is_licence_locked_for_club' ) ? ufsc_is_licence_locked_for_club( $licence ) : ! ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status ) : false );
+                                $lock_reason = '';
+                                if ( 'valide' === $status ) {
+                                    $lock_reason = __( 'Validée', 'ufsc-clubs' );
+                                } elseif ( function_exists( 'ufsc_is_licence_paid' ) && ufsc_is_licence_paid( $licence ) ) {
+                                    $lock_reason = __( 'Paiement / Commande', 'ufsc-clubs' );
+                                } elseif ( $is_locked ) {
+                                    $lock_reason = __( 'Verrouillage', 'ufsc-clubs' );
+                                }
                                 $season     = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
 
                                 $practice = isset( $licence->competition ) && $licence->competition
@@ -524,7 +532,7 @@ class UFSC_Frontend_Shortcodes {
                                                 </button>
                                             </form>
                                         <?php else : ?>
-                                            | <span class="ufsc-text-muted"><?php esc_html_e( 'Verrouillée', 'ufsc-clubs' ); ?></span>
+                                            | <span class="ufsc-text-muted"><?php echo esc_html( '🔒 ' . sprintf( __( 'Verrouillée (%s)', 'ufsc-clubs' ), $lock_reason ) ); ?></span>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -693,6 +701,14 @@ class UFSC_Frontend_Shortcodes {
                 $licence_status_raw = $licence->licence_statut ?? ( $licence->statut ?? '' );
                 $licence_status     = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::display_status( $licence_status_raw ) : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $licence_status_raw ) : $licence_status_raw );
                 $is_locked          = function_exists( 'ufsc_is_licence_locked_for_club' ) ? ufsc_is_licence_locked_for_club( $licence ) : ! ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $licence_status ) : false );
+                $lock_reason        = '';
+                if ( 'valide' === $licence_status ) {
+                    $lock_reason = __( 'Validée', 'ufsc-clubs' );
+                } elseif ( function_exists( 'ufsc_is_licence_paid' ) && ufsc_is_licence_paid( $licence ) ) {
+                    $lock_reason = __( 'Paiement / Commande', 'ufsc-clubs' );
+                } elseif ( $is_locked ) {
+                    $lock_reason = __( 'Verrouillage', 'ufsc-clubs' );
+                }
                 $can_retry_payment  = function_exists( 'ufsc_can_retry_licence_payment' ) ? ufsc_can_retry_licence_payment( $licence->id ?? 0 ) : false;
                 $is_in_cart         = self::is_licence_in_cart( (int) ( $licence->id ?? 0 ) );
 
@@ -712,6 +728,10 @@ class UFSC_Frontend_Shortcodes {
                             <?php echo $is_in_cart ? esc_html__( 'Payer maintenant / Voir panier', 'ufsc-clubs' ) : esc_html__( 'Ajouter au panier', 'ufsc-clubs' ); ?>
                         </button>
                     </form>
+                <?php endif; ?>
+
+                <?php if ( $is_locked ) : ?>
+                    <span class="ufsc-text-muted"><?php echo esc_html( '🔒 ' . sprintf( __( 'Verrouillée (%s)', 'ufsc-clubs' ), $lock_reason ) ); ?></span>
                 <?php endif; ?>
 
                 <?php if ( ! $is_locked ) : ?>

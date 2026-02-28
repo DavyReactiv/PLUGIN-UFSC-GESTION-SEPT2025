@@ -34,12 +34,12 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
 
 				<div class="ufsc-field">
 					<label for="email"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></label>
-					<input type="email" id="email" name="email" value="<?php echo esc_attr( $licence->email ?? '' ); ?>" />
+					<input type="email" id="email" name="email" value="<?php echo esc_attr( $licence->email ?? '' ); ?>" required />
 				</div>
 
 				<div class="ufsc-field">
 					<label for="date_naissance"><?php esc_html_e( 'Date de naissance', 'ufsc-clubs' ); ?></label>
-					<input type="date" id="date_naissance" name="date_naissance" value="<?php echo esc_attr( $licence->date_naissance ?? '' ); ?>" />
+					<input type="date" id="date_naissance" name="date_naissance" value="<?php echo esc_attr( $licence->date_naissance ?? '' ); ?>" required />
 				</div>
 			</div>
 		</section>
