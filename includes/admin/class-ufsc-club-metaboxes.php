@@ -32,6 +32,14 @@ class UFSC_CL_Club_Metaboxes {
             'ufsc_club',
             'side'
         );
+
+        add_meta_box(
+            'ufsc_club_renewal',
+            __( 'Saison / Renouvellement', 'ufsc-clubs' ),
+            array( __CLASS__, 'render_renewal_metabox' ),
+            'ufsc_club',
+            'side'
+        );
     }
 
     /**
@@ -82,6 +90,38 @@ class UFSC_CL_Club_Metaboxes {
 
         echo '<p>' . sprintf( esc_html__( '%d licences', 'ufsc-clubs' ), $count ) . '</p>';
         echo '<p><a href="' . esc_url( $link ) . '">' . esc_html__( 'Voir les licences', 'ufsc-clubs' ) . '</a></p>';
+    }
+
+
+
+    /**
+     * Render season and affiliation renewal controls.
+     */
+    public static function render_renewal_metabox( $post ) {
+        $club_id         = absint( $post->ID );
+        $current_season  = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
+        $next_season     = function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '';
+        $renew_open      = function_exists( 'ufsc_is_renewal_window_open' ) ? ufsc_is_renewal_window_open() : false;
+        $aff_season      = function_exists( 'ufsc_get_affiliation_season' ) ? ufsc_get_affiliation_season( $club_id ) : '';
+        $renewed         = function_exists( 'ufsc_is_affiliation_renewed' ) ? ufsc_is_affiliation_renewed( $club_id, $next_season ) : false;
+        $wc_settings     = function_exists( 'ufsc_get_woocommerce_settings' ) ? ufsc_get_woocommerce_settings() : array();
+
+        echo '<p><strong>' . esc_html__( 'Saison courante :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $current_season ) . '</p>';
+        echo '<p><strong>' . esc_html__( 'Affiliation :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $aff_season ? $aff_season : __( 'Non définie', 'ufsc-clubs' ) ) . '</p>';
+
+        if ( $renew_open && ! $renewed && $aff_season !== $next_season && ! empty( $wc_settings['product_affiliation_id'] ) ) {
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+            wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' );
+            echo '<input type="hidden" name="action" value="ufsc_add_to_cart">';
+            echo '<input type="hidden" name="product_id" value="' . esc_attr( (int) $wc_settings['product_affiliation_id'] ) . '">';
+            echo '<input type="hidden" name="ufsc_club_id" value="' . esc_attr( $club_id ) . '">';
+            echo '<input type="hidden" name="ufsc_action" value="renew_affiliation">';
+            echo '<input type="hidden" name="ufsc_target_season" value="' . esc_attr( $next_season ) . '">';
+            echo '<button type="submit" class="button button-primary">' . esc_html__( 'Renouveler affiliation', 'ufsc-clubs' ) . '</button>';
+            echo '</form>';
+        } elseif ( ! $renew_open ) {
+            echo '<p>' . esc_html__( 'Renouvellement ouvert à partir du 30 juillet.', 'ufsc-clubs' ) . '</p>';
+        }
     }
 
     /**

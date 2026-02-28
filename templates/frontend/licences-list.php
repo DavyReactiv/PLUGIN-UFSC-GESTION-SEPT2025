@@ -45,6 +45,11 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
             }
             $status_class = $status_norm ? sanitize_html_class( $status_norm ) : 'en_attente';
             $season_label = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
+            $current_season = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
+            $next_season = function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '';
+            $renew_open = function_exists( 'ufsc_is_renewal_window_open' ) ? ufsc_is_renewal_window_open() : false;
+            $renew_done = function_exists( 'ufsc_get_renewed_licence_marker' ) ? (bool) ufsc_get_renewed_licence_marker( (int) ( $licence->id ?? 0 ), $next_season ) : false;
+            $can_renew = $renew_open && ! $renew_done && ! $is_locked && ! empty( $current_season ) && $season_label === $current_season;
             ?>
             <div class="ufsc-card ufsc-licence-card">
                 <div class="ufsc-licence-card-header">
@@ -59,6 +64,20 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                 </div>
                 <div class="ufsc-licence-actions">
                     <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'view', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
+
+                    <?php if ( $can_renew && ! empty( $wc_settings['product_license_id'] ) ) : ?>
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+                            <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
+                            <input type="hidden" name="action" value="ufsc_add_to_cart">
+                            <input type="hidden" name="product_id" value="<?php echo esc_attr( (int) $wc_settings['product_license_id'] ); ?>">
+                            <input type="hidden" name="ufsc_action" value="renew_licence">
+                            <input type="hidden" name="ufsc_renew_from_licence_id" value="<?php echo esc_attr( (int) ( $licence->id ?? 0 ) ); ?>">
+                            <input type="hidden" name="ufsc_target_season" value="<?php echo esc_attr( $next_season ); ?>">
+                            <button type="submit" class="ufsc-action"><?php esc_html_e( 'Renouveler', 'ufsc-clubs' ); ?></button>
+                        </form>
+                    <?php elseif ( ! $renew_open ) : ?>
+                        <span class="ufsc-text-muted" title="<?php esc_attr_e( 'Le renouvellement est activé à partir du 30 juillet.', 'ufsc-clubs' ); ?>"><?php esc_html_e( 'Renouvellement ouvert à partir du 30 juillet', 'ufsc-clubs' ); ?></span>
+                    <?php endif; ?>
                     <?php if ( ! $is_locked ) : ?>
                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'edit', 'licence_id' => $licence->id ) ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
                         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline" onsubmit="return confirm('<?php echo esc_js( __( 'Confirmer la suppression de cette licence ?', 'ufsc-clubs' ) ); ?>');">

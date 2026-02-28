@@ -91,6 +91,7 @@ function ufsc_handle_woocommerce_payment_confirmed( $order_id ) {
 		return;
 	}
 
+	ufsc_wc_process_renewal_items( $order );
 	ufsc_wc_maybe_generate_order_licences( $order );
 
 	// Collect licence ids from order meta.
@@ -212,6 +213,99 @@ function ufsc_handle_woocommerce_payment_confirmed( $order_id ) {
 	$order->save();
 }
 
+
+
+/**
+ * Process renewal items (licence + affiliation) once order is paid.
+ * Idempotence is enforced via UFSC renewal markers.
+ */
+function ufsc_wc_process_renewal_items( $order ) {
+	global $wpdb;
+
+	if ( ! $order || ! is_a( $order, 'WC_Order' ) || ! function_exists( 'ufsc_get_licences_table' ) ) {
+		return;
+	}
+
+	$table = ufsc_get_licences_table();
+	$columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : array();
+
+	foreach ( $order->get_items() as $item ) {
+		$action = (string) $item->get_meta( 'ufsc_action', true );
+		if ( '' === $action ) {
+			$action = (string) $item->get_meta( '_ufsc_action', true );
+		}
+		$club_id = absint( $item->get_meta( 'ufsc_club_id', true ) );
+		if ( ! $club_id ) {
+			$club_id = absint( $item->get_meta( '_ufsc_club_id', true ) );
+		}
+		$target_season = (string) $item->get_meta( 'ufsc_target_season', true );
+		if ( '' === $target_season ) {
+			$target_season = (string) $item->get_meta( '_ufsc_target_season', true );
+		}
+		if ( '' === $target_season && function_exists( 'ufsc_get_next_season' ) ) {
+			$target_season = ufsc_get_next_season();
+		}
+
+		if ( 'renew_licence' === $action ) {
+			$source_id = absint( $item->get_meta( 'ufsc_renew_from_licence_id', true ) );
+			if ( ! $source_id ) {
+				$source_id = absint( $item->get_meta( '_ufsc_renew_from_licence_id', true ) );
+			}
+			if ( $source_id <= 0 || $club_id <= 0 || '' === $target_season ) {
+				continue;
+			}
+			if ( function_exists( 'ufsc_get_renewed_licence_marker' ) && ufsc_get_renewed_licence_marker( $source_id, $target_season ) ) {
+				continue;
+			}
+			$source = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", $source_id ) );
+			if ( ! $source || absint( $source->club_id ?? 0 ) !== $club_id ) {
+				continue;
+			}
+
+			$data = array();
+			$allowed = array( 'nom','nom_licence','prenom','email','adresse','code_postal','ville','tel_fixe','tel_mobile','date_naissance','sexe','nationalite','competition','surclassement','piece_identite','photo_identite' );
+			foreach ( $allowed as $field ) {
+				if ( in_array( $field, $columns, true ) && isset( $source->{$field} ) ) {
+					$data[ $field ] = $source->{$field};
+				}
+			}
+			if ( in_array( 'club_id', $columns, true ) ) { $data['club_id'] = $club_id; }
+			if ( in_array( 'statut', $columns, true ) ) { $data['statut'] = 'en_attente'; }
+			if ( in_array( 'status', $columns, true ) ) { $data['status'] = 'en_attente'; }
+			if ( in_array( 'date_creation', $columns, true ) ) { $data['date_creation'] = current_time( 'mysql' ); }
+			if ( in_array( 'date_modification', $columns, true ) ) { $data['date_modification'] = current_time( 'mysql' ); }
+
+			if ( empty( $data ) || ! isset( $data['club_id'] ) ) {
+				continue;
+			}
+
+			$ok = $wpdb->insert( $table, $data );
+			if ( false === $ok ) {
+				continue;
+			}
+			$new_id = (int) $wpdb->insert_id;
+			if ( function_exists( 'ufsc_set_licence_season' ) ) { ufsc_set_licence_season( $new_id, $target_season ); }
+			if ( function_exists( 'ufsc_mark_renewed_licence_marker' ) ) { ufsc_mark_renewed_licence_marker( $source_id, $target_season, $new_id ); }
+			do_action( 'ufsc_licence_created', $new_id, $club_id );
+			do_action( 'ufsc_licence_updated', $club_id );
+		}
+
+		if ( 'renew_affiliation' === $action ) {
+			if ( $club_id <= 0 || '' === $target_season ) {
+				continue;
+			}
+			if ( function_exists( 'ufsc_is_affiliation_renewed' ) && ufsc_is_affiliation_renewed( $club_id, $target_season ) ) {
+				continue;
+			}
+			if ( class_exists( 'UFSC_SQL' ) ) {
+				UFSC_SQL::mark_club_affiliation_active( $club_id, $target_season );
+			}
+			if ( function_exists( 'ufsc_set_affiliation_season' ) ) { ufsc_set_affiliation_season( $club_id, $target_season ); }
+			if ( function_exists( 'ufsc_mark_affiliation_renewed' ) ) { ufsc_mark_affiliation_renewed( $club_id, $target_season ); }
+			do_action( 'ufsc_licence_updated', $club_id );
+		}
+	}
+}
 /**
  * Create missing licences for paid WooCommerce order items (qty-based, idempotent).
  *
