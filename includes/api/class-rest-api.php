@@ -21,13 +21,13 @@ class UFSC_REST_API {
 					'default'           => 1,
 					'validate_callback' => function( $param ) {
 						return is_numeric( $param ) && $param > 0;
-					}
+					},
 				),
 				'per_page' => array(
 					'default'           => 20,
 					'validate_callback' => function( $param ) {
 						return is_numeric( $param ) && $param > 0 && $param <= 100;
-					}
+					},
 				),
 			),
 		) );
@@ -107,7 +107,7 @@ class UFSC_REST_API {
 		) );
 
 		register_rest_route( 'ufsc/v1', '/licences/(?P<id>\d+)', array(
-			'methods'             => 'DELETE',
+			'methods'             => array( 'DELETE' ),
 			'callback'            => array( __CLASS__, 'handle_licence_delete' ),
 			'permission_callback' => array( __CLASS__, 'check_licence_permissions' ),
 		) );
@@ -147,7 +147,6 @@ class UFSC_REST_API {
 
 		$licence_id = $request->get_param( 'id' );
 
-		// Check if licence belongs to user's club
 		$user_id         = get_current_user_id();
 		$user_club_id    = ufsc_get_user_club_id( $user_id );
 		$licence_club_id = self::get_licence_club_id( $licence_id );
@@ -185,9 +184,9 @@ class UFSC_REST_API {
 		$user_id = get_current_user_id();
 		$club_id = ufsc_get_user_club_id( $user_id );
 
-		if ( $method === 'GET' ) {
+		if ( 'GET' === $method ) {
 			return self::get_licences( $club_id, $request );
-		} elseif ( $method === 'POST' ) {
+		} elseif ( 'POST' === $method ) {
 			return self::create_licence( $club_id, $request );
 		}
 
@@ -202,9 +201,9 @@ class UFSC_REST_API {
 		$user_id = get_current_user_id();
 		$club_id = ufsc_get_user_club_id( $user_id );
 
-		if ( $method === 'GET' ) {
+		if ( 'GET' === $method ) {
 			return self::get_club_info( $club_id, $request );
-		} elseif ( $method === 'PUT' ) {
+		} elseif ( 'PUT' === $method ) {
 			return self::update_club_info( $club_id, $request );
 		}
 
@@ -234,9 +233,9 @@ class UFSC_REST_API {
 		), 200 );
 	}
 
-
 	/**
 	 * Handle dashboard recent licences endpoint.
+	 * Returns season_label + alias saison for stable front rendering.
 	 */
 	public static function handle_recent_licences( $request ) {
 		$user_id = get_current_user_id();
@@ -261,9 +260,22 @@ class UFSC_REST_API {
 		}
 
 		$licences = self::fetch_club_licences( $club_id, $args );
-		if ( ! empty( $licences ) && function_exists( 'ufsc_get_licence_season_label' ) ) {
+
+		// Extra safety: guarantee payload even if fetch method changes later.
+		if ( ! empty( $licences ) ) {
 			foreach ( $licences as $licence ) {
-				$season_label = ufsc_get_licence_season_label( $licence );
+				$season_label = '';
+
+				if ( function_exists( 'ufsc_get_licence_season_label' ) ) {
+					$season_label = (string) ufsc_get_licence_season_label( $licence );
+				} elseif ( function_exists( 'ufsc_get_licence_season' ) ) {
+					$season_label = (string) ufsc_get_licence_season( $licence );
+				}
+
+				if ( '' === trim( $season_label ) && function_exists( 'ufsc_get_current_season' ) ) {
+					$season_label = (string) ufsc_get_current_season();
+				}
+
 				$licence->season_label = $season_label;
 				$licence->saison       = $season_label;
 			}
@@ -279,19 +291,16 @@ class UFSC_REST_API {
 		$type  = $request->get_param( 'type' );
 		$nonce = $request->get_param( 'nonce' );
 
-		// Verify nonce and extract data
 		$attestation_data = self::verify_attestation_nonce( $type, $nonce );
 		if ( ! $attestation_data ) {
 			return new WP_Error( 'invalid_nonce', __( 'Lien d\'attestation invalide ou expiré.', 'ufsc-clubs' ), array( 'status' => 403 ) );
 		}
 
-		// Generate attestation file
 		$file_path = self::generate_attestation_file( $type, $attestation_data );
 		if ( ! $file_path || ! file_exists( $file_path ) ) {
 			return new WP_Error( 'generation_failed', __( 'Erreur lors de la génération de l\'attestation.', 'ufsc-clubs' ), array( 'status' => 500 ) );
 		}
 
-		// Log download
 		ufsc_audit_log( 'attestation_downloaded', array(
 			'type'    => $type,
 			'club_id' => $attestation_data['club_id'],
@@ -299,19 +308,16 @@ class UFSC_REST_API {
 			'nonce'   => $nonce,
 		) );
 
-		// Clean output buffers before sending headers
 		while ( ob_get_level() ) {
 			ob_end_clean();
 		}
 		nocache_headers();
 
-		// Serve file
 		header( 'Content-Type: application/pdf' );
 		header( 'Content-Disposition: attachment; filename="' . basename( $file_path ) . '"' );
 		header( 'Content-Length: ' . filesize( $file_path ) );
 		readfile( $file_path );
 
-		// Clean up temporary file
 		@unlink( $file_path );
 		exit;
 	}
@@ -327,13 +333,11 @@ class UFSC_REST_API {
 		$type  = sanitize_text_field( (string) $request->get_param( 'type' ) );
 		$nonce = sanitize_text_field( (string) $request->get_param( 'nonce' ) );
 
-		// Nonce obligatoire
 		$attestation_data = ( $type && $nonce ) ? self::verify_attestation_nonce( $type, $nonce ) : false;
 		if ( ! $attestation_data ) {
 			return new WP_Error( 'rest_forbidden', __( 'Accès refusé.', 'ufsc-clubs' ), array( 'status' => 403 ) );
 		}
 
-		// Option : autoriser public si explicitement activé par un filtre
 		if ( ! is_user_logged_in() ) {
 			if ( apply_filters( 'ufsc_attestation_rest_public_allowed', false, $request, $attestation_data ) ) {
 				return true;
@@ -341,12 +345,10 @@ class UFSC_REST_API {
 			return new WP_Error( 'rest_forbidden', __( 'Accès refusé.', 'ufsc-clubs' ), array( 'status' => 401 ) );
 		}
 
-		// Admin / lecture fédé
 		if ( current_user_can( 'manage_options' ) || current_user_can( 'ufsc_manage_read' ) ) {
 			return true;
 		}
 
-		// Club owner : l’utilisateur doit appartenir au club ciblé par l’attestation
 		$user_club_id = function_exists( 'ufsc_get_user_club_id' ) ? (int) ufsc_get_user_club_id( get_current_user_id() ) : 0;
 		if ( $user_club_id && (int) $attestation_data['club_id'] === $user_club_id ) {
 			return true;
@@ -377,11 +379,11 @@ class UFSC_REST_API {
 		$total    = self::count_club_licences( $club_id, $args );
 
 		return new WP_REST_Response( array(
-			'licences'     => $licences,
-			'total'        => $total,
-			'page'         => $page,
-			'per_page'     => $per_page,
-			'total_pages'  => ceil( $total / $per_page ),
+			'licences'    => $licences,
+			'total'       => $total,
+			'page'        => $page,
+			'per_page'    => $per_page,
+			'total_pages' => ceil( $total / $per_page ),
 		), 200 );
 	}
 
@@ -406,7 +408,6 @@ class UFSC_REST_API {
 		foreach ( (array) $data as $key => $value ) {
 			$sanitized_data[ $key ] = sanitize_text_field( $value );
 		}
-
 		$sanitized_data['email'] = sanitize_email( $sanitized_data['email'] );
 
 		if ( ! is_email( $sanitized_data['email'] ) ) {
@@ -418,7 +419,7 @@ class UFSC_REST_API {
 			return new WP_Error( 'invalid_birth_date', __( 'Date de naissance invalide (YYYY-MM-DD requis).', 'ufsc-clubs' ), array( 'status' => 400 ) );
 		}
 
-		$season = function_exists( 'ufsc_get_current_season_label' ) ? ufsc_get_current_season_label() : '';
+		$season = function_exists( 'ufsc_get_current_season_label' ) ? (string) ufsc_get_current_season_label() : '';
 		if ( $season ) {
 			$sanitized_data['season']      = $season;
 			$sanitized_data['saison']      = $season;
@@ -426,13 +427,16 @@ class UFSC_REST_API {
 		}
 
 		$quota_info    = self::get_club_quota( $club_id );
-		$needs_payment = $quota_info['remaining'] <= 0;
+		$needs_payment = (int) ( $quota_info['remaining'] ?? 0 ) <= 0;
 
 		$licence_id = self::create_licence_record( $club_id, $sanitized_data );
+
 		if ( $licence_id && function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
 			$stored_season = ufsc_get_licence_season( (int) $licence_id );
 			if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
-				ufsc_set_licence_season( (int) $licence_id, ufsc_get_current_season() );
+				if ( function_exists( 'ufsc_get_current_season' ) ) {
+					ufsc_set_licence_season( (int) $licence_id, (string) ufsc_get_current_season() );
+				}
 			}
 		}
 
@@ -448,18 +452,18 @@ class UFSC_REST_API {
 		if ( $needs_payment ) {
 			$order_id = self::create_payment_order( $club_id, array( $licence_id ) );
 			if ( $order_id ) {
-				$order                       = wc_get_order( $order_id );
+				$order                           = wc_get_order( $order_id );
 				$response_data['payment_required'] = true;
 				$response_data['payment_url']      = $order ? $order->get_checkout_payment_url() : '';
-				$response_data['message']           = __( 'Licence créée. Paiement requis.', 'ufsc-clubs' );
+				$response_data['message']          = __( 'Licence créée. Paiement requis.', 'ufsc-clubs' );
 			}
 		}
 
 		ufsc_audit_log( 'licence_created', array(
-			'licence_id'     => $licence_id,
-			'club_id'        => $club_id,
-			'user_id'        => get_current_user_id(),
-			'needs_payment'  => $needs_payment,
+			'licence_id'    => $licence_id,
+			'club_id'       => $club_id,
+			'user_id'       => get_current_user_id(),
+			'needs_payment' => $needs_payment,
 		) );
 
 		return new WP_REST_Response( $response_data, 201 );
@@ -513,7 +517,7 @@ class UFSC_REST_API {
 			}
 		}
 
-		$season = function_exists( 'ufsc_get_current_season_label' ) ? ufsc_get_current_season_label() : '';
+		$season = function_exists( 'ufsc_get_current_season_label' ) ? (string) ufsc_get_current_season_label() : '';
 		if ( $season ) {
 			foreach ( array( 'season', 'saison', 'paid_season' ) as $season_field ) {
 				if ( in_array( $season_field, $allowed_fields, true ) ) {
@@ -541,7 +545,9 @@ class UFSC_REST_API {
 		if ( function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
 			$stored_season = ufsc_get_licence_season( $licence_id );
 			if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
-				ufsc_set_licence_season( $licence_id, ufsc_get_current_season() );
+				if ( function_exists( 'ufsc_get_current_season' ) ) {
+					ufsc_set_licence_season( $licence_id, (string) ufsc_get_current_season() );
+				}
 			}
 		}
 
@@ -586,22 +592,22 @@ class UFSC_REST_API {
 			$licence_count = self::count_club_licences( $club_id, array() );
 
 			$club_info = array(
-				'id'             => $club->id,
-				'nom'            => $club->nom,
-				'region'         => $club->region,
-				'statut'         => $club->statut,
-				'adresse'        => $club->adresse,
+				'id'                 => $club->id,
+				'nom'                => $club->nom,
+				'region'             => $club->region,
+				'statut'             => $club->statut,
+				'adresse'            => $club->adresse,
 				'complement_adresse' => $club->complement_adresse,
-				'code_postal'    => $club->code_postal,
-				'ville'          => $club->ville,
-				'email'          => $club->email,
-				'telephone'      => $club->telephone,
-				'num_affiliation'=> $club->num_affiliation,
-				'quota'          => $quota_info,
-				'licence_count'  => $licence_count,
-				'is_validated'   => ufsc_is_validated_club( $club_id ),
-				'can_edit'       => ! ufsc_is_validated_club( $club_id ),
-				'responsable_id' => $club->responsable_id,
+				'code_postal'        => $club->code_postal,
+				'ville'              => $club->ville,
+				'email'              => $club->email,
+				'telephone'          => $club->telephone,
+				'num_affiliation'    => $club->num_affiliation,
+				'quota'              => $quota_info,
+				'licence_count'      => $licence_count,
+				'is_validated'       => ufsc_is_validated_club( $club_id ),
+				'can_edit'           => ! ufsc_is_validated_club( $club_id ),
+				'responsable_id'     => $club->responsable_id,
 			);
 
 			set_transient( $cache_key, $club_info, HOUR_IN_SECONDS );
@@ -627,7 +633,7 @@ class UFSC_REST_API {
 
 		$sanitized_data = array();
 		foreach ( (array) $data as $key => $value ) {
-			if ( $key === 'email' && ! is_email( $value ) ) {
+			if ( 'email' === $key && ! is_email( $value ) ) {
 				return new WP_Error( 'invalid_email', __( 'Adresse email invalide.', 'ufsc-clubs' ), array( 'status' => 400 ) );
 			}
 			$sanitized_data[ $key ] = sanitize_text_field( $value );
@@ -727,7 +733,6 @@ class UFSC_REST_API {
 		);
 
 		$nonce = wp_hash( serialize( $data ) . wp_create_nonce( 'ufsc_attestation' ) );
-
 		set_transient( "ufsc_attestation_nonce_{$nonce}", $data, $expiry_hours * HOUR_IN_SECONDS );
 
 		return $nonce;
@@ -766,7 +771,6 @@ class UFSC_REST_API {
 		$file_path = $temp_dir . $filename;
 
 		if ( ! class_exists( 'FPDF' ) ) {
-			// Garde UN seul chemin (évite fatal si l'autre n'existe pas)
 			require_once UFSC_CL_DIR . 'includes/lib/fpdf/fpdf.php';
 		}
 
@@ -789,20 +793,24 @@ class UFSC_REST_API {
 		return $file_path;
 	}
 
+	/**
+	 * Fetch club licences with filters/pagination.
+	 * Adds season_label + alias saison (stable payload for front/admin).
+	 */
 	private static function fetch_club_licences( $club_id, $args ) {
 		global $wpdb;
 		$settings       = UFSC_SQL::get_settings();
 		$licences_table = $settings['table_licences'];
 
-		$where        = array( "club_id = %d" );
-		$where_values = array( $club_id );
+		$where         = array( "club_id = %d" );
+		$where_values  = array( $club_id );
 
 		if ( ! empty( $args['search'] ) ) {
-			$where[]      = "(nom LIKE %s OR prenom LIKE %s OR email LIKE %s)";
-			$search_term  = '%' . $wpdb->esc_like( $args['search'] ) . '%';
-			$where_values[] = $search_term;
-			$where_values[] = $search_term;
-			$where_values[] = $search_term;
+			$where[]          = "(nom LIKE %s OR prenom LIKE %s OR email LIKE %s)";
+			$search_term      = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+			$where_values[]   = $search_term;
+			$where_values[]   = $search_term;
+			$where_values[]   = $search_term;
 		}
 
 		if ( ! empty( $args['status'] ) ) {
@@ -810,23 +818,36 @@ class UFSC_REST_API {
 			$where_values[] = $args['status'];
 		}
 
-		$offset = ( $args['page'] - 1 ) * $args['per_page'];
+		$offset = ( (int) $args['page'] - 1 ) * (int) $args['per_page'];
 		$order  = ! empty( $args['sort'] ) ? $args['sort'] : 'nom ASC';
 
 		$sql = "SELECT * FROM {$licences_table} WHERE " . implode( ' AND ', $where ) .
 			" ORDER BY {$order} LIMIT %d OFFSET %d";
 
-		$where_values[] = $args['per_page'];
-		$where_values[] = $offset;
+		$where_values[] = (int) $args['per_page'];
+		$where_values[] = (int) $offset;
 
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $where_values ) );
-		if ( empty( $rows ) || ! function_exists( 'ufsc_get_licence_season_label' ) ) {
+		if ( empty( $rows ) ) {
 			return $rows;
 		}
 
+		// Enrich season in payload (no DB writes here).
 		foreach ( $rows as $row ) {
-			$row->season_label = ufsc_get_licence_season_label( $row );
-			$row->saison       = $row->season_label;
+			$season_label = '';
+
+			if ( function_exists( 'ufsc_get_licence_season_label' ) ) {
+				$season_label = (string) ufsc_get_licence_season_label( $row );
+			} elseif ( function_exists( 'ufsc_get_licence_season' ) ) {
+				$season_label = (string) ufsc_get_licence_season( $row );
+			}
+
+			if ( '' === trim( $season_label ) && function_exists( 'ufsc_get_current_season' ) ) {
+				$season_label = (string) ufsc_get_current_season();
+			}
+
+			$row->season_label = $season_label;
+			$row->saison       = $season_label;
 		}
 
 		return $rows;
