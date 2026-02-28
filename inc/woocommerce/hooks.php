@@ -566,6 +566,12 @@ function ufsc_wc_generate_missing_licence_rows( $order, $item, $club_id, $missin
 		}
 
 		$new_id     = (int) $wpdb->insert_id;
+		if ( function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
+			$stored_season = ufsc_get_licence_season( $new_id );
+			if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
+				ufsc_set_licence_season( $new_id, ufsc_get_current_season() );
+			}
+		}
 		$created[]  = $new_id;
 		do_action( 'ufsc_licence_created', $new_id, (int) $club_id );
 		do_action( 'ufsc_licence_updated', (int) $club_id );

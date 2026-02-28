@@ -468,7 +468,7 @@ class UFSC_Licences_List_Table {
         echo '<td>' . self::render_status_badge( $licence->statut ) . '</td>';
         
         // Season
-        $season = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
+        $season = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $licence ) : ( function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '' );
         echo '<td>' . esc_html( $season ? $season : '—' ) . '</td>';
 
         // Payment status
