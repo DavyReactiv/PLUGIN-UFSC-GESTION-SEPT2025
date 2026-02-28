@@ -35,6 +35,14 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
             $status_raw   = $licence->licence_statut ?? ( $licence->statut ?? '' );
             $status_norm  = function_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::display_status( $status_raw ) : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw );
             $is_locked    = function_exists( 'ufsc_is_licence_locked_for_club' ) ? ufsc_is_licence_locked_for_club( $licence ) : ! ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status_norm ) : false );
+            $lock_reason  = '';
+            if ( 'valide' === $status_norm ) {
+                $lock_reason = __( 'Validée', 'ufsc-clubs' );
+            } elseif ( function_exists( 'ufsc_is_licence_paid' ) && ufsc_is_licence_paid( $licence ) ) {
+                $lock_reason = __( 'Paiement / Commande', 'ufsc-clubs' );
+            } elseif ( $is_locked ) {
+                $lock_reason = __( 'Verrouillage', 'ufsc-clubs' );
+            }
             $status_class = $status_norm ? sanitize_html_class( $status_norm ) : 'en_attente';
             $season_label = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
             ?>
@@ -62,7 +70,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                             </button>
                         </form>
                     <?php else : ?>
-                        <span class="ufsc-text-muted"><?php esc_html_e( 'Verrouillée', 'ufsc-clubs' ); ?></span>
+                        <span class="ufsc-text-muted"><?php echo esc_html( '🔒 ' . sprintf( __( 'Verrouillée (%s)', 'ufsc-clubs' ), $lock_reason ) ); ?></span>
                     <?php endif; ?>
                 </div>
             </div>

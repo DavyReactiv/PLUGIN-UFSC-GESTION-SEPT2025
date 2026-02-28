@@ -23,6 +23,7 @@ class UFSC_Unified_Handlers {
 
         add_action( 'admin_post_ufsc_delete_licence', array( __CLASS__, 'handle_delete_licence' ) );
         add_action( 'admin_post_nopriv_ufsc_delete_licence', array( __CLASS__, 'handle_delete_licence' ) );
+        add_action( 'admin_post_ufsc_cancel_licence', array( __CLASS__, 'handle_cancel_licence' ) );
         add_action( 'admin_post_ufsc_update_licence_status', array( __CLASS__, 'handle_update_licence_status' ) );
         add_action( 'admin_post_nopriv_ufsc_update_licence_status', array( __CLASS__, 'handle_update_licence_status' ) );
         add_action( 'admin_post_ufsc_sync_licence_statuses', array( __CLASS__, 'handle_sync_licence_statuses' ) );
@@ -244,8 +245,9 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        if ( function_exists( 'ufsc_is_licence_locked_for_club' ) && ufsc_is_licence_locked_for_club( $licence ) ) {
-            self::redirect_with_error( 'Suppression non autorisée' );
+        $delete_block_reason = self::get_licence_delete_block_reason( $licence );
+        if ( $delete_block_reason ) {
+            self::redirect_with_error( $delete_block_reason );
             return;
         }
 
@@ -268,6 +270,80 @@ class UFSC_Unified_Handlers {
         );
 
         self::redirect_with_success( 'Licence supprimée.', $redirect_url );
+        return;
+    }
+
+    /**
+     * Handle admin-only licence cancellation (soft status update).
+     */
+    public static function handle_cancel_licence() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        check_admin_referer( 'ufsc_cancel_licence' );
+
+        $licence_id = isset( $_POST['licence_id'] ) ? absint( $_POST['licence_id'] ) : 0;
+        $reason     = isset( $_POST['cancel_reason'] ) ? sanitize_text_field( wp_unslash( $_POST['cancel_reason'] ) ) : '';
+
+        if ( ! $licence_id ) {
+            self::redirect_with_error( 'Paramètres invalides' );
+            return;
+        }
+
+        if ( '' === $reason ) {
+            self::redirect_with_error( 'Le motif d\'annulation est requis.' );
+            return;
+        }
+
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $table    = $settings['table_licences'];
+        $columns  = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : array();
+
+        $licence = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $licence_id ) );
+        if ( ! $licence ) {
+            self::redirect_with_error( 'Licence non trouvée' );
+            return;
+        }
+
+        $allowed_statuses = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::allowed() : array();
+        $target_status    = in_array( 'annulee', $allowed_statuses, true ) ? 'annulee' : 'refuse';
+
+        if ( class_exists( 'UFSC_Licence_Status' ) ) {
+            UFSC_Licence_Status::update_status_columns( $table, array( 'id' => $licence_id ), $target_status, array( '%d' ) );
+        } else {
+            $status_col = in_array( 'statut', $columns, true ) ? 'statut' : ( in_array( 'status', $columns, true ) ? 'status' : '' );
+            if ( ! $status_col ) {
+                self::redirect_with_error( 'Annulation impossible avec le schéma actuel.' );
+                return;
+            }
+            $wpdb->update( $table, array( $status_col => $target_status ), array( 'id' => $licence_id ), array( '%s' ), array( '%d' ) );
+        }
+
+        if ( in_array( 'note', $columns, true ) ) {
+            $existing_note = isset( $licence->note ) ? (string) $licence->note : '';
+            $prefix        = '[Annulation] ' . $reason;
+            $new_note      = trim( $existing_note . ( $existing_note ? "\n" : '' ) . $prefix );
+            $wpdb->update( $table, array( 'note' => $new_note ), array( 'id' => $licence_id ), array( '%s' ), array( '%d' ) );
+        }
+
+        if ( function_exists( 'ufsc_audit_log' ) ) {
+            ufsc_audit_log( 'licence_cancelled', array(
+                'licence_id' => $licence_id,
+                'club_id'    => (int) ( $licence->club_id ?? 0 ),
+                'user_id'    => get_current_user_id(),
+                'reason'     => $reason,
+                'status'     => $target_status,
+            ) );
+        } else {
+            error_log( sprintf( 'UFSC licence cancelled #%d by user #%d (%s)', $licence_id, get_current_user_id(), $reason ) );
+        }
+
+        do_action( 'ufsc_licence_cancelled', $licence_id, (int) ( $licence->club_id ?? 0 ), $reason );
+        do_action( 'ufsc_licence_updated', (int) ( $licence->club_id ?? 0 ) );
+
+        self::redirect_with_success( 'Licence annulée.', admin_url( 'admin.php?page=ufsc-sql-licences' ) );
         return;
     }
 
@@ -967,11 +1043,19 @@ class UFSC_Unified_Handlers {
             }
         }
         
-        // Email validation
-        if ( ! empty( $post_data['email'] ) && ! is_email( $post_data['email'] ) ) {
+        // Email validation (required)
+        $email = isset( $post_data['email'] ) ? sanitize_email( wp_unslash( (string) $post_data['email'] ) ) : '';
+        if ( '' === $email || ! is_email( $email ) ) {
             $errors[] = __( 'Adresse email invalide', 'ufsc-clubs' );
         } else {
-            $data['email'] = sanitize_email( $post_data['email'] );
+            $data['email'] = $email;
+        }
+
+        $date_naissance = isset( $post_data['date_naissance'] ) ? sanitize_text_field( wp_unslash( (string) $post_data['date_naissance'] ) ) : '';
+        if ( '' === $date_naissance || '0000-00-00' === $date_naissance || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_naissance ) ) {
+            $errors[] = __( 'Date de naissance invalide (YYYY-MM-DD requis)', 'ufsc-clubs' );
+        } else {
+            $data['date_naissance'] = $date_naissance;
         }
         
         // Optional fields with sanitization
@@ -1050,6 +1134,8 @@ class UFSC_Unified_Handlers {
         if ( ! empty( $post_data['telephone'] ) ) {
             $data['tel_mobile'] = sanitize_text_field( $post_data['telephone'] );
         }
+
+        $data = self::normalize_licence_date_fields( $data );
 
         return $data;
     }
@@ -1130,6 +1216,7 @@ class UFSC_Unified_Handlers {
         };
 
         if ( $licence_id > 0 ) {
+            $data = self::enforce_server_managed_licence_fields( $data, $column_exists );
             // Update
             if ( $column_exists( 'date_modification' ) ) {
                 $data['date_modification'] = current_time( 'mysql' );
@@ -1141,6 +1228,7 @@ class UFSC_Unified_Handlers {
             do_action( 'ufsc_licence_updated', (int) $club_id );
             return $licence_id;
         } else {
+            $data = self::enforce_server_managed_licence_fields( $data, $column_exists );
             // Create
             if ( $column_exists( 'date_creation' ) ) {
                 $data['date_creation'] = current_time( 'mysql' );
@@ -1266,6 +1354,60 @@ class UFSC_Unified_Handlers {
             "SELECT * FROM {$licences_table} WHERE id = %d AND club_id = %d",
             $licence_id, $club_id
         ) );
+    }
+
+    private static function get_licence_delete_block_reason( $licence ) {
+        if ( ! is_object( $licence ) && ! is_array( $licence ) ) {
+            return 'Suppression non autorisée';
+        }
+
+        $status_raw  = is_array( $licence ) ? ( $licence['statut'] ?? ( $licence['status'] ?? '' ) ) : ( $licence->statut ?? ( $licence->status ?? '' ) );
+        $status_norm = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : strtolower( trim( (string) $status_raw ) );
+        if ( 'valide' === $status_norm ) {
+            return 'Licence validée — suppression impossible.';
+        }
+
+        if ( function_exists( 'ufsc_is_licence_paid' ) && ufsc_is_licence_paid( $licence ) ) {
+            return 'Licence liée à une commande — suppression impossible.';
+        }
+
+        if ( function_exists( 'ufsc_is_licence_locked_for_club' ) && ufsc_is_licence_locked_for_club( $licence ) ) {
+            return 'Suppression non autorisée';
+        }
+
+        return '';
+    }
+
+    private static function normalize_licence_date_fields( $data ) {
+        foreach ( $data as $key => $value ) {
+            if ( strpos( (string) $key, 'date_' ) !== 0 && ! in_array( $key, array( 'date_naissance', 'date_certificat_medical' ), true ) ) {
+                continue;
+            }
+
+            $val = trim( (string) $value );
+            if ( '0000-00-00' === $val || '0000-00-00 00:00:00' === $val ) {
+                $data[ $key ] = '';
+            }
+        }
+
+        return $data;
+    }
+
+    private static function enforce_server_managed_licence_fields( $data, $column_exists ) {
+        $season = function_exists( 'ufsc_get_current_season_label' ) ? ufsc_get_current_season_label() : '';
+        if ( $season ) {
+            foreach ( array( 'season', 'saison', 'paid_season' ) as $season_col ) {
+                if ( $column_exists( $season_col ) ) {
+                    $data[ $season_col ] = $season;
+                }
+            }
+        }
+
+        if ( isset( $data['date_certificat_medical'] ) && '' === trim( (string) $data['date_certificat_medical'] ) ) {
+            $data['date_certificat_medical'] = '';
+        }
+
+        return self::normalize_licence_date_fields( $data );
     }
 
     private static function user_can_manage_club( $user_id, $club_id ) {

@@ -117,6 +117,20 @@ class UFSC_SQL_Admin
         return false;
     }
 
+    private static function get_licence_delete_block_reason( $row ) {
+        $status_raw  = isset( $row->statut ) ? $row->statut : ( $row->status ?? '' );
+        $status_norm = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : strtolower( trim( (string) $status_raw ) );
+        if ( 'valide' === $status_norm ) {
+            return __( 'Licence validée — suppression impossible.', 'ufsc-clubs' );
+        }
+
+        if ( self::is_licence_paid( $row ) || ! empty( $row->order_id ) || ! empty( $row->order_item_id ) ) {
+            return __( 'Licence liée à une commande — suppression impossible.', 'ufsc-clubs' );
+        }
+
+        return '';
+    }
+
     /**
      * Retrieve table columns with a DESCRIBE fallback.
      *
@@ -1633,7 +1647,18 @@ class UFSC_SQL_Admin
                     $payment_url = wp_nonce_url(admin_url('admin-post.php?action=ufsc_send_license_payment&license_id=' . $r->$pk), 'ufsc_send_license_payment_' . $r->$pk);
                     echo '<a class="button button-small" href="' . esc_url($payment_url) . '" title="' . esc_attr__('Envoyer pour paiement', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Envoyer pour paiement', 'ufsc-clubs') . '" style="background: #00a32a; border-color: #00a32a; color: white;">' . esc_html__('Paiement', 'ufsc-clubs') . '</a>';
                 }
-                echo '<a class="button button-small button-link-delete" href="' . esc_url($del_url) . '" title="' . esc_attr__('Supprimer la licence', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Supprimer la licence', 'ufsc-clubs') . '" onclick="return confirm(\'' . esc_js(__('Êtes-vous sûr de vouloir supprimer cette licence ?', 'ufsc-clubs')) . '\')">' . esc_html__('Supprimer', 'ufsc-clubs') . '</a>';
+                $delete_block_reason = self::get_licence_delete_block_reason( $r );
+                if ( '' === $delete_block_reason ) {
+                    echo '<a class="button button-small button-link-delete" href="' . esc_url($del_url) . '" title="' . esc_attr__('Supprimer la licence', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Supprimer la licence', 'ufsc-clubs') . '" onclick="return confirm(\'' . esc_js(__('Êtes-vous sûr de vouloir supprimer cette licence ?', 'ufsc-clubs')) . '\')">' . esc_html__('Supprimer', 'ufsc-clubs') . '</a>';
+                } else {
+                    echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline" onsubmit="var r=prompt(\'' . esc_js( __( 'Motif d\'annulation (obligatoire)', 'ufsc-clubs' ) ) . '\'); if(!r){return false;} this.querySelector(\'[name=cancel_reason]\').value=r; return true;">';
+                    wp_nonce_field( 'ufsc_cancel_licence' );
+                    echo '<input type="hidden" name="action" value="ufsc_cancel_licence" />';
+                    echo '<input type="hidden" name="licence_id" value="' . (int) $r->$pk . '" />';
+                    echo '<input type="hidden" name="cancel_reason" value="" />';
+                    echo '<button type="submit" class="button button-small" title="' . esc_attr( $delete_block_reason ) . '">' . esc_html__( 'Annuler', 'ufsc-clubs' ) . '</button>';
+                    echo '</form>';
+                }
                 echo '</div>';
                 echo '</td>';
                 echo '</tr>';
@@ -2339,6 +2364,18 @@ class UFSC_SQL_Admin
         }
 
         if ($id) {
+            $licence = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE {$pk} = %d", $id ) );
+            if ( ! $licence ) {
+                self::maybe_redirect(admin_url('admin.php?page=ufsc-sql-licences&error=' . urlencode(__('Licence introuvable', 'ufsc-clubs'))));
+                return;
+            }
+
+            $blocked_reason = self::get_licence_delete_block_reason( $licence );
+            if ( '' !== $blocked_reason ) {
+                self::maybe_redirect(admin_url('admin.php?page=ufsc-sql-licences&error=' . urlencode($blocked_reason)));
+                return;
+            }
+
             $result = $wpdb->delete($t, [$pk => $id]);
             if ($result !== false) {
                 UFSC_CL_Utils::log('Licence supprimée: ID ' . $id, 'info');
@@ -3833,18 +3870,36 @@ class UFSC_SQL_Admin
     {
         global $wpdb;
 
+        $deleted = 0;
+        $blocked = 0;
         foreach ($item_ids as $item_id) {
-            $wpdb->delete(
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", (int) $item_id ) );
+            if ( $row && '' !== self::get_licence_delete_block_reason( $row ) ) {
+                $blocked++;
+                continue;
+            }
+
+            $result = $wpdb->delete(
                 $table,
                 ['id' => $item_id],
                 ['%d']
             );
+            if ( false !== $result ) {
+                $deleted++;
+            }
         }
 
-        add_action('admin_notices', function () use ($item_ids) {
-            echo '<div class="notice notice-success is-dismissible"><p>';
-            printf(_n('%d élément supprimé.', '%d éléments supprimés.', count($item_ids)), count($item_ids));
-            echo '</p></div>';
+        add_action('admin_notices', function () use ($deleted, $blocked) {
+            if ( $deleted > 0 ) {
+                echo '<div class="notice notice-success is-dismissible"><p>';
+                printf(_n('%d élément supprimé.', '%d éléments supprimés.', $deleted), $deleted);
+                echo '</p></div>';
+            }
+            if ( $blocked > 0 ) {
+                echo '<div class="notice notice-warning is-dismissible"><p>';
+                printf(_n('%d suppression bloquée (licence validée/commande).', '%d suppressions bloquées (licence validée/commande).', $blocked), $blocked);
+                echo '</p></div>';
+            }
         });
     }
 

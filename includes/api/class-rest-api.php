@@ -156,9 +156,22 @@ class UFSC_REST_API {
 			return new WP_Error( 'rest_forbidden', __( 'Vous n\'avez pas accès à cette licence.', 'ufsc-clubs' ), array( 'status' => 403 ) );
 		}
 
-		// Check if licence is validated (and thus non-editable)
-		if ( ufsc_is_validated_licence( $licence_id ) ) {
-			return new WP_Error( 'rest_forbidden', __( 'Cette licence ne peut plus être modifiée car elle est validée.', 'ufsc-clubs' ), array( 'status' => 403 ) );
+		global $wpdb;
+		$settings       = UFSC_SQL::get_settings();
+		$licences_table = $settings['table_licences'];
+		$licence        = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$licences_table} WHERE id = %d", (int) $licence_id ) );
+
+		if ( $licence && function_exists( 'ufsc_is_licence_locked_for_club' ) && ufsc_is_licence_locked_for_club( $licence ) ) {
+			$status_raw  = $licence->statut ?? ( $licence->status ?? '' );
+			$status_norm = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : strtolower( trim( (string) $status_raw ) );
+			if ( 'valide' === $status_norm ) {
+				return new WP_Error( 'rest_forbidden', __( 'Licence validée — suppression impossible.', 'ufsc-clubs' ), array( 'status' => 403 ) );
+			}
+			if ( function_exists( 'ufsc_is_licence_paid' ) && ufsc_is_licence_paid( $licence ) ) {
+				return new WP_Error( 'rest_forbidden', __( 'Licence liée à une commande — suppression impossible.', 'ufsc-clubs' ), array( 'status' => 403 ) );
+			}
+
+			return new WP_Error( 'rest_forbidden', __( 'Cette licence est verrouillée.', 'ufsc-clubs' ), array( 'status' => 403 ) );
 		}
 
 		return true;
@@ -356,8 +369,22 @@ class UFSC_REST_API {
 			$sanitized_data[ $key ] = sanitize_text_field( $value );
 		}
 
+		$sanitized_data['email'] = sanitize_email( $sanitized_data['email'] );
+
 		if ( ! is_email( $sanitized_data['email'] ) ) {
 			return new WP_Error( 'invalid_email', __( 'Adresse email invalide.', 'ufsc-clubs' ), array( 'status' => 400 ) );
+		}
+
+		$date_naissance = isset( $sanitized_data['date_naissance'] ) ? (string) $sanitized_data['date_naissance'] : '';
+		if ( '' === $date_naissance || '0000-00-00' === $date_naissance || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_naissance ) ) {
+			return new WP_Error( 'invalid_birth_date', __( 'Date de naissance invalide (YYYY-MM-DD requis).', 'ufsc-clubs' ), array( 'status' => 400 ) );
+		}
+
+		$season = function_exists( 'ufsc_get_current_season_label' ) ? ufsc_get_current_season_label() : '';
+		if ( $season ) {
+			$sanitized_data['season']      = $season;
+			$sanitized_data['saison']      = $season;
+			$sanitized_data['paid_season'] = $season;
 		}
 
 		$quota_info    = self::get_club_quota( $club_id );
@@ -423,12 +450,31 @@ class UFSC_REST_API {
 			}
 			if ( 'email' === $key ) {
 				$value = sanitize_email( $value );
-				if ( ! is_email( $value ) ) {
+				if ( '' === $value || ! is_email( $value ) ) {
 					return new WP_Error( 'invalid_email', __( 'Adresse email invalide.', 'ufsc-clubs' ), array( 'status' => 400 ) );
 				}
 				$sanitized[ $key ] = $value;
+			} elseif ( 'date_naissance' === $key ) {
+				$value = sanitize_text_field( $value );
+				if ( '' === $value || '0000-00-00' === $value || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+					return new WP_Error( 'invalid_birth_date', __( 'Date de naissance invalide (YYYY-MM-DD requis).', 'ufsc-clubs' ), array( 'status' => 400 ) );
+				}
+				$sanitized[ $key ] = $value;
 			} else {
-				$sanitized[ $key ] = sanitize_text_field( $value );
+				$value = sanitize_text_field( $value );
+				if ( strpos( $key, 'date_' ) === 0 && in_array( $value, array( '0000-00-00', '0000-00-00 00:00:00' ), true ) ) {
+					$value = '';
+				}
+				$sanitized[ $key ] = $value;
+			}
+		}
+
+		$season = function_exists( 'ufsc_get_current_season_label' ) ? ufsc_get_current_season_label() : '';
+		if ( $season ) {
+			foreach ( array( 'season', 'saison', 'paid_season' ) as $season_field ) {
+				if ( in_array( $season_field, $allowed_fields, true ) ) {
+					$sanitized[ $season_field ] = $season;
+				}
 			}
 		}
 
