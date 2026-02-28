@@ -497,7 +497,7 @@ class UFSC_Frontend_Shortcodes {
                                 } elseif ( $is_locked ) {
                                     $lock_reason = __( 'Verrouillage', 'ufsc-clubs' );
                                 }
-                                $season     = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
+                                $season     = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $licence ) : ( function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '' );
 
                                 $practice = isset( $licence->competition ) && $licence->competition
                                     ? __( 'Compétition', 'ufsc-clubs' )
@@ -646,7 +646,7 @@ class UFSC_Frontend_Shortcodes {
                         }
                         echo '<tr><th>' . esc_html( $label ) . '</th><td>' . $formatted . '</td></tr>';
                     }
-                    $season_label = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
+                    $season_label = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $licence ) : ( function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '' );
                     if ( $season_label ) {
                         echo '<tr><th>' . esc_html__( 'Saison', 'ufsc-clubs' ) . '</th><td>' . esc_html( $season_label ) . '</td></tr>';
                     }
@@ -1873,7 +1873,15 @@ class UFSC_Frontend_Shortcodes {
         $values[]  = $per_page;
         $values[]  = $offset;
 
-        return $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
+        $rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
+        if ( ! empty( $rows ) && function_exists( 'ufsc_get_licence_season_label' ) ) {
+            foreach ( $rows as $row ) {
+                $row->season_label = ufsc_get_licence_season_label( $row );
+                $row->saison       = $row->season_label;
+            }
+        }
+
+        return $rows;
     }
 
     /**
@@ -2307,6 +2315,12 @@ class UFSC_Frontend_Shortcodes {
         }
 
         $licence_id = $wpdb->insert_id;
+        if ( function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
+            $stored_season = ufsc_get_licence_season( $licence_id );
+            if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
+                ufsc_set_licence_season( $licence_id, ufsc_get_current_season() );
+            }
+        }
         $response   = array(
             'success' => true,
             'message' => __( 'Licence créée avec succès.', 'ufsc-clubs' )

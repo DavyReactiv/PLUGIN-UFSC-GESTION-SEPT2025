@@ -391,6 +391,12 @@ class UFSC_REST_API {
 		$needs_payment = $quota_info['remaining'] <= 0;
 
 		$licence_id = self::create_licence_record( $club_id, $sanitized_data );
+		if ( $licence_id && function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
+			$stored_season = ufsc_get_licence_season( (int) $licence_id );
+			if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
+				ufsc_set_licence_season( (int) $licence_id, ufsc_get_current_season() );
+			}
+		}
 
 		if ( ! $licence_id ) {
 			return new WP_Error( 'creation_failed', __( 'Échec de création de la licence.', 'ufsc-clubs' ), array( 'status' => 500 ) );
@@ -492,6 +498,13 @@ class UFSC_REST_API {
 
 		if ( false === $updated ) {
 			return new WP_Error( 'update_failed', __( 'Échec de la mise à jour de la licence.', 'ufsc-clubs' ), array( 'status' => 500 ) );
+		}
+
+		if ( function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
+			$stored_season = ufsc_get_licence_season( $licence_id );
+			if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
+				ufsc_set_licence_season( $licence_id, ufsc_get_current_season() );
+			}
 		}
 
 		$club_id = self::get_licence_club_id( $licence_id );
@@ -768,7 +781,17 @@ class UFSC_REST_API {
 		$where_values[] = $args['per_page'];
 		$where_values[] = $offset;
 
-		return $wpdb->get_results( $wpdb->prepare( $sql, $where_values ) );
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $where_values ) );
+		if ( empty( $rows ) || ! function_exists( 'ufsc_get_licence_season_label' ) ) {
+			return $rows;
+		}
+
+		foreach ( $rows as $row ) {
+			$row->season_label = ufsc_get_licence_season_label( $row );
+			$row->saison       = $row->season_label;
+		}
+
+		return $rows;
 	}
 
 	private static function count_club_licences( $club_id, $args ) {

@@ -1225,6 +1225,12 @@ class UFSC_Unified_Handlers {
             if ( $result === false ) {
                 return new WP_Error( 'update_failed', __( 'Erreur lors de la mise à jour', 'ufsc-clubs' ) );
             }
+            if ( function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
+                $stored_season = ufsc_get_licence_season( (int) $licence_id );
+                if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
+                    ufsc_set_licence_season( (int) $licence_id, ufsc_get_current_season() );
+                }
+            }
             do_action( 'ufsc_licence_updated', (int) $club_id );
             return $licence_id;
         } else {
@@ -1239,6 +1245,12 @@ class UFSC_Unified_Handlers {
                 return new WP_Error( 'insert_failed', __( 'Erreur lors de la création', 'ufsc-clubs' ) );
             }
             $new_id = (int) $wpdb->insert_id;
+            if ( function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
+                $stored_season = ufsc_get_licence_season( $new_id );
+                if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
+                    ufsc_set_licence_season( $new_id, ufsc_get_current_season() );
+                }
+            }
             do_action( 'ufsc_licence_created', $new_id, (int) $club_id );
             do_action( 'ufsc_licence_updated', (int) $club_id );
             return $new_id;
@@ -1320,14 +1332,28 @@ class UFSC_Unified_Handlers {
         // Headers
         $headers = array(
             'Prénom', 'Nom', 'Email', 'Téléphone', 'Sexe', 'Date Naissance', 
-            'Rôle', 'Statut', 'Compétition', 'Date Création'
+            'Rôle', 'Statut', 'Saison', 'Compétition', 'Date Création'
         );
         fputcsv( $output, $headers, ';' );
         
         // Data rows
         foreach ( $results as $row ) {
+            $row['season_label'] = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $row ) : ( function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $row ) : '' );
             $row['competition'] = $row['competition'] ? 'Oui' : 'Non';
-            fputcsv( $output, $row, ';' );
+            $ordered = array(
+                $row['prenom'] ?? '',
+                $row['nom'] ?? '',
+                $row['email'] ?? '',
+                $row['telephone'] ?? '',
+                $row['sexe'] ?? '',
+                $row['date_naissance'] ?? '',
+                $row['role'] ?? '',
+                $row['statut'] ?? '',
+                $row['season_label'] ?? '',
+                $row['competition'] ?? '',
+                $row['date_creation'] ?? '',
+            );
+            fputcsv( $output, $ordered, ';' );
         }
         
         rewind( $output );
