@@ -1382,8 +1382,12 @@ class UFSC_SQL_Admin
             }
         }
 
-        if (! empty($filter_region) && in_array('region', $licence_columns, true)) {
-            $where_conditions[] = $wpdb->prepare("l.region = %s", $filter_region);
+        if ( ! empty( $filter_region ) ) {
+            if ( $has_club_id && in_array( 'region', $club_columns, true ) ) {
+                $where_conditions[] = $wpdb->prepare( "COALESCE(NULLIF(c.region, ''), NULLIF(l.region, ''), '') = %s", $filter_region );
+            } elseif ( in_array( 'region', $licence_columns, true ) ) {
+                $where_conditions[] = $wpdb->prepare( "NULLIF(l.region, '') = %s", $filter_region );
+            }
         }
 
         $scope_condition = '';
@@ -1427,7 +1431,9 @@ class UFSC_SQL_Admin
             self::build_select_column('l', 'nom', $licence_columns),
             self::build_select_column('l', 'date_naissance', $licence_columns),
             self::build_select_column('l', 'club_id', $licence_columns),
-            self::build_select_column('l', 'region', $licence_columns),
+            ( $join_sql && in_array( 'region', $club_columns, true ) )
+                ? "COALESCE(NULLIF(c.region, ''), NULLIF(l.region, ''), '') AS region_resolved"
+                : "COALESCE(NULLIF(" . self::build_select_column( 'l', 'region', $licence_columns ) . ", ''), '') AS region_resolved",
             self::build_select_column('l', 'statut', $licence_columns),
             self::build_select_column('l', 'payment_status', $licence_columns),
             self::build_select_column('l', 'paid', $licence_columns),
@@ -1630,7 +1636,7 @@ class UFSC_SQL_Admin
                 echo '<td><strong>' . esc_html($name) . '</strong></td>';
                 echo '<td>' . esc_html($r->date_naissance) . '</td>';
                 echo '<td>' . $club_display . '</td>';
-                echo '<td>' . esc_html($r->region) . '</td>';
+                echo '<td>' . esc_html( '' !== trim( (string) ( $r->region_resolved ?? '' ) ) ? $r->region_resolved : '—' ) . '</td>';
                 echo '<td>';
 
                 // Display status badge with colored dot

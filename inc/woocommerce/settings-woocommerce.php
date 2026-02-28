@@ -16,7 +16,7 @@ function ufsc_get_default_woocommerce_settings() {
         'product_affiliation_id' => 4823,
         'product_license_id' => 2934,
         'included_licenses' => 10,
-        'season' => '2025-2026',
+        'season' => function_exists( 'ufsc_get_season_for_date' ) ? ufsc_get_season_for_date( current_time( 'timestamp' ) ) : '',
         'max_profile_photo_size' => 2,
         'auto_consume_included' => 1,
         'renewal_window_day' => 30,
@@ -142,6 +142,7 @@ function ufsc_render_woocommerce_settings_page() {
         } else {
             echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Erreur lors de l\'enregistrement des paramètres WooCommerce.', 'ufsc-clubs' ) . '</p></div>';
         }
+
     }
     
     $current_settings = ufsc_get_woocommerce_settings();
@@ -223,7 +224,7 @@ function ufsc_render_woocommerce_settings_page() {
                                value="<?php echo esc_attr( $current_settings['season'] ); ?>" 
                                class="regular-text" />
                         <p class="description">
-                            <?php esc_html_e( 'Saison courante pour la gestion des quotas (par défaut: 2025-2026)', 'ufsc-clubs' ); ?>
+                            <?php esc_html_e( 'Saison courante pour la gestion des quotas', 'ufsc-clubs' ); ?>
                         </p>
                     </td>
                 </tr>
@@ -239,7 +240,7 @@ function ufsc_render_woocommerce_settings_page() {
                     </td>
                 </tr>
             </table>
-            
+
             <?php submit_button( __( 'Enregistrer les paramètres WooCommerce', 'ufsc-clubs' ), 'primary', 'ufsc_save_woocommerce_settings' ); ?>
         </form>
         
