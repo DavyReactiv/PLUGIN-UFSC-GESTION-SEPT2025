@@ -515,6 +515,16 @@ class UFSC_Frontend_Shortcodes {
                                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
                                         <?php if ( ! $is_locked ) : ?>
                                             | <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
+                                            | <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline" onsubmit="return confirm('<?php echo esc_js( __( 'Confirmer la suppression de cette licence ?', 'ufsc-clubs' ) ); ?>');">
+                                                <?php wp_nonce_field( 'ufsc_delete_licence' ); ?>
+                                                <input type="hidden" name="action" value="ufsc_delete_licence">
+                                                <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
+                                                <button type="submit" class="ufsc-action ufsc-action-danger" style="background:none;border:none;padding:0;cursor:pointer;">
+                                                    <?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?>
+                                                </button>
+                                            </form>
+                                        <?php else : ?>
+                                            | <span class="ufsc-text-muted"><?php esc_html_e( 'Verrouillée', 'ufsc-clubs' ); ?></span>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
