@@ -24,6 +24,12 @@ if ( ! function_exists( 'ufsc_get_season_for_date' ) ) {
 
 if ( ! function_exists( 'ufsc_get_current_season' ) ) {
 	function ufsc_get_current_season() {
+		$stored = get_option( 'ufsc_current_season', '' );
+		$stored = is_string( $stored ) ? sanitize_text_field( $stored ) : '';
+		if ( preg_match( '/^(\d{4})-(\d{4})$/', $stored, $matches ) && ( (int) $matches[2] ) === ( (int) $matches[1] + 1 ) ) {
+			return $stored;
+		}
+
 		return ufsc_get_season_for_date( current_time( 'timestamp' ) );
 	}
 }
@@ -39,6 +45,12 @@ if ( ! function_exists( 'ufsc_get_current_season_label' ) ) {
 
 if ( ! function_exists( 'ufsc_get_next_season' ) ) {
 	function ufsc_get_next_season() {
+		$stored = get_option( 'ufsc_next_season', '' );
+		$stored = is_string( $stored ) ? sanitize_text_field( $stored ) : '';
+		if ( preg_match( '/^(\d{4})-(\d{4})$/', $stored, $matches ) && ( (int) $matches[2] ) === ( (int) $matches[1] + 1 ) ) {
+			return $stored;
+		}
+
 		$current = ufsc_get_current_season();
 		if ( preg_match( '/^(\d{4})-(\d{4})$/', $current, $m ) ) {
 			return sprintf( '%d-%d', (int) $m[1] + 1, (int) $m[2] + 1 );
@@ -64,6 +76,11 @@ if ( ! function_exists( 'ufsc_get_renewal_window_day_month' ) ) {
 
 if ( ! function_exists( 'ufsc_get_renewal_window_start_ts' ) ) {
 	function ufsc_get_renewal_window_start_ts() {
+		$stored_ts = absint( get_option( 'ufsc_renewal_window_start_ts', 0 ) );
+		if ( $stored_ts > 0 ) {
+			return $stored_ts;
+		}
+
 		$current = ufsc_get_current_season();
 		$end     = 0;
 
