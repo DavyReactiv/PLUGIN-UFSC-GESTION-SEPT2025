@@ -82,6 +82,43 @@ function ufsc_save_woocommerce_settings( $settings ) {
 }
 
 /**
+ * Validate UFSC season label.
+ *
+ * @param string $season Season label.
+ * @return bool
+ */
+function ufsc_is_valid_season_label( $season ) {
+    $season = sanitize_text_field( (string) $season );
+    if ( ! preg_match( '/^(\d{4})-(\d{4})$/', $season, $matches ) ) {
+        return false;
+    }
+
+    return ( (int) $matches[2] ) === ( (int) $matches[1] + 1 );
+}
+
+/**
+ * Convert an admin date input (Y-m-d) to timestamp in WP timezone.
+ *
+ * @param string $date Date string.
+ * @return int
+ */
+function ufsc_admin_date_to_wp_timestamp( $date ) {
+    $date = sanitize_text_field( (string) $date );
+    if ( '' === $date ) {
+        return 0;
+    }
+
+    $timezone = wp_timezone();
+    $dt       = date_create_immutable_from_format( 'Y-m-d H:i:s', $date . ' 00:00:00', $timezone );
+
+    if ( false === $dt ) {
+        return 0;
+    }
+
+    return (int) $dt->getTimestamp();
+}
+
+/**
  * Check if WooCommerce is active
  * 
  * @return bool True if WooCommerce is active
@@ -109,9 +146,14 @@ function ufsc_validate_woocommerce_product( $product_id ) {
  * Render WooCommerce settings page
  */
 function ufsc_render_woocommerce_settings_page() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
+    }
+
     // Handle form submission
     if ( isset( $_POST['ufsc_save_woocommerce_settings'] ) && check_admin_referer( 'ufsc_woocommerce_settings' ) ) {
         $settings = array();
+        $season_errors = array();
         
         if ( isset( $_POST['product_affiliation_id'] ) ) {
             $settings['product_affiliation_id'] = absint( $_POST['product_affiliation_id'] );
@@ -142,9 +184,54 @@ function ufsc_render_woocommerce_settings_page() {
         } else {
             echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Erreur lors de l\'enregistrement des paramètres WooCommerce.', 'ufsc-clubs' ) . '</p></div>';
         }
+
+        if ( isset( $_POST['ufsc_current_season'] ) ) {
+            $current_season = sanitize_text_field( wp_unslash( $_POST['ufsc_current_season'] ) );
+            if ( ufsc_is_valid_season_label( $current_season ) ) {
+                update_option( 'ufsc_current_season', $current_season );
+            } else {
+                $season_errors[] = __( 'Saison courante invalide (format attendu : YYYY-YYYY avec année N+1).', 'ufsc-clubs' );
+            }
+        }
+
+        if ( isset( $_POST['ufsc_next_season'] ) ) {
+            $next_season = sanitize_text_field( wp_unslash( $_POST['ufsc_next_season'] ) );
+            if ( '' === $next_season ) {
+                delete_option( 'ufsc_next_season' );
+            } elseif ( ufsc_is_valid_season_label( $next_season ) ) {
+                update_option( 'ufsc_next_season', $next_season );
+            } else {
+                $season_errors[] = __( 'Saison suivante invalide (format attendu : YYYY-YYYY avec année N+1).', 'ufsc-clubs' );
+            }
+        }
+
+        if ( isset( $_POST['ufsc_renewal_window_start_date'] ) ) {
+            $renewal_date = sanitize_text_field( wp_unslash( $_POST['ufsc_renewal_window_start_date'] ) );
+            if ( '' === $renewal_date ) {
+                delete_option( 'ufsc_renewal_window_start_ts' );
+            } else {
+                $renewal_ts = ufsc_admin_date_to_wp_timestamp( $renewal_date );
+                if ( $renewal_ts > 0 ) {
+                    update_option( 'ufsc_renewal_window_start_ts', $renewal_ts );
+                } else {
+                    $season_errors[] = __( 'Date d\'ouverture de renouvellement invalide.', 'ufsc-clubs' );
+                }
+            }
+        }
+
+        if ( ! empty( $season_errors ) ) {
+            foreach ( $season_errors as $season_error ) {
+                echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $season_error ) . '</p></div>';
+            }
+        } else {
+            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Gestion des saisons enregistrée avec succès.', 'ufsc-clubs' ) . '</p></div>';
+        }
     }
     
     $current_settings = ufsc_get_woocommerce_settings();
+    $saved_current_season = get_option( 'ufsc_current_season', '' );
+    $saved_next_season = get_option( 'ufsc_next_season', '' );
+    $saved_renewal_start_ts = absint( get_option( 'ufsc_renewal_window_start_ts', 0 ) );
     $woocommerce_active = ufsc_is_woocommerce_active();
     ?>
     <div class="wrap">
@@ -236,6 +323,40 @@ function ufsc_render_woocommerce_settings_page() {
                         /
                         <input type="number" id="renewal_window_month" name="renewal_window_month" value="<?php echo esc_attr( $current_settings['renewal_window_month'] ); ?>" min="1" max="12" class="small-text" />
                         <p class="description"><?php esc_html_e( 'Date (jour/mois) à partir de laquelle les boutons de renouvellement sont activés (par défaut 30/07).', 'ufsc-clubs' ); ?></p>
+                    </td>
+                </tr>
+            </table>
+
+            <h2><?php esc_html_e( 'Gestion des saisons', 'ufsc-clubs' ); ?></h2>
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="ufsc_current_season"><?php esc_html_e( 'Saison courante', 'ufsc-clubs' ); ?></label>
+                    </th>
+                    <td>
+                        <input type="text" id="ufsc_current_season" name="ufsc_current_season"
+                               value="<?php echo esc_attr( $saved_current_season ); ?>"
+                               class="regular-text" pattern="\d{4}-\d{4}" placeholder="2025-2026" />
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="ufsc_renewal_window_start_date"><?php esc_html_e( 'Date ouverture renouvellement', 'ufsc-clubs' ); ?></label>
+                    </th>
+                    <td>
+                        <input type="date" id="ufsc_renewal_window_start_date" name="ufsc_renewal_window_start_date"
+                               value="<?php echo esc_attr( $saved_renewal_start_ts ? wp_date( 'Y-m-d', $saved_renewal_start_ts ) : '' ); ?>" />
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="ufsc_next_season"><?php esc_html_e( 'Saison suivante (optionnel)', 'ufsc-clubs' ); ?></label>
+                    </th>
+                    <td>
+                        <input type="text" id="ufsc_next_season" name="ufsc_next_season"
+                               value="<?php echo esc_attr( $saved_next_season ); ?>"
+                               class="regular-text" pattern="\d{4}-\d{4}" placeholder="2026-2027" />
+                        <p class="description"><?php esc_html_e( 'Laisser vide pour calcul automatique à partir de la saison courante.', 'ufsc-clubs' ); ?></p>
                     </td>
                 </tr>
             </table>
