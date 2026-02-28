@@ -19,6 +19,8 @@ function ufsc_get_default_woocommerce_settings() {
         'season' => '2025-2026',
         'max_profile_photo_size' => 2,
         'auto_consume_included' => 1,
+        'renewal_window_day' => 30,
+        'renewal_window_month' => 7,
     );
 }
 
@@ -66,6 +68,14 @@ function ufsc_save_woocommerce_settings( $settings ) {
 
     if ( isset( $settings['auto_consume_included'] ) ) {
         $sanitized['auto_consume_included'] = ! empty( $settings['auto_consume_included'] ) ? 1 : 0;
+    }
+
+    if ( isset( $settings['renewal_window_day'] ) ) {
+        $sanitized['renewal_window_day'] = max( 1, min( 31, absint( $settings['renewal_window_day'] ) ) );
+    }
+
+    if ( isset( $settings['renewal_window_month'] ) ) {
+        $sanitized['renewal_window_month'] = max( 1, min( 12, absint( $settings['renewal_window_month'] ) ) );
     }
     
     return update_option( 'ufsc_woocommerce_settings', $sanitized );
@@ -117,6 +127,14 @@ function ufsc_render_woocommerce_settings_page() {
         
         if ( isset( $_POST['season'] ) ) {
             $settings['season'] = sanitize_text_field( wp_unslash( $_POST['season'] ) );
+        }
+
+        if ( isset( $_POST['renewal_window_day'] ) ) {
+            $settings['renewal_window_day'] = absint( $_POST['renewal_window_day'] );
+        }
+
+        if ( isset( $_POST['renewal_window_month'] ) ) {
+            $settings['renewal_window_month'] = absint( $_POST['renewal_window_month'] );
         }
         
         if ( ufsc_save_woocommerce_settings( $settings ) ) {
@@ -207,6 +225,17 @@ function ufsc_render_woocommerce_settings_page() {
                         <p class="description">
                             <?php esc_html_e( 'Saison courante pour la gestion des quotas (par défaut: 2025-2026)', 'ufsc-clubs' ); ?>
                         </p>
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label for="renewal_window_day"><?php esc_html_e( 'Ouverture renouvellement', 'ufsc-clubs' ); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" id="renewal_window_day" name="renewal_window_day" value="<?php echo esc_attr( $current_settings['renewal_window_day'] ); ?>" min="1" max="31" class="small-text" />
+                        /
+                        <input type="number" id="renewal_window_month" name="renewal_window_month" value="<?php echo esc_attr( $current_settings['renewal_window_month'] ); ?>" min="1" max="12" class="small-text" />
+                        <p class="description"><?php esc_html_e( 'Date (jour/mois) à partir de laquelle les boutons de renouvellement sont activés (par défaut 30/07).', 'ufsc-clubs' ); ?></p>
                     </td>
                 </tr>
             </table>

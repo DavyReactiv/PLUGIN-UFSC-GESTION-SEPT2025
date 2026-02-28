@@ -271,6 +271,10 @@ class UFSC_SQL {
             array( '%d' )
         );
 
+        if ( function_exists( 'ufsc_set_affiliation_season' ) ) {
+            ufsc_set_affiliation_season( $club_id, $season );
+        }
+
         return false !== $updated;
     }
 }

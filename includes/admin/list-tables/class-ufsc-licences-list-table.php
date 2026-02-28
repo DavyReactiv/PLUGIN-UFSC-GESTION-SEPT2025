@@ -414,6 +414,7 @@ class UFSC_Licences_List_Table {
         echo '<th>' . esc_html__( 'Email', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . self::get_sortable_header( 'numero_licence_delegataire', __( 'N° Licence', 'ufsc-clubs' ), $sorting ) . '</th>';
         echo '<th>' . esc_html__( 'Statut', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'Saison', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Paiement', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Médical', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . self::get_sortable_header( 'date_creation', __( 'Créé le', 'ufsc-clubs' ), $sorting ) . '</th>';
@@ -427,7 +428,7 @@ class UFSC_Licences_List_Table {
                 self::render_licence_row( $licence );
             }
         } else {
-            echo '<tr><td colspan="9">' . esc_html__( 'Aucune licence trouvée.', 'ufsc-clubs' ) . '</td></tr>';
+            echo '<tr><td colspan="10">' . esc_html__( 'Aucune licence trouvée.', 'ufsc-clubs' ) . '</td></tr>';
         }
 
         echo '</tbody>';
@@ -466,6 +467,10 @@ class UFSC_Licences_List_Table {
         // Status
         echo '<td>' . self::render_status_badge( $licence->statut ) . '</td>';
         
+        // Season
+        $season = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '';
+        echo '<td>' . esc_html( $season ? $season : '—' ) . '</td>';
+
         // Payment status
         echo '<td>' . self::render_payment_status_badge( $licence->payment_status ) . '</td>';
         
