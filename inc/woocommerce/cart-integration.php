@@ -405,6 +405,9 @@ function ufsc_handle_add_to_cart_secure() {
 	$quantity       = isset( $_POST['quantity'] ) ? absint( $_POST['quantity'] ) : 1;
 	$cart_item_data = array();
 	$license_ids    = array();
+	$ufsc_action    = isset( $_POST['ufsc_action'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_action'] ) ) : '';
+	$target_season  = isset( $_POST['ufsc_target_season'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_target_season'] ) ) : '';
+	$renew_from_id  = isset( $_POST['ufsc_renew_from_licence_id'] ) ? absint( $_POST['ufsc_renew_from_licence_id'] ) : 0;
 
 	// Parse licence ids once (avoid double parsing / regression)
 	if ( isset( $_POST['ufsc_license_ids'] ) ) {
@@ -473,6 +476,50 @@ function ufsc_handle_add_to_cart_secure() {
 		wc_add_notice( __( 'Club invalide pour cet utilisateur.', 'ufsc-clubs' ), 'error' );
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;
+	}
+
+
+	if ( in_array( $ufsc_action, array( 'renew_licence', 'renew_affiliation' ), true ) ) {
+		if ( ! function_exists( 'ufsc_is_renewal_window_open' ) || ! ufsc_is_renewal_window_open() ) {
+			wc_add_notice( __( 'Renouvellement indisponible pour le moment.', 'ufsc-clubs' ), 'error' );
+			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+			exit;
+		}
+
+		$target_season = function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : $target_season;
+		if ( 'renew_licence' === $ufsc_action ) {
+			if ( $renew_from_id <= 0 || ! function_exists( 'ufsc_get_licences_table' ) ) {
+				wc_add_notice( __( 'Licence source invalide.', 'ufsc-clubs' ), 'error' );
+				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+				exit;
+			}
+			global $wpdb;
+			$table = ufsc_get_licences_table();
+			$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", $renew_from_id ) );
+			if ( ! $row || absint( $row->club_id ?? 0 ) !== absint( $club_id ) ) {
+				wc_add_notice( __( 'Licence source invalide.', 'ufsc-clubs' ), 'error' );
+				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+				exit;
+			}
+			if ( function_exists( 'ufsc_get_renewed_licence_marker' ) && ufsc_get_renewed_licence_marker( $renew_from_id, $target_season ) ) {
+				wc_add_notice( __( 'Cette licence a déjà été renouvelée pour la prochaine saison.', 'ufsc-clubs' ), 'error' );
+				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+				exit;
+			}
+			$cart_item_data['ufsc_action'] = 'renew_licence';
+			$cart_item_data['ufsc_renew_from_licence_id'] = $renew_from_id;
+			$cart_item_data['ufsc_target_season'] = $target_season;
+			$quantity = 1;
+		} else {
+			if ( function_exists( 'ufsc_is_affiliation_renewed' ) && ufsc_is_affiliation_renewed( $club_id, $target_season ) ) {
+				wc_add_notice( __( 'Affiliation déjà renouvelée pour la prochaine saison.', 'ufsc-clubs' ), 'error' );
+				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+				exit;
+			}
+			$cart_item_data['ufsc_action'] = 'renew_affiliation';
+			$cart_item_data['ufsc_target_season'] = $target_season;
+			$quantity = 1;
+		}
 	}
 
 	$cart_item_data['ufsc_club_id'] = $club_id;
@@ -667,6 +714,20 @@ function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $orde
 			$item->add_meta_data( '_ufsc_licence_ids', $ids );
 			$item->add_meta_data( 'ufsc_licence_ids', $ids );
 		}
+	}
+
+
+	if ( isset( $values['ufsc_action'] ) ) {
+		$item->add_meta_data( '_ufsc_action', sanitize_key( $values['ufsc_action'] ) );
+		$item->add_meta_data( 'ufsc_action', sanitize_key( $values['ufsc_action'] ) );
+	}
+	if ( isset( $values['ufsc_target_season'] ) ) {
+		$item->add_meta_data( '_ufsc_target_season', sanitize_text_field( (string) $values['ufsc_target_season'] ) );
+		$item->add_meta_data( 'ufsc_target_season', sanitize_text_field( (string) $values['ufsc_target_season'] ) );
+	}
+	if ( isset( $values['ufsc_renew_from_licence_id'] ) ) {
+		$item->add_meta_data( '_ufsc_renew_from_licence_id', absint( $values['ufsc_renew_from_licence_id'] ) );
+		$item->add_meta_data( 'ufsc_renew_from_licence_id', absint( $values['ufsc_renew_from_licence_id'] ) );
 	}
 
 	// Transfer personal data

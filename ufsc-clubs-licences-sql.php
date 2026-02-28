@@ -68,6 +68,7 @@ require_once UFSC_CL_DIR.'inc/common/regions.php';
 require_once UFSC_CL_DIR.'inc/common/statuts.php';
 require_once UFSC_CL_DIR.'inc/common/status.php';
 require_once UFSC_CL_DIR.'inc/common/logging.php';
+require_once UFSC_CL_DIR.'inc/common/season.php';
 require_once UFSC_CL_DIR.'inc/common/seasons.php';
 require_once UFSC_CL_DIR.'inc/common/feature-flags.php';
 require_once UFSC_CL_DIR.'inc/common/licence-status.php';

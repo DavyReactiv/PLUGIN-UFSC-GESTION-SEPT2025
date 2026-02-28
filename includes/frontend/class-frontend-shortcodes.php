@@ -1654,7 +1654,8 @@ class UFSC_Frontend_Shortcodes {
             }
             include UFSC_CL_DIR . 'templates/frontend/licence-form.php';
         } else {
-            $licences = self::get_club_licences( $atts['club_id'], array( 'per_page' => 100 ) );
+            $licences     = self::get_club_licences( $atts['club_id'], array( 'per_page' => 100 ) );
+            $wc_settings  = function_exists( 'ufsc_get_woocommerce_settings' ) ? ufsc_get_woocommerce_settings() : array();
             include UFSC_CL_DIR . 'templates/frontend/licences-list.php';
         }
         return ob_get_clean();
