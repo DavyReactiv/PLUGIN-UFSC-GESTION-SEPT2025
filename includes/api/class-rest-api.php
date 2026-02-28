@@ -234,6 +234,44 @@ class UFSC_REST_API {
 		), 200 );
 	}
 
+
+	/**
+	 * Handle dashboard recent licences endpoint.
+	 */
+	public static function handle_recent_licences( $request ) {
+		$user_id = get_current_user_id();
+		$club_id = ufsc_get_user_club_id( $user_id );
+
+		$filters = (array) $request->get_param( 'filters' );
+		$limit   = max( 1, min( 50, absint( $request->get_param( 'limit' ) ) ) );
+		if ( $limit <= 0 ) {
+			$limit = 5;
+		}
+
+		$args = array(
+			'page'     => 1,
+			'per_page' => $limit,
+			'search'   => isset( $filters['search'] ) ? sanitize_text_field( (string) $filters['search'] ) : '',
+			'status'   => isset( $filters['status'] ) ? sanitize_text_field( (string) $filters['status'] ) : '',
+			'sort'     => 'id DESC',
+		);
+
+		if ( ! empty( $filters['drafts_only'] ) ) {
+			$args['status'] = 'brouillon';
+		}
+
+		$licences = self::fetch_club_licences( $club_id, $args );
+		if ( ! empty( $licences ) && function_exists( 'ufsc_get_licence_season_label' ) ) {
+			foreach ( $licences as $licence ) {
+				$season_label = ufsc_get_licence_season_label( $licence );
+				$licence->season_label = $season_label;
+				$licence->saison       = $season_label;
+			}
+		}
+
+		return new WP_REST_Response( $licences, 200 );
+	}
+
 	/**
 	 * Handle attestation download
 	 */

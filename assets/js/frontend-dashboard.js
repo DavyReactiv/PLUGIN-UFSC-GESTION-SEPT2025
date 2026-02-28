@@ -251,13 +251,15 @@
             }
 
             var html = '<table class="ufsc-table">';
-            html += '<thead><tr><th>Nom</th><th>Rôle</th><th>Statut</th><th>Actions</th></tr></thead>';
+            html += '<thead><tr><th>Nom</th><th>Rôle</th><th>Saison</th><th>Statut</th><th>Actions</th></tr></thead>';
             html += '<tbody>';
             
             licences.forEach(function(licence) {
                 html += '<tr>';
                 html += '<td>' + licence.prenom + ' ' + licence.nom + '</td>';
                 html += '<td>' + (licence.role || 'Adhérent') + '</td>';
+                var seasonLabel = licence.season_label || licence.saison || '';
+                html += '<td>' + seasonLabel + '</td>';
                 html += '<td>' + self.renderStatusBadge(licence.statut) + '</td>';
                 html += '<td>' + self.renderLicenceActions(licence) + '</td>';
                 html += '</tr>';
