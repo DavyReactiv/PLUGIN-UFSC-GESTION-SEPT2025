@@ -2055,6 +2055,12 @@ class UFSC_SQL_Admin
                 throw new Exception('Erreur lors de la mise à jour de la licence');
             }
 
+            if ( function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
+                $stored_season = ufsc_get_licence_season( $id );
+                if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
+                    ufsc_set_licence_season( $id, ufsc_get_current_season() );
+                }
+            }
             UFSC_CL_Utils::log('Licence mise à jour: ID ' . $id, 'info');
         } else {
             // Nouvelle licence → ajouter date_creation
@@ -2069,6 +2075,12 @@ class UFSC_SQL_Admin
             }
 
             $id = (int) $wpdb->insert_id;
+            if ( function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
+                $stored_season = ufsc_get_licence_season( $id );
+                if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
+                    ufsc_set_licence_season( $id, ufsc_get_current_season() );
+                }
+            }
             UFSC_CL_Utils::log('Nouvelle licence créée: ID ' . $id, 'info');
         }
 

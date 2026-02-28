@@ -230,6 +230,32 @@ if ( ! function_exists( 'ufsc_get_licence_season' ) ) {
 	}
 }
 
+if ( ! function_exists( 'ufsc_get_licence_season_label' ) ) {
+	function ufsc_get_licence_season_label( $licence ) {
+		$season = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : null;
+		if ( is_string( $season ) && '' !== trim( $season ) ) {
+			return sanitize_text_field( $season );
+		}
+
+		$date_fields = array( 'paid_date', 'date_creation', 'date_inscription', 'date_achat' );
+		foreach ( $date_fields as $field ) {
+			$date_value = '';
+			if ( is_array( $licence ) && ! empty( $licence[ $field ] ) ) {
+				$date_value = (string) $licence[ $field ];
+			} elseif ( is_object( $licence ) && ! empty( $licence->{$field} ) ) {
+				$date_value = (string) $licence->{$field};
+			}
+
+			$ts = $date_value ? strtotime( $date_value ) : 0;
+			if ( $ts > 0 ) {
+				return ufsc_get_season_for_date( $ts );
+			}
+		}
+
+		return ufsc_get_current_season();
+	}
+}
+
 if ( ! function_exists( 'ufsc_set_licence_season' ) ) {
 	function ufsc_set_licence_season( $licence_id, $season ) {
 		global $wpdb;
@@ -309,7 +335,17 @@ if ( ! function_exists( 'ufsc_get_affiliation_season' ) ) {
 
 		// Legacy fallback.
 		$legacy = ufsc_get_option( 'ufsc_affiliation_season_' . $club_id, '' );
-		return ( is_string( $legacy ) && '' !== $legacy ) ? sanitize_text_field( $legacy ) : null;
+		if ( is_string( $legacy ) && '' !== $legacy ) {
+			return sanitize_text_field( $legacy );
+		}
+
+		$club_status = $wpdb->get_var( $wpdb->prepare( "SELECT `statut` FROM `{$table}` WHERE id = %d", $club_id ) );
+		$club_status = strtolower( trim( (string) $club_status ) );
+		if ( in_array( $club_status, array( 'actif', 'active', 'valide' ), true ) ) {
+			return ufsc_get_current_season();
+		}
+
+		return null;
 	}
 }
 
@@ -400,4 +436,69 @@ if ( ! function_exists( 'ufsc_get_renewal_copy_fields' ) ) {
 			'photo_identite',
 		);
 	}
+}
+
+if ( ! function_exists( 'ufsc_backfill_licences_season' ) ) {
+	function ufsc_backfill_licences_season( $limit = 200 ) {
+		global $wpdb;
+
+		if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+			return 0;
+		}
+
+		$table = ufsc_get_licences_table();
+		$limit = max( 1, absint( $limit ) );
+		$season_col = ufsc_get_detected_season_column( $table );
+		if ( '' !== $season_col ) {
+			if ( 'season_end_year' === $season_col ) {
+				$sql = "SELECT * FROM `{$table}` WHERE (`season_end_year` IS NULL OR `season_end_year` = 0) ORDER BY id ASC LIMIT %d";
+			} else {
+				$sql = "SELECT * FROM `{$table}` WHERE (`{$season_col}` IS NULL OR `{$season_col}` = '') ORDER BY id ASC LIMIT %d";
+			}
+			$rows = $wpdb->get_results( $wpdb->prepare( $sql, $limit ) );
+		} else {
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table}` ORDER BY id DESC LIMIT %d", $limit ) );
+		}
+		if ( empty( $rows ) ) {
+			return 0;
+		}
+
+		$updated = 0;
+		foreach ( $rows as $row ) {
+			$licence_id = absint( $row->id ?? 0 );
+			if ( $licence_id <= 0 ) {
+				continue;
+			}
+
+			$existing = ufsc_get_licence_season( $row );
+			if ( is_string( $existing ) && '' !== trim( $existing ) ) {
+				continue;
+			}
+
+			$season = ufsc_get_licence_season_label( $row );
+			if ( is_string( $season ) && '' !== trim( $season ) ) {
+				ufsc_set_licence_season( $licence_id, $season );
+				$updated++;
+			}
+		}
+
+		return $updated;
+	}
+}
+
+if ( ! function_exists( 'ufsc_maybe_backfill_licences_season' ) ) {
+	function ufsc_maybe_backfill_licences_season() {
+		if ( ! is_admin() ) {
+			return;
+		}
+
+		if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return;
+			}
+		}
+
+		ufsc_backfill_licences_season( 200 );
+	}
+	add_action( 'admin_init', 'ufsc_maybe_backfill_licences_season' );
 }
