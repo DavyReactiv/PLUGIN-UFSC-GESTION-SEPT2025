@@ -1,4 +1,3 @@
-
 <?php
 /**
  * Club Dashboard Template
@@ -8,23 +7,26 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 require_once UFSC_CL_DIR . 'includes/front/class-ufsc-stats.php';
-$ufsc_stats    = new UFSC_Stats();
-$stats_gender  = $ufsc_stats->get_gender_counts();
+$ufsc_stats     = new UFSC_Stats();
+$stats_gender   = $ufsc_stats->get_gender_counts();
 $stats_practice = $ufsc_stats->get_practice_counts();
-$stats_age     = $ufsc_stats->get_age_group_counts();
+$stats_age      = $ufsc_stats->get_age_group_counts();
+
 $attestation_data = function_exists( 'ufsc_get_affiliation_attestation_data' )
     ? ufsc_get_affiliation_attestation_data( $club->id, $club )
     : array( 'url' => '', 'status' => 'pending', 'can_view' => false );
 
-
-$wc_settings = function_exists( 'ufsc_get_woocommerce_settings' ) ? ufsc_get_woocommerce_settings() : array();
-$current_season = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
-$next_season = function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '';
+$wc_settings       = function_exists( 'ufsc_get_woocommerce_settings' ) ? ufsc_get_woocommerce_settings() : array();
+$current_season    = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
+$next_season       = function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '';
 $renew_window_open = function_exists( 'ufsc_is_renewal_window_open' ) ? ufsc_is_renewal_window_open() : false;
-$affiliation_next = function_exists( 'ufsc_get_affiliation_season' ) ? ufsc_get_affiliation_season( $club->id ) : '';
-$affiliation_done = function_exists( 'ufsc_is_affiliation_renewed' ) ? ufsc_is_affiliation_renewed( $club->id, $next_season ) : false;
-$renew_start_ts = function_exists( 'ufsc_get_renewal_window_start_ts' ) ? (int) ufsc_get_renewal_window_start_ts() : 0;
-$renew_open_label = $renew_start_ts > 0 ? wp_date( 'd/m/Y', $renew_start_ts ) : __( '30/07', 'ufsc-clubs' );
+
+$affiliation_next  = function_exists( 'ufsc_get_affiliation_season' ) ? ufsc_get_affiliation_season( $club->id ) : '';
+$affiliation_done  = function_exists( 'ufsc_is_affiliation_renewed' ) ? ufsc_is_affiliation_renewed( $club->id, $next_season ) : false;
+
+$renew_start_ts    = function_exists( 'ufsc_get_renewal_window_start_ts' ) ? (int) ufsc_get_renewal_window_start_ts() : 0;
+$renew_open_label  = $renew_start_ts > 0 ? wp_date( 'd/m/Y', $renew_start_ts ) : __( '30/07', 'ufsc-clubs' );
+
 $can_renew_affiliation = $renew_window_open && ! $affiliation_done && $affiliation_next !== $next_season;
 
 ?>
@@ -63,6 +65,7 @@ $can_renew_affiliation = $renew_window_open && ! $affiliation_done && $affiliati
                     <button type="submit" class="button ufsc-upload-photo"><?php esc_html_e( 'Ajouter une photo', 'ufsc-clubs' ); ?></button>
                 </form>
             <?php endif; ?>
+
             <h1 class="ufsc-club-name"><?php echo esc_html( $club->nom ); ?></h1>
             <div class="ufsc-club-meta">
                 <span class="ufsc-region"><?php echo esc_html( $club->region ); ?></span>
@@ -180,54 +183,41 @@ $can_renew_affiliation = $renew_window_open && ! $affiliation_done && $affiliati
         <h2><?php echo esc_html__( 'Documents du club', 'ufsc-clubs' ); ?></h2>
         <div class="ufsc-card">
             <div class="ufsc-grid ufsc-documents-status" id="ufsc-documents-status" aria-live="polite" role="region" aria-label="<?php echo esc_attr__( 'Documents du club', 'ufsc-clubs' ); ?>">
-                <!-- // UFSC: Documents obligatoires avec statut visuel -->
                 <div class="ufsc-document-item" data-doc="statuts" tabindex="0">
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Statuts', 'ufsc-clubs' ); ?></span>
-
                     <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
                 </div>
                 <div class="ufsc-document-item" data-doc="recepisse" tabindex="0">
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Récépissé', 'ufsc-clubs' ); ?></span>
-
                     <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
                 </div>
                 <div class="ufsc-document-item" data-doc="jo" tabindex="0">
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Journal Officiel', 'ufsc-clubs' ); ?></span>
-
                     <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
                 </div>
                 <div class="ufsc-document-item" data-doc="pv_ag" tabindex="0">
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'PV Assemblée Générale', 'ufsc-clubs' ); ?></span>
-
                     <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
                 </div>
                 <div class="ufsc-document-item" data-doc="cer" tabindex="0">
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'CER', 'ufsc-clubs' ); ?></span>
-
                     <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
                 </div>
                 <div class="ufsc-document-item" data-doc="attestation_cer" tabindex="0">
                     <span class="ufsc-document-icon" aria-hidden="true">📄</span>
                     <span class="ufsc-document-name"><?php echo esc_html__( 'Attestation CER', 'ufsc-clubs' ); ?></span>
-
                     <span class="ufsc-badge ufsc-document-status -pending">⏳</span>
                     <div class="ufsc-row-actions"></div>
-
                 </div>
             </div>
         </div>
@@ -278,7 +268,6 @@ $can_renew_affiliation = $renew_window_open && ! $affiliation_done && $affiliati
     <div class="ufsc-dashboard-section ufsc-advanced-stats-section">
         <h2><?php echo esc_html__( 'Statistiques détaillées', 'ufsc-clubs' ); ?></h2>
         
-        <!-- // UFSC: Statistiques par sexe -->
         <div class="ufsc-grid ufsc-stats-grid">
             <div class="ufsc-card ufsc-stat-card">
                 <h3><?php echo esc_html__( 'Répartition par sexe', 'ufsc-clubs' ); ?></h3>
@@ -287,7 +276,6 @@ $can_renew_affiliation = $renew_window_open && ! $affiliation_done && $affiliati
                 </div>
             </div>
             
-            <!-- // UFSC: Statistiques par âge -->
             <div class="ufsc-card ufsc-stat-card">
                 <h3><?php echo esc_html__( 'Tranches d\'âge', 'ufsc-clubs' ); ?></h3>
                 <div class="ufsc-stat-content" id="stats-age" aria-live="polite">
@@ -295,7 +283,6 @@ $can_renew_affiliation = $renew_window_open && ! $affiliation_done && $affiliati
                 </div>
             </div>
             
-            <!-- // UFSC: Compétition vs Loisir -->
             <div class="ufsc-card ufsc-stat-card">
                 <h3><?php echo esc_html__( 'Compétition vs Loisir', 'ufsc-clubs' ); ?></h3>
                 <div class="ufsc-stat-content" id="stats-competition" aria-live="polite">
@@ -303,7 +290,6 @@ $can_renew_affiliation = $renew_window_open && ! $affiliation_done && $affiliati
                 </div>
             </div>
             
-            <!-- // UFSC: Répartition par rôles -->
             <div class="ufsc-card ufsc-stat-card">
                 <h3><?php echo esc_html__( 'Répartition par rôles', 'ufsc-clubs' ); ?></h3>
                 <div class="ufsc-stat-content" id="stats-roles" aria-live="polite">
@@ -311,7 +297,6 @@ $can_renew_affiliation = $renew_window_open && ! $affiliation_done && $affiliati
                 </div>
             </div>
             
-            <!-- // UFSC: Évolution 30 jours -->
             <div class="ufsc-card ufsc-stat-card -wide">
                 <h3><?php echo esc_html__( 'Évolution 30 derniers jours', 'ufsc-clubs' ); ?></h3>
                 <div class="ufsc-evolution-stats" id="stats-evolution" aria-live="polite">
@@ -319,7 +304,6 @@ $can_renew_affiliation = $renew_window_open && ! $affiliation_done && $affiliati
                 </div>
             </div>
             
-            <!-- // UFSC: Alertes -->
             <div class="ufsc-card ufsc-stat-card -wide">
                 <h3><?php echo esc_html__( 'Alertes', 'ufsc-clubs' ); ?></h3>
                 <div class="ufsc-alerts" id="stats-alerts" aria-live="polite">
@@ -356,6 +340,7 @@ $can_renew_affiliation = $renew_window_open && ! $affiliation_done && $affiliati
             </div>
         </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
     (function(){
