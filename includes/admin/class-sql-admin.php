@@ -11,6 +11,20 @@ if ( class_exists( 'UFSC_SQL_Admin', false ) ) {
 class UFSC_SQL_Admin
 {
     /**
+     * Status options for club documents.
+     *
+     * @return array<string,string>
+     */
+    private static function get_club_document_status_options()
+    {
+        return [
+            'pending'  => __('En attente', 'ufsc-clubs'),
+            'approved' => __('Approuvé', 'ufsc-clubs'),
+            'rejected' => __('Rejeté', 'ufsc-clubs'),
+        ];
+    }
+
+    /**
      * Determine if running under WP-CLI.
      *
      * @return bool
@@ -823,6 +837,23 @@ class UFSC_SQL_Admin
      */
     private static function render_club_documents_panel($club_id)
     {
+        wp_enqueue_media();
+        wp_enqueue_script(
+            'ufsc-admin-club-documents',
+            UFSC_CL_URL . 'assets/js/ufsc-admin-club-documents.js',
+            ['jquery'],
+            UFSC_CL_VERSION,
+            true
+        );
+
+        wp_localize_script('ufsc-admin-club-documents', 'ufscClubDocsL10n', [
+            'chooseFile'  => __('Choisir un fichier', 'ufsc-clubs'),
+            'useFile'     => __('Utiliser ce fichier', 'ufsc-clubs'),
+            'replaceFile' => __('Remplacer', 'ufsc-clubs'),
+        ]);
+
+        wp_nonce_field('ufsc_club_docs_action', 'ufsc_club_docs_nonce');
+
         echo '<div class="ufsc-documents-panel" style="margin-top: 20px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd;">';
         echo '<h3>' . esc_html__('Documents du club', 'ufsc-clubs') . '</h3>';
 
@@ -889,30 +920,76 @@ class UFSC_SQL_Admin
             'doc_attestation_cer' => __('Attestation CER', 'ufsc-clubs'),
         ];
 
-        $status_options = [
-            'pending'  => __('En attente', 'ufsc-clubs'),
-            'approved' => __('Approuvé', 'ufsc-clubs'),
-            'rejected' => __('Rejeté', 'ufsc-clubs'),
-        ];
+        $status_options = self::get_club_document_status_options();
+
+        echo '<style>.ufsc-doc-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600}.ufsc-doc-badge.no-file{background:#f0f0f1;color:#50575e}.ufsc-doc-status{display:inline-flex;align-items:center;gap:4px;margin-right:8px;font-size:12px}.ufsc-doc-status.pending{color:#996800}.ufsc-doc-status.approved{color:#007017}.ufsc-doc-status.rejected{color:#a02222}.ufsc-doc-file-meta{font-size:12px;color:#50575e}</style>';
+
+        echo '<table class="widefat striped" style="margin-top:10px;">';
+        echo '<thead><tr>';
+        echo '<th>' . esc_html__('Document', 'ufsc-clubs') . '</th>';
+        echo '<th>' . esc_html__('Fichier', 'ufsc-clubs') . '</th>';
+        echo '<th>' . esc_html__('Statut', 'ufsc-clubs') . '</th>';
+        echo '<th>' . esc_html__('Actions', 'ufsc-clubs') . '</th>';
+        echo '</tr></thead><tbody>';
 
         foreach ($documents as $doc_key => $label) {
-            $doc_id = get_post_meta($club_id, $doc_key, true);
-            $url    = wp_get_attachment_url($doc_id);
-            $status = get_option('ufsc_club_' . $doc_key . '_status_' . $club_id);
-            echo '<div style="margin-bottom: 20px;">';
-            echo '<h4>' . esc_html($label) . '</h4>';
-            if ($url) {
-                echo '<p><a href="' . esc_url($url) . '" target="_blank" class="button">' . esc_html__('Télécharger', 'ufsc-clubs') . '</a></p>';
-            } else {
-                echo '<p>' . esc_html__('Aucun fichier.', 'ufsc-clubs') . '</p>';
+            $doc_id       = (int) get_post_meta($club_id, $doc_key, true);
+            $doc_url      = $doc_id ? wp_get_attachment_url($doc_id) : '';
+            $status       = get_option('ufsc_club_' . $doc_key . '_status_' . $club_id, 'pending');
+            $status_label = isset($status_options[$status]) ? $status_options[$status] : $status_options['pending'];
+
+            $file_label = '';
+            $file_meta  = '';
+
+            if ($doc_id && $doc_url) {
+                $file_label = get_the_title($doc_id);
+                if ('' === $file_label) {
+                    $file_label = basename((string) get_attached_file($doc_id));
+                }
+
+                $file_path = get_attached_file($doc_id);
+                $size      = ($file_path && file_exists($file_path)) ? size_format((int) filesize($file_path)) : '';
+                $uploaded  = get_the_date('d/m/Y H:i', $doc_id);
+                $meta_bits = array_filter([$size, $uploaded]);
+                $file_meta = implode(' · ', $meta_bits);
             }
-            echo '<p><label>' . esc_html__('Statut:', 'ufsc-clubs') . ' <select name="' . esc_attr($doc_key . '_status') . '">';
+
+            echo '<tr class="ufsc-doc-row" data-doc-key="' . esc_attr($doc_key) . '">';
+            echo '<td><strong>' . esc_html($label) . '</strong></td>';
+            echo '<td>';
+
+            if ($doc_id && $doc_url) {
+                echo '<div class="ufsc-doc-file-name" data-default-label="' . esc_attr($file_label) . '">' . esc_html($file_label) . '</div>';
+                echo '<div class="ufsc-doc-file-meta" data-default-meta="' . esc_attr($file_meta) . '">' . esc_html($file_meta) . '</div>';
+            } else {
+                echo '<span class="ufsc-doc-badge no-file"><span class="dashicons dashicons-warning" style="font-size:14px;width:14px;height:14px"></span>' . esc_html__('Aucun fichier', 'ufsc-clubs') . '</span>';
+                echo '<div class="ufsc-doc-file-name" data-default-label=""></div><div class="ufsc-doc-file-meta" data-default-meta=""></div>';
+            }
+
+            echo '<input type="hidden" class="ufsc-doc-attachment-id" name="' . esc_attr($doc_key . '_attachment_id') . '" value="' . esc_attr($doc_id) . '">';
+            echo '<input type="hidden" class="ufsc-doc-remove-flag" name="' . esc_attr($doc_key . '_remove') . '" value="0">';
+            echo '</td>';
+
+            echo '<td>';
+            echo '<span class="ufsc-doc-status ' . esc_attr($status) . '"><span class="dashicons dashicons-yes-alt" style="font-size:14px;width:14px;height:14px"></span>' . esc_html($status_label) . '</span>';
+            echo '<select name="' . esc_attr($doc_key . '_status') . '">';
             foreach ($status_options as $value => $label_option) {
                 echo '<option value="' . esc_attr($value) . '" ' . selected($status, $value, false) . '>' . esc_html($label_option) . '</option>';
             }
-            echo '</select></label></p>';
-            echo '</div>';
+            echo '</select>';
+            echo '</td>';
+
+            echo '<td>';
+            $disabled = $doc_url ? '' : ' disabled';
+            echo '<a href="' . esc_url($doc_url ?: '#') . '" target="_blank" rel="noopener" class="button ufsc-doc-view"' . $disabled . '>' . esc_html__('Voir', 'ufsc-clubs') . '</a> ';
+            echo '<a href="' . esc_url($doc_url ?: '#') . '" class="button ufsc-doc-download" download' . $disabled . '>' . esc_html__('Télécharger', 'ufsc-clubs') . '</a> ';
+            echo '<button type="button" class="button ufsc-doc-replace" data-doc-key="' . esc_attr($doc_key) . '">' . esc_html__('Remplacer', 'ufsc-clubs') . '</button> ';
+            echo '<button type="button" class="button ufsc-doc-remove" data-doc-key="' . esc_attr($doc_key) . '">' . esc_html__('Supprimer', 'ufsc-clubs') . '</button>';
+            echo '</td>';
+            echo '</tr>';
         }
+
+        echo '</tbody></table>';
 
         echo '</div>';
     }
@@ -1044,6 +1121,26 @@ class UFSC_SQL_Admin
             // Handle file uploads after club is saved/updated
             if ($id) {
                 self::handle_club_document_uploads($id);
+
+                $can_manage_docs = current_user_can('manage_options') || current_user_can('edit_post', $id);
+                $has_docs_nonce  = isset($_POST['ufsc_club_docs_nonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ufsc_club_docs_nonce'])), 'ufsc_club_docs_action');
+
+                if ($can_manage_docs && $has_docs_nonce) {
+                    $documents = ['doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer'];
+                    foreach ($documents as $doc_key) {
+                        $attachment_field = $doc_key . '_attachment_id';
+                        $remove_field     = $doc_key . '_remove';
+
+                        $attachment_id = isset($_POST[$attachment_field]) ? absint($_POST[$attachment_field]) : 0;
+                        $is_remove     = isset($_POST[$remove_field]) && '1' === sanitize_text_field(wp_unslash($_POST[$remove_field]));
+
+                        if ($is_remove) {
+                            delete_post_meta($id, $doc_key);
+                        } elseif ($attachment_id > 0) {
+                            update_post_meta($id, $doc_key, $attachment_id);
+                        }
+                    }
+                }
 
                 // Update document statuses
                 $documents = ['doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer'];
