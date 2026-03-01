@@ -27,6 +27,7 @@
             $row.find('.ufsc-doc-badge.no-file').remove();
             $row.find('.ufsc-doc-file-name').text(attachment.title || attachment.filename || 'Fichier').show();
             $row.find('.ufsc-doc-file-meta').text((attachment.filesizeHuman || '') + (attachment.dateFormatted ? ' · ' + attachment.dateFormatted : '')).show();
+            $row.find('.ufsc-doc-replace').text('Remplacer');
 
             toggleFileActions($row, true, attachment.url || '#');
         });
@@ -46,6 +47,8 @@
         if (!$row.find('.ufsc-doc-badge.no-file').length) {
             $row.find('td').eq(1).prepend('<span class="ufsc-doc-badge no-file"><span class="dashicons dashicons-warning" style="font-size:14px;width:14px;height:14px"></span>Aucun fichier</span>');
         }
+
+        $row.find('.ufsc-doc-replace').text((window.ufscClubDocsL10n && ufscClubDocsL10n.addFile) || 'Ajouter');
 
         toggleFileActions($row, false, '#');
     });

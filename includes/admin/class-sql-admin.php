@@ -11,6 +11,23 @@ if ( class_exists( 'UFSC_SQL_Admin', false ) ) {
 class UFSC_SQL_Admin
 {
     /**
+     * Get managed club document keys.
+     *
+     * @return array<string,string>
+     */
+    private static function get_club_documents_map()
+    {
+        return [
+            'doc_statuts'         => __('Statuts', 'ufsc-clubs'),
+            'doc_recepisse'       => __('Récépissé', 'ufsc-clubs'),
+            'doc_jo'              => __('Journal Officiel', 'ufsc-clubs'),
+            'doc_pv_ag'           => __('PV AG', 'ufsc-clubs'),
+            'doc_cer'             => __('CER', 'ufsc-clubs'),
+            'doc_attestation_cer' => __('Attestation CER', 'ufsc-clubs'),
+        ];
+    }
+
+    /**
      * Status options for club documents.
      *
      * @return array<string,string>
@@ -22,6 +39,165 @@ class UFSC_SQL_Admin
             'approved' => __('Approuvé', 'ufsc-clubs'),
             'rejected' => __('Rejeté', 'ufsc-clubs'),
         ];
+    }
+
+    /**
+     * Enqueue assets only on targeted club edit screen.
+     *
+     * @return void
+     */
+    public static function enqueue_admin_assets()
+    {
+        $page   = isset($_GET['page']) ? sanitize_key(wp_unslash($_GET['page'])) : '';
+        $action = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : '';
+
+        if ('ufsc-sql-clubs' !== $page || 'edit' !== $action) {
+            return;
+        }
+
+        wp_enqueue_media();
+        wp_enqueue_script(
+            'ufsc-admin-club-documents',
+            UFSC_CL_URL . 'assets/js/ufsc-admin-club-documents.js',
+            ['jquery'],
+            UFSC_CL_VERSION,
+            true
+        );
+
+        wp_localize_script('ufsc-admin-club-documents', 'ufscClubDocsL10n', [
+            'chooseFile'  => __('Choisir un fichier', 'ufsc-clubs'),
+            'useFile'     => __('Utiliser ce fichier', 'ufsc-clubs'),
+            'addFile'     => __('Ajouter', 'ufsc-clubs'),
+        ]);
+    }
+
+    private static function get_doc_option_key($club_id, $doc_key)
+    {
+        $slug = str_replace('doc_', '', (string) $doc_key);
+        return 'ufsc_club_doc_' . $slug . '_' . (int) $club_id;
+    }
+
+    private static function ufsc_docs_detect_storage_mode($club_id)
+    {
+        foreach (array_keys(self::get_club_documents_map()) as $doc_key) {
+            if ((int) get_post_meta($club_id, $doc_key, true) > 0) {
+                return 'sql';
+            }
+        }
+
+        foreach (array_keys(self::get_club_documents_map()) as $doc_key) {
+            if ((int) get_option(self::get_doc_option_key($club_id, $doc_key)) > 0) {
+                return 'option';
+            }
+        }
+
+        return 'sql';
+    }
+
+    private static function ufsc_docs_get_file($club_id, $doc_key)
+    {
+        $sql_id    = (int) get_post_meta($club_id, $doc_key, true);
+        $option_id = (int) get_option(self::get_doc_option_key($club_id, $doc_key));
+
+        $storage = 'sql';
+        $id      = 0;
+        if ($sql_id > 0) {
+            $id      = $sql_id;
+            $storage = 'sql';
+        } elseif ($option_id > 0) {
+            $id      = $option_id;
+            $storage = 'option';
+        } else {
+            $storage = self::ufsc_docs_detect_storage_mode($club_id);
+        }
+
+        $url      = $id ? wp_get_attachment_url($id) : '';
+        $filename = '';
+        $filesize = '';
+        $date     = '';
+
+        if ($id && $url) {
+            $filename = get_the_title($id);
+            if ('' === $filename) {
+                $filename = basename((string) get_attached_file($id));
+            }
+            $file_path = get_attached_file($id);
+            $filesize  = ($file_path && file_exists($file_path)) ? size_format((int) filesize($file_path)) : '';
+            $date      = get_the_date('d/m/Y H:i', $id);
+        }
+
+        return [
+            'attachment_id' => $id,
+            'url'           => $url,
+            'filename'      => $filename,
+            'filesize'      => $filesize,
+            'date'          => $date,
+            'storage'       => $storage,
+        ];
+    }
+
+    private static function ufsc_docs_set_file($club_id, $doc_key, $attachment_id)
+    {
+        $attachment_id = absint($attachment_id);
+        if ($attachment_id <= 0) {
+            return false;
+        }
+
+        $file    = self::ufsc_docs_get_file($club_id, $doc_key);
+        $storage = $file['storage'];
+
+        if ('option' === $storage) {
+            update_option(self::get_doc_option_key($club_id, $doc_key), $attachment_id);
+            return true;
+        }
+
+        update_post_meta($club_id, $doc_key, $attachment_id);
+        return true;
+    }
+
+    private static function ufsc_docs_remove_file($club_id, $doc_key)
+    {
+        $file    = self::ufsc_docs_get_file($club_id, $doc_key);
+        $storage = $file['storage'];
+
+        if ('option' === $storage) {
+            delete_option(self::get_doc_option_key($club_id, $doc_key));
+            return;
+        }
+
+        delete_post_meta($club_id, $doc_key);
+    }
+
+    private static function ufsc_docs_get_allowed_status_values($club_id, $doc_key)
+    {
+        $allowed = array_keys(self::get_club_document_status_options());
+        $legacy  = ['en_attente', 'approuve', 'approuvé', 'rejete', 'rejeté', 'valide', 'refuse', 'refusé'];
+
+        $current = sanitize_key((string) get_option('ufsc_club_' . $doc_key . '_status_' . $club_id, ''));
+        if ($current !== '') {
+            $legacy[] = $current;
+        }
+
+        return array_values(array_unique(array_merge($allowed, $legacy)));
+    }
+
+    private static function ufsc_docs_get_status($club_id, $doc_key)
+    {
+        $status = sanitize_key((string) get_option('ufsc_club_' . $doc_key . '_status_' . $club_id, 'pending'));
+        return $status !== '' ? $status : 'pending';
+    }
+
+    private static function ufsc_docs_set_status($club_id, $doc_key, $status)
+    {
+        $status  = sanitize_key((string) $status);
+        $allowed = self::ufsc_docs_get_allowed_status_values($club_id, $doc_key);
+
+        if (! in_array($status, $allowed, true)) {
+            return new WP_Error('invalid_status', __('Statut de document invalide.', 'ufsc-clubs'));
+        }
+
+        update_option('ufsc_club_' . $doc_key . '_status_' . $club_id, $status);
+        return true;
     }
 
     /**
@@ -703,6 +879,12 @@ class UFSC_SQL_Admin
             echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
         }
 
+        $docs_error = get_transient('ufsc_docs_errors_' . get_current_user_id());
+        if ($docs_error) {
+            delete_transient('ufsc_docs_errors_' . get_current_user_id());
+            echo UFSC_CL_Utils::show_error(sanitize_text_field($docs_error));
+        }
+
         if (! $readonly) {
             echo '<form method="post" enctype="multipart/form-data">';
             wp_nonce_field('ufsc_sql_save_club');
@@ -837,21 +1019,6 @@ class UFSC_SQL_Admin
      */
     private static function render_club_documents_panel($club_id)
     {
-        wp_enqueue_media();
-        wp_enqueue_script(
-            'ufsc-admin-club-documents',
-            UFSC_CL_URL . 'assets/js/ufsc-admin-club-documents.js',
-            ['jquery'],
-            UFSC_CL_VERSION,
-            true
-        );
-
-        wp_localize_script('ufsc-admin-club-documents', 'ufscClubDocsL10n', [
-            'chooseFile'  => __('Choisir un fichier', 'ufsc-clubs'),
-            'useFile'     => __('Utiliser ce fichier', 'ufsc-clubs'),
-            'replaceFile' => __('Remplacer', 'ufsc-clubs'),
-        ]);
-
         wp_nonce_field('ufsc_club_docs_action', 'ufsc_club_docs_nonce');
 
         echo '<div class="ufsc-documents-panel" style="margin-top: 20px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd;">';
@@ -911,14 +1078,7 @@ class UFSC_SQL_Admin
         // echo '</div>';
 
         // Other club documents
-        $documents = [
-            'doc_statuts'         => __('Statuts', 'ufsc-clubs'),
-            'doc_recepisse'       => __('Récépissé', 'ufsc-clubs'),
-            'doc_jo'              => __('Journal Officiel', 'ufsc-clubs'),
-            'doc_pv_ag'           => __('PV AG', 'ufsc-clubs'),
-            'doc_cer'             => __('CER', 'ufsc-clubs'),
-            'doc_attestation_cer' => __('Attestation CER', 'ufsc-clubs'),
-        ];
+        $documents = self::get_club_documents_map();
 
         $status_options = self::get_club_document_status_options();
 
@@ -933,46 +1093,33 @@ class UFSC_SQL_Admin
         echo '</tr></thead><tbody>';
 
         foreach ($documents as $doc_key => $label) {
-            $doc_id       = (int) get_post_meta($club_id, $doc_key, true);
-            $doc_url      = $doc_id ? wp_get_attachment_url($doc_id) : '';
-            $status       = get_option('ufsc_club_' . $doc_key . '_status_' . $club_id, 'pending');
-            $status_label = isset($status_options[$status]) ? $status_options[$status] : $status_options['pending'];
-
-            $file_label = '';
-            $file_meta  = '';
-
-            if ($doc_id && $doc_url) {
-                $file_label = get_the_title($doc_id);
-                if ('' === $file_label) {
-                    $file_label = basename((string) get_attached_file($doc_id));
-                }
-
-                $file_path = get_attached_file($doc_id);
-                $size      = ($file_path && file_exists($file_path)) ? size_format((int) filesize($file_path)) : '';
-                $uploaded  = get_the_date('d/m/Y H:i', $doc_id);
-                $meta_bits = array_filter([$size, $uploaded]);
-                $file_meta = implode(' · ', $meta_bits);
-            }
+            $file_info    = self::ufsc_docs_get_file($club_id, $doc_key);
+            $doc_id       = (int) $file_info['attachment_id'];
+            $doc_url      = $file_info['url'];
+            $status       = self::ufsc_docs_get_status($club_id, $doc_key);
+            $status_label = isset($status_options[$status]) ? $status_options[$status] : __('Statut existant', 'ufsc-clubs');
+            $meta_bits    = array_filter([$file_info['filesize'], $file_info['date']]);
+            $file_meta    = implode(' · ', $meta_bits);
 
             echo '<tr class="ufsc-doc-row" data-doc-key="' . esc_attr($doc_key) . '">';
             echo '<td><strong>' . esc_html($label) . '</strong></td>';
             echo '<td>';
 
             if ($doc_id && $doc_url) {
-                echo '<div class="ufsc-doc-file-name" data-default-label="' . esc_attr($file_label) . '">' . esc_html($file_label) . '</div>';
+                echo '<div class="ufsc-doc-file-name" data-default-label="' . esc_attr($file_info['filename']) . '">' . esc_html($file_info['filename']) . '</div>';
                 echo '<div class="ufsc-doc-file-meta" data-default-meta="' . esc_attr($file_meta) . '">' . esc_html($file_meta) . '</div>';
             } else {
                 echo '<span class="ufsc-doc-badge no-file"><span class="dashicons dashicons-warning" style="font-size:14px;width:14px;height:14px"></span>' . esc_html__('Aucun fichier', 'ufsc-clubs') . '</span>';
                 echo '<div class="ufsc-doc-file-name" data-default-label=""></div><div class="ufsc-doc-file-meta" data-default-meta=""></div>';
             }
 
-            echo '<input type="hidden" class="ufsc-doc-attachment-id" name="' . esc_attr($doc_key . '_attachment_id') . '" value="' . esc_attr($doc_id) . '">';
-            echo '<input type="hidden" class="ufsc-doc-remove-flag" name="' . esc_attr($doc_key . '_remove') . '" value="0">';
+            echo '<input type="hidden" class="ufsc-doc-attachment-id" name="' . esc_attr('ufsc_docs[' . $doc_key . '][attachment_id]') . '" value="' . esc_attr($doc_id) . '">';
+            echo '<input type="hidden" class="ufsc-doc-remove-flag" name="' . esc_attr('ufsc_docs[' . $doc_key . '][remove]') . '" value="0">';
             echo '</td>';
 
             echo '<td>';
             echo '<span class="ufsc-doc-status ' . esc_attr($status) . '"><span class="dashicons dashicons-yes-alt" style="font-size:14px;width:14px;height:14px"></span>' . esc_html($status_label) . '</span>';
-            echo '<select name="' . esc_attr($doc_key . '_status') . '">';
+            echo '<select name="' . esc_attr('ufsc_docs[' . $doc_key . '][status]') . '">';
             foreach ($status_options as $value => $label_option) {
                 echo '<option value="' . esc_attr($value) . '" ' . selected($status, $value, false) . '>' . esc_html($label_option) . '</option>';
             }
@@ -983,7 +1130,8 @@ class UFSC_SQL_Admin
             $disabled = $doc_url ? '' : ' disabled';
             echo '<a href="' . esc_url($doc_url ?: '#') . '" target="_blank" rel="noopener" class="button ufsc-doc-view"' . $disabled . '>' . esc_html__('Voir', 'ufsc-clubs') . '</a> ';
             echo '<a href="' . esc_url($doc_url ?: '#') . '" class="button ufsc-doc-download" download' . $disabled . '>' . esc_html__('Télécharger', 'ufsc-clubs') . '</a> ';
-            echo '<button type="button" class="button ufsc-doc-replace" data-doc-key="' . esc_attr($doc_key) . '">' . esc_html__('Remplacer', 'ufsc-clubs') . '</button> ';
+            $replace_label = $doc_url ? __('Remplacer', 'ufsc-clubs') : __('Ajouter', 'ufsc-clubs');
+            echo '<button type="button" class="button ufsc-doc-replace" data-doc-key="' . esc_attr($doc_key) . '">' . esc_html($replace_label) . '</button> ';
             echo '<button type="button" class="button ufsc-doc-remove" data-doc-key="' . esc_attr($doc_key) . '">' . esc_html__('Supprimer', 'ufsc-clubs') . '</button>';
             echo '</td>';
             echo '</tr>';
@@ -1122,34 +1270,42 @@ class UFSC_SQL_Admin
             if ($id) {
                 self::handle_club_document_uploads($id);
 
-                $can_manage_docs = current_user_can('manage_options') || current_user_can('edit_post', $id);
+                $can_manage_docs = current_user_can('manage_options') || current_user_can('edit_post', $id) || (class_exists('UFSC_Capabilities') && UFSC_Capabilities::user_can(UFSC_Capabilities::CAP_MANAGE_READ));
                 $has_docs_nonce  = isset($_POST['ufsc_club_docs_nonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ufsc_club_docs_nonce'])), 'ufsc_club_docs_action');
+                $doc_errors      = [];
 
                 if ($can_manage_docs && $has_docs_nonce) {
-                    $documents = ['doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer'];
-                    foreach ($documents as $doc_key) {
-                        $attachment_field = $doc_key . '_attachment_id';
-                        $remove_field     = $doc_key . '_remove';
+                    $documents   = array_keys(self::get_club_documents_map());
+                    $posted_docs = isset($_POST['ufsc_docs']) && is_array($_POST['ufsc_docs']) ? wp_unslash($_POST['ufsc_docs']) : [];
 
-                        $attachment_id = isset($_POST[$attachment_field]) ? absint($_POST[$attachment_field]) : 0;
-                        $is_remove     = isset($_POST[$remove_field]) && '1' === sanitize_text_field(wp_unslash($_POST[$remove_field]));
+                    foreach ($documents as $doc_key) {
+                        $row = isset($posted_docs[$doc_key]) && is_array($posted_docs[$doc_key]) ? $posted_docs[$doc_key] : [];
+
+                        $attachment_id = isset($row['attachment_id']) ? absint($row['attachment_id']) : 0;
+                        $is_remove     = isset($row['remove']) && '1' === sanitize_text_field((string) $row['remove']);
+                        $status_input  = isset($row['status']) ? sanitize_key((string) $row['status']) : '';
 
                         if ($is_remove) {
-                            delete_post_meta($id, $doc_key);
+                            self::ufsc_docs_remove_file($id, $doc_key);
                         } elseif ($attachment_id > 0) {
-                            update_post_meta($id, $doc_key, $attachment_id);
+                            self::ufsc_docs_set_file($id, $doc_key, $attachment_id);
+                        }
+
+                        if ($status_input !== '') {
+                            $status_result = self::ufsc_docs_set_status($id, $doc_key, $status_input);
+                            if (is_wp_error($status_result)) {
+                                $doc_labels = self::get_club_documents_map();
+                                $doc_errors[] = sprintf(
+                                    __('%1$s : statut ignoré (valeur invalide).', 'ufsc-clubs'),
+                                    isset($doc_labels[$doc_key]) ? $doc_labels[$doc_key] : $doc_key
+                                );
+                            }
                         }
                     }
                 }
 
-                // Update document statuses
-                $documents = ['doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer'];
-                foreach ($documents as $doc_key) {
-                    $status_key = $doc_key . '_status';
-                    if (array_key_exists($status_key, $_POST)) {
-                        $status = sanitize_text_field(wp_unslash($_POST[$status_key]));
-                        update_option('ufsc_club_' . $status_key . '_' . $id, $status);
-                    }
+                if (! empty($doc_errors)) {
+                    set_transient('ufsc_docs_errors_' . get_current_user_id(), implode(' ', $doc_errors), 120);
                 }
             }
 
