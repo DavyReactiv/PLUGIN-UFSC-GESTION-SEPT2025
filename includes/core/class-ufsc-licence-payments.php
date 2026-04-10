@@ -329,35 +329,46 @@ class UFSC_Licence_Payments {
 			$data['payment_method'],
 			$data['payment_gateway'],
 			$data['payment_reference'],
+			$data['payment_date'],
+			$data['payment_amount'],
+			$data['currency'],
 			$data['wc_order_id'],
 			$data['wc_order_item_id'],
 			$data['wc_transaction_id'],
+			$data['admin_note'],
+			$data['reconciliation_status'],
+			$data['reconciliation_note'],
+			$data['exception_reason'],
 		) ) );
 
-		$insert_data = array(
-			'licence_id'            => $licence_id,
-			'action'                => $data['action'],
-			'payment_status'        => $data['payment_status'],
-			'payment_source'        => $data['payment_source'],
-			'payment_method'        => $data['payment_method'],
-			'payment_gateway'       => $data['payment_gateway'],
-			'payment_reference'     => $data['payment_reference'],
-			'payment_date'          => $data['payment_date'],
-			'payment_amount'        => $data['payment_amount'],
-			'currency'              => $data['currency'],
-			'wc_order_id'           => $data['wc_order_id'] ? (int) $data['wc_order_id'] : null,
-			'wc_order_item_id'      => $data['wc_order_item_id'] ? (int) $data['wc_order_item_id'] : null,
-			'wc_transaction_id'     => (string) $data['wc_transaction_id'],
-			'admin_note'            => $data['admin_note'],
-			'reconciliation_status' => $data['reconciliation_status'],
-			'reconciliation_note'   => $data['reconciliation_note'],
-			'exception_reason'      => $data['exception_reason'],
-			'created_by'            => (int) $data['created_by'],
-			'created_at'            => $data['created_at'],
-			'fingerprint'           => $data['fingerprint'],
-			'is_deleted'            => 0,
+		// Append-only history with idempotence: keep existing row when same fingerprint is replayed.
+		$amount_sql   = null === $data['payment_amount'] ? 'NULL' : (string) round( (float) $data['payment_amount'], 2 );
+		$order_id_sql = empty( $data['wc_order_id'] ) ? 'NULL' : (string) absint( $data['wc_order_id'] );
+		$item_id_sql  = empty( $data['wc_order_item_id'] ) ? 'NULL' : (string) absint( $data['wc_order_item_id'] );
+		$sql          = $wpdb->prepare(
+			"INSERT INTO `{$table}`
+			(licence_id, action, payment_status, payment_source, payment_method, payment_gateway, payment_reference, payment_date, payment_amount, currency, wc_order_id, wc_order_item_id, wc_transaction_id, admin_note, reconciliation_status, reconciliation_note, exception_reason, created_by, created_at, fingerprint, is_deleted)
+			VALUES (%d,%s,%s,%s,%s,%s,%s,%s,{$amount_sql},%s,{$order_id_sql},{$item_id_sql},%s,%s,%s,%s,%s,%d,%s,%s,0)
+			ON DUPLICATE KEY UPDATE id = id",
+			$licence_id,
+			$data['action'],
+			$data['payment_status'],
+			$data['payment_source'],
+			$data['payment_method'],
+			$data['payment_gateway'],
+			$data['payment_reference'],
+			$data['payment_date'],
+			$data['currency'],
+			$data['wc_transaction_id'],
+			$data['admin_note'],
+			$data['reconciliation_status'],
+			$data['reconciliation_note'],
+			$data['exception_reason'],
+			(int) $data['created_by'],
+			$data['created_at'],
+			$data['fingerprint']
 		);
-		$wpdb->replace( $table, $insert_data );
+		$wpdb->query( $sql );
 
 		self::update_licence_summary( $licence_id, $data );
 	}
@@ -369,6 +380,11 @@ class UFSC_Licence_Payments {
 		global $wpdb;
 		$table = ufsc_get_licences_table();
 		$columns = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $table ) : $wpdb->get_col( "DESCRIBE `{$table}`" );
+		$current = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", $licence_id ) );
+		if ( self::should_preserve_existing_summary( $current, $data ) ) {
+			return;
+		}
+
 		$summary = array(
 			'payment_link_status'           => $data['payment_status'],
 			'payment_status'                => in_array( $data['payment_status'], array( 'paid', 'paye', 'paye_manuellement' ), true ) ? 'paid' : $data['payment_status'],
@@ -377,9 +393,9 @@ class UFSC_Licence_Payments {
 			'payment_gateway'               => $data['payment_gateway'],
 			'payment_reference'             => $data['payment_reference'],
 			'payment_date'                  => $data['payment_date'],
-			'wc_order_id'                   => (int) $data['wc_order_id'],
-			'wc_order_item_id'              => (int) $data['wc_order_item_id'],
-			'wc_transaction_id'             => $data['wc_transaction_id'],
+			'wc_order_id'                   => ! empty( $data['wc_order_id'] ) ? (int) $data['wc_order_id'] : null,
+			'wc_order_item_id'              => ! empty( $data['wc_order_item_id'] ) ? (int) $data['wc_order_item_id'] : null,
+			'wc_transaction_id'             => '' !== (string) $data['wc_transaction_id'] ? $data['wc_transaction_id'] : null,
 			'payment_linked_by'             => (int) $data['created_by'],
 			'payment_linked_at'             => current_time( 'mysql' ),
 			'payment_reconciliation_status' => $data['reconciliation_status'],
@@ -395,6 +411,39 @@ class UFSC_Licence_Payments {
 		if ( ! empty( $update ) ) {
 			$wpdb->update( $table, $update, array( 'id' => $licence_id ) );
 		}
+	}
+
+	private static function should_preserve_existing_summary( $current, $incoming ) {
+		if ( ! $current ) {
+			return false;
+		}
+
+		$incoming_status = strtolower( (string) ( $incoming['payment_status'] ?? '' ) );
+		$incoming_source = strtolower( (string) ( $incoming['payment_source'] ?? '' ) );
+
+		// Keep a stronger existing summary when an unpaid Woo event is replayed later.
+		if ( 'non_rattache' !== $incoming_status ) {
+			return false;
+		}
+
+		$current_link_status = strtolower( (string) ( $current->payment_link_status ?? '' ) );
+		if ( in_array( $current_link_status, array( 'paye_manuellement', 'exonere' ), true ) ) {
+			return true;
+		}
+
+		if ( ! empty( $current->payment_exception_reason ) && empty( $incoming['exception_reason'] ) ) {
+			return true;
+		}
+
+		if ( ! empty( $current->payment_reconciliation_status ) && empty( $incoming['reconciliation_status'] ) ) {
+			return true;
+		}
+
+		if ( 'woocommerce' === $incoming_source && 'manuel' === strtolower( (string) ( $current->payment_source ?? '' ) ) ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	private static function normalize_woocommerce_payment_context( $gateway ) {
