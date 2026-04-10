@@ -39,6 +39,7 @@ require_once UFSC_CL_DIR.'includes/common/functions.php';
 require_once UFSC_CL_DIR.'includes/common/class-ufsc-cron.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-transaction.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-db-migrations.php';
+require_once UFSC_CL_DIR.'includes/core/class-ufsc-licence-payments.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-affiliation-form.php';
 require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-licences-list-table.php';
 require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-clubs-list-table.php';
@@ -160,6 +161,7 @@ final class UFSC_CL_Bootstrap {
         }
         UFSC_Capabilities::register_caps();
         UFSC_DB_Migrations::run_migrations();
+        if ( class_exists( 'UFSC_Licence_Payments' ) ) { UFSC_Licence_Payments::maybe_migrate(); }
         flush_rewrite_rules();
     }
     public function on_deactivate(){

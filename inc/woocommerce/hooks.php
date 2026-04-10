@@ -160,6 +160,10 @@ function ufsc_handle_woocommerce_payment_confirmed( $order_id ) {
 		return;
 	}
 
+	if ( class_exists( 'UFSC_Licence_Payments' ) ) {
+		UFSC_Licence_Payments::sync_order_payments( $order, $licence_ids );
+	}
+
 	global $wpdb;
 	$table   = ufsc_get_licences_table();
 	$columns = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $table ) : $wpdb->get_col( "DESCRIBE `{$table}`" );
@@ -1363,6 +1367,10 @@ function ufsc_handle_order_failed_or_cancelled( $order_id ) {
 
 	if ( empty( $licence_ids ) ) {
 		return;
+	}
+
+	if ( class_exists( 'UFSC_Licence_Payments' ) ) {
+		UFSC_Licence_Payments::mark_order_as_unpaid( $order, $licence_ids, $order_status );
 	}
 
 	foreach ( $licence_ids as $licence_id ) {
