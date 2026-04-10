@@ -20,6 +20,37 @@ function ufsc_wc_log( $action, $context = array(), $level = 'info' ) {
 }
 
 /**
+ * Enable targeted licence sync debug logs.
+ *
+ * Toggle with UFSC_WC_DEBUG_LICENCE_SYNC constant or `ufsc_wc_debug_licence_sync` filter.
+ *
+ * @return bool
+ */
+function ufsc_wc_debug_enabled() {
+	$enabled = defined( 'UFSC_WC_DEBUG_LICENCE_SYNC' ) && UFSC_WC_DEBUG_LICENCE_SYNC;
+
+	/**
+	 * Filter to toggle targeted Woo licence sync debug logs.
+	 *
+	 * @param bool $enabled Current debug state.
+	 */
+	return (bool) apply_filters( 'ufsc_wc_debug_licence_sync', $enabled );
+}
+
+/**
+ * Write targeted debug logs only when enabled.
+ *
+ * @param string $action  Event/action key.
+ * @param array  $context Context payload.
+ * @return void
+ */
+function ufsc_wc_debug_log( $action, $context = array() ) {
+	if ( ufsc_wc_debug_enabled() ) {
+		ufsc_wc_log( $action, $context, 'info' );
+	}
+}
+
+/**
  * Initialize WooCommerce hooks
  */
 function ufsc_init_woocommerce_hooks() {
@@ -489,6 +520,21 @@ function ufsc_wc_generate_missing_licence_rows( $order, $item, $club_id, $missin
 		return $created;
 	}
 
+	$existing_draft_ids = ufsc_wc_find_attachable_draft_licence_ids( $club_id, $missing, $season );
+	if ( ! empty( $existing_draft_ids ) ) {
+		ufsc_wc_debug_log(
+			'ufsc_wc_existing_draft_licences_found',
+			array(
+				'order_id'     => (int) $order->get_id(),
+				'order_item_id'=> (int) $item->get_id(),
+				'club_id'      => (int) $club_id,
+				'requested'    => (int) $missing,
+				'matched_ids'  => $existing_draft_ids,
+			)
+		);
+		return $existing_draft_ids;
+	}
+
 	$table   = ufsc_get_licences_table();
 	$columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : $wpdb->get_col( "DESCRIBE `{$table}`" );
 
@@ -498,14 +544,18 @@ function ufsc_wc_generate_missing_licence_rows( $order, $item, $club_id, $missin
 		if ( in_array( 'club_id', $columns, true ) ) {
 			$data['club_id'] = (int) $club_id;
 		}
+		$nom    = trim( (string) $item->get_meta( 'ufsc_nom', true ) );
+		$prenom = trim( (string) $item->get_meta( 'ufsc_prenom', true ) );
+		$birth  = trim( (string) $item->get_meta( 'ufsc_date_naissance', true ) );
+
 		if ( in_array( 'nom', $columns, true ) ) {
-			$data['nom'] = '';
+			$data['nom'] = $nom;
 		}
 		if ( in_array( 'prenom', $columns, true ) ) {
-			$data['prenom'] = '';
+			$data['prenom'] = $prenom;
 		}
-		if ( in_array( 'email', $columns, true ) ) {
-			$data['email'] = '';
+		if ( in_array( 'date_naissance', $columns, true ) && '' !== $birth ) {
+			$data['date_naissance'] = $birth;
 		}
 		if ( in_array( 'statut', $columns, true ) ) {
 			$data['statut'] = 'en_attente';
@@ -546,6 +596,22 @@ function ufsc_wc_generate_missing_licence_rows( $order, $item, $club_id, $missin
 			$data['note'] = sprintf( 'Commande WooCommerce #%d - Item #%d', $order->get_id(), $item->get_id() );
 		}
 
+		$has_min_identity = ( '' !== $nom && '' !== $prenom && '' !== $birth );
+		if ( ! $has_min_identity ) {
+			ufsc_wc_debug_log(
+				'ufsc_licence_generation_refused_missing_required_identity',
+				array(
+					'order_id'      => (int) $order->get_id(),
+					'order_item_id' => (int) $item->get_id(),
+					'club_id'       => (int) $club_id,
+					'missing_nom'   => '' === $nom ? 1 : 0,
+					'missing_prenom'=> '' === $prenom ? 1 : 0,
+					'missing_birth' => '' === $birth ? 1 : 0,
+				)
+			);
+			break;
+		}
+
 		if ( empty( $data ) || ! isset( $data['club_id'] ) ) {
 			ufsc_wc_log( 'ufsc_licence_generation_missing_required_columns', array( 'order_id' => $order->get_id(), 'item_id' => $item->get_id() ), 'error' );
 			break;
@@ -578,6 +644,67 @@ function ufsc_wc_generate_missing_licence_rows( $order, $item, $club_id, $missin
 	}
 
 	return $created;
+}
+
+/**
+ * Find payable draft licences that can be attached to an order item.
+ *
+ * @param int    $club_id Club ID.
+ * @param int    $limit   Max IDs required.
+ * @param string $season  Current season.
+ * @return int[]
+ */
+function ufsc_wc_find_attachable_draft_licence_ids( $club_id, $limit, $season = '' ) {
+	global $wpdb;
+
+	$club_id = absint( $club_id );
+	$limit   = absint( $limit );
+	if ( $club_id <= 0 || $limit <= 0 || ! function_exists( 'ufsc_get_licences_table' ) ) {
+		return array();
+	}
+
+	$table   = ufsc_get_licences_table();
+	$columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : $wpdb->get_col( "DESCRIBE `{$table}`" );
+	if ( empty( $columns ) || ! in_array( 'id', $columns, true ) || ! in_array( 'club_id', $columns, true ) ) {
+		return array();
+	}
+
+	$where = array( 'club_id = %d' );
+	$args  = array( $club_id );
+
+	if ( in_array( 'statut', $columns, true ) ) {
+		$where[] = "(statut IS NULL OR statut = '' OR statut IN ('brouillon','draft','non_payee','a_regler','en_attente'))";
+	}
+
+	if ( in_array( 'payment_status', $columns, true ) ) {
+		$where[] = "(payment_status IS NULL OR payment_status = '' OR payment_status IN ('unpaid','pending','non_payee'))";
+	}
+
+	foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_col ) {
+		if ( in_array( $paid_col, $columns, true ) ) {
+			$where[] = "{$paid_col} = 0";
+		}
+	}
+
+	if ( in_array( 'order_id', $columns, true ) ) {
+		$where[] = '(order_id IS NULL OR order_id = 0)';
+	}
+
+	if ( in_array( 'order_item_id', $columns, true ) ) {
+		$where[] = '(order_item_id IS NULL OR order_item_id = 0)';
+	}
+
+	if ( '' !== $season && in_array( 'paid_season', $columns, true ) ) {
+		$where[] = '(paid_season IS NULL OR paid_season = %s OR paid_season = \'\')';
+		$args[]  = $season;
+	}
+
+	$sql   = "SELECT id FROM `{$table}` WHERE " . implode( ' AND ', $where ) . ' ORDER BY id ASC LIMIT %d';
+	$args[] = $limit;
+	$query = $wpdb->prepare( $sql, $args );
+	$ids   = $wpdb->get_col( $query );
+
+	return array_values( array_unique( array_filter( array_map( 'absint', (array) $ids ) ) ) );
 }
 
 /**
@@ -621,7 +748,46 @@ function ufsc_wc_link_licence_ids_to_order_item( $order, $item, $licence_ids ) {
 	}
 
 	foreach ( $licence_ids as $licence_id ) {
-		$wpdb->update( $table, $data, array( 'id' => absint( $licence_id ) ), $type, array( '%d' ) );
+		$current_id = absint( $licence_id );
+		if ( $current_id <= 0 ) {
+			continue;
+		}
+
+		$existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", $current_id ) );
+		if ( ! $existing ) {
+			continue;
+		}
+
+		$already_linked = false;
+		if ( isset( $existing->order_id ) && (int) $existing->order_id === (int) $order->get_id() ) {
+			$already_linked = true;
+		}
+		if ( isset( $existing->order_item_id ) && (int) $existing->order_item_id === (int) $item->get_id() ) {
+			$already_linked = true;
+		}
+
+		if ( $already_linked ) {
+			ufsc_wc_debug_log(
+				'ufsc_licence_order_link_skipped_already_linked',
+				array(
+					'licence_id'    => $current_id,
+					'order_id'      => (int) $order->get_id(),
+					'order_item_id' => (int) $item->get_id(),
+				)
+			);
+			continue;
+		}
+
+		$wpdb->update( $table, $data, array( 'id' => $current_id ), $type, array( '%d' ) );
+		ufsc_wc_debug_log(
+			'ufsc_licence_order_link_updated',
+			array(
+				'licence_id'    => $current_id,
+				'order_id'      => (int) $order->get_id(),
+				'order_item_id' => (int) $item->get_id(),
+				'club_id'       => $club_id ? (int) $club_id : 0,
+			)
+		);
 	}
 }
 
