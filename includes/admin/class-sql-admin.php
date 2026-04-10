@@ -2083,6 +2083,10 @@ class UFSC_SQL_Admin
         }
         echo '</div>';
 
+        if ( $id && class_exists( 'UFSC_Licence_Payments' ) ) {
+            self::render_payment_traceability_block( $id, $readonly );
+        }
+
         if (! $readonly) {
             echo '<div class="ufsc-form-actions" style="background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 4px;">';
             echo '<div class="ufsc-button-group">';
@@ -2300,6 +2304,16 @@ class UFSC_SQL_Admin
             set_transient( 'ufsc_notice_status_adjusted_' . get_current_user_id(), 1, 120 );
         }
 
+        $manual_exception_reason = isset( $_POST['ufsc_payment_exception_reason'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_payment_exception_reason'] ) ) : '';
+
+        if ( isset( $data['statut'] ) && 'valide' === $data['statut'] && $id && class_exists( 'UFSC_Licence_Payments' ) ) {
+            $snapshot = UFSC_Licence_Payments::get_payment_snapshot( $id );
+            if ( $snapshot && ! UFSC_Licence_Payments::can_validate_licence( $snapshot, $manual_exception_reason ) ) {
+                self::maybe_redirect( admin_url('admin.php?page=ufsc-sql-licences&action=edit&id=' . $id . '&error=' . urlencode( __( 'Validation bloquée: rattachez un paiement ou renseignez un motif d\'exception.', 'ufsc-clubs' ) ) ) );
+                return;
+            }
+        }
+
         // Validation
         $validation_errors = UFSC_CL_Utils::validate_licence_data($data);
         if (! empty($validation_errors)) {
@@ -2362,6 +2376,28 @@ class UFSC_SQL_Admin
                 }
             }
             UFSC_CL_Utils::log('Nouvelle licence créée: ID ' . $id, 'info');
+        }
+
+
+        if ( $id && class_exists( 'UFSC_Licence_Payments' ) && isset( $_POST['ufsc_payment_method'] ) ) {
+            $method = sanitize_key( wp_unslash( $_POST['ufsc_payment_method'] ) );
+            $reference = isset( $_POST['ufsc_payment_reference'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_payment_reference'] ) ) : '';
+            $note = isset( $_POST['ufsc_payment_admin_note'] ) ? sanitize_textarea_field( wp_unslash( $_POST['ufsc_payment_admin_note'] ) ) : '';
+            $has_manual_payload = '' !== $reference || '' !== $note || '' !== $manual_exception_reason;
+            if ( $has_manual_payload ) {
+                UFSC_Licence_Payments::upsert_manual_payment(
+                    $id,
+                    array(
+                        'payment_method' => $method,
+                        'payment_reference' => $reference,
+                        'payment_date' => isset( $_POST['ufsc_payment_date'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_payment_date'] ) ) : '',
+                        'payment_amount' => isset( $_POST['ufsc_payment_amount'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_payment_amount'] ) ) : '',
+                        'admin_note' => $note,
+                        'reconciliation_status' => isset( $_POST['ufsc_reconciliation_status'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_reconciliation_status'] ) ) : '',
+                        'exception_reason' => $manual_exception_reason,
+                    )
+                );
+            }
         }
 
         // Gestion bouton "save_and_payment"
