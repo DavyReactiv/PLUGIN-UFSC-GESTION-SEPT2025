@@ -129,6 +129,53 @@ class UFSC_Licence_Payments {
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", $licence_id ) );
 	}
 
+	public static function get_latest_trace( $licence_id ) {
+		global $wpdb;
+		$table = self::get_table_name();
+		$licence_id = absint( $licence_id );
+		if ( $licence_id <= 0 ) {
+			return null;
+		}
+		return $wpdb->get_row( $wpdb->prepare(
+			"SELECT * FROM `{$table}` WHERE licence_id = %d AND is_deleted = 0 ORDER BY id DESC LIMIT 1",
+			$licence_id
+		) );
+	}
+
+	public static function get_readable_payment_method( $method ) {
+		$map = array(
+			'carte_bancaire'   => __( 'Carte bancaire', 'ufsc-clubs' ),
+			'virement_bancaire'=> __( 'Virement bancaire', 'ufsc-clubs' ),
+			'autre'            => __( 'Autre', 'ufsc-clubs' ),
+			'cheque'           => __( 'Chèque', 'ufsc-clubs' ),
+			'especes'          => __( 'Espèces', 'ufsc-clubs' ),
+		);
+		$method = sanitize_key( (string) $method );
+		return $map[ $method ] ?? ucfirst( str_replace( '_', ' ', $method ) );
+	}
+
+	public static function get_readable_payment_source( $source ) {
+		$map = array(
+			'woocommerce' => __( 'WooCommerce', 'ufsc-clubs' ),
+			'manuel'      => __( 'Saisie manuelle admin', 'ufsc-clubs' ),
+		);
+		$source = sanitize_key( (string) $source );
+		return $map[ $source ] ?? ucfirst( str_replace( '_', ' ', $source ) );
+	}
+
+	public static function get_readable_payment_gateway( $gateway ) {
+		$map = array(
+			'monetico' => __( 'Monetico Paiement', 'ufsc-clubs' ),
+			'bacs'     => __( 'WooCommerce - Virement bancaire', 'ufsc-clubs' ),
+			'manual'   => __( 'Manuel', 'ufsc-clubs' ),
+			'manuel'   => __( 'Manuel', 'ufsc-clubs' ),
+			'cheque'   => __( 'WooCommerce - Chèque', 'ufsc-clubs' ),
+			'cod'      => __( 'WooCommerce - Paiement à la livraison', 'ufsc-clubs' ),
+		);
+		$gateway = sanitize_key( (string) $gateway );
+		return $map[ $gateway ] ?? strtoupper( (string) $gateway );
+	}
+
 	public static function can_validate_licence( $licence_row, $exception_reason = '' ) {
 		$payment_status = strtolower( (string) ( $licence_row->payment_status ?? '' ) );
 		$link_status    = strtolower( (string) ( $licence_row->payment_link_status ?? '' ) );
@@ -178,11 +225,8 @@ class UFSC_Licence_Payments {
 		}
 
 		$transaction_id = method_exists( $order, 'get_transaction_id' ) ? (string) $order->get_transaction_id() : '';
-		$gateway = method_exists( $order, 'get_payment_method' ) ? (string) $order->get_payment_method() : '';
-		$method  = 'cb';
-		if ( in_array( $gateway, array( 'bacs', 'cheque', 'cod' ), true ) ) {
-			$method = $gateway;
-		}
+		$gateway        = method_exists( $order, 'get_payment_method' ) ? (string) $order->get_payment_method() : '';
+		$context        = self::normalize_woocommerce_payment_context( $gateway );
 
 		foreach ( $order->get_items() as $item ) {
 			$item_licence_ids = function_exists( 'ufsc_get_item_licence_ids' ) ? ufsc_get_item_licence_ids( $item ) : array();
@@ -198,11 +242,11 @@ class UFSC_Licence_Payments {
 						'action'            => 'woo_paid',
 						'payment_status'    => 'paid',
 						'payment_source'    => 'woocommerce',
-						'payment_method'    => $method,
-						'payment_gateway'   => $gateway,
+						'payment_method'    => $context['payment_method'],
+						'payment_gateway'   => $context['payment_gateway'],
 						'payment_reference' => (string) $order->get_order_number(),
 						'payment_date'      => current_time( 'mysql' ),
-						'payment_amount'    => (float) $item->get_total(),
+						'payment_amount'    => self::normalize_amount( $item->get_total() ),
 						'currency'          => (string) $order->get_currency(),
 						'wc_order_id'       => (int) $order->get_id(),
 						'wc_order_item_id'  => (int) $item->get_id(),
@@ -218,6 +262,8 @@ class UFSC_Licence_Payments {
 		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
 			return;
 		}
+		$gateway = method_exists( $order, 'get_payment_method' ) ? (string) $order->get_payment_method() : '';
+		$context = self::normalize_woocommerce_payment_context( $gateway );
 		foreach ( (array) $licence_ids as $licence_id ) {
 			$licence_id = absint( $licence_id );
 			if ( $licence_id <= 0 ) {
@@ -229,8 +275,8 @@ class UFSC_Licence_Payments {
 					'action'            => 'woo_unpaid',
 					'payment_status'    => 'non_rattache',
 					'payment_source'    => 'woocommerce',
-					'payment_method'    => 'cb',
-					'payment_gateway'   => (string) $order->get_payment_method(),
+					'payment_method'    => $context['payment_method'],
+					'payment_gateway'   => $context['payment_gateway'],
 					'payment_reference' => (string) $order->get_order_number(),
 					'payment_date'      => current_time( 'mysql' ),
 					'wc_order_id'       => (int) $order->get_id(),
@@ -266,6 +312,13 @@ class UFSC_Licence_Payments {
 			'created_by'            => get_current_user_id(),
 		);
 		$data = wp_parse_args( $payload, $defaults );
+		$data['payment_status'] = sanitize_key( (string) $data['payment_status'] );
+		$data['payment_source'] = sanitize_key( (string) $data['payment_source'] );
+		$data['payment_method'] = sanitize_key( (string) $data['payment_method'] );
+		$data['payment_gateway'] = sanitize_key( (string) $data['payment_gateway'] );
+		$data['payment_reference'] = sanitize_text_field( (string) $data['payment_reference'] );
+		$data['currency'] = strtoupper( sanitize_text_field( (string) $data['currency'] ) );
+		$data['payment_amount'] = self::normalize_amount( $data['payment_amount'] );
 		$data['created_at'] = current_time( 'mysql' );
 		$data['licence_id'] = $licence_id;
 		$data['fingerprint'] = hash( 'sha256', wp_json_encode( array(
@@ -281,32 +334,30 @@ class UFSC_Licence_Payments {
 			$data['wc_transaction_id'],
 		) ) );
 
-		$wpdb->query( $wpdb->prepare(
-			"INSERT INTO `{$table}`
-			(licence_id, action, payment_status, payment_source, payment_method, payment_gateway, payment_reference, payment_date, payment_amount, currency, wc_order_id, wc_order_item_id, wc_transaction_id, admin_note, reconciliation_status, reconciliation_note, exception_reason, created_by, created_at, fingerprint, is_deleted)
-			VALUES (%d,%s,%s,%s,%s,%s,%s,%s,%f,%s,%d,%d,%s,%s,%s,%s,%s,%d,%s,%s,0)
-			ON DUPLICATE KEY UPDATE created_at = VALUES(created_at)",
-			$licence_id,
-			$data['action'],
-			$data['payment_status'],
-			$data['payment_source'],
-			$data['payment_method'],
-			$data['payment_gateway'],
-			$data['payment_reference'],
-			$data['payment_date'],
-			(float) $data['payment_amount'],
-			$data['currency'],
-			(int) $data['wc_order_id'],
-			(int) $data['wc_order_item_id'],
-			$data['wc_transaction_id'],
-			$data['admin_note'],
-			$data['reconciliation_status'],
-			$data['reconciliation_note'],
-			$data['exception_reason'],
-			(int) $data['created_by'],
-			$data['created_at'],
-			$data['fingerprint']
-		) );
+		$insert_data = array(
+			'licence_id'            => $licence_id,
+			'action'                => $data['action'],
+			'payment_status'        => $data['payment_status'],
+			'payment_source'        => $data['payment_source'],
+			'payment_method'        => $data['payment_method'],
+			'payment_gateway'       => $data['payment_gateway'],
+			'payment_reference'     => $data['payment_reference'],
+			'payment_date'          => $data['payment_date'],
+			'payment_amount'        => $data['payment_amount'],
+			'currency'              => $data['currency'],
+			'wc_order_id'           => $data['wc_order_id'] ? (int) $data['wc_order_id'] : null,
+			'wc_order_item_id'      => $data['wc_order_item_id'] ? (int) $data['wc_order_item_id'] : null,
+			'wc_transaction_id'     => (string) $data['wc_transaction_id'],
+			'admin_note'            => $data['admin_note'],
+			'reconciliation_status' => $data['reconciliation_status'],
+			'reconciliation_note'   => $data['reconciliation_note'],
+			'exception_reason'      => $data['exception_reason'],
+			'created_by'            => (int) $data['created_by'],
+			'created_at'            => $data['created_at'],
+			'fingerprint'           => $data['fingerprint'],
+			'is_deleted'            => 0,
+		);
+		$wpdb->replace( $table, $insert_data );
 
 		self::update_licence_summary( $licence_id, $data );
 	}
@@ -344,6 +395,42 @@ class UFSC_Licence_Payments {
 		if ( ! empty( $update ) ) {
 			$wpdb->update( $table, $update, array( 'id' => $licence_id ) );
 		}
+	}
+
+	private static function normalize_woocommerce_payment_context( $gateway ) {
+		$gateway = sanitize_key( (string) $gateway );
+		if ( in_array( $gateway, array( 'bacs', 'bank_transfer', 'virement', 'virement_bancaire' ), true ) ) {
+			return array(
+				'payment_method'  => 'virement_bancaire',
+				'payment_gateway' => 'bacs',
+			);
+		}
+		if ( false !== strpos( $gateway, 'monetico' ) ) {
+			return array(
+				'payment_method'  => 'carte_bancaire',
+				'payment_gateway' => 'monetico',
+			);
+		}
+
+		return array(
+			'payment_method'  => 'carte_bancaire',
+			'payment_gateway' => $gateway,
+		);
+	}
+
+	private static function normalize_amount( $amount ) {
+		if ( null === $amount || '' === $amount ) {
+			return null;
+		}
+
+		if ( is_string( $amount ) ) {
+			$amount = str_replace( ',', '.', trim( $amount ) );
+		}
+		if ( ! is_numeric( $amount ) ) {
+			return null;
+		}
+
+		return round( (float) $amount, 2 );
 	}
 }
 

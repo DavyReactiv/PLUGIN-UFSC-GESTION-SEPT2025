@@ -2112,6 +2112,70 @@ class UFSC_SQL_Admin
         }
     }
 
+    private static function render_payment_traceability_block( $licence_id, $readonly = false )
+    {
+        if ( ! class_exists( 'UFSC_Licence_Payments' ) ) {
+            return;
+        }
+
+        $snapshot = UFSC_Licence_Payments::get_payment_snapshot( $licence_id );
+        $trace    = UFSC_Licence_Payments::get_latest_trace( $licence_id );
+        $readonly_attr = $readonly ? 'readonly disabled' : '';
+
+        $payment_source   = isset( $snapshot->payment_source ) ? (string) $snapshot->payment_source : '';
+        $payment_method   = isset( $snapshot->payment_method ) ? (string) $snapshot->payment_method : '';
+        $payment_gateway  = isset( $snapshot->payment_gateway ) ? (string) $snapshot->payment_gateway : '';
+        $payment_ref      = isset( $snapshot->payment_reference ) ? (string) $snapshot->payment_reference : '';
+        $payment_date     = isset( $snapshot->payment_date ) ? (string) $snapshot->payment_date : '';
+        $payment_amount   = isset( $trace->payment_amount ) && null !== $trace->payment_amount ? (string) $trace->payment_amount : '';
+        $payment_currency = isset( $trace->currency ) ? (string) $trace->currency : 'EUR';
+        $exception_reason = isset( $snapshot->payment_exception_reason ) ? (string) $snapshot->payment_exception_reason : '';
+        $wc_order_id      = isset( $snapshot->wc_order_id ) ? (int) $snapshot->wc_order_id : 0;
+        $wc_item_id       = isset( $snapshot->wc_order_item_id ) ? (int) $snapshot->wc_order_item_id : 0;
+        $wc_txn_id        = isset( $snapshot->wc_transaction_id ) ? (string) $snapshot->wc_transaction_id : '';
+
+        echo '<div class="ufsc-payment-traceability" style="margin-top:20px;padding:15px;border:1px solid #dcdcde;background:#fff;">';
+        echo '<h3 style="margin-top:0;">' . esc_html__( 'Traçabilité du paiement', 'ufsc-clubs' ) . '</h3>';
+        echo '<p class="description">' . esc_html__( 'Bloc de suivi administratif et comptable du rattachement paiement/licence.', 'ufsc-clubs' ) . '</p>';
+
+        echo '<table class="widefat striped" style="margin-bottom:12px;"><tbody>';
+        echo '<tr><th style="width:240px;">' . esc_html__( 'Source technique', 'ufsc-clubs' ) . '</th><td>' . esc_html( UFSC_Licence_Payments::get_readable_payment_source( $payment_source ) ) . ' <code>' . esc_html( $payment_source ?: '-' ) . '</code></td></tr>';
+        echo '<tr><th>' . esc_html__( 'Gateway', 'ufsc-clubs' ) . '</th><td>' . esc_html( UFSC_Licence_Payments::get_readable_payment_gateway( $payment_gateway ) ) . ' <code>' . esc_html( $payment_gateway ?: '-' ) . '</code></td></tr>';
+        echo '<tr><th>' . esc_html__( 'Mode de règlement (métier)', 'ufsc-clubs' ) . '</th><td>' . esc_html( UFSC_Licence_Payments::get_readable_payment_method( $payment_method ) ) . ' <code>' . esc_html( $payment_method ?: '-' ) . '</code></td></tr>';
+        echo '<tr><th>' . esc_html__( 'Référence paiement', 'ufsc-clubs' ) . '</th><td>' . esc_html( $payment_ref ?: '-' ) . '</td></tr>';
+        echo '<tr><th>' . esc_html__( 'Commande WooCommerce liée', 'ufsc-clubs' ) . '</th><td>' . ( $wc_order_id ? '#' . esc_html( (string) $wc_order_id ) : '-' ) . '</td></tr>';
+        echo '<tr><th>' . esc_html__( 'Order item WooCommerce', 'ufsc-clubs' ) . '</th><td>' . ( $wc_item_id ? esc_html( (string) $wc_item_id ) : '-' ) . '</td></tr>';
+        echo '<tr><th>' . esc_html__( 'Transaction', 'ufsc-clubs' ) . '</th><td>' . esc_html( $wc_txn_id ?: '-' ) . '</td></tr>';
+        echo '<tr><th>' . esc_html__( 'Montant', 'ufsc-clubs' ) . '</th><td>' . esc_html( '' !== $payment_amount ? $payment_amount . ' ' . $payment_currency : '-' ) . '</td></tr>';
+        echo '<tr><th>' . esc_html__( 'Date de paiement', 'ufsc-clubs' ) . '</th><td>' . esc_html( $payment_date ?: '-' ) . '</td></tr>';
+        echo '<tr><th>' . esc_html__( 'Exception admin', 'ufsc-clubs' ) . '</th><td>' . esc_html( $exception_reason ?: '-' ) . '</td></tr>';
+        echo '</tbody></table>';
+
+        if ( ! $readonly ) {
+            echo '<div class="ufsc-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;">';
+            echo '<div><label>' . esc_html__( 'Méthode paiement (admin)', 'ufsc-clubs' ) . '</label><select name="ufsc_payment_method" ' . $readonly_attr . '>';
+            $method_options = array(
+                'virement_bancaire' => __( 'Virement bancaire', 'ufsc-clubs' ),
+                'carte_bancaire'    => __( 'Carte bancaire', 'ufsc-clubs' ),
+                'cheque'            => __( 'Chèque', 'ufsc-clubs' ),
+                'especes'           => __( 'Espèces', 'ufsc-clubs' ),
+                'autre'             => __( 'Autre', 'ufsc-clubs' ),
+            );
+            foreach ( $method_options as $key => $label ) {
+                echo '<option value="' . esc_attr( $key ) . '" ' . selected( $payment_method ?: 'virement_bancaire', $key, false ) . '>' . esc_html( $label ) . '</option>';
+            }
+            echo '</select></div>';
+            echo '<div><label>' . esc_html__( 'Référence', 'ufsc-clubs' ) . '</label><input type="text" name="ufsc_payment_reference" value="' . esc_attr( $payment_ref ) . '" ' . $readonly_attr . ' /></div>';
+            echo '<div><label>' . esc_html__( 'Date', 'ufsc-clubs' ) . '</label><input type="text" name="ufsc_payment_date" value="' . esc_attr( $payment_date ) . '" placeholder="YYYY-mm-dd HH:ii:ss" ' . $readonly_attr . ' /></div>';
+            echo '<div><label>' . esc_html__( 'Montant', 'ufsc-clubs' ) . '</label><input type="text" name="ufsc_payment_amount" value="' . esc_attr( $payment_amount ) . '" ' . $readonly_attr . ' /></div>';
+            echo '</div>';
+            echo '<p style="margin-top:8px;"><label>' . esc_html__( 'Motif exception admin (obligatoire si validation sans paiement)', 'ufsc-clubs' ) . '</label><input type="text" name="ufsc_payment_exception_reason" value="' . esc_attr( $exception_reason ) . '" ' . $readonly_attr . ' /></p>';
+            echo '<p><label>' . esc_html__( 'Note de rapprochement', 'ufsc-clubs' ) . '</label><textarea name="ufsc_payment_admin_note" rows="2" ' . $readonly_attr . '></textarea></p>';
+        }
+
+        echo '</div>';
+    }
+
     private static function render_field_licence($k, $conf, $val, $readonly = false)
     {
         $label         = $conf[0];
@@ -2306,10 +2370,15 @@ class UFSC_SQL_Admin
 
         $manual_exception_reason = isset( $_POST['ufsc_payment_exception_reason'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_payment_exception_reason'] ) ) : '';
 
-        if ( isset( $data['statut'] ) && 'valide' === $data['statut'] && $id && class_exists( 'UFSC_Licence_Payments' ) ) {
-            $snapshot = UFSC_Licence_Payments::get_payment_snapshot( $id );
-            if ( $snapshot && ! UFSC_Licence_Payments::can_validate_licence( $snapshot, $manual_exception_reason ) ) {
-                self::maybe_redirect( admin_url('admin.php?page=ufsc-sql-licences&action=edit&id=' . $id . '&error=' . urlencode( __( 'Validation bloquée: rattachez un paiement ou renseignez un motif d\'exception.', 'ufsc-clubs' ) ) ) );
+        if ( isset( $data['statut'] ) && 'valide' === $data['statut'] && class_exists( 'UFSC_Licence_Payments' ) ) {
+            if ( $id ) {
+                $snapshot = UFSC_Licence_Payments::get_payment_snapshot( $id );
+                if ( $snapshot && ! UFSC_Licence_Payments::can_validate_licence( $snapshot, $manual_exception_reason ) ) {
+                    self::maybe_redirect( admin_url('admin.php?page=ufsc-sql-licences&action=edit&id=' . $id . '&error=' . urlencode( __( 'Validation bloquée: rattachez un paiement ou renseignez un motif d\'exception.', 'ufsc-clubs' ) ) ) );
+                    return;
+                }
+            } elseif ( ! $is_paid_submission && '' === trim( $manual_exception_reason ) ) {
+                self::maybe_redirect( admin_url('admin.php?page=ufsc-sql-licences&action=new&error=' . urlencode( __( 'Validation bloquée: créez d\'abord la licence en brouillon/en attente puis rattachez un paiement.', 'ufsc-clubs' ) ) ) );
                 return;
             }
         }
