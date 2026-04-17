@@ -252,6 +252,40 @@ class UFSC_SQL_Admin
     }
 
     /**
+     * Build a safe return URL for admin forms.
+     *
+     * @param string $fallback_page Menu page slug fallback.
+     * @return string
+     */
+    private static function get_admin_return_url( $fallback_page ) {
+        $fallback = admin_url( 'admin.php?page=' . sanitize_key( $fallback_page ) );
+        $candidate = '';
+
+        if ( isset( $_REQUEST['return_to'] ) ) {
+            $candidate = wp_unslash( $_REQUEST['return_to'] );
+        } elseif ( wp_get_referer() ) {
+            $candidate = wp_get_referer();
+        }
+
+        if ( ! $candidate || ! wp_validate_redirect( $candidate, false ) ) {
+            return $fallback;
+        }
+
+        $parts = wp_parse_url( $candidate );
+        if ( empty( $parts['query'] ) ) {
+            return $fallback;
+        }
+
+        parse_str( $parts['query'], $query );
+        $page = isset( $query['page'] ) ? sanitize_key( (string) $query['page'] ) : '';
+        if ( ! in_array( $page, array( 'ufsc-sql-licences', 'ufsc-sql-clubs' ), true ) ) {
+            return $fallback;
+        }
+
+        return remove_query_arg( array( 'updated', 'deleted', 'deleted_id', 'error' ), $candidate );
+    }
+
+    /**
      * Filter data array to columns that exist in the table.
      *
      * @param string $table Table name.
@@ -339,6 +373,113 @@ class UFSC_SQL_Admin
         }
 
         return '';
+    }
+
+    /**
+     * Get bureau role assignments for a club from existing licences.
+     *
+     * @param int $club_id Club ID.
+     * @return array<string,array<int>>
+     */
+    private static function get_bureau_role_assignments( $club_id ) {
+        global $wpdb;
+        $club_id = (int) $club_id;
+        if ( $club_id <= 0 ) {
+            return array();
+        }
+
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+        $pk             = $settings['pk_licence'];
+        $columns        = self::get_table_columns( $licences_table );
+
+        if ( ! in_array( 'role', $columns, true ) ) {
+            return array();
+        }
+
+        $required_roles = array( 'president', 'secretaire', 'tresorier' );
+        $where          = "club_id = %d AND role IN ('president','secretaire','tresorier')";
+        if ( in_array( 'deleted_at', $columns, true ) ) {
+            $where .= " AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
+        }
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT {$pk} AS licence_id, role FROM `{$licences_table}` WHERE {$where}",
+                $club_id
+            )
+        );
+
+        $assignments = array();
+        foreach ( $required_roles as $required_role ) {
+            $assignments[ $required_role ] = array();
+        }
+        foreach ( (array) $rows as $row ) {
+            $role = sanitize_key( (string) ( $row->role ?? '' ) );
+            if ( ! isset( $assignments[ $role ] ) ) {
+                continue;
+            }
+            $assignments[ $role ][] = (int) ( $row->licence_id ?? 0 );
+        }
+
+        return $assignments;
+    }
+
+    /**
+     * Render non-blocking bureau coverage alert for one club.
+     *
+     * @param int $club_id Club ID.
+     * @return void
+     */
+    private static function render_bureau_alert_for_club( $club_id ) {
+        $assignments = self::get_bureau_role_assignments( $club_id );
+        if ( empty( $assignments ) ) {
+            return;
+        }
+        $role_labels = array(
+            'president' => __( 'Président', 'ufsc-clubs' ),
+            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+            'tresorier' => __( 'Trésorier', 'ufsc-clubs' ),
+        );
+        $missing = array();
+        foreach ( $role_labels as $role => $label ) {
+            if ( empty( $assignments[ $role ] ) ) {
+                $missing[] = sprintf( __( '%s non licencié', 'ufsc-clubs' ), $label );
+            }
+        }
+
+        if ( empty( $missing ) ) {
+            return;
+        }
+
+        echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Vous n’avez pas encore licencié l’ensemble du bureau du club.', 'ufsc-clubs' ) . '</strong><br />';
+        echo esc_html( implode( ' • ', $missing ) );
+        echo '</p></div>';
+    }
+
+    /**
+     * Return bureau badges for one licence row.
+     *
+     * @param int   $licence_id Licence ID.
+     * @param array $assignments Assignments by role.
+     * @return string
+     */
+    private static function get_bureau_badges_for_licence( $licence_id, $assignments ) {
+        $role_labels = array(
+            'president' => __( 'Président', 'ufsc-clubs' ),
+            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+            'tresorier' => __( 'Trésorier', 'ufsc-clubs' ),
+        );
+
+        $badges = array();
+        foreach ( $role_labels as $role => $label ) {
+            $ids = isset( $assignments[ $role ] ) ? (array) $assignments[ $role ] : array();
+            if ( in_array( (int) $licence_id, array_map( 'intval', $ids ), true ) ) {
+                $badges[] = '<span class="ufsc-badge badge-info" style="margin-right:4px;">' . esc_html( $label ) . '</span>';
+            }
+        }
+
+        return $badges ? implode( ' ', $badges ) : '—';
     }
 
     /**
@@ -1734,7 +1875,7 @@ class UFSC_SQL_Admin
         $filter_region = $filters['filter_region'];
         $filter_club   = $filters['filter_club'];
         $filter_status = $filters['filter_status'];
-        $filter_visibility = $filters['filter_visibility'];
+        $filter_visibility = in_array( $filters['filter_visibility'], array( 'active', 'trash', 'all' ), true ) ? $filters['filter_visibility'] : 'active';
         $scope_slug    = UFSC_Scope::get_user_scope_region();
         $scope_label   = $scope_slug ? UFSC_Scope::get_region_label( $scope_slug ) : '';
         if ( $scope_slug ) {
@@ -1831,6 +1972,9 @@ class UFSC_SQL_Admin
         if (isset($_GET['error'])) {
             echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
         }
+        if ( $filter_club > 0 ) {
+            self::render_bureau_alert_for_club( $filter_club );
+        }
 
         // Add nonce for AJAX operations
         echo '<input type="hidden" id="ufsc-ajax-nonce" value="' . wp_create_nonce('ufsc_ajax_nonce') . '" />';
@@ -1918,9 +2062,9 @@ class UFSC_SQL_Admin
         echo '<div>';
         echo '<label for="filter_visibility"><strong>' . esc_html__('Visibilité', 'ufsc-clubs') . '</strong></label>';
         echo '<select name="filter_visibility" id="filter_visibility">';
-        echo '<option value="active"' . selected( $filter_visibility, 'active', false ) . '>' . esc_html__( 'Hors corbeille', 'ufsc-clubs' ) . '</option>';
-        echo '<option value="trash"' . selected( $filter_visibility, 'trash', false ) . '>' . esc_html__( 'Corbeille', 'ufsc-clubs' ) . '</option>';
-        echo '<option value="all"' . selected( $filter_visibility, 'all', false ) . '>' . esc_html__( 'Toutes', 'ufsc-clubs' ) . '</option>';
+        echo '<option value="active"' . selected( $filter_visibility, 'active', false ) . '>' . esc_html__( 'Actives / visibles', 'ufsc-clubs' ) . '</option>';
+        echo '<option value="trash"' . selected( $filter_visibility, 'trash', false ) . '>' . esc_html__( 'Dans la corbeille', 'ufsc-clubs' ) . '</option>';
+        echo '<option value="all"' . selected( $filter_visibility, 'all', false ) . '>' . esc_html__( 'Toutes les licences', 'ufsc-clubs' ) . '</option>';
         echo '</select>';
         echo '</div>';
 
@@ -1937,6 +2081,9 @@ class UFSC_SQL_Admin
         echo '</div>';
 
         echo '<form method="post" id="bulk-actions-form">';
+        echo '<input type="hidden" name="page" value="ufsc-sql-licences" />';
+        echo '<input type="hidden" name="filter_visibility" value="' . esc_attr( $filter_visibility ) . '" />';
+        echo '<input type="hidden" name="return_to" value="' . esc_url( self::build_licences_redirect_url() ) . '" />';
         // Bulk actions
         echo '<div class="ufsc-bulk-actions" style="margin: 15px 0;">';
 
@@ -1969,6 +2116,7 @@ class UFSC_SQL_Admin
         echo '<td class="check-column"><input type="checkbox" id="select-all-licences" /></td>';
         echo '<th class="column-id">' . esc_html__('ID', 'ufsc-clubs') . '</th>';
         echo '<th>' . esc_html__('Licencié', 'ufsc-clubs') . '</th>';
+        echo '<th>' . esc_html__('Bureau', 'ufsc-clubs') . '</th>';
         echo '<th class="column-date">' . esc_html__('Naissance', 'ufsc-clubs') . '</th>';
         echo '<th>' . esc_html__('Club', 'ufsc-clubs') . '</th>';
         echo '<th class="column-region">' . esc_html__('Région', 'ufsc-clubs') . '</th>';
@@ -1978,6 +2126,7 @@ class UFSC_SQL_Admin
         echo '</tr></thead>';
         echo '<tbody>';
 
+        $bureau_assignments_cache = array();
         if ($rows) {
             foreach ($rows as $r) {
                 $normalized_status = function_exists( 'ufsc_normalize_license_status' )
@@ -1988,18 +2137,24 @@ class UFSC_SQL_Admin
                     $normalized_status = 'en_attente';
                 }
 
-                $view_url     = admin_url('admin.php?page=ufsc-sql-licences&action=view&id=' . $r->$pk);
-                $edit_url     = admin_url('admin.php?page=ufsc-sql-licences&action=edit&id=' . $r->$pk);
+                $return_to    = rawurlencode( self::build_licences_redirect_url() );
+                $view_url     = admin_url('admin.php?page=ufsc-sql-licences&action=view&id=' . $r->$pk . '&return_to=' . $return_to);
+                $edit_url     = admin_url('admin.php?page=ufsc-sql-licences&action=edit&id=' . $r->$pk . '&return_to=' . $return_to);
                 $trash_url    = wp_nonce_url(admin_url('admin-post.php?action=ufsc_sql_trash_licence&id=' . $r->$pk), 'ufsc_sql_trash_licence');
                 $restore_url  = wp_nonce_url(admin_url('admin-post.php?action=ufsc_sql_restore_licence&id=' . $r->$pk), 'ufsc_sql_restore_licence');
                 $force_delete_url = wp_nonce_url(admin_url('admin-post.php?action=ufsc_sql_force_delete_licence&id=' . $r->$pk), 'ufsc_sql_force_delete_licence');
                 $name         = trim($r->prenom . ' ' . $r->nom);
                 $club_display = $r->club_nom ? esc_html($r->club_nom) : esc_html__('Club #', 'ufsc-clubs') . $r->club_id;
+                $club_id_for_row = isset( $r->club_id ) ? (int) $r->club_id : 0;
+                if ( $club_id_for_row > 0 && ! isset( $bureau_assignments_cache[ $club_id_for_row ] ) ) {
+                    $bureau_assignments_cache[ $club_id_for_row ] = self::get_bureau_role_assignments( $club_id_for_row );
+                }
 
                 echo '<tr>';
                 echo '<th class="check-column"><input type="checkbox" name="licence_ids[]" value="' . (int) $r->$pk . '" /></th>';
                 echo '<td>' . (int) $r->$pk . '</td>';
                 echo '<td><strong>' . esc_html($name) . '</strong></td>';
+                echo '<td>' . wp_kses_post( self::get_bureau_badges_for_licence( (int) $r->$pk, $bureau_assignments_cache[ $club_id_for_row ] ?? array() ) ) . '</td>';
                 echo '<td>' . esc_html($r->date_naissance) . '</td>';
                 echo '<td>' . $club_display . '</td>';echo '<td>' . esc_html( '' !== trim( (string) ( $r->region_resolved ?? '' ) ) ? (string) $r->region_resolved : ( '' !== trim( (string) ( $r->region ?? '' ) ) ? (string) $r->region : '—' ) ) . '</td>';
                 echo '<td>';
@@ -2038,7 +2193,7 @@ class UFSC_SQL_Admin
                 echo '</tr>';
             }
         } else {
-            echo '<tr><td colspan="9">' . esc_html__('Aucune licence trouvée', 'ufsc-clubs') . '</td></tr>';
+            echo '<tr><td colspan="10">' . esc_html__('Aucune licence trouvée', 'ufsc-clubs') . '</td></tr>';
         }
         echo '</tbody></table>';
         echo '</form>';
@@ -2116,6 +2271,7 @@ class UFSC_SQL_Admin
         $pk     = $s['pk_licence'];
         $fields = UFSC_SQL::get_licence_fields();
         $row    = $id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM `$t` WHERE `$pk`=%d", $id)) : null;
+        $return_url = self::get_admin_return_url( 'ufsc-sql-licences' );
         if ( $row ) {
             if ( isset( $row->club_id ) ) {
                 UFSC_Scope::assert_club_in_scope( (int) $row->club_id );
@@ -2168,6 +2324,7 @@ class UFSC_SQL_Admin
             echo '<input type="hidden" name="action" value="ufsc_sql_save_licence" />';
             echo '<input type="hidden" name="id" value="' . (int) $id . '" />';
             echo '<input type="hidden" name="page" value="ufsc-sql-licences"/>';
+            echo '<input type="hidden" name="return_to" value="' . esc_url( $return_url ) . '" />';
         }
 
         echo '<div class="ufsc-grid">';
@@ -2187,13 +2344,13 @@ class UFSC_SQL_Admin
         if (! $readonly) {
             echo '<div class="ufsc-form-actions" style="background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 4px;">';
             echo '<div class="ufsc-button-group">';
-            echo '<a class="button" href="javascript:history.back()">' . esc_html__('Retour', 'ufsc-clubs') . '</a>';
+            echo '<a class="button" href="' . esc_url( $return_url ) . '">' . esc_html__('Retour', 'ufsc-clubs') . '</a>';
             echo '<button type="submit" name="save_action" value="save" class="button button-primary">' . esc_html__('Enregistrer', 'ufsc-clubs') . '</button>';
             if ($id) {
                 // Only show payment button for existing licenses
                 echo '<button type="submit" name="save_action" value="save_and_payment" class="button button-secondary" style="background: #00a32a; border-color: #00a32a; color: white;">' . esc_html__('Enregistrer et envoyer pour paiement', 'ufsc-clubs') . '</button>';
             }
-            echo '<a class="button" href="' . esc_url(admin_url('admin.php?page=ufsc-sql-licences')) . '">' . esc_html__('Annuler', 'ufsc-clubs') . '</a>';
+            echo '<a class="button" href="' . esc_url( $return_url ) . '">' . esc_html__('Annuler', 'ufsc-clubs') . '</a>';
             echo '</div>';
             if (! $id) {
                 echo '<p class="description" style="margin-top: 10px;">' . esc_html__('Note: Le bouton "Envoyer pour paiement" sera disponible après le premier enregistrement.', 'ufsc-clubs') . '</p>';
@@ -2201,9 +2358,9 @@ class UFSC_SQL_Admin
             echo '</div>';
             echo '</form>';
         } else {
-            echo '<p><a class="button" href="' . esc_url(admin_url('admin.php?page=ufsc-sql-licences')) . '">' . esc_html__('Retour à la liste', 'ufsc-clubs') . '</a>';
+            echo '<p><a class="button" href="' . esc_url( $return_url ) . '">' . esc_html__('Retour à la liste', 'ufsc-clubs') . '</a>';
             if (current_user_can('manage_options')) {
-                echo ' <a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=ufsc-sql-licences&action=edit&id=' . $id)) . '">' . esc_html__('Modifier', 'ufsc-clubs') . '</a>';
+                echo ' <a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=ufsc-sql-licences&action=edit&id=' . $id . '&return_to=' . rawurlencode( $return_url ))) . '">' . esc_html__('Modifier', 'ufsc-clubs') . '</a>';
             }
             echo '</p>';
         }
@@ -3497,8 +3654,8 @@ class UFSC_SQL_Admin
         echo '<div>';
         echo '<label for="filter_visibility"><strong>' . esc_html__('Visibilité', 'ufsc-clubs') . '</strong></label>';
         echo '<select name="filter_visibility" id="filter_visibility">';
-        echo '<option value="active">' . esc_html__('Hors corbeille', 'ufsc-clubs') . '</option>';
-        echo '<option value="trash">' . esc_html__('Corbeille', 'ufsc-clubs') . '</option>';
+        echo '<option value="active">' . esc_html__('Actives / visibles', 'ufsc-clubs') . '</option>';
+        echo '<option value="trash">' . esc_html__('Dans la corbeille', 'ufsc-clubs') . '</option>';
         echo '<option value="all">' . esc_html__('Toutes', 'ufsc-clubs') . '</option>';
         echo '</select>';
         echo '</div>';
@@ -4346,8 +4503,8 @@ class UFSC_SQL_Admin
 
     public static function handle_bulk_actions()
     {
-
-        if (! isset($_GET['page']) || $_GET['page'] !== 'ufsc-sql-licences') {
+        $page = isset( $_REQUEST['page'] ) ? sanitize_key( wp_unslash( $_REQUEST['page'] ) ) : '';
+        if ( 'ufsc-sql-licences' !== $page ) {
             return;
         }
 
@@ -4380,7 +4537,10 @@ class UFSC_SQL_Admin
                 return;
             }
         }
-        $item_ids = array_map('intval', $_POST['licence_ids']);
+        $item_ids = array_values( array_unique( array_filter( array_map( 'intval', (array) $_POST['licence_ids'] ) ) ) );
+        if ( empty( $item_ids ) ) {
+            return;
+        }
         switch ($action) {
             case 'validate':
                 self::bulk_validate_items($item_ids, $table);
@@ -4400,7 +4560,12 @@ class UFSC_SQL_Admin
         }
 
         if (! self::is_cli()) {
-            wp_redirect(add_query_arg('processed', count($item_ids), $_POST['_wp_http_referer']));
+            $redirect_to = self::build_licences_redirect_url(
+                array(
+                    'processed' => count( $item_ids ),
+                )
+            );
+            wp_safe_redirect( $redirect_to );
             exit;
         }
     }

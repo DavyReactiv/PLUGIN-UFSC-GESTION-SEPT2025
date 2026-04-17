@@ -1,5 +1,13 @@
 # UFSC Clubs & Licences Plugin - Changelog
 
+## Version 042026 - Correctifs ciblés (Avril 2026)
+
+- Correctif des actions groupées sur listes licences/clubs (multi-sélection, scope, nonce, redirection stable).
+- Clarification des libellés du filtre de visibilité sans changement des valeurs techniques.
+- Stabilisation du bouton retour sur écrans licence avec fallback déterministe.
+- Identification visuelle des licences de bureau (Président / Secrétaire / Trésorier) et alerte non bloquante en cas de rôles manquants.
+- Harmonisation de la version canonique du plugin (`UFSC_CL_VERSION` + en-tête plugin).
+
 ## Version 1.5.7 - Mise à jour mineure (Septembre 2025)
 
 - Mise à jour du numéro de version du plugin.
