@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.1.0';
+    const MIGRATION_VERSION = '1.2.0';
 
     /**
      * Option key for tracking migration version
@@ -27,11 +27,39 @@ class UFSC_DB_Migrations {
             self::migrate_to_innodb();
             self::create_indexes();
             self::create_unique_constraints();
+            self::ensure_licences_soft_delete_columns();
             self::create_events_table();
             
             update_option( self::VERSION_OPTION, self::MIGRATION_VERSION );
             
             add_action( 'admin_notices', array( __CLASS__, 'migration_success_notice' ) );
+        }
+    }
+
+    /**
+     * Ensure licences table supports soft delete.
+     */
+    public static function ensure_licences_soft_delete_columns() {
+        global $wpdb;
+
+        $settings      = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        if ( ! self::table_exists( $licences_table ) ) {
+            return;
+        }
+
+        $columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$licences_table}`", 0 );
+        if ( ! is_array( $columns ) ) {
+            return;
+        }
+
+        if ( ! in_array( 'deleted_at', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `deleted_at` datetime NULL DEFAULT NULL" );
+        }
+
+        if ( ! in_array( 'deleted_by', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `deleted_by` bigint(20) unsigned NULL DEFAULT NULL" );
         }
     }
 
