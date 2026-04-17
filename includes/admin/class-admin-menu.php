@@ -421,7 +421,17 @@ class UFSC_CL_Admin_Menu {
 
 			// License stats by status
 			$scope_lics = UFSC_Scope::build_scope_condition( 'region' );
-			$lics_where = $scope_lics ? "WHERE {$scope_lics}" : '';
+			$lics_conditions = array();
+			if ( $scope_lics ) {
+				$lics_conditions[] = $scope_lics;
+			}
+			$has_deleted_at = function_exists( 'ufsc_table_has_column' )
+				? ufsc_table_has_column( $t_lics, 'deleted_at' )
+				: false;
+			if ( $has_deleted_at ) {
+				$lics_conditions[] = "(deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
+			}
+			$lics_where = ! empty( $lics_conditions ) ? 'WHERE ' . implode( ' AND ', $lics_conditions ) : '';
 			$data['licenses_total']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` {$lics_where}" );
 			$data['licenses_valid']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('valide', 'validee', 'active')" );
 			// Intentionally excludes draft/brouillon which is tracked separately in licenses_draft.
