@@ -1679,7 +1679,12 @@ class UFSC_Frontend_Shortcodes {
             $select_fields = "*, `statut` AS licence_statut";
         }
 
-        return $wpdb->get_row( $wpdb->prepare( "SELECT {$select_fields} FROM `{$table}` WHERE id = %d AND club_id = %d", $licence_id, $club_id ) );
+        $where = "id = %d AND club_id = %d";
+        if ( in_array( 'deleted_at', $columns, true ) ) {
+            $where .= " AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
+        }
+
+        return $wpdb->get_row( $wpdb->prepare( "SELECT {$select_fields} FROM `{$table}` WHERE {$where}", $licence_id, $club_id ) );
     }
 
     // Helper methods
@@ -1829,9 +1834,13 @@ class UFSC_Frontend_Shortcodes {
             $raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
                 ? ufsc_get_licence_status_raw_values_for_norm( $args['status'] )
                 : array( $args['status'] );
-            $placeholders = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
-            $clauses[]    = "`statut` IN ({$placeholders})";
-            $values       = array_merge( $values, $raw_values );
+            if ( empty( $raw_values ) ) {
+                $clauses[] = '1 = 0';
+            } else {
+                $placeholders = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
+                $clauses[]    = "`statut` IN ({$placeholders})";
+                $values       = array_merge( $values, $raw_values );
+            }
         }
 
         // Saison
@@ -1936,9 +1945,13 @@ class UFSC_Frontend_Shortcodes {
             $raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
                 ? ufsc_get_licence_status_raw_values_for_norm( $args['status'] )
                 : array( $args['status'] );
-            $placeholders = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
-            $clauses[]    = "`statut` IN ({$placeholders})";
-            $values       = array_merge( $values, $raw_values );
+            if ( empty( $raw_values ) ) {
+                $clauses[] = '1 = 0';
+            } else {
+                $placeholders = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
+                $clauses[]    = "`statut` IN ({$placeholders})";
+                $values       = array_merge( $values, $raw_values );
+            }
         }
 
         // Saison
@@ -2099,10 +2112,20 @@ class UFSC_Frontend_Shortcodes {
             $club_id
         ) );
 
-        $used = (int) $wpdb->get_var( $wpdb->prepare(
-            "SELECT COUNT(*) FROM `{$licences_table}` WHERE club_id = %d",
-            $club_id
-        ) );
+        $licence_conditions = array( 'club_id = %d' );
+        $licence_args       = array( $club_id );
+        $licence_columns    = function_exists( 'ufsc_table_columns' )
+            ? ufsc_table_columns( $licences_table )
+            : $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
+        if ( in_array( 'deleted_at', $licence_columns, true ) ) {
+            $licence_conditions[] = "(deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
+        }
+        $used = (int) $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT COUNT(*) FROM `{$licences_table}` WHERE " . implode( ' AND ', $licence_conditions ),
+                $licence_args
+            )
+        );
 
         return array(
             'total'     => $quota_total,

@@ -1689,8 +1689,12 @@ class UFSC_SQL_Admin
                 $raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
                     ? ufsc_get_licence_status_raw_values_for_norm( $normalized_filter )
                     : array( $normalized_filter );
-                $placeholders       = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
-                $where_conditions[] = $wpdb->prepare( "l.statut IN ({$placeholders})", ...$raw_values );
+                if ( empty( $raw_values ) ) {
+                    $where_conditions[] = '1 = 0';
+                } else {
+                    $placeholders       = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
+                    $where_conditions[] = $wpdb->prepare( "l.statut IN ({$placeholders})", ...$raw_values );
+                }
             }
         }
 
@@ -2824,7 +2828,7 @@ class UFSC_SQL_Admin
 
     public static function handle_delete_licence()
     {
-        if (! current_user_can('read')) {
+        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
             wp_die(__('Accès refusé.', 'ufsc-clubs'));
         }
 
@@ -2833,7 +2837,7 @@ class UFSC_SQL_Admin
     }
 
     public static function handle_trash_licence( $check_nonce = true ) {
-        if ( ! is_user_logged_in() ) {
+        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
         if ( $check_nonce ) {
@@ -2845,22 +2849,18 @@ class UFSC_SQL_Admin
         $t  = $s['table_licences'];
         $pk = $s['pk_licence'];
         $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+        if ( $id <= 0 ) {
+            self::maybe_redirect( self::build_licences_redirect_url( array( 'error' => urlencode( __( 'ID de licence invalide', 'ufsc-clubs' ) ) ) ) );
+            return;
+        }
 
         // Fetch the club ID for the licence to validate permissions
         $club_id = 0;
         if ($id && (! function_exists('ufsc_table_has_column') || ufsc_table_has_column($t, 'club_id'))) {
             $club_id = (int) $wpdb->get_var($wpdb->prepare("SELECT club_id FROM {$t} WHERE {$pk} = %d", $id));
         }
-        $user_id = get_current_user_id();
         if ( $club_id ) {
             UFSC_Scope::assert_club_in_scope( $club_id );
-        }
-
-        // Verify capability and club ownership before proceeding
-        if (! current_user_can('manage_options') && ufsc_get_user_club_id($user_id) !== $club_id) {
-            set_transient('ufsc_error_' . $user_id, __('Permissions insuffisantes', 'ufsc-clubs'), 30);
-            self::maybe_redirect(wp_get_referer());
-            return; // Abort if user lacks rights on this club
         }
 
         if ($id) {
@@ -2881,15 +2881,26 @@ class UFSC_SQL_Admin
                 self::maybe_redirect( self::build_licences_redirect_url( array( 'error' => urlencode( __( 'Corbeille indisponible: colonne deleted_at absente.', 'ufsc-clubs' ) ) ) ) );
                 return;
             }
+            $already_trashed = isset( $licence->deleted_at ) && ! empty( $licence->deleted_at ) && '0000-00-00 00:00:00' !== $licence->deleted_at;
+            if ( $already_trashed ) {
+                self::maybe_redirect( self::build_licences_redirect_url( array( 'updated' => 1 ) ) );
+                return;
+            }
+
+            $update_data = array(
+                'deleted_at' => current_time( 'mysql' ),
+            );
+            $update_formats = array( '%s' );
+            if ( in_array( 'deleted_by', $columns, true ) ) {
+                $update_data['deleted_by'] = get_current_user_id();
+                $update_formats[] = '%d';
+            }
 
             $result = $wpdb->update(
                 $t,
-                array(
-                    'deleted_at' => current_time( 'mysql' ),
-                    'deleted_by' => get_current_user_id(),
-                ),
+                $update_data,
                 array( $pk => $id ),
-                array( '%s', '%d' ),
+                $update_formats,
                 array( '%d' )
             );
             if ($result !== false) {
@@ -2907,7 +2918,7 @@ class UFSC_SQL_Admin
     }
 
     public static function handle_restore_licence() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
         check_admin_referer( 'ufsc_sql_restore_licence' );
@@ -2918,36 +2929,43 @@ class UFSC_SQL_Admin
         $pk = $s['pk_licence'];
         $id = isset( $_GET['id'] ) ? (int) $_GET['id'] : 0;
         if ( $id <= 0 ) {
-            self::maybe_redirect(admin_url('admin.php?page=ufsc-sql-licences&error=' . urlencode(__('ID de licence invalide', 'ufsc-clubs'))));
+            self::maybe_redirect( self::build_licences_redirect_url( array( 'error' => urlencode(__('ID de licence invalide', 'ufsc-clubs')) ) ) );
             return;
         }
-        $in_trash = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$t} WHERE {$pk} = %d AND deleted_at IS NOT NULL AND deleted_at != '0000-00-00 00:00:00'",
-                $id
-            )
-        );
-        if ( $in_trash <= 0 ) {
+        $columns = self::get_table_columns( $t );
+        if ( ! in_array( 'deleted_at', $columns, true ) ) {
+            self::maybe_redirect( self::build_licences_redirect_url( array( 'error' => urlencode( __( 'Corbeille indisponible: colonne deleted_at absente.', 'ufsc-clubs' ) ) ) ) );
+            return;
+        }
+        $licence = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE {$pk} = %d", $id ) );
+        if ( ! $licence ) {
+            self::maybe_redirect( self::build_licences_redirect_url( array( 'error' => urlencode( __( 'Licence introuvable', 'ufsc-clubs' ) ) ) ) );
+            return;
+        }
+        if ( isset( $licence->club_id ) && (int) $licence->club_id > 0 ) {
+            UFSC_Scope::assert_club_in_scope( (int) $licence->club_id );
+        }
+        $in_trash = isset( $licence->deleted_at ) && ! empty( $licence->deleted_at ) && '0000-00-00 00:00:00' !== $licence->deleted_at;
+        if ( ! $in_trash ) {
             self::maybe_redirect( self::build_licences_redirect_url( array( 'error' => urlencode( __( 'La licence n’est pas en corbeille.', 'ufsc-clubs' ) ) ) ) );
             return;
         }
 
-        $result = $wpdb->query(
-            $wpdb->prepare(
-                "UPDATE {$t}
-                 SET deleted_at = NULL, deleted_by = NULL
-                 WHERE {$pk} = %d
-                 AND deleted_at IS NOT NULL
-                 AND deleted_at != '0000-00-00 00:00:00'",
-                $id
-            )
+        $update_data = array(
+            'deleted_at' => null,
         );
+        $update_formats = array( '%s' );
+        if ( in_array( 'deleted_by', $columns, true ) ) {
+            $update_data['deleted_by'] = null;
+            $update_formats[] = '%d';
+        }
+        $result = $wpdb->update( $t, $update_data, array( $pk => $id ), $update_formats, array( '%d' ) );
         self::debug_log_licences( 'restore', array( 'licence_id' => $id, 'actor' => get_current_user_id(), 'result' => $result ) );
         self::maybe_redirect( self::build_licences_redirect_url( array( 'updated' => 1 ) ) );
     }
 
     public static function handle_force_delete_licence() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
         check_admin_referer( 'ufsc_sql_force_delete_licence' );
@@ -2958,16 +2976,24 @@ class UFSC_SQL_Admin
         $pk = $s['pk_licence'];
         $id = isset( $_GET['id'] ) ? (int) $_GET['id'] : 0;
         if ( $id <= 0 ) {
-            self::maybe_redirect(admin_url('admin.php?page=ufsc-sql-licences&error=' . urlencode(__('ID de licence invalide', 'ufsc-clubs'))));
+            self::maybe_redirect( self::build_licences_redirect_url( array( 'error' => urlencode(__('ID de licence invalide', 'ufsc-clubs')) ) ) );
             return;
         }
-        $in_trash = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$t} WHERE {$pk} = %d AND deleted_at IS NOT NULL AND deleted_at != '0000-00-00 00:00:00'",
-                $id
-            )
-        );
-        if ( $in_trash <= 0 ) {
+        $columns = self::get_table_columns( $t );
+        if ( ! in_array( 'deleted_at', $columns, true ) ) {
+            self::maybe_redirect( self::build_licences_redirect_url( array( 'error' => urlencode( __( 'Corbeille indisponible: colonne deleted_at absente.', 'ufsc-clubs' ) ) ) ) );
+            return;
+        }
+        $licence = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t} WHERE {$pk} = %d", $id ) );
+        if ( ! $licence ) {
+            self::maybe_redirect( self::build_licences_redirect_url( array( 'error' => urlencode( __( 'Licence introuvable', 'ufsc-clubs' ) ) ) ) );
+            return;
+        }
+        if ( isset( $licence->club_id ) && (int) $licence->club_id > 0 ) {
+            UFSC_Scope::assert_club_in_scope( (int) $licence->club_id );
+        }
+        $in_trash = isset( $licence->deleted_at ) && ! empty( $licence->deleted_at ) && '0000-00-00 00:00:00' !== $licence->deleted_at;
+        if ( ! $in_trash ) {
             self::maybe_redirect( self::build_licences_redirect_url( array( 'error' => urlencode( __( 'Suppression définitive refusée : la licence doit être en corbeille.', 'ufsc-clubs' ) ) ) ) );
             return;
         }
@@ -4329,6 +4355,9 @@ class UFSC_SQL_Admin
         if (! isset($_POST['bulk_action']) || empty($_POST['bulk_action'])) {
             return;
         }
+        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
 
         if (! isset($_POST['licence_ids']) || empty($_POST['licence_ids'])) {
             add_action('admin_notices', function () {
@@ -4340,8 +4369,9 @@ class UFSC_SQL_Admin
 
         $settings = UFSC_SQL::get_settings();
         $table    = $settings['table_licences'];
+        $pk       = $settings['pk_licence'];
         $action   = sanitize_text_field($_POST['bulk_action']);
-        $item_ids = array_map('intval', $_POST['licence_ids']);
+        $item_ids = array_values( array_filter( array_map( 'intval', (array) $_POST['licence_ids'] ) ) );
         switch ($action) {
             case 'validate':
                 self::bulk_validate_items($item_ids, $table);
@@ -4353,10 +4383,10 @@ class UFSC_SQL_Admin
                 self::bulk_pending_items($item_ids, $table);
                 break;
             case 'delete':
-                self::bulk_delete_items($item_ids, $table);
+                self::bulk_delete_items($item_ids, $table, $pk);
                 break;
             case 'restore':
-                self::bulk_restore_items($item_ids, $table);
+                self::bulk_restore_items($item_ids, $table, $pk);
                 break;
         }
 
@@ -4450,7 +4480,7 @@ class UFSC_SQL_Admin
         });
     }
 
-    private static function bulk_delete_items($item_ids, $table)
+    private static function bulk_delete_items($item_ids, $table, $pk)
     {
         global $wpdb;
 
@@ -4461,21 +4491,36 @@ class UFSC_SQL_Admin
             return;
         }
         foreach ($item_ids as $item_id) {
-            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", (int) $item_id ) );
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", (int) $item_id ) );
+            if ( ! $row ) {
+                continue;
+            }
+            if ( isset( $row->club_id ) && (int) $row->club_id > 0 ) {
+                UFSC_Scope::assert_club_in_scope( (int) $row->club_id );
+            }
             if ( $row && '' !== self::get_licence_delete_block_reason( $row ) ) {
                 $blocked++;
                 continue;
             }
+            if ( isset( $row->deleted_at ) && ! empty( $row->deleted_at ) && '0000-00-00 00:00:00' !== $row->deleted_at ) {
+                continue;
+            }
+
+            $update_data = array(
+                'deleted_at' => current_time( 'mysql' ),
+            );
+            $update_formats = array( '%s' );
+            if ( in_array( 'deleted_by', $columns, true ) ) {
+                $update_data['deleted_by'] = get_current_user_id();
+                $update_formats[] = '%d';
+            }
 
             $result = $wpdb->update(
                 $table,
-                array(
-                    'deleted_at' => current_time( 'mysql' ),
-                    'deleted_by' => get_current_user_id(),
-                ),
-                ['id' => $item_id],
-                ['%s', '%d'],
-                ['%d']
+                $update_data,
+                array( $pk => $item_id ),
+                $update_formats,
+                array( '%d' )
             );
             if ( false !== $result ) {
                 $deleted++;
@@ -4496,7 +4541,7 @@ class UFSC_SQL_Admin
         });
     }
 
-    private static function bulk_restore_items($item_ids, $table) {
+    private static function bulk_restore_items($item_ids, $table, $pk) {
         global $wpdb;
         $columns = self::get_table_columns( $table );
         if ( ! in_array( 'deleted_at', $columns, true ) ) {
@@ -4504,16 +4549,27 @@ class UFSC_SQL_Admin
         }
         $restored = 0;
         foreach ( $item_ids as $item_id ) {
-            $result = $wpdb->query(
-                $wpdb->prepare(
-                    "UPDATE {$table}
-                     SET deleted_at = NULL, deleted_by = NULL
-                     WHERE id = %d
-                     AND deleted_at IS NOT NULL
-                     AND deleted_at != '0000-00-00 00:00:00'",
-                    (int) $item_id
-                )
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", (int) $item_id ) );
+            if ( ! $row ) {
+                continue;
+            }
+            if ( isset( $row->club_id ) && (int) $row->club_id > 0 ) {
+                UFSC_Scope::assert_club_in_scope( (int) $row->club_id );
+            }
+            if ( ! isset( $row->deleted_at ) || empty( $row->deleted_at ) || '0000-00-00 00:00:00' === $row->deleted_at ) {
+                continue;
+            }
+
+            $update_data = array(
+                'deleted_at' => null,
             );
+            $update_formats = array( '%s' );
+            if ( in_array( 'deleted_by', $columns, true ) ) {
+                $update_data['deleted_by'] = null;
+                $update_formats[] = '%d';
+            }
+
+            $result = $wpdb->update( $table, $update_data, array( $pk => (int) $item_id ), $update_formats, array( '%d' ) );
             if ( false !== $result ) {
                 $restored++;
             }
