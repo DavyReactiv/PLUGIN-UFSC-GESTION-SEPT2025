@@ -1804,6 +1804,9 @@ class UFSC_Frontend_Shortcodes {
         // Clauses et valeurs de préparation
         $clauses = array( 'club_id = %d' );
         $values  = array( (int) $club_id );
+        if ( in_array( 'deleted_at', $columns, true ) ) {
+            $clauses[] = "(deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
+        }
 
         // Recherche
         if ( ! empty( $args['search'] ) ) {
@@ -1908,6 +1911,9 @@ class UFSC_Frontend_Shortcodes {
 
         $clauses = array( 'club_id = %d' );
         $values  = array( (int) $club_id );
+        if ( in_array( 'deleted_at', $columns, true ) ) {
+            $clauses[] = "(deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
+        }
 
         // Recherche
         if ( ! empty( $args['search'] ) ) {
