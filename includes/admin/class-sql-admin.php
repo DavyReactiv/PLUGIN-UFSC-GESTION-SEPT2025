@@ -252,6 +252,35 @@ class UFSC_SQL_Admin
     }
 
     /**
+     * Build a safe licences return URL from an explicit candidate.
+     *
+     * @param string $candidate Candidate URL from request.
+     * @return string Empty string when invalid.
+     */
+    private static function get_safe_licences_return_url( $candidate ) {
+        $candidate = (string) $candidate;
+        if ( '' === $candidate ) {
+            return '';
+        }
+        if ( ! wp_validate_redirect( $candidate, false ) ) {
+            return '';
+        }
+
+        $parts = wp_parse_url( $candidate );
+        if ( empty( $parts['query'] ) ) {
+            return '';
+        }
+
+        parse_str( $parts['query'], $query );
+        $page = isset( $query['page'] ) ? sanitize_key( (string) $query['page'] ) : '';
+        if ( 'ufsc-sql-licences' !== $page ) {
+            return '';
+        }
+
+        return remove_query_arg( array( 'updated', 'deleted', 'deleted_id', 'error' ), $candidate );
+    }
+
+    /**
      * Build a safe return URL for admin forms.
      *
      * @param string $fallback_page Menu page slug fallback.
@@ -4560,10 +4589,16 @@ class UFSC_SQL_Admin
         }
 
         if (! self::is_cli()) {
-            $redirect_to = self::build_licences_redirect_url(
+            $requested_return_to = isset( $_POST['return_to'] ) ? wp_unslash( $_POST['return_to'] ) : '';
+            $redirect_base       = self::get_safe_licences_return_url( $requested_return_to );
+            if ( '' === $redirect_base ) {
+                $redirect_base = self::build_licences_redirect_url();
+            }
+            $redirect_to = add_query_arg(
                 array(
                     'processed' => count( $item_ids ),
-                )
+                ),
+                $redirect_base
             );
             wp_safe_redirect( $redirect_to );
             exit;
