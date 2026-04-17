@@ -1753,61 +1753,6 @@ class UFSC_SQL_Admin
         // Build WHERE conditions
         $where_conditions = self::build_licence_where_conditions( $filters, $licence_columns, $club_columns, $has_club_id );
 
-        $visibility = in_array( $filters['filter_visibility'], array( 'active', 'trash', 'all' ), true )
-            ? $filters['filter_visibility']
-            : 'active';
-        $visibility_condition = self::build_licence_visibility_condition( 'l', $licence_columns, $visibility );
-        if ( $visibility_condition ) {
-            $where_conditions[] = $visibility_condition;
-        }
-
-        return $where_conditions;
-    }
-
-    public static function render_licences()
-    {
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_MANAGE_READ ) ) {
-            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
-        }
-
-        // Handle save first
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'ufsc_sql_save_licence') {
-            self::handle_save_licence();
-        }
-        global $wpdb;
-        $s              = UFSC_SQL::get_settings();
-        $licences_table = $s['table_licences'];
-        $clubs_table    = $s['table_clubs'];
-        $licence_columns = self::get_table_columns($licences_table);
-        $club_columns    = self::get_table_columns($clubs_table);
-        $has_club_id     = in_array('club_id', $licence_columns, true);
-        $pk             = $s['pk_licence'];
-
-        // Handle search and filters
-        $filters       = self::get_licence_filters_from_request( 'get' );
-        $search        = $filters['search'];
-        $filter_region = $filters['filter_region'];
-        $filter_club   = $filters['filter_club'];
-        $filter_status = $filters['filter_status'];
-        $filter_visibility = $filters['filter_visibility'];
-        $scope_slug    = UFSC_Scope::get_user_scope_region();
-        $scope_label   = $scope_slug ? UFSC_Scope::get_region_label( $scope_slug ) : '';
-        if ( $scope_slug ) {
-            $enforced_region = $scope_label ?: $scope_slug;
-            if ( $filter_region !== $enforced_region ) {
-                $filter_region = $enforced_region;
-            }
-        }
-        $filters['filter_region'] = $filter_region;
-
-        // Pagination
-        $per_page = 20;
-        $page     = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
-        $offset   = ($page - 1) * $per_page;
-
-        // Build WHERE conditions
-        $where_conditions = self::build_licence_where_conditions( $filters, $licence_columns, $club_columns, $has_club_id );
-
         $where_clause = ! empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
 
         // Get total count for pagination
