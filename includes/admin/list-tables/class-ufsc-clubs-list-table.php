@@ -356,6 +356,7 @@ class UFSC_Clubs_List_Table {
         }
 
         echo '<form method="post" id="bulk-actions-form">';
+        echo '<input type="hidden" name="page" value="ufsc-sql-clubs" />';
         // Bulk actions
         echo '<div class="ufsc-bulk-actions" style="margin: 15px 0;">';
 
@@ -651,7 +652,8 @@ class UFSC_Clubs_List_Table {
     }
 
     public static function handle_bulk_actions() {
-        if (!isset($_GET['page']) || $_GET['page'] !== 'ufsc-sql-clubs') {
+        $page = isset( $_REQUEST['page'] ) ? sanitize_key( wp_unslash( $_REQUEST['page'] ) ) : '';
+        if ( 'ufsc-sql-clubs' !== $page ) {
             return;
         }
         if ( ! current_user_can( 'manage_options' ) ) {
@@ -675,7 +677,10 @@ class UFSC_Clubs_List_Table {
         $settings  = UFSC_SQL::get_settings();
         $table     = $settings['table_clubs'];
         $action    = sanitize_text_field($_POST['bulk_action']);
-        $item_ids  = array_map('intval', $_POST['club_ids']);
+        $item_ids  = array_values( array_unique( array_filter( array_map( 'intval', (array) $_POST['club_ids'] ) ) ) );
+        if ( empty( $item_ids ) ) {
+            return;
+        }
         switch ($action) {
             case 'actif':
                 self::bulk_actif_items($item_ids, $table);
@@ -694,7 +699,8 @@ class UFSC_Clubs_List_Table {
         if ( defined( 'WP_CLI' ) && WP_CLI ) {
             return;
         }
-        wp_redirect(add_query_arg('processed', count($item_ids), $_POST['_wp_http_referer']));
+        $redirect_to = isset( $_POST['_wp_http_referer'] ) ? wp_validate_redirect( wp_unslash( $_POST['_wp_http_referer'] ), admin_url( 'admin.php?page=ufsc-sql-clubs' ) ) : admin_url( 'admin.php?page=ufsc-sql-clubs' );
+        wp_safe_redirect( add_query_arg( 'processed', count( $item_ids ), $redirect_to ) );
         exit;
     }
 

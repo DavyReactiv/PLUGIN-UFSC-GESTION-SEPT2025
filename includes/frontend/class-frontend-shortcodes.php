@@ -347,6 +347,7 @@ class UFSC_Frontend_Shortcodes {
         $licences = self::get_club_licences( $atts['club_id'], $atts );
         $total_count = self::get_club_licences_count( $atts['club_id'], $atts );
         $total_pages = ceil( $total_count / $atts['per_page'] );
+        $bureau_data = self::get_bureau_coverage_data( (int) $atts['club_id'] );
 
         $club_name  = self::get_club_name( $atts['club_id'] );
         $wc_settings = ufsc_get_woocommerce_settings();
@@ -387,6 +388,12 @@ class UFSC_Frontend_Shortcodes {
                     </button>
                 </div>
             </div>
+            <?php if ( ! empty( $bureau_data['missing_labels'] ) ) : ?>
+                <div class="ufsc-message ufsc-info">
+                    <strong><?php esc_html_e( 'Vous n’avez pas encore licencié l’ensemble du bureau du club.', 'ufsc-clubs' ); ?></strong><br>
+                    <?php echo esc_html( implode( ' • ', $bureau_data['missing_labels'] ) ); ?>
+                </div>
+            <?php endif; ?>
 
             <!-- Filters -->
             <div class="ufsc-licences-filters">
@@ -461,6 +468,7 @@ class UFSC_Frontend_Shortcodes {
                             <tr>
                                 <th><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Bureau', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Sexe', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Status', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Saison', 'ufsc-clubs' ); ?></th>
@@ -514,6 +522,7 @@ class UFSC_Frontend_Shortcodes {
                                 <tr>
                                     <td><?php echo esc_html( $nom ); ?></td>
                                     <td><?php echo esc_html( $prenom ); ?></td>
+                                    <td><?php echo wp_kses_post( self::render_bureau_badges_for_front_licence( (int) ( $licence->id ?? 0 ), $bureau_data['assignments'] ) ); ?></td>
                                     <td><?php echo esc_html( $gender ); ?></td>
                                     <td><?php echo self::get_status_badge_front($status); ?></td>
                                     <td><?php echo esc_html( $season ); ?></td>
@@ -1970,6 +1979,96 @@ class UFSC_Frontend_Shortcodes {
         $sql       = "SELECT COUNT(*) FROM `{$licences_table}` {$where_sql}";
 
         return (int) $wpdb->get_var( $wpdb->prepare( $sql, $values ) );
+    }
+
+    /**
+     * Get bureau assignments and missing roles from licences.
+     *
+     * @param int $club_id Club identifier.
+     * @return array{assignments: array<string,array<int>>, missing_labels: array<int,string>}
+     */
+    private static function get_bureau_coverage_data( $club_id ) {
+        global $wpdb;
+
+        $club_id = (int) $club_id;
+        $data = array(
+            'assignments' => array(
+                'president' => array(),
+                'secretaire' => array(),
+                'tresorier' => array(),
+            ),
+            'missing_labels' => array(),
+        );
+
+        if ( $club_id <= 0 || ! function_exists( 'ufsc_get_licences_table' ) ) {
+            return $data;
+        }
+
+        $licences_table = ufsc_get_licences_table();
+        $columns = function_exists( 'ufsc_table_columns' )
+            ? ufsc_table_columns( $licences_table )
+            : $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
+
+        if ( ! in_array( 'role', (array) $columns, true ) ) {
+            return $data;
+        }
+
+        $where = "club_id = %d AND role IN ('president','secretaire','tresorier')";
+        if ( in_array( 'deleted_at', (array) $columns, true ) ) {
+            $where .= " AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
+        }
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT id, role FROM `{$licences_table}` WHERE {$where}",
+                $club_id
+            )
+        );
+
+        foreach ( (array) $rows as $row ) {
+            $role = sanitize_key( (string) ( $row->role ?? '' ) );
+            if ( isset( $data['assignments'][ $role ] ) ) {
+                $data['assignments'][ $role ][] = (int) ( $row->id ?? 0 );
+            }
+        }
+
+        $role_labels = array(
+            'president' => __( 'Président', 'ufsc-clubs' ),
+            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+            'tresorier' => __( 'Trésorier', 'ufsc-clubs' ),
+        );
+        foreach ( $role_labels as $role => $label ) {
+            if ( empty( $data['assignments'][ $role ] ) ) {
+                $data['missing_labels'][] = sprintf( __( '%s non licencié', 'ufsc-clubs' ), $label );
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Render bureau badges for one licence line.
+     *
+     * @param int   $licence_id Licence identifier.
+     * @param array $assignments Role assignments.
+     * @return string
+     */
+    private static function render_bureau_badges_for_front_licence( $licence_id, $assignments ) {
+        $role_labels = array(
+            'president' => __( 'Président', 'ufsc-clubs' ),
+            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+            'tresorier' => __( 'Trésorier', 'ufsc-clubs' ),
+        );
+
+        $badges = array();
+        foreach ( $role_labels as $role => $label ) {
+            $ids = isset( $assignments[ $role ] ) ? array_map( 'intval', (array) $assignments[ $role ] ) : array();
+            if ( in_array( (int) $licence_id, $ids, true ) ) {
+                $badges[] = '<span class="ufsc-badge badge-info" style="margin-right:4px;">' . esc_html( $label ) . '</span>';
+            }
+        }
+
+        return $badges ? implode( ' ', $badges ) : '—';
     }
 
     /**
