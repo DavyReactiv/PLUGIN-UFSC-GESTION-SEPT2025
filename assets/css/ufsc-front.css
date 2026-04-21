@@ -967,9 +967,19 @@ button#upload_btn {
 /* ===== V3 refinement for production premium pass ===== */
 .ufsc-premium-v3 .ufsc-dashboard-header--premium {
     display: grid;
-    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.7fr);
-    gap: 20px;
+    grid-template-columns: minmax(320px, 0.95fr) minmax(0, 1.25fr);
+    gap: 22px;
     align-items: start;
+}
+
+.ufsc-premium-v3 .ufsc-hero-left {
+    display: grid;
+    gap: 14px;
+}
+
+.ufsc-premium-v3 .ufsc-hero-right {
+    display: grid;
+    align-content: start;
 }
 
 .ufsc-premium-v3 .ufsc-dashboard-hero-side {
@@ -997,11 +1007,10 @@ button#upload_btn {
 }
 
 .ufsc-premium-v3 .ufsc-hero-kpi-grid {
-    grid-column: 1 / -1;
     display: grid;
     gap: 12px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    margin-top: 2px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 0;
 }
 
 .ufsc-premium-v3 .ufsc-hero-kpi-grid .ufsc-kpi-tile {

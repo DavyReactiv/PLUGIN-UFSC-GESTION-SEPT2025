@@ -143,56 +143,59 @@ class UFSC_Frontend_Shortcodes {
         <div class="ufsc-club-dashboard ufsc-premium-v3" id="ufsc-dashboard">
             <div class="ufsc-dashboard-shell">
                 <div class="ufsc-dashboard-header ufsc-dashboard-header--premium">
-                    <div class="ufsc-dashboard-brand">
-                        <img class="ufsc-dashboard-logo" src="<?php echo esc_url( UFSC_CL_URL . 'assets/svg/ufsc-badge.svg' ); ?>" alt="<?php esc_attr_e( 'UFSC', 'ufsc-clubs' ); ?>">
-                        <div class="ufsc-dashboard-title">
-                            <h2><?php esc_html_e( 'Tableau de bord Club', 'ufsc-clubs' ); ?></h2>
-                            <p class="ufsc-dashboard-subtitle">
-                                <?php
-                                $club_name = self::get_club_name( $club_id );
-                                if ( $club_name ) {
-                                    echo sprintf( esc_html__( 'Pilotage de %s', 'ufsc-clubs' ), esc_html( $club_name ) );
-                                }
-                                ?>
-                            </p>
-                            <div class="ufsc-dashboard-status-line">
-                                <span class="ufsc-badge ufsc-badge-info"><?php esc_html_e( 'État du club', 'ufsc-clubs' ); ?></span>
-                                <?php echo self::get_status_badge_front( $club_status ); ?>
-                                <?php if ( ! empty( $club->num_affiliation ) ) : ?>
-                                    <span class="ufsc-badge ufsc-badge-region"><?php echo esc_html( sprintf( __( 'Affiliation %s', 'ufsc-clubs' ), $club->num_affiliation ) ); ?></span>
+                    <div class="ufsc-hero-left">
+                        <div class="ufsc-dashboard-brand">
+                            <img class="ufsc-dashboard-logo" src="<?php echo esc_url( UFSC_CL_URL . 'assets/svg/ufsc-badge.svg' ); ?>" alt="<?php esc_attr_e( 'UFSC', 'ufsc-clubs' ); ?>">
+                            <div class="ufsc-dashboard-title">
+                                <h2><?php esc_html_e( 'Tableau de bord Club', 'ufsc-clubs' ); ?></h2>
+                                <p class="ufsc-dashboard-subtitle">
+                                    <?php
+                                    $club_name = self::get_club_name( $club_id );
+                                    if ( $club_name ) {
+                                        echo sprintf( esc_html__( 'Pilotage de %s', 'ufsc-clubs' ), esc_html( $club_name ) );
+                                    }
+                                    ?>
+                                </p>
+                                <div class="ufsc-dashboard-status-line">
+                                    <span class="ufsc-badge ufsc-badge-info"><?php esc_html_e( 'État du club', 'ufsc-clubs' ); ?></span>
+                                    <?php echo self::get_status_badge_front( $club_status ); ?>
+                                    <?php if ( ! empty( $club->num_affiliation ) ) : ?>
+                                        <span class="ufsc-badge ufsc-badge-region"><?php echo esc_html( sprintf( __( 'Affiliation %s', 'ufsc-clubs' ), $club->num_affiliation ) ); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="ufsc-dashboard-actions">
+                            <?php if ( in_array( 'add_licence', $sections, true ) ): ?>
+                                <a href="#ufsc-section-add_licence" class="ufsc-btn ufsc-btn-primary" onclick="document.querySelector('[data-section=&quot;add_licence&quot;]').click(); return false;">
+                                    <?php esc_html_e( 'Ajouter une licence', 'ufsc-clubs' ); ?>
+                                </a>
+                            <?php endif; ?>
+                            <?php if ( in_array( 'profile', $sections, true ) ): ?>
+                                <a href="#ufsc-section-profile" class="ufsc-btn ufsc-btn-secondary" onclick="document.querySelector('[data-section=&quot;profile&quot;]').click(); return false;">
+                                    <?php esc_html_e( 'Mettre à jour le club', 'ufsc-clubs' ); ?>
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                        <div class="ufsc-dashboard-hero-side">
+                            <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
+                                <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
+                            <?php endif; ?>
+                            <div class="ufsc-dashboard-hero-side-meta">
+                                <?php if ( ! empty( $attestation_dashboard['can_view'] ) ) : ?>
+                                    <?php if ( ! empty( $attestation_dashboard['url'] ) ) : ?>
+                                        <a href="<?php echo esc_url( $attestation_dashboard['url'] ); ?>" target="_blank" rel="noopener" class="ufsc-btn ufsc-btn-secondary">
+                                            <?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?>
+                                        </a>
+                                    <?php else : ?>
+                                        <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Attestation en cours', 'ufsc-clubs' ); ?></span>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                         </div>
                     </div>
-                    <div class="ufsc-dashboard-actions">
-                        <?php if ( in_array( 'add_licence', $sections, true ) ): ?>
-                            <a href="#ufsc-section-add_licence" class="ufsc-btn ufsc-btn-primary" onclick="document.querySelector('[data-section=&quot;add_licence&quot;]').click(); return false;">
-                                <?php esc_html_e( 'Ajouter une licence', 'ufsc-clubs' ); ?>
-                            </a>
-                        <?php endif; ?>
-                        <?php if ( in_array( 'profile', $sections, true ) ): ?>
-                            <a href="#ufsc-section-profile" class="ufsc-btn ufsc-btn-secondary" onclick="document.querySelector('[data-section=&quot;profile&quot;]').click(); return false;">
-                                <?php esc_html_e( 'Mettre à jour le club', 'ufsc-clubs' ); ?>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                    <div class="ufsc-dashboard-hero-side">
-                        <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
-                            <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
-                        <?php endif; ?>
-                        <div class="ufsc-dashboard-hero-side-meta">
-                            <?php if ( ! empty( $attestation_dashboard['can_view'] ) ) : ?>
-                                <?php if ( ! empty( $attestation_dashboard['url'] ) ) : ?>
-                                    <a href="<?php echo esc_url( $attestation_dashboard['url'] ); ?>" target="_blank" rel="noopener" class="ufsc-btn ufsc-btn-secondary">
-                                        <?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?>
-                                    </a>
-                                <?php else : ?>
-                                    <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Attestation en cours', 'ufsc-clubs' ); ?></span>
-                                <?php endif; ?>
-                            <?php endif; ?>
-                        </div>
-                    </div>
 
+                    <div class="ufsc-hero-right">
                     <div class="ufsc-hero-kpi-grid" aria-label="<?php esc_attr_e( 'Indicateurs de pilotage club', 'ufsc-clubs' ); ?>">
                         <div class="ufsc-card ufsc-kpi-tile ufsc-hero-kpi-card -neutral">
                             <span class="ufsc-kpi-tile-label">📋 <?php esc_html_e( 'Licences', 'ufsc-clubs' ); ?></span>
@@ -225,6 +228,7 @@ class UFSC_Frontend_Shortcodes {
                             <strong class="ufsc-kpi-tile-value"><?php echo ! empty( $attestation_dashboard['url'] ) ? '✓' : '…'; ?></strong>
                             <span class="ufsc-priority-detail"><?php echo ! empty( $attestation_dashboard['url'] ) ? esc_html__( 'Disponible', 'ufsc-clubs' ) : esc_html__( 'En préparation', 'ufsc-clubs' ); ?></span>
                         </div>
+                    </div>
                     </div>
                 </div>
 
