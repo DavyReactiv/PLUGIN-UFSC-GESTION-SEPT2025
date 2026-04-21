@@ -143,6 +143,7 @@ class UFSC_Frontend_Shortcodes {
         <div class="ufsc-club-dashboard ufsc-premium-v3" id="ufsc-dashboard">
             <div class="ufsc-dashboard-shell">
                 <div class="ufsc-dashboard-header ufsc-dashboard-header--premium">
+                    <div class="ufsc-dashboard-hero-layout">
                     <div class="ufsc-hero-left">
                         <div class="ufsc-dashboard-brand">
                             <img class="ufsc-dashboard-logo" src="<?php echo esc_url( UFSC_CL_URL . 'assets/svg/ufsc-badge.svg' ); ?>" alt="<?php esc_attr_e( 'UFSC', 'ufsc-clubs' ); ?>">
@@ -228,6 +229,7 @@ class UFSC_Frontend_Shortcodes {
                             <strong class="ufsc-kpi-tile-value"><?php echo ! empty( $attestation_dashboard['url'] ) ? '✓' : '…'; ?></strong>
                             <span class="ufsc-priority-detail"><?php echo ! empty( $attestation_dashboard['url'] ) ? esc_html__( 'Disponible', 'ufsc-clubs' ) : esc_html__( 'En préparation', 'ufsc-clubs' ); ?></span>
                         </div>
+                    </div>
                     </div>
                     </div>
                 </div>
