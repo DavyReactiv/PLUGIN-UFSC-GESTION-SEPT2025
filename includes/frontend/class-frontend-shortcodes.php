@@ -1247,6 +1247,15 @@ class UFSC_Frontend_Shortcodes {
                 </div>
                     </div>
 
+                <!-- // UFSC: Submit section -->
+                <div class="ufsc-form-actions">
+                    <?php if ( $can_edit ): ?>
+                        <button type="submit" name="ufsc_save_club" class="ufsc-btn ufsc-btn-primary">
+                            <?php esc_html_e( 'Mettre à jour le club', 'ufsc-clubs' ); ?>
+                        </button>
+                    <?php endif; ?>
+                </div>
+
                 <!-- // UFSC: Documents Section - 6 mandatory documents -->
                 <div class="ufsc-club-profile-documents">
                     <div class="ufsc-card ufsc-form-section">
@@ -1360,15 +1369,6 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
                 </div>
-                </div>
-
-                <!-- // UFSC: Submit section -->
-                <div class="ufsc-form-actions">
-                    <?php if ( $can_edit ): ?>
-                        <button type="submit" name="ufsc_save_club" class="ufsc-btn ufsc-btn-primary">
-                            <?php esc_html_e( 'Mettre à jour le club', 'ufsc-clubs' ); ?>
-                        </button>
-                    <?php endif; ?>
                 </div>
 
             </form>
