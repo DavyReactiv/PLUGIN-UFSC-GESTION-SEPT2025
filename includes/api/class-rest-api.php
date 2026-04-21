@@ -415,7 +415,7 @@ class UFSC_REST_API {
 		}
 
 		$date_naissance = isset( $sanitized_data['date_naissance'] ) ? (string) $sanitized_data['date_naissance'] : '';
-		if ( '' === $date_naissance || '0000-00-00' === $date_naissance || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_naissance ) ) {
+		if ( ! self::is_valid_birth_date( $date_naissance ) ) {
 			return new WP_Error( 'invalid_birth_date', __( 'Date de naissance invalide (YYYY-MM-DD requis).', 'ufsc-clubs' ), array( 'status' => 400 ) );
 		}
 
@@ -504,7 +504,7 @@ class UFSC_REST_API {
 				$sanitized[ $key ] = $value;
 			} elseif ( 'date_naissance' === $key ) {
 				$value = sanitize_text_field( $value );
-				if ( '' === $value || '0000-00-00' === $value || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+				if ( ! self::is_valid_birth_date( $value ) ) {
 					return new WP_Error( 'invalid_birth_date', __( 'Date de naissance invalide (YYYY-MM-DD requis).', 'ufsc-clubs' ), array( 'status' => 400 ) );
 				}
 				$sanitized[ $key ] = $value;
@@ -565,6 +565,21 @@ class UFSC_REST_API {
 			'message'        => __( 'Licence mise à jour avec succès.', 'ufsc-clubs' ),
 			'updated_fields' => array_keys( $sanitized ),
 		), 200 );
+	}
+
+	/**
+	 * Validate a birth date in strict YYYY-MM-DD format.
+	 *
+	 * @param string $date Birth date.
+	 * @return bool
+	 */
+	private static function is_valid_birth_date( $date ) {
+		if ( '' === $date || '0000-00-00' === $date || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+			return false;
+		}
+
+		$date_obj = DateTime::createFromFormat( 'Y-m-d', $date );
+		return $date_obj instanceof DateTime && $date_obj->format( 'Y-m-d' ) === $date;
 	}
 
 	/**
