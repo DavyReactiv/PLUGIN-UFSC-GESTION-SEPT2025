@@ -455,6 +455,53 @@ class UFSC_SQL_Admin
     }
 
     /**
+     * Compute club bureau coverage status.
+     *
+     * @param array $assignments Bureau assignments by role.
+     * @return array{code:string,label:string,class:string,missing:array}
+     */
+    private static function get_bureau_coverage_status( $assignments ) {
+        $role_labels = array(
+            'president'  => __( 'Président', 'ufsc-clubs' ),
+            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+            'tresorier'  => __( 'Trésorier', 'ufsc-clubs' ),
+        );
+
+        $missing = array();
+        foreach ( $role_labels as $role => $label ) {
+            $ids = isset( $assignments[ $role ] ) ? (array) $assignments[ $role ] : array();
+            if ( empty( $ids ) ) {
+                $missing[] = sprintf( __( '%s non licencié', 'ufsc-clubs' ), $label );
+            }
+        }
+
+        if ( empty( $assignments ) ) {
+            return array(
+                'code'    => 'unknown',
+                'label'   => __( 'Bureau non conforme', 'ufsc-clubs' ),
+                'class'   => 'badge-danger',
+                'missing' => $missing,
+            );
+        }
+
+        if ( empty( $missing ) ) {
+            return array(
+                'code'    => 'complete',
+                'label'   => __( 'Bureau à jour', 'ufsc-clubs' ),
+                'class'   => 'badge-success',
+                'missing' => array(),
+            );
+        }
+
+        return array(
+            'code'    => 'incomplete',
+            'label'   => __( 'Bureau incomplet', 'ufsc-clubs' ),
+            'class'   => 'badge-warning',
+            'missing' => $missing,
+        );
+    }
+
+    /**
      * Render non-blocking bureau coverage alert for one club.
      *
      * @param int $club_id Club ID.
@@ -465,24 +512,21 @@ class UFSC_SQL_Admin
         if ( empty( $assignments ) ) {
             return;
         }
-        $role_labels = array(
-            'president' => __( 'Président', 'ufsc-clubs' ),
-            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
-            'tresorier' => __( 'Trésorier', 'ufsc-clubs' ),
-        );
-        $missing = array();
-        foreach ( $role_labels as $role => $label ) {
-            if ( empty( $assignments[ $role ] ) ) {
-                $missing[] = sprintf( __( '%s non licencié', 'ufsc-clubs' ), $label );
-            }
+        $status = self::get_bureau_coverage_status( $assignments );
+
+        $notice_class = 'notice-info';
+        if ( 'complete' === $status['code'] ) {
+            $notice_class = 'notice-success';
+        } elseif ( 'incomplete' === $status['code'] ) {
+            $notice_class = 'notice-warning';
+        } elseif ( 'unknown' === $status['code'] ) {
+            $notice_class = 'notice-error';
         }
 
-        if ( empty( $missing ) ) {
-            return;
+        echo '<div class="notice ' . esc_attr( $notice_class ) . '"><p><strong>' . esc_html__( 'Statut du bureau :', 'ufsc-clubs' ) . ' ' . esc_html( $status['label'] ) . '</strong>';
+        if ( ! empty( $status['missing'] ) ) {
+            echo '<br />' . esc_html( implode( ' • ', $status['missing'] ) );
         }
-
-        echo '<div class="notice notice-warning"><p><strong>' . esc_html__( 'Vous n’avez pas encore licencié l’ensemble du bureau du club.', 'ufsc-clubs' ) . '</strong><br />';
-        echo esc_html( implode( ' • ', $missing ) );
         echo '</p></div>';
     }
 
@@ -509,6 +553,53 @@ class UFSC_SQL_Admin
         }
 
         return $badges ? implode( ' ', $badges ) : '—';
+    }
+
+    /**
+     * Normalize date value for HTML date input and storage.
+     *
+     * @param mixed $value Raw date value.
+     * @return string
+     */
+    private static function normalize_date_value( $value ) {
+        $raw = trim( (string) $value );
+        if ( '' === $raw || '0000-00-00' === $raw || '0000-00-00 00:00:00' === $raw ) {
+            return '';
+        }
+
+        if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw ) ) {
+            return $raw;
+        }
+
+        if ( preg_match( '/^\d{4}-\d{2}-\d{2}\s+/', $raw ) ) {
+            return substr( $raw, 0, 10 );
+        }
+
+        $timestamp = strtotime( $raw );
+        if ( false === $timestamp ) {
+            return '';
+        }
+
+        return gmdate( 'Y-m-d', $timestamp );
+    }
+
+    /**
+     * Human label for bureau role.
+     *
+     * @param mixed $role Raw role value.
+     * @return string
+     */
+    private static function get_bureau_role_label( $role ) {
+        $role = sanitize_key( (string) $role );
+        $labels = array(
+            'president'  => __( 'Président', 'ufsc-clubs' ),
+            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+            'tresorier'  => __( 'Trésorier', 'ufsc-clubs' ),
+            'entraineur' => __( 'Entraîneur', 'ufsc-clubs' ),
+            'adherent'   => __( 'Adhérent', 'ufsc-clubs' ),
+        );
+
+        return $labels[ $role ] ?? ucfirst( $role );
     }
 
     /**
@@ -1069,10 +1160,29 @@ class UFSC_SQL_Admin
             echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
         }
 
+        if ( $row ) {
+            $role_value        = isset( $row->role ) ? sanitize_key( (string) $row->role ) : '';
+            $is_bureau_member  = in_array( $role_value, array( 'president', 'secretaire', 'tresorier' ), true );
+            $role_label        = $role_value ? self::get_bureau_role_label( $role_value ) : __( '—', 'ufsc-clubs' );
+            $membership_label  = $is_bureau_member ? __( 'Oui', 'ufsc-clubs' ) : __( 'Non', 'ufsc-clubs' );
+            $membership_badge  = $is_bureau_member
+                ? '<span class="ufsc-badge badge-success">' . esc_html__( 'Membre du bureau', 'ufsc-clubs' ) . '</span>'
+                : '<span class="ufsc-badge badge-muted">' . esc_html__( 'Hors bureau', 'ufsc-clubs' ) . '</span>';
+
+            echo '<div class="notice notice-info"><p><strong>' . esc_html__( 'Synthèse bureau', 'ufsc-clubs' ) . '</strong><br />';
+            echo esc_html__( 'Membre du bureau :', 'ufsc-clubs' ) . ' <strong>' . esc_html( $membership_label ) . '</strong> &nbsp; ' . wp_kses_post( $membership_badge );
+            echo '<br />' . esc_html__( 'Rôle bureau :', 'ufsc-clubs' ) . ' <strong>' . esc_html( $role_label ) . '</strong>';
+            echo '</p></div>';
+        }
+
         $docs_error = get_transient('ufsc_docs_errors_' . get_current_user_id());
         if ($docs_error) {
             delete_transient('ufsc_docs_errors_' . get_current_user_id());
             echo UFSC_CL_Utils::show_error(sanitize_text_field($docs_error));
+        }
+
+        if ( $id ) {
+            self::render_bureau_alert_for_club( $id );
         }
 
         if (! $readonly) {
@@ -2551,7 +2661,22 @@ class UFSC_SQL_Admin
             echo '<input type="email" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" placeholder="' . esc_attr__('exemple@email.com', 'ufsc-clubs') . '" required ' . $readonly_attr . ' />';
         } elseif ($k === 'telephone' || $k === 'tel') {
             echo '<input type="tel" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" placeholder="' . esc_attr__('01 23 45 67 89', 'ufsc-clubs') . '" ' . $readonly_attr . ' />';
+        } elseif ($k === 'role') {
+            $role_options = array(
+                ''           => __( 'Sélectionner', 'ufsc-clubs' ),
+                'president'  => __( 'Président', 'ufsc-clubs' ),
+                'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+                'tresorier'  => __( 'Trésorier', 'ufsc-clubs' ),
+                'entraineur' => __( 'Entraîneur', 'ufsc-clubs' ),
+                'adherent'   => __( 'Adhérent', 'ufsc-clubs' ),
+            );
+            echo '<select name="' . esc_attr($k) . '" ' . $disabled_attr . '>';
+            foreach ( $role_options as $role_key => $role_label ) {
+                echo '<option value="' . esc_attr( $role_key ) . '" ' . selected( sanitize_key( (string) $val ), $role_key, false ) . '>' . esc_html( $role_label ) . '</option>';
+            }
+            echo '</select>';
         } elseif ($k === 'date_naissance' || strpos($k, 'date_') === 0) {
+            $val = self::normalize_date_value( $val );
             echo '<input type="date" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
         } elseif ($k === 'prenom') {
             echo '<input type="text" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" placeholder="' . esc_attr__('Prénom', 'ufsc-clubs') . '" required ' . $readonly_attr . ' />';
@@ -2628,6 +2753,22 @@ class UFSC_SQL_Admin
             } else {
                 $data[$k] = sanitize_text_field(wp_unslash($_POST[$k]));
             }
+        }
+
+        foreach ( $fields as $k => $conf ) {
+            if ( ! isset( $data[ $k ] ) ) {
+                continue;
+            }
+            $type = isset( $conf[1] ) ? $conf[1] : 'text';
+            if ( 'date' !== $type ) {
+                continue;
+            }
+            $normalized = self::normalize_date_value( $data[ $k ] );
+            if ( '' === $normalized && $id ) {
+                unset( $data[ $k ] );
+                continue;
+            }
+            $data[ $k ] = $normalized;
         }
 
         $is_paid_submission = false;
