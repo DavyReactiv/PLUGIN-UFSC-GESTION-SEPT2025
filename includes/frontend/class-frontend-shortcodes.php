@@ -526,7 +526,25 @@ class UFSC_Frontend_Shortcodes {
                                 <tr>
                                     <td><?php echo esc_html( $nom ); ?></td>
                                     <td><?php echo esc_html( $prenom ); ?></td>
-                                    <td><?php echo wp_kses_post( self::render_bureau_badges_for_front_licence( (int) ( $licence->id ?? 0 ), $bureau_data['assignments'] ) ); ?></td>
+                                    <td>
+                                        <?php
+                                        $licence_id = (int) ( $licence->id ?? 0 );
+                                        echo wp_kses_post( self::render_bureau_badges_for_front_licence( $licence_id, $bureau_data['assignments'] ) );
+                                        ?>
+                                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-bureau-assignment-form">
+                                            <?php wp_nonce_field( 'ufsc_assign_bureau_role' ); ?>
+                                            <input type="hidden" name="action" value="ufsc_assign_bureau_role">
+                                            <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence_id ); ?>">
+                                            <input type="hidden" name="club_id" value="<?php echo esc_attr( (int) $atts['club_id'] ); ?>">
+                                            <label class="screen-reader-text" for="ufsc-bureau-role-<?php echo esc_attr( $licence_id ); ?>">
+                                                <?php esc_html_e( 'Affectation bureau', 'ufsc-clubs' ); ?>
+                                            </label>
+                                            <?php echo self::render_bureau_role_selector( $licence_id, $bureau_data['assignments'] ); ?>
+                                            <button type="submit" class="ufsc-btn ufsc-btn-small ufsc-btn-secondary">
+                                                <?php esc_html_e( 'Affecter', 'ufsc-clubs' ); ?>
+                                            </button>
+                                        </form>
+                                    </td>
                                     <td><?php echo esc_html( $gender ); ?></td>
                                     <td><?php echo self::get_status_badge_front($status); ?></td>
                                     <td><?php echo esc_html( $season ); ?></td>
@@ -976,9 +994,8 @@ class UFSC_Frontend_Shortcodes {
                         <?php endif; ?>
                     </div>
                 <?php endif; ?>
-                <!-- // UFSC: Identité du club -->
                 <div class="ufsc-club-profile-layout">
-                    <div class="ufsc-club-profile-main">
+                    <div class="ufsc-club-profile-main ufsc-profile-cards">
                 <div class="ufsc-card ufsc-section">
                     <h4><?php esc_html_e( 'Identité du club', 'ufsc-clubs' ); ?></h4>
 
@@ -1015,9 +1032,8 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <!-- Legal Section -->
-                <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Informations légales', 'ufsc-clubs' ); ?></legend>
+                <div class="ufsc-card ufsc-form-section">
+                    <h4><?php esc_html_e( 'Informations légales', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
                         <?php self::render_field( 'siren', $club, __( 'SIREN', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
@@ -1028,12 +1044,12 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_field( 'num_declaration', $club, __( 'N° déclaration', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
                         <?php self::render_field( 'date_declaration', $club, __( 'Date déclaration', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
                     </div>
-                </fieldset>
+                </div>
 
-                <!-- Staff Section -->
-                <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></legend>
-
+                <div class="ufsc-card ufsc-form-section">
+                    <h4><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></h4>
+                    <div class="ufsc-board-columns">
+                        <div class="ufsc-board-role-card">
                     <h5><?php esc_html_e( 'Président', 'ufsc-clubs' ); ?></h5>
                     <div class="ufsc-grid">
                         <?php self::render_field( 'president_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
@@ -1041,7 +1057,9 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_field( 'president_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
                         <?php self::render_field( 'president_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
                     </div>
+                        </div>
 
+                        <div class="ufsc-board-role-card">
                     <h5><?php esc_html_e( 'Secrétaire', 'ufsc-clubs' ); ?></h5>
                     <div class="ufsc-grid">
                         <?php self::render_field( 'secretaire_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
@@ -1049,13 +1067,17 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_field( 'secretaire_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
                         <?php self::render_field( 'secretaire_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
                     </div>
+                        </div>
 
+                        <div class="ufsc-board-role-card">
                     <h5><?php esc_html_e( 'Trésorier', 'ufsc-clubs' ); ?></h5>
                     <div class="ufsc-grid">
                         <?php self::render_field( 'tresorier_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
                         <?php self::render_field( 'tresorier_nom', $club, __( 'Nom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
                         <?php self::render_field( 'tresorier_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
                         <?php self::render_field( 'tresorier_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
+                    </div>
+                        </div>
                     </div>
 
                     <h5><?php esc_html_e( 'Entraîneur', 'ufsc-clubs' ); ?></h5>
@@ -1065,22 +1087,20 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_field( 'entraineur_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
                         <?php self::render_field( 'entraineur_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
                     </div>
-                </fieldset>
+                </div>
 
-                <!-- Social Section -->
-                <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Réseaux sociaux', 'ufsc-clubs' ); ?></legend>
+                <div class="ufsc-card ufsc-form-section">
+                    <h4><?php esc_html_e( 'Réseaux sociaux', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
                         <?php self::render_field( 'url_site', $club, __( 'Site web', 'ufsc-clubs' ), 'url', false, $is_admin ); ?>
                         <?php self::render_field( 'url_facebook', $club, __( 'Facebook', 'ufsc-clubs' ), 'url', false, $is_admin ); ?>
                         <?php self::render_field( 'url_instagram', $club, __( 'Instagram', 'ufsc-clubs' ), 'url', false, $is_admin ); ?>
                     </div>
-                </fieldset>
+                </div>
 
-                <!-- Numbers/Dates Section -->
-                <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Chiffres et dates', 'ufsc-clubs' ); ?></legend>
+                <div class="ufsc-card ufsc-form-section">
+                    <h4><?php esc_html_e( 'Chiffres et dates', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
                         <?php self::render_field( 'num_affiliation', $club, __( 'N° d\'affiliation', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
@@ -1088,22 +1108,21 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_field( 'date_affiliation', $club, __( 'Date d\'affiliation', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
                         <?php self::render_field( 'responsable_id', $club, __( 'ID responsable', 'ufsc-clubs' ), 'number', true, false ); ?>
                     </div>
-                </fieldset>
+                </div>
 
-                <!-- Distribution Section -->
-                <fieldset class="ufsc-form-section">
-                    <legend><?php esc_html_e( 'Distribution', 'ufsc-clubs' ); ?></legend>
+                <div class="ufsc-card ufsc-form-section">
+                    <h4><?php esc_html_e( 'Distribution', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
                         <?php self::render_field( 'precision_distribution', $club, __( 'Précision distribution', 'ufsc-clubs' ), 'textarea', false, $is_admin ); ?>
                     </div>
-                </fieldset>
+                </div>
                     </div>
 
                 <!-- // UFSC: Documents Section - 6 mandatory documents -->
                 <div class="ufsc-club-profile-documents">
-                    <fieldset class="ufsc-form-section">
-                        <legend><?php esc_html_e( 'Mes documents', 'ufsc-clubs' ); ?></legend>
+                    <div class="ufsc-card ufsc-form-section">
+                        <h4><?php esc_html_e( 'Mes documents', 'ufsc-clubs' ); ?></h4>
 
                         <?php
                         // // UFSC: 6 mandatory documents as per requirements
@@ -1210,7 +1229,7 @@ class UFSC_Frontend_Shortcodes {
                                 </div>
                             <?php endforeach; ?>
                         </div>
-                    </fieldset>
+                    </div>
                 </div>
                 </div>
 
@@ -2152,6 +2171,43 @@ class UFSC_Frontend_Shortcodes {
         }
 
         return $badges ? implode( ' ', $badges ) : '—';
+    }
+
+    /**
+     * Render bureau role selector for one licence with current assignment pre-selected.
+     *
+     * @param int   $licence_id Licence ID.
+     * @param array $assignments Current assignments by role.
+     * @return string
+     */
+    private static function render_bureau_role_selector( $licence_id, $assignments ) {
+        $current_role = '';
+        foreach ( array( 'president', 'secretaire', 'tresorier' ) as $role ) {
+            $assigned_ids = isset( $assignments[ $role ] ) ? array_map( 'intval', (array) $assignments[ $role ] ) : array();
+            if ( in_array( (int) $licence_id, $assigned_ids, true ) ) {
+                $current_role = $role;
+                break;
+            }
+        }
+
+        $labels = array(
+            ''           => __( 'Aucun rôle', 'ufsc-clubs' ),
+            'president'  => __( 'Président', 'ufsc-clubs' ),
+            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+            'tresorier'  => __( 'Trésorier', 'ufsc-clubs' ),
+        );
+
+        ob_start();
+        ?>
+        <select id="ufsc-bureau-role-<?php echo esc_attr( (int) $licence_id ); ?>" name="bureau_role" class="ufsc-bureau-role-select">
+            <?php foreach ( $labels as $role_key => $role_label ) : ?>
+                <option value="<?php echo esc_attr( $role_key ); ?>" <?php selected( $current_role, $role_key ); ?>>
+                    <?php echo esc_html( $role_label ); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <?php
+        return (string) ob_get_clean();
     }
 
     /**
