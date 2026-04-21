@@ -991,41 +991,25 @@ button#upload_btn {
     box-shadow: 0 10px 24px rgba(5, 18, 30, 0.4);
 }
 
-.ufsc-premium-v3 .ufsc-dashboard-workspace {
-    display: grid;
-    grid-template-columns: 280px minmax(0, 1fr);
-    gap: 18px;
-    align-items: start;
-}
-
-.ufsc-premium-v3 .ufsc-dashboard-sidepanel {
-    position: sticky;
-    top: 20px;
-    border: 1px solid #d6e3f0;
-    border-radius: 18px;
-    background: #fff;
-    padding: 16px;
-    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
-}
-
-.ufsc-premium-v3 .ufsc-dashboard-sidepanel h3 {
-    margin: 0 0 10px;
-    font-size: 1rem;
-}
-
-.ufsc-premium-v3 .ufsc-dashboard-shortcuts {
-    display: grid;
-    gap: 8px;
-}
-
-.ufsc-premium-v3 .ufsc-dashboard-shortcuts .ufsc-nav-btn {
-    width: 100%;
-    justify-content: flex-start;
-}
-
 .ufsc-premium-v3 .ufsc-dashboard-mainpane {
     display: grid;
-    gap: 14px;
+    gap: 18px;
+}
+
+.ufsc-premium-v3 .ufsc-cockpit-priority {
+    margin-top: 4px;
+}
+
+.ufsc-premium-v3 .ufsc-priority-tile {
+    border: 1px solid #d4e1ee;
+    background: linear-gradient(180deg, #ffffff, #f3f8ff);
+}
+
+.ufsc-premium-v3 .ufsc-priority-detail {
+    display: block;
+    margin-top: 8px;
+    color: #45586d;
+    font-size: .84rem;
 }
 
 .ufsc-premium-v3 .ufsc-kpi-tile:nth-child(1) {
@@ -1045,11 +1029,17 @@ button#upload_btn {
 }
 
 .ufsc-premium-v3 .ufsc-club-profile-layout {
-    grid-template-columns: minmax(0, 1.45fr) minmax(340px, 0.75fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(320px, 0.8fr);
 }
 
 .ufsc-premium-v3 .ufsc-club-profile-main {
     gap: 18px;
+    grid-column: 1 / span 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ufsc-premium-v3 .ufsc-club-profile-documents {
+    grid-column: 3;
 }
 
 .ufsc-premium-v3 .ufsc-club-profile-documents .ufsc-card {
@@ -1071,14 +1061,29 @@ button#upload_btn {
     background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(247,251,255,0.95));
 }
 
+.ufsc-premium-v3 .ufsc-field input,
+.ufsc-premium-v3 .ufsc-field select,
+.ufsc-premium-v3 .ufsc-field textarea {
+    border-color: #c5d5e6;
+    border-radius: 10px;
+    min-height: 44px;
+    background: #fdfefe;
+}
+
+.ufsc-premium-v3 .ufsc-field label {
+    font-size: .86rem;
+    color: #2b425a;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+
 @media (max-width: 1180px) {
     .ufsc-premium-v3 .ufsc-dashboard-header--premium,
-    .ufsc-premium-v3 .ufsc-dashboard-workspace,
     .ufsc-premium-v3 .ufsc-club-profile-layout {
         grid-template-columns: 1fr;
     }
-
-    .ufsc-premium-v3 .ufsc-dashboard-sidepanel {
-        position: static;
+    .ufsc-premium-v3 .ufsc-club-profile-main,
+    .ufsc-premium-v3 .ufsc-club-profile-documents {
+        grid-column: auto;
     }
 }

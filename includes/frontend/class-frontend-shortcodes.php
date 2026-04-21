@@ -213,85 +213,65 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-cockpit-priority">
-                    <div class="ufsc-card ufsc-priority-card">
-                        <p class="ufsc-priority-title"><?php esc_html_e( 'Priorités immédiates', 'ufsc-clubs' ); ?></p>
-                        <ul class="ufsc-priority-list">
-                            <li><?php echo esc_html( sprintf( __( '%d document(s) à compléter', 'ufsc-clubs' ), (int) $missing_docs ) ); ?></li>
-                            <li><?php echo esc_html( sprintf( __( '%d rôle(s) de bureau à couvrir', 'ufsc-clubs' ), (int) $missing_roles ) ); ?></li>
-                            <?php if ( ! empty( $attestation_dashboard['can_view'] ) ) : ?>
-                                <li>
-                                    <?php if ( ! empty( $attestation_dashboard['url'] ) ) : ?>
-                                        <a href="<?php echo esc_url( $attestation_dashboard['url'] ); ?>" target="_blank" rel="noopener">
-                                            <?php esc_html_e( 'Attestation UFSC disponible', 'ufsc-clubs' ); ?>
-                                        </a>
-                                    <?php else : ?>
-                                        <?php esc_html_e( 'Attestation UFSC en préparation', 'ufsc-clubs' ); ?>
-                                    <?php endif; ?>
-                                </li>
-                            <?php endif; ?>
-                        </ul>
+                <div class="ufsc-cockpit-priority ufsc-kpi-band">
+                    <div class="ufsc-card ufsc-kpi-tile ufsc-priority-tile">
+                        <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Priorité', 'ufsc-clubs' ); ?></span>
+                        <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $missing_docs ); ?></strong>
+                        <span class="ufsc-priority-detail"><?php esc_html_e( 'Document(s) à compléter', 'ufsc-clubs' ); ?></span>
+                    </div>
+                    <div class="ufsc-card ufsc-kpi-tile ufsc-priority-tile">
+                        <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Bureau', 'ufsc-clubs' ); ?></span>
+                        <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $missing_roles ); ?></strong>
+                        <span class="ufsc-priority-detail"><?php esc_html_e( 'Rôle(s) manquant(s)', 'ufsc-clubs' ); ?></span>
+                    </div>
+                    <div class="ufsc-card ufsc-kpi-tile ufsc-priority-tile">
+                        <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?></span>
+                        <strong class="ufsc-kpi-tile-value"><?php echo ! empty( $attestation_dashboard['url'] ) ? '✓' : '…'; ?></strong>
+                        <span class="ufsc-priority-detail">
+                            <?php echo ! empty( $attestation_dashboard['url'] ) ? esc_html__( 'Disponible', 'ufsc-clubs' ) : esc_html__( 'En préparation', 'ufsc-clubs' ); ?>
+                        </span>
                     </div>
                 </div>
 
-                <div class="ufsc-dashboard-workspace">
-                    <aside class="ufsc-dashboard-sidepanel">
-                        <h3><?php esc_html_e( 'Accès rapides', 'ufsc-clubs' ); ?></h3>
-                        <div class="ufsc-dashboard-shortcuts">
-                            <?php if ( in_array( 'licences', $sections, true ) ) : ?>
-                                <button class="ufsc-nav-btn active" data-section="licences"><?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?></button>
-                            <?php endif; ?>
-                            <?php if ( in_array( 'stats', $sections, true ) ) : ?>
-                                <button class="ufsc-nav-btn" data-section="stats"><?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?></button>
-                            <?php endif; ?>
-                            <?php if ( in_array( 'profile', $sections, true ) ) : ?>
-                                <button class="ufsc-nav-btn" data-section="profile"><?php esc_html_e( 'Mon Club', 'ufsc-clubs' ); ?></button>
-                            <?php endif; ?>
-                            <?php if ( in_array( 'add_licence', $sections, true ) ) : ?>
-                                <button class="ufsc-nav-btn" data-section="add_licence"><?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?></button>
-                            <?php endif; ?>
-                        </div>
-                    </aside>
-                    <div class="ufsc-dashboard-mainpane">
-                        <div class="ufsc-dashboard-nav">
-                            <?php if ( in_array( 'licences', $sections ) ): ?>
-                                <button class="ufsc-nav-btn active" data-section="licences"><?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?></button>
-                            <?php endif; ?>
-                            <?php if ( in_array( 'stats', $sections ) ): ?>
-                                <button class="ufsc-nav-btn" data-section="stats"><?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?></button>
-                            <?php endif; ?>
-                            <?php if ( in_array( 'profile', $sections ) ): ?>
-                                <button class="ufsc-nav-btn" data-section="profile"><?php esc_html_e( 'Mon Club', 'ufsc-clubs' ); ?></button>
-                            <?php endif; ?>
-                            <?php if ( in_array( 'add_licence', $sections ) ): ?>
-                                <button class="ufsc-nav-btn" data-section="add_licence"><?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?></button>
-                            <?php endif; ?>
-                        </div>
-                        <div class="ufsc-dashboard-content">
-                            <?php if ( in_array( 'licences', $sections ) ): ?>
-                                <div id="ufsc-section-licences" class="ufsc-dashboard-section active">
-                                    <?php echo self::render_club_licences( array( 'club_id' => $club_id ) ); ?>
-                                </div>
-                            <?php endif; ?>
+                <div class="ufsc-dashboard-mainpane">
+                    <div class="ufsc-dashboard-nav">
+                        <?php if ( in_array( 'licences', $sections ) ): ?>
+                            <button class="ufsc-nav-btn active" data-section="licences"><?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?></button>
+                        <?php endif; ?>
+                        <?php if ( in_array( 'stats', $sections ) ): ?>
+                            <button class="ufsc-nav-btn" data-section="stats"><?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?></button>
+                        <?php endif; ?>
+                        <?php if ( in_array( 'profile', $sections ) ): ?>
+                            <button class="ufsc-nav-btn" data-section="profile"><?php esc_html_e( 'Mon Club', 'ufsc-clubs' ); ?></button>
+                        <?php endif; ?>
+                        <?php if ( in_array( 'add_licence', $sections ) ): ?>
+                            <button class="ufsc-nav-btn" data-section="add_licence"><?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?></button>
+                        <?php endif; ?>
+                    </div>
+                    <div class="ufsc-dashboard-content">
+                        <?php if ( in_array( 'licences', $sections ) ): ?>
+                            <div id="ufsc-section-licences" class="ufsc-dashboard-section active">
+                                <?php echo self::render_club_licences( array( 'club_id' => $club_id ) ); ?>
+                            </div>
+                        <?php endif; ?>
 
-                            <?php if ( in_array( 'stats', $sections ) ): ?>
-                                <div id="ufsc-section-stats" class="ufsc-dashboard-section">
-                                    <?php echo self::render_club_stats( array( 'club_id' => $club_id ) ); ?>
-                                </div>
-                            <?php endif; ?>
+                        <?php if ( in_array( 'stats', $sections ) ): ?>
+                            <div id="ufsc-section-stats" class="ufsc-dashboard-section">
+                                <?php echo self::render_club_stats( array( 'club_id' => $club_id ) ); ?>
+                            </div>
+                        <?php endif; ?>
 
-                            <?php if ( in_array( 'profile', $sections ) ): ?>
-                                <div id="ufsc-section-profile" class="ufsc-dashboard-section">
-                                    <?php echo self::render_club_profile( array( 'club_id' => $club_id ) ); ?>
-                                </div>
-                            <?php endif; ?>
+                        <?php if ( in_array( 'profile', $sections ) ): ?>
+                            <div id="ufsc-section-profile" class="ufsc-dashboard-section">
+                                <?php echo self::render_club_profile( array( 'club_id' => $club_id ) ); ?>
+                            </div>
+                        <?php endif; ?>
 
-                            <?php if ( in_array( 'add_licence', $sections ) ): ?>
-                                <div id="ufsc-section-add_licence" class="ufsc-dashboard-section">
-                                    <?php echo self::render_add_licence( array( 'club_id' => $club_id ) ); ?>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+                        <?php if ( in_array( 'add_licence', $sections ) ): ?>
+                            <div id="ufsc-section-add_licence" class="ufsc-dashboard-section">
+                                <?php echo self::render_add_licence( array( 'club_id' => $club_id ) ); ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
