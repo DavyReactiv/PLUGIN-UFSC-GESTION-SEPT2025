@@ -26,6 +26,8 @@ class UFSC_Unified_Handlers {
         add_action( 'admin_post_ufsc_cancel_licence', array( __CLASS__, 'handle_cancel_licence' ) );
         add_action( 'admin_post_ufsc_update_licence_status', array( __CLASS__, 'handle_update_licence_status' ) );
         add_action( 'admin_post_nopriv_ufsc_update_licence_status', array( __CLASS__, 'handle_update_licence_status' ) );
+        add_action( 'admin_post_ufsc_assign_bureau_role', array( __CLASS__, 'handle_assign_bureau_role' ) );
+        add_action( 'admin_post_nopriv_ufsc_assign_bureau_role', array( __CLASS__, 'handle_assign_bureau_role' ) );
         add_action( 'admin_post_ufsc_sync_licence_statuses', array( __CLASS__, 'handle_sync_licence_statuses' ) );
 
         // UFSC PATCH: Licence document handlers
@@ -422,6 +424,122 @@ class UFSC_Unified_Handlers {
         );
 
         self::maybe_redirect( $redirect_url );
+    }
+
+    /**
+     * Assign or remove bureau role for an existing licence from front-end.
+     * This remains allowed even if the licence is locked/validated.
+     */
+    public static function handle_assign_bureau_role() {
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        check_admin_referer( 'ufsc_assign_bureau_role' );
+
+        if ( ! is_user_logged_in() ) {
+            self::redirect_with_error( 'Vous devez être connecté' );
+            return;
+        }
+
+        $licence_id       = isset( $_POST['licence_id'] ) ? absint( $_POST['licence_id'] ) : 0;
+        $requested_role   = isset( $_POST['bureau_role'] ) ? sanitize_key( wp_unslash( $_POST['bureau_role'] ) ) : '';
+        $requested_club   = isset( $_POST['club_id'] ) ? absint( $_POST['club_id'] ) : 0;
+        $allowed_roles    = array( '', 'president', 'secretaire', 'tresorier' );
+
+        if ( ! in_array( $requested_role, $allowed_roles, true ) || $licence_id <= 0 ) {
+            self::redirect_with_error( 'Paramètres invalides' );
+            return;
+        }
+
+        $user_id      = get_current_user_id();
+        $managed_club = ufsc_get_user_club_id( $user_id );
+        $can_manage_all = self::can_manage_all_clubs();
+
+        if ( $requested_club <= 0 ) {
+            $requested_club = $managed_club;
+        }
+        if ( $requested_club <= 0 && $can_manage_all ) {
+            $requested_club = self::resolve_licence_club_id( $licence_id );
+        }
+
+        if ( $requested_club <= 0 ) {
+            self::redirect_with_error( 'Aucun club associé à votre compte' );
+            return;
+        }
+        if ( ! $can_manage_all && $managed_club !== $requested_club ) {
+            self::redirect_with_error( 'Permissions insuffisantes' );
+            return;
+        }
+
+        $licence = self::get_licence_row( $licence_id, $requested_club );
+        if ( ! $licence ) {
+            self::redirect_with_error( 'Licence non trouvée', $licence_id );
+            return;
+        }
+
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $table    = $settings['table_licences'];
+
+        $columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : array();
+        if ( ! empty( $columns ) && ! in_array( 'role', $columns, true ) ) {
+            self::redirect_with_error( 'Colonne rôle indisponible' );
+            return;
+        }
+
+        $new_role = $requested_role;
+        $replaced_licence_ids = array();
+        if ( '' !== $new_role ) {
+            $replaced_licence_ids = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT id FROM {$table} WHERE club_id = %d AND role = %s AND id <> %d",
+                    $requested_club,
+                    $new_role,
+                    $licence_id
+                )
+            );
+            $replaced_licence_ids = array_filter( array_map( 'absint', (array) $replaced_licence_ids ) );
+
+            $wpdb->update(
+                $table,
+                array( 'role' => '' ),
+                array(
+                    'club_id' => $requested_club,
+                    'role'    => $new_role,
+                ),
+                array( '%s' ),
+                array( '%d', '%s' )
+            );
+        }
+
+        $updated = $wpdb->update(
+            $table,
+            array( 'role' => $new_role ),
+            array(
+                'id'      => $licence_id,
+                'club_id' => $requested_club,
+            ),
+            array( '%s' ),
+            array( '%d', '%d' )
+        );
+
+        if ( false === $updated ) {
+            self::redirect_with_error( 'Mise à jour du bureau impossible', $licence_id );
+            return;
+        }
+
+        do_action( 'ufsc_bureau_assignment_updated', $requested_club, $licence_id, $new_role );
+        do_action( 'ufsc_licence_updated', (int) $requested_club );
+
+        $success_message = '' === $new_role
+            ? __( 'Rôle bureau retiré.', 'ufsc-clubs' )
+            : sprintf( __( 'Rôle bureau mis à jour : %s.', 'ufsc-clubs' ), self::get_bureau_role_label( $new_role ) );
+        if ( ! empty( $replaced_licence_ids ) ) {
+            $success_message .= ' ' . __( 'Ce rôle était déjà attribué et a été déplacé automatiquement.', 'ufsc-clubs' );
+        }
+
+        self::redirect_with_success( $success_message );
     }
 
     /**
@@ -1463,6 +1581,16 @@ class UFSC_Unified_Handlers {
         $table    = $settings['table_licences'];
 
         return (int) $wpdb->get_var( $wpdb->prepare( "SELECT club_id FROM {$table} WHERE id = %d", $licence_id ) );
+    }
+
+    private static function get_bureau_role_label( $role ) {
+        $labels = array(
+            'president'  => __( 'Président', 'ufsc-clubs' ),
+            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+            'tresorier'  => __( 'Trésorier', 'ufsc-clubs' ),
+        );
+
+        return isset( $labels[ $role ] ) ? $labels[ $role ] : __( 'Aucun', 'ufsc-clubs' );
     }
 
     private static function maybe_redirect( $url ) {

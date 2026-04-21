@@ -527,6 +527,22 @@ class UFSC_SQL_Admin
         if ( ! empty( $status['missing'] ) ) {
             echo '<br />' . esc_html( implode( ' • ', $status['missing'] ) );
         }
+        $role_labels = array(
+            'president'  => __( 'Président', 'ufsc-clubs' ),
+            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+            'tresorier'  => __( 'Trésorier', 'ufsc-clubs' ),
+        );
+        $assigned_lines = array();
+        foreach ( $role_labels as $role_key => $role_label ) {
+            $ids = isset( $assignments[ $role_key ] ) ? array_map( 'absint', (array) $assignments[ $role_key ] ) : array();
+            if ( empty( $ids ) ) {
+                continue;
+            }
+            $assigned_lines[] = sprintf( '%s : #%s', $role_label, implode( ', #', $ids ) );
+        }
+        if ( ! empty( $assigned_lines ) ) {
+            echo '<br /><em>' . esc_html__( 'Affectations actuelles :', 'ufsc-clubs' ) . '</em> ' . esc_html( implode( ' • ', $assigned_lines ) );
+        }
         echo '</p></div>';
     }
 
