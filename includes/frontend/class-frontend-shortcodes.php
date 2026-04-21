@@ -178,22 +178,24 @@ class UFSC_Frontend_Shortcodes {
                                 </a>
                             <?php endif; ?>
                         </div>
-                        <div class="ufsc-dashboard-hero-side">
-                            <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
-                                <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
-                            <?php endif; ?>
-                            <div class="ufsc-dashboard-hero-side-meta">
-                                <?php if ( ! empty( $attestation_dashboard['can_view'] ) ) : ?>
-                                    <?php if ( ! empty( $attestation_dashboard['url'] ) ) : ?>
-                                        <a href="<?php echo esc_url( $attestation_dashboard['url'] ); ?>" target="_blank" rel="noopener" class="ufsc-btn ufsc-btn-secondary">
-                                            <?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?>
-                                        </a>
-                                    <?php else : ?>
-                                        <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Attestation en cours', 'ufsc-clubs' ); ?></span>
-                                    <?php endif; ?>
+                        <?php if ( ! empty( $club->profile_photo_url ) || ! empty( $attestation_dashboard['can_view'] ) ) : ?>
+                            <div class="ufsc-dashboard-hero-side">
+                                <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
+                                    <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
                                 <?php endif; ?>
+                                <div class="ufsc-dashboard-hero-side-meta">
+                                    <?php if ( ! empty( $attestation_dashboard['can_view'] ) ) : ?>
+                                        <?php if ( ! empty( $attestation_dashboard['url'] ) ) : ?>
+                                            <a href="<?php echo esc_url( $attestation_dashboard['url'] ); ?>" target="_blank" rel="noopener" class="ufsc-btn ufsc-btn-secondary">
+                                                <?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?>
+                                            </a>
+                                        <?php else : ?>
+                                            <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Attestation en cours', 'ufsc-clubs' ); ?></span>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                        </div>
+                        <?php endif; ?>
                     </div>
 
                     <div class="ufsc-hero-right">
@@ -1170,7 +1172,7 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-card ufsc-form-section">
+                <div class="ufsc-card ufsc-form-section ufsc-section-board">
                     <h4><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></h4>
                     <div class="ufsc-board-columns">
                         <div class="ufsc-board-role-card">
