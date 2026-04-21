@@ -193,35 +193,35 @@ class UFSC_Frontend_Shortcodes {
                         </div>
                     </div>
 
-                    <div class="ufsc-hero-kpi-grid">
-                        <div class="ufsc-card ufsc-kpi-tile">
-                            <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Licences', 'ufsc-clubs' ); ?></span>
+                    <div class="ufsc-hero-kpi-grid" aria-label="<?php esc_attr_e( 'Indicateurs de pilotage club', 'ufsc-clubs' ); ?>">
+                        <div class="ufsc-card ufsc-kpi-tile ufsc-hero-kpi-card -neutral">
+                            <span class="ufsc-kpi-tile-label">📋 <?php esc_html_e( 'Licences', 'ufsc-clubs' ); ?></span>
                             <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $stats['total_licences'] ); ?></strong>
                         </div>
-                        <div class="ufsc-card ufsc-kpi-tile">
-                            <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Validées', 'ufsc-clubs' ); ?></span>
+                        <div class="ufsc-card ufsc-kpi-tile ufsc-hero-kpi-card -success">
+                            <span class="ufsc-kpi-tile-label">✅ <?php esc_html_e( 'Validées', 'ufsc-clubs' ); ?></span>
                             <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $stats['validated_licences'] ); ?></strong>
                         </div>
-                        <div class="ufsc-card ufsc-kpi-tile">
-                            <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Bureau à compléter', 'ufsc-clubs' ); ?></span>
+                        <div class="ufsc-card ufsc-kpi-tile ufsc-hero-kpi-card -warning">
+                            <span class="ufsc-kpi-tile-label">👥 <?php esc_html_e( 'Bureau à compléter', 'ufsc-clubs' ); ?></span>
                             <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $missing_roles ); ?></strong>
                         </div>
-                        <div class="ufsc-card ufsc-kpi-tile">
-                            <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Documents manquants', 'ufsc-clubs' ); ?></span>
+                        <div class="ufsc-card ufsc-kpi-tile ufsc-hero-kpi-card -warning">
+                            <span class="ufsc-kpi-tile-label">📄 <?php esc_html_e( 'Documents manquants', 'ufsc-clubs' ); ?></span>
                             <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $missing_docs ); ?></strong>
                         </div>
-                        <div class="ufsc-card ufsc-kpi-tile ufsc-priority-tile">
-                            <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Priorité', 'ufsc-clubs' ); ?></span>
+                        <div class="ufsc-card ufsc-kpi-tile ufsc-hero-kpi-card ufsc-priority-tile -warning">
+                            <span class="ufsc-kpi-tile-label">⚠️ <?php esc_html_e( 'Priorité', 'ufsc-clubs' ); ?></span>
                             <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $missing_docs ); ?></strong>
                             <span class="ufsc-priority-detail"><?php esc_html_e( 'Document(s) à compléter', 'ufsc-clubs' ); ?></span>
                         </div>
-                        <div class="ufsc-card ufsc-kpi-tile ufsc-priority-tile">
-                            <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Bureau', 'ufsc-clubs' ); ?></span>
+                        <div class="ufsc-card ufsc-kpi-tile ufsc-hero-kpi-card ufsc-priority-tile -warning">
+                            <span class="ufsc-kpi-tile-label">🧩 <?php esc_html_e( 'Bureau', 'ufsc-clubs' ); ?></span>
                             <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $missing_roles ); ?></strong>
                             <span class="ufsc-priority-detail"><?php esc_html_e( 'Rôle(s) manquant(s)', 'ufsc-clubs' ); ?></span>
                         </div>
-                        <div class="ufsc-card ufsc-kpi-tile ufsc-priority-tile">
-                            <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?></span>
+                        <div class="ufsc-card ufsc-kpi-tile ufsc-hero-kpi-card ufsc-priority-tile <?php echo ! empty( $attestation_dashboard['url'] ) ? '-success' : '-neutral'; ?>">
+                            <span class="ufsc-kpi-tile-label">🏅 <?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?></span>
                             <strong class="ufsc-kpi-tile-value"><?php echo ! empty( $attestation_dashboard['url'] ) ? '✓' : '…'; ?></strong>
                             <span class="ufsc-priority-detail"><?php echo ! empty( $attestation_dashboard['url'] ) ? esc_html__( 'Disponible', 'ufsc-clubs' ) : esc_html__( 'En préparation', 'ufsc-clubs' ); ?></span>
                         </div>

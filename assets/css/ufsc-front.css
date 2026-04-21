@@ -969,7 +969,7 @@ button#upload_btn {
     display: grid;
     grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.7fr);
     gap: 20px;
-    align-items: center;
+    align-items: start;
 }
 
 .ufsc-premium-v3 .ufsc-dashboard-hero-side {
@@ -1006,14 +1006,38 @@ button#upload_btn {
 
 .ufsc-premium-v3 .ufsc-hero-kpi-grid .ufsc-kpi-tile {
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.14) !important;
     border: 1px solid rgba(255, 255, 255, 0.24);
     box-shadow: none;
     backdrop-filter: blur(2px);
+    min-height: 112px;
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-card {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    align-content: start;
+    gap: 8px;
+    padding: 14px 16px;
+    overflow: visible;
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-card.-neutral {
+    border-left: 4px solid rgba(255, 255, 255, 0.55);
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-card.-success {
+    border-left: 4px solid #86efac;
+    background: linear-gradient(180deg, rgba(16,185,129,.35), rgba(255,255,255,.12)) !important;
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-card.-warning {
+    border-left: 4px solid #fbbf24;
+    background: linear-gradient(180deg, rgba(234,179,8,.34), rgba(255,255,255,.12)) !important;
 }
 
 .ufsc-premium-v3 .ufsc-priority-tile {
-    background: rgba(255, 255, 255, 0.22) !important;
+    min-height: 128px;
 }
 
 .ufsc-premium-v3 .ufsc-priority-detail {
@@ -1029,6 +1053,8 @@ button#upload_btn {
 
 .ufsc-premium-v3 .ufsc-hero-kpi-grid .ufsc-kpi-tile-value {
     color: #fff;
+    font-size: clamp(1.55rem, 2vw, 2rem);
+    line-height: 1.1;
 }
 
 .ufsc-premium-v3 .ufsc-dashboard-mainpane .ufsc-dashboard-section {
