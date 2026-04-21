@@ -967,7 +967,7 @@ button#upload_btn {
 /* ===== V3 refinement for production premium pass ===== */
 .ufsc-premium-v3 .ufsc-dashboard-header--premium {
     display: grid;
-    grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
+    grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.7fr);
     gap: 20px;
     align-items: center;
 }
@@ -996,36 +996,43 @@ button#upload_btn {
     gap: 18px;
 }
 
-.ufsc-premium-v3 .ufsc-cockpit-priority {
-    margin-top: 4px;
+.ufsc-premium-v3 .ufsc-hero-kpi-grid {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 2px;
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-grid .ufsc-kpi-tile {
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    box-shadow: none;
+    backdrop-filter: blur(2px);
 }
 
 .ufsc-premium-v3 .ufsc-priority-tile {
-    border: 1px solid #d4e1ee;
-    background: linear-gradient(180deg, #ffffff, #f3f8ff);
+    background: rgba(255, 255, 255, 0.22) !important;
 }
 
 .ufsc-premium-v3 .ufsc-priority-detail {
     display: block;
     margin-top: 8px;
-    color: #45586d;
+    color: rgba(255, 255, 255, 0.9);
     font-size: .84rem;
 }
 
-.ufsc-premium-v3 .ufsc-kpi-tile:nth-child(1) {
-    background: linear-gradient(155deg, #f4f9ff 0%, #e6f1ff 100%);
+.ufsc-premium-v3 .ufsc-hero-kpi-grid .ufsc-kpi-tile-label {
+    color: rgba(255,255,255,.82);
 }
 
-.ufsc-premium-v3 .ufsc-kpi-tile:nth-child(2) {
-    background: linear-gradient(155deg, #f2fbf6 0%, #dff6e9 100%);
+.ufsc-premium-v3 .ufsc-hero-kpi-grid .ufsc-kpi-tile-value {
+    color: #fff;
 }
 
-.ufsc-premium-v3 .ufsc-kpi-tile:nth-child(3) {
-    background: linear-gradient(155deg, #fff8ef 0%, #feedd8 100%);
-}
-
-.ufsc-premium-v3 .ufsc-kpi-tile:nth-child(4) {
-    background: linear-gradient(155deg, #fff3f3 0%, #ffe1e1 100%);
+.ufsc-premium-v3 .ufsc-dashboard-mainpane .ufsc-dashboard-section {
+    background: #fff;
 }
 
 .ufsc-premium-v3 .ufsc-club-profile-layout {
@@ -1082,8 +1089,17 @@ button#upload_btn {
     .ufsc-premium-v3 .ufsc-club-profile-layout {
         grid-template-columns: 1fr;
     }
+    .ufsc-premium-v3 .ufsc-hero-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     .ufsc-premium-v3 .ufsc-club-profile-main,
     .ufsc-premium-v3 .ufsc-club-profile-documents {
         grid-column: auto;
+    }
+}
+
+@media (max-width: 680px) {
+    .ufsc-premium-v3 .ufsc-hero-kpi-grid {
+        grid-template-columns: 1fr;
     }
 }
