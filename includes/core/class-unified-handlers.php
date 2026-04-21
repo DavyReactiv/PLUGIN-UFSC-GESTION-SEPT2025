@@ -1170,7 +1170,7 @@ class UFSC_Unified_Handlers {
         }
 
         $date_naissance = isset( $post_data['date_naissance'] ) ? sanitize_text_field( wp_unslash( (string) $post_data['date_naissance'] ) ) : '';
-        if ( '' === $date_naissance || '0000-00-00' === $date_naissance || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date_naissance ) ) {
+        if ( ! self::is_valid_birth_date( $date_naissance ) ) {
             $errors[] = __( 'Date de naissance invalide (YYYY-MM-DD requis)', 'ufsc-clubs' );
         } else {
             $data['date_naissance'] = $date_naissance;
@@ -1182,7 +1182,6 @@ class UFSC_Unified_Handlers {
             'adresse' => 'sanitize_textarea_field',
             'ville' => 'sanitize_text_field',
             'code_postal' => 'sanitize_text_field',
-            'date_naissance' => 'sanitize_text_field',
             'sexe' => 'sanitize_text_field',
             'role' => 'sanitize_text_field',
             'competition' => 'absint',
@@ -1256,6 +1255,18 @@ class UFSC_Unified_Handlers {
         $data = self::normalize_licence_date_fields( $data );
 
         return $data;
+    }
+
+    /**
+     * Validate licence birth date (strict YYYY-MM-DD + valid calendar day).
+     */
+    private static function is_valid_birth_date( $date ) {
+        if ( '' === $date || '0000-00-00' === $date || ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+            return false;
+        }
+
+        $date_obj = DateTime::createFromFormat( 'Y-m-d', $date );
+        return $date_obj instanceof DateTime && $date_obj->format( 'Y-m-d' ) === $date;
     }
 
     /**
