@@ -105,6 +105,7 @@ class UFSC_SQL {
                 'profession'=>array('Profession','text'),
                 'fonction_publique'=>array('Fonction publique','bool'),
                 'competition'=>array('Compétition','bool'),
+                'role'=>array('Rôle dans le club','text'),
                 'licence_delegataire'=>array('Licence délégataire','bool'),
                 'numero_licence_delegataire'=>array('N° licence délégataire','text'),
                 'diffusion_image'=>array('Autoriser diffusion image','bool'),

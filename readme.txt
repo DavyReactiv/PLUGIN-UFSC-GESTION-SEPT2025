@@ -1,6 +1,6 @@
 === UFSC – Clubs & Licences (SQL) ===
 Contributors: Davy – Studio REACTIV (pour l'UFSC)
-Stable tag: 1.5.3ff
+Stable tag: 042026
 Requires at least: 6.0
 Tested up to: 6.6
 License: GPLv2 or later

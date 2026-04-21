@@ -388,6 +388,10 @@ class UFSC_Frontend_Shortcodes {
                     </button>
                 </div>
             </div>
+            <div class="ufsc-message ufsc-info">
+                <strong><?php esc_html_e( 'Statut du bureau :', 'ufsc-clubs' ); ?></strong>
+                <?php echo esc_html( $bureau_data['status_label'] ?? __( 'Bureau non conforme', 'ufsc-clubs' ) ); ?>
+            </div>
             <?php if ( ! empty( $bureau_data['missing_labels'] ) ) : ?>
                 <div class="ufsc-message ufsc-info">
                     <strong><?php esc_html_e( 'Vous n’avez pas encore licencié l’ensemble du bureau du club.', 'ufsc-clubs' ); ?></strong><br>
@@ -1306,6 +1310,13 @@ class UFSC_Frontend_Shortcodes {
             $form_data = (array) $edit_licence;
         }
 
+        if ( empty( $form_data['telephone'] ) ) {
+            $form_data['telephone'] = self::resolve_licence_phone( $form_data );
+        }
+        if ( isset( $form_data['role'] ) ) {
+            $form_data['role'] = sanitize_key( (string) $form_data['role'] );
+        }
+
         // UFSC: default checked (stable + no regression)
         $form_data = is_array( $form_data ) ? $form_data : array();
 
@@ -1693,7 +1704,9 @@ class UFSC_Frontend_Shortcodes {
             $where .= " AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
         }
 
-        return $wpdb->get_row( $wpdb->prepare( "SELECT {$select_fields} FROM `{$table}` WHERE {$where}", $licence_id, $club_id ) );
+        $row = $wpdb->get_row( $wpdb->prepare( "SELECT {$select_fields} FROM `{$table}` WHERE {$where}", $licence_id, $club_id ) );
+
+        return self::normalize_licence_row_for_display( $row );
     }
 
     // Helper methods
@@ -1895,6 +1908,11 @@ class UFSC_Frontend_Shortcodes {
         $values[]  = $offset;
 
         $rows = $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
+        if ( ! empty( $rows ) ) {
+            foreach ( $rows as $idx => $row ) {
+                $rows[ $idx ] = self::normalize_licence_row_for_display( $row );
+            }
+        }
         if ( ! empty( $rows ) && function_exists( 'ufsc_get_licence_season_label' ) ) {
             foreach ( $rows as $row ) {
                 $row->season_label = ufsc_get_licence_season_label( $row );
@@ -1903,6 +1921,61 @@ class UFSC_Frontend_Shortcodes {
         }
 
         return $rows;
+    }
+
+    /**
+     * Resolve the best phone value from a licence row.
+     *
+     * @param object|array|null $licence Licence row.
+     * @return string
+     */
+    private static function resolve_licence_phone( $licence ) {
+        if ( ! is_object( $licence ) && ! is_array( $licence ) ) {
+            return '';
+        }
+
+        $candidates = array( 'tel_mobile', 'telephone', 'mobile', 'tel_fixe' );
+        foreach ( $candidates as $field ) {
+            $value = is_array( $licence ) ? ( $licence[ $field ] ?? '' ) : ( $licence->{$field} ?? '' );
+            $value = trim( (string) $value );
+            if ( '' !== $value ) {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Normalize legacy licence fields for consistent UI rendering.
+     *
+     * @param object|null $row Raw DB row.
+     * @return object|null
+     */
+    private static function normalize_licence_row_for_display( $row ) {
+        if ( ! is_object( $row ) ) {
+            return $row;
+        }
+
+        $phone = self::resolve_licence_phone( $row );
+        $row->telephone = $phone;
+        if ( empty( $row->tel_mobile ) ) {
+            $row->tel_mobile = $phone;
+        }
+
+        if ( isset( $row->role ) ) {
+            $row->role = sanitize_key( (string) $row->role );
+        }
+
+        if ( ! empty( $row->date_inscription ) && is_string( $row->date_inscription ) ) {
+            if ( preg_match( '/^\d{4}-\d{2}-\d{2}\s+/', $row->date_inscription ) ) {
+                $row->date_inscription = substr( $row->date_inscription, 0, 10 );
+            } elseif ( '0000-00-00' === $row->date_inscription || '0000-00-00 00:00:00' === $row->date_inscription ) {
+                $row->date_inscription = '';
+            }
+        }
+
+        return $row;
     }
 
     /**
@@ -1998,6 +2071,8 @@ class UFSC_Frontend_Shortcodes {
                 'tresorier' => array(),
             ),
             'missing_labels' => array(),
+            'status_code'    => 'non_conforme',
+            'status_label'   => __( 'Bureau non conforme', 'ufsc-clubs' ),
         );
 
         if ( $club_id <= 0 || ! function_exists( 'ufsc_get_licences_table' ) ) {
@@ -2041,6 +2116,14 @@ class UFSC_Frontend_Shortcodes {
             if ( empty( $data['assignments'][ $role ] ) ) {
                 $data['missing_labels'][] = sprintf( __( '%s non licencié', 'ufsc-clubs' ), $label );
             }
+        }
+
+        if ( empty( $data['missing_labels'] ) ) {
+            $data['status_code']  = 'a_jour';
+            $data['status_label'] = __( 'Bureau à jour', 'ufsc-clubs' );
+        } else {
+            $data['status_code']  = 'incomplet';
+            $data['status_label'] = __( 'Bureau incomplet', 'ufsc-clubs' );
         }
 
         return $data;
