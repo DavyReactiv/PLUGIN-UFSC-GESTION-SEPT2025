@@ -122,36 +122,71 @@ class UFSC_Frontend_Shortcodes {
             )
         );
 
-        $sections = explode( ',', $atts['show_sections'] );
+        $sections        = explode( ',', $atts['show_sections'] );
+        $club            = self::get_club_data( $club_id );
+        $club_status     = isset( $club->statut ) ? $club->statut : '';
+        $bureau_data     = self::get_bureau_coverage_data( (int) $club_id );
+        $missing_roles   = ! empty( $bureau_data['missing_labels'] ) ? count( $bureau_data['missing_labels'] ) : 0;
+        $mandatory_docs  = array( 'doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer' );
+        $missing_docs    = 0;
+        foreach ( $mandatory_docs as $doc_key ) {
+            if ( empty( $club->$doc_key ) || ! wp_get_attachment_url( $club->$doc_key ) ) {
+                $missing_docs++;
+            }
+        }
 
         ob_start();
         ?>
         <div class="ufsc-club-dashboard" id="ufsc-dashboard">
-            <div class="ufsc-dashboard-header">
-                <div class="ufsc-dashboard-brand">
-                    <img class="ufsc-dashboard-logo" src="<?php echo esc_url( UFSC_CL_URL . 'assets/svg/ufsc-badge.svg' ); ?>" alt="<?php esc_attr_e( 'UFSC', 'ufsc-clubs' ); ?>">
-                    <div class="ufsc-dashboard-title">
-                        <h2><?php esc_html_e( 'Tableau de bord - Mon Club', 'ufsc-clubs' ); ?></h2>
-                        <p class="ufsc-dashboard-subtitle">
-                            <?php
-                            $club_name = self::get_club_name( $club_id );
-                            if ( $club_name ) {
-                                echo sprintf( esc_html__( 'Club: %s', 'ufsc-clubs' ), esc_html( $club_name ) );
-                            }
-                            ?>
-                        </p>
+            <div class="ufsc-dashboard-shell">
+                <div class="ufsc-dashboard-header ufsc-dashboard-header--premium">
+                    <div class="ufsc-dashboard-brand">
+                        <img class="ufsc-dashboard-logo" src="<?php echo esc_url( UFSC_CL_URL . 'assets/svg/ufsc-badge.svg' ); ?>" alt="<?php esc_attr_e( 'UFSC', 'ufsc-clubs' ); ?>">
+                        <div class="ufsc-dashboard-title">
+                            <h2><?php esc_html_e( 'Tableau de bord Club', 'ufsc-clubs' ); ?></h2>
+                            <p class="ufsc-dashboard-subtitle">
+                                <?php
+                                $club_name = self::get_club_name( $club_id );
+                                if ( $club_name ) {
+                                    echo sprintf( esc_html__( 'Pilotage de %s', 'ufsc-clubs' ), esc_html( $club_name ) );
+                                }
+                                ?>
+                            </p>
+                            <div class="ufsc-dashboard-status-line">
+                                <span class="ufsc-badge ufsc-badge-info"><?php esc_html_e( 'État du club', 'ufsc-clubs' ); ?></span>
+                                <?php echo self::get_status_badge_front( $club_status ); ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php if ( in_array( 'add_licence', $sections, true ) ): ?>
+                        <div class="ufsc-dashboard-actions">
+                            <a href="#ufsc-section-add_licence" class="ufsc-btn ufsc-btn-primary" onclick="document.querySelector('[data-section=&quot;add_licence&quot;]').click(); return false;">
+                                <?php esc_html_e( 'Ajouter une licence', 'ufsc-clubs' ); ?>
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="ufsc-dashboard-kpi-band">
+                    <div class="ufsc-card ufsc-kpi-tile">
+                        <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Licences', 'ufsc-clubs' ); ?></span>
+                        <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $stats['total_licences'] ); ?></strong>
+                    </div>
+                    <div class="ufsc-card ufsc-kpi-tile">
+                        <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Validées', 'ufsc-clubs' ); ?></span>
+                        <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $stats['validated_licences'] ); ?></strong>
+                    </div>
+                    <div class="ufsc-card ufsc-kpi-tile">
+                        <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Bureau à compléter', 'ufsc-clubs' ); ?></span>
+                        <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $missing_roles ); ?></strong>
+                    </div>
+                    <div class="ufsc-card ufsc-kpi-tile">
+                        <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Documents manquants', 'ufsc-clubs' ); ?></span>
+                        <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $missing_docs ); ?></strong>
                     </div>
                 </div>
-                <?php if ( in_array( 'add_licence', $sections ) ): ?>
-                    <div class="ufsc-dashboard-actions">
-                        <a href="#ufsc-section-add_licence" class="ufsc-btn ufsc-btn-primary" onclick="document.querySelector('[data-section=&quot;add_licence&quot;]').click(); return false;">
-                            <?php esc_html_e( 'Ajouter une licence', 'ufsc-clubs' ); ?>
-                        </a>
-                    </div>
-                <?php endif; ?>
-            </div>
 
-            <div class="ufsc-dashboard-nav">
+                <div class="ufsc-dashboard-nav">
                 <?php if ( in_array( 'licences', $sections ) ): ?>
                     <button class="ufsc-nav-btn active" data-section="licences">
                         <?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?>
@@ -174,30 +209,31 @@ class UFSC_Frontend_Shortcodes {
                 <?php endif; ?>
             </div>
 
-            <div class="ufsc-dashboard-content">
-                <?php if ( in_array( 'licences', $sections ) ): ?>
-                    <div id="ufsc-section-licences" class="ufsc-dashboard-section active">
-                        <?php echo self::render_club_licences( array( 'club_id' => $club_id ) ); ?>
-                    </div>
-                <?php endif; ?>
+                <div class="ufsc-dashboard-content">
+                    <?php if ( in_array( 'licences', $sections ) ): ?>
+                        <div id="ufsc-section-licences" class="ufsc-dashboard-section active">
+                            <?php echo self::render_club_licences( array( 'club_id' => $club_id ) ); ?>
+                        </div>
+                    <?php endif; ?>
 
-                <?php if ( in_array( 'stats', $sections ) ): ?>
-                    <div id="ufsc-section-stats" class="ufsc-dashboard-section">
-                        <?php echo self::render_club_stats( array( 'club_id' => $club_id ) ); ?>
-                    </div>
-                <?php endif; ?>
+                    <?php if ( in_array( 'stats', $sections ) ): ?>
+                        <div id="ufsc-section-stats" class="ufsc-dashboard-section">
+                            <?php echo self::render_club_stats( array( 'club_id' => $club_id ) ); ?>
+                        </div>
+                    <?php endif; ?>
 
-                <?php if ( in_array( 'profile', $sections ) ): ?>
-                    <div id="ufsc-section-profile" class="ufsc-dashboard-section">
-                        <?php echo self::render_club_profile( array( 'club_id' => $club_id ) ); ?>
-                    </div>
-                <?php endif; ?>
+                    <?php if ( in_array( 'profile', $sections ) ): ?>
+                        <div id="ufsc-section-profile" class="ufsc-dashboard-section">
+                            <?php echo self::render_club_profile( array( 'club_id' => $club_id ) ); ?>
+                        </div>
+                    <?php endif; ?>
 
-                <?php if ( in_array( 'add_licence', $sections ) ): ?>
-                    <div id="ufsc-section-add_licence" class="ufsc-dashboard-section">
-                        <?php echo self::render_add_licence( array( 'club_id' => $club_id ) ); ?>
-                    </div>
-                <?php endif; ?>
+                    <?php if ( in_array( 'add_licence', $sections ) ): ?>
+                        <div id="ufsc-section-add_licence" class="ufsc-dashboard-section">
+                            <?php echo self::render_add_licence( array( 'club_id' => $club_id ) ); ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
 
@@ -928,75 +964,89 @@ class UFSC_Frontend_Shortcodes {
         ?>
 
         <div class="ufsc-club-profile">
-            <!-- // UFSC: Enhanced club profile with sections and cards -->
-            <div class="ufsc-section-header">
-                <h3><?php esc_html_e( 'Profil du Club', 'ufsc-clubs' ); ?></h3>
-                <?php if ( ! $is_admin ): ?>
-                    <p class="ufsc-permission-notice">
-                        <?php esc_html_e( 'Seuls l\'email et le téléphone peuvent être modifiés', 'ufsc-clubs' ); ?>
-                    </p>
-                <?php endif; ?>
-            </div>
-            <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
-
-                <div class="ufsc-club-photo">
-                    <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>"  class="photo-club-front"/>
-                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-remove-photo-form">
-                        <?php wp_nonce_field( 'ufsc_remove_profile_photo', 'ufsc_remove_profile_photo_nonce' ); ?>
-                        <input type="hidden" name="action" value="ufsc_remove_profile_photo" />
-                        <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
-                        <button type="submit" class="button ufsc-remove-photo"><?php esc_html_e( 'Supprimer la photo', 'ufsc-clubs' ); ?></button>
-                    </form>
-                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-change-photo-form">
-                        <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
-                        <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
-                        <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
-                        <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" required />
-                        <button type="submit" id="upload_btn" class="buytton ufsc-upload-photo"><?php esc_html_e( 'Changer la photo', 'ufsc-clubs' ); ?></button>
-                    </form>
+            <div class="ufsc-club-profile-shell">
+                <div class="ufsc-section-header ufsc-profile-header">
+                    <div>
+                        <h3><?php esc_html_e( 'Compte Club', 'ufsc-clubs' ); ?></h3>
+                        <p class="ufsc-dashboard-subtitle"><?php esc_html_e( 'Consultez et mettez à jour les informations officielles de votre club.', 'ufsc-clubs' ); ?></p>
+                    </div>
+                    <?php if ( ! $is_admin ): ?>
+                        <p class="ufsc-permission-notice">
+                            <?php esc_html_e( 'Seuls l\'email et le téléphone peuvent être modifiés', 'ufsc-clubs' ); ?>
+                        </p>
+                    <?php endif; ?>
                 </div>
-            <?php else : ?>
-                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-upload-photo-form">
-                    <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
-                    <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
-                    <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
-                    <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp"clas="upload-file-profile" />
-                    <button type="submit" class="button ufsc-upload-photo"><?php esc_html_e( 'Ajouter une photo', 'ufsc-clubs' ); ?></button>
-                </form>
-            <?php endif; ?>
 
+            <?php
+                // UFSC PATCH: Attestation UFSC section (stable + legacy fallback).
+                $attestation = function_exists( 'ufsc_get_affiliation_attestation_data' )
+                    ? ufsc_get_affiliation_attestation_data( $club->id, $club )
+                    : array( 'url' => '', 'status' => 'pending', 'can_view' => false );
+            ?>
+                <div class="ufsc-card ufsc-club-hero">
+                    <div class="ufsc-club-hero-media">
+                        <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
+                            <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" class="photo-club-front"/>
+                            <div class="ufsc-hero-media-actions">
+                                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-remove-photo-form">
+                                    <?php wp_nonce_field( 'ufsc_remove_profile_photo', 'ufsc_remove_profile_photo_nonce' ); ?>
+                                    <input type="hidden" name="action" value="ufsc_remove_profile_photo" />
+                                    <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
+                                    <button type="submit" class="button ufsc-remove-photo"><?php esc_html_e( 'Supprimer la photo', 'ufsc-clubs' ); ?></button>
+                                </form>
+                                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-change-photo-form">
+                                    <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
+                                    <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
+                                    <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
+                                    <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp" required />
+                                    <button type="submit" id="upload_btn" class="buytton ufsc-upload-photo"><?php esc_html_e( 'Changer la photo', 'ufsc-clubs' ); ?></button>
+                                </form>
+                            </div>
+                        <?php else : ?>
+                            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-upload-photo-form">
+                                <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
+                                <input type="hidden" name="action" value="ufsc_upload_profile_photo" />
+                                <input type="hidden" name="club_id" value="<?php echo esc_attr( $club->id ); ?>" />
+                                <input type="file" name="profile_photo" accept="image/jpeg,image/png,image/webp"clas="upload-file-profile" />
+                                <button type="submit" class="button ufsc-upload-photo"><?php esc_html_e( 'Ajouter une photo', 'ufsc-clubs' ); ?></button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                    <div class="ufsc-club-hero-content">
+                        <h4><?php echo esc_html( $club->nom ?? '' ); ?></h4>
+                        <div class="ufsc-dashboard-status-line">
+                            <?php echo self::get_status_badge_front( $club->statut ?? '' ); ?>
+                            <?php if ( ! empty( $club->num_affiliation ) ) : ?>
+                                <span class="ufsc-badge ufsc-badge-region"><?php echo esc_html( sprintf( __( 'Affiliation %s', 'ufsc-clubs' ), $club->num_affiliation ) ); ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <?php if ( $attestation['can_view'] ) : ?>
+                            <div class="div-attestation">
+                                <h3 class="title-attestation club front"><?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?></h3>
+                                <?php if ( $attestation['url'] ) : ?>
+                                    <div class="ufsc-current-file">
+                                        <p class="ufsc-document-status"><?php esc_html_e( 'Disponible', 'ufsc-clubs' ); ?></p>
+                                        <div class="ufsc-document-actions">
+                                            <a href="<?php echo esc_url( $attestation['url'] ); ?>" target="_blank" rel="noopener" class="button">
+                                                <?php esc_html_e( 'Voir', 'ufsc-clubs' ); ?>
+                                            </a>
+                                            <a href="<?php echo esc_url( $attestation['url'] ); ?>" download class="button" id="btn-telechrager-attestation">
+                                                <?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?>
+                                            </a>
+                                        </div>
+                                    </div>
+                                <?php else : ?>
+                                    <p class="ufsc-document-status"><?php esc_html_e( 'En cours de génération', 'ufsc-clubs' ); ?></p>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-club-form ufsc-club-profile">
                 <div class="ufsc-notices" aria-live="polite"></div>
                 <input type="hidden" name="action" value="ufsc_save_club">
                 <input type="hidden" name="club_id" value="<?= (int) $club->id ?>" />
                 <?php wp_nonce_field( 'ufsc_save_club', 'ufsc_club_nonce' ); ?>
-
-                <?php
-                    // UFSC PATCH: Attestation UFSC section (stable + legacy fallback).
-                    $attestation = function_exists( 'ufsc_get_affiliation_attestation_data' )
-                        ? ufsc_get_affiliation_attestation_data( $club->id, $club )
-                        : array( 'url' => '', 'status' => 'pending', 'can_view' => false );
-                    if ( $attestation['can_view'] ) :
-                ?>
-                    <div class="div-attestation">
-                        <h3 class="title-attestation club front"><?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?></h3>
-                        <?php if ( $attestation['url'] ) : ?>
-                            <div class="ufsc-current-file">
-                                <p class="ufsc-document-status"><?php esc_html_e( 'Disponible', 'ufsc-clubs' ); ?></p>
-                                <div class="ufsc-document-actions">
-                                    <a href="<?php echo esc_url( $attestation['url'] ); ?>" target="_blank" rel="noopener" class="button">
-                                        <?php esc_html_e( 'Voir', 'ufsc-clubs' ); ?>
-                                    </a>
-                                    <a href="<?php echo esc_url( $attestation['url'] ); ?>" download class="button" id="btn-telechrager-attestation">
-                                        <?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?>
-                                    </a>
-                                </div>
-                            </div>
-                        <?php else : ?>
-                            <p class="ufsc-document-status"><?php esc_html_e( 'En cours de génération', 'ufsc-clubs' ); ?></p>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
                 <div class="ufsc-club-profile-layout">
                     <div class="ufsc-club-profile-main ufsc-profile-cards">
                 <div class="ufsc-card ufsc-section">
@@ -1233,6 +1283,7 @@ class UFSC_Frontend_Shortcodes {
                             <?php endforeach; ?>
                         </div>
                     </div>
+                </div>
                 </div>
                 </div>
 
