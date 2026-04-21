@@ -770,3 +770,196 @@ button#upload_btn {
         position: static;
     }
 }
+
+/* ===== Premium redesign pass 2 (ambitious cockpit/extranet look) ===== */
+.ufsc-club-dashboard,
+.ufsc-club-profile {
+    max-width: min(1680px, 96vw);
+    padding-inline: clamp(14px, 3vw, 40px);
+}
+
+.ufsc-dashboard-shell,
+.ufsc-club-profile-shell {
+    gap: clamp(20px, 2.2vw, 34px);
+}
+
+.ufsc-dashboard-header--premium,
+.ufsc-profile-header {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 24px;
+    box-shadow: 0 26px 46px rgba(9, 30, 52, 0.33);
+}
+
+.ufsc-dashboard-header--premium::before,
+.ufsc-profile-header::before {
+    content: "";
+    position: absolute;
+    inset: auto -60px -90px auto;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+
+.ufsc-dashboard-header--premium h2,
+.ufsc-profile-header h3 {
+    font-size: clamp(1.6rem, 3.1vw, 2.5rem);
+    line-height: 1.15;
+    margin: 0;
+}
+
+.ufsc-dashboard-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.ufsc-dashboard-actions .ufsc-btn {
+    min-height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    box-shadow: 0 8px 16px rgba(7, 23, 39, 0.22);
+}
+
+.ufsc-dashboard-kpi-band {
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    gap: 18px;
+}
+
+.ufsc-kpi-tile {
+    border-radius: 20px;
+    padding: 22px;
+    background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+}
+
+.ufsc-kpi-tile-value {
+    font-size: clamp(1.7rem, 2.6vw, 2.4rem);
+    font-weight: 800;
+}
+
+.ufsc-cockpit-priority .ufsc-priority-card {
+    border-radius: 18px;
+    border-left: 6px solid #2271b1;
+    background: linear-gradient(180deg, #fff, #f7fbff);
+}
+
+.ufsc-priority-title {
+    margin: 0 0 8px;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.ufsc-priority-list {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 6px;
+}
+
+.ufsc-dashboard-nav {
+    padding: 14px;
+    border-radius: 16px;
+    box-shadow: 0 12px 25px rgba(15, 23, 42, 0.07);
+}
+
+.ufsc-nav-btn {
+    font-size: 0.94rem;
+    min-height: 42px;
+}
+
+.ufsc-dashboard-content > .ufsc-dashboard-section {
+    border-radius: 22px;
+    box-shadow: 0 20px 36px rgba(15, 23, 42, 0.08);
+}
+
+.ufsc-club-hero {
+    border-radius: 22px;
+    padding: clamp(18px, 2vw, 26px);
+    background: linear-gradient(128deg, #ffffff 0%, #f6fbff 56%, #eef6ff 100%);
+    border: 1px solid #d0dff0;
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.11);
+}
+
+.ufsc-club-hero-content .div-attestation {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #dbe6f2;
+}
+
+.ufsc-profile-insight-band {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+    gap: 14px;
+}
+
+.ufsc-profile-insight {
+    border-radius: 14px;
+    border: 1px solid #d6e2ef;
+    background: #fff;
+    padding: 14px 16px;
+    display: grid;
+    gap: 8px;
+}
+
+.ufsc-profile-insight > span {
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #5f7084;
+}
+
+.ufsc-profile-insight > strong {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.ufsc-club-profile .ufsc-card h4 {
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+}
+
+.ufsc-profile-cards .ufsc-card,
+.ufsc-club-profile-documents .ufsc-card {
+    border-radius: 18px;
+    background: #fff;
+}
+
+.ufsc-board-role-card h5 {
+    margin-bottom: 12px;
+    font-size: 1rem;
+}
+
+.ufsc-document-card {
+    background: linear-gradient(180deg, #fff, #fbfdff);
+}
+
+.ufsc-document-card .ufsc-upload-label {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #edf5ff;
+    border: 1px solid #c8dcf5;
+}
+
+.ufsc-form-actions {
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.09);
+}
+
+@media (max-width: 1200px) {
+    .ufsc-profile-insight-band,
+    .ufsc-dashboard-kpi-band {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .ufsc-profile-insight-band,
+    .ufsc-dashboard-kpi-band {
+        grid-template-columns: 1fr;
+    }
+}

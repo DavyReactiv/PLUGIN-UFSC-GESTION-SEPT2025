@@ -129,6 +129,9 @@ class UFSC_Frontend_Shortcodes {
         $missing_roles   = ! empty( $bureau_data['missing_labels'] ) ? count( $bureau_data['missing_labels'] ) : 0;
         $mandatory_docs  = array( 'doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer' );
         $missing_docs    = 0;
+        $attestation_dashboard = function_exists( 'ufsc_get_affiliation_attestation_data' )
+            ? ufsc_get_affiliation_attestation_data( $club_id, $club )
+            : array( 'url' => '', 'status' => 'pending', 'can_view' => false );
         foreach ( $mandatory_docs as $doc_key ) {
             if ( empty( $club->$doc_key ) || ! wp_get_attachment_url( $club->$doc_key ) ) {
                 $missing_docs++;
@@ -158,13 +161,18 @@ class UFSC_Frontend_Shortcodes {
                             </div>
                         </div>
                     </div>
-                    <?php if ( in_array( 'add_licence', $sections, true ) ): ?>
-                        <div class="ufsc-dashboard-actions">
+                    <div class="ufsc-dashboard-actions">
+                        <?php if ( in_array( 'add_licence', $sections, true ) ): ?>
                             <a href="#ufsc-section-add_licence" class="ufsc-btn ufsc-btn-primary" onclick="document.querySelector('[data-section=&quot;add_licence&quot;]').click(); return false;">
                                 <?php esc_html_e( 'Ajouter une licence', 'ufsc-clubs' ); ?>
                             </a>
-                        </div>
-                    <?php endif; ?>
+                        <?php endif; ?>
+                        <?php if ( in_array( 'profile', $sections, true ) ): ?>
+                            <a href="#ufsc-section-profile" class="ufsc-btn ufsc-btn-secondary" onclick="document.querySelector('[data-section=&quot;profile&quot;]').click(); return false;">
+                                <?php esc_html_e( 'Mettre à jour le club', 'ufsc-clubs' ); ?>
+                            </a>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
                 <div class="ufsc-dashboard-kpi-band">
@@ -183,6 +191,27 @@ class UFSC_Frontend_Shortcodes {
                     <div class="ufsc-card ufsc-kpi-tile">
                         <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Documents manquants', 'ufsc-clubs' ); ?></span>
                         <strong class="ufsc-kpi-tile-value"><?php echo esc_html( (int) $missing_docs ); ?></strong>
+                    </div>
+                </div>
+
+                <div class="ufsc-cockpit-priority">
+                    <div class="ufsc-card ufsc-priority-card">
+                        <p class="ufsc-priority-title"><?php esc_html_e( 'Priorités immédiates', 'ufsc-clubs' ); ?></p>
+                        <ul class="ufsc-priority-list">
+                            <li><?php echo esc_html( sprintf( __( '%d document(s) à compléter', 'ufsc-clubs' ), (int) $missing_docs ) ); ?></li>
+                            <li><?php echo esc_html( sprintf( __( '%d rôle(s) de bureau à couvrir', 'ufsc-clubs' ), (int) $missing_roles ) ); ?></li>
+                            <?php if ( ! empty( $attestation_dashboard['can_view'] ) ) : ?>
+                                <li>
+                                    <?php if ( ! empty( $attestation_dashboard['url'] ) ) : ?>
+                                        <a href="<?php echo esc_url( $attestation_dashboard['url'] ); ?>" target="_blank" rel="noopener">
+                                            <?php esc_html_e( 'Attestation UFSC disponible', 'ufsc-clubs' ); ?>
+                                        </a>
+                                    <?php else : ?>
+                                        <?php esc_html_e( 'Attestation UFSC en préparation', 'ufsc-clubs' ); ?>
+                                    <?php endif; ?>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
                     </div>
                 </div>
 
@@ -1042,6 +1071,36 @@ class UFSC_Frontend_Shortcodes {
                         <?php endif; ?>
                     </div>
                 </div>
+            <?php
+                $profile_bureau = self::get_bureau_coverage_data( (int) $club->id );
+                $profile_missing_roles = ! empty( $profile_bureau['missing_labels'] ) ? count( $profile_bureau['missing_labels'] ) : 0;
+                $profile_docs_fields = array( 'doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer' );
+                $profile_missing_docs = 0;
+                foreach ( $profile_docs_fields as $profile_doc_key ) {
+                    $profile_doc_value = isset( $club->$profile_doc_key ) ? $club->$profile_doc_key : '';
+                    if ( empty( $profile_doc_value ) || ! wp_get_attachment_url( $profile_doc_value ) ) {
+                        $profile_missing_docs++;
+                    }
+                }
+            ?>
+            <div class="ufsc-profile-insight-band">
+                <div class="ufsc-card ufsc-profile-insight">
+                    <span><?php esc_html_e( 'Statut global', 'ufsc-clubs' ); ?></span>
+                    <?php echo self::get_status_badge_front( $club->statut ?? '' ); ?>
+                </div>
+                <div class="ufsc-card ufsc-profile-insight">
+                    <span><?php esc_html_e( 'Bureau', 'ufsc-clubs' ); ?></span>
+                    <strong><?php echo esc_html( sprintf( __( '%d rôle(s) manquant(s)', 'ufsc-clubs' ), (int) $profile_missing_roles ) ); ?></strong>
+                </div>
+                <div class="ufsc-card ufsc-profile-insight">
+                    <span><?php esc_html_e( 'Documents', 'ufsc-clubs' ); ?></span>
+                    <strong><?php echo esc_html( sprintf( __( '%d document(s) manquant(s)', 'ufsc-clubs' ), (int) $profile_missing_docs ) ); ?></strong>
+                </div>
+                <div class="ufsc-card ufsc-profile-insight">
+                    <span><?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?></span>
+                    <strong><?php echo ! empty( $attestation['url'] ) ? esc_html__( 'Disponible', 'ufsc-clubs' ) : esc_html__( 'En attente', 'ufsc-clubs' ); ?></strong>
+                </div>
+            </div>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-club-form ufsc-club-profile">
                 <div class="ufsc-notices" aria-live="polite"></div>
                 <input type="hidden" name="action" value="ufsc_save_club">
