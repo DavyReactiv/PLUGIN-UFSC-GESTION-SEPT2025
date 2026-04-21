@@ -562,3 +562,690 @@ button#upload_btn {
     padding: 5px 15px !important;
     margin: 28px 0 !important;
 }
+
+/* ===== Premium redesign: club dashboard + compte club ===== */
+.ufsc-club-dashboard,
+.ufsc-club-profile {
+    max-width: 1360px;
+    margin: 0 auto;
+    padding: clamp(16px, 2vw, 32px);
+    color: #0f172a;
+}
+
+.ufsc-dashboard-shell,
+.ufsc-club-profile-shell {
+    display: grid;
+    gap: 24px;
+}
+
+.ufsc-dashboard-header--premium,
+.ufsc-profile-header {
+    background: linear-gradient(145deg, #0f3a64 0%, #1f5f94 45%, #2d7ec0 100%);
+    color: #fff;
+    padding: clamp(20px, 3vw, 34px);
+    border-radius: 18px;
+    box-shadow: 0 20px 35px rgba(15, 58, 100, 0.22);
+}
+
+.ufsc-dashboard-header--premium .ufsc-dashboard-subtitle,
+.ufsc-profile-header .ufsc-dashboard-subtitle {
+    color: rgba(255, 255, 255, 0.92);
+    margin-top: 8px;
+}
+
+.ufsc-dashboard-status-line {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    align-items: center;
+}
+
+.ufsc-dashboard-kpi-band {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ufsc-kpi-tile {
+    border-radius: 16px;
+    border: 1px solid #dbe4ef;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    padding: 18px;
+}
+
+.ufsc-kpi-tile-label {
+    display: block;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #475569;
+    margin-bottom: 10px;
+}
+
+.ufsc-kpi-tile-value {
+    font-size: clamp(1.35rem, 2vw, 2rem);
+    line-height: 1;
+}
+
+.ufsc-dashboard-nav {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    background: #fff;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid #dbe4ef;
+}
+
+.ufsc-nav-btn {
+    border: 1px solid #c7d7ea;
+    border-radius: 999px;
+    padding: 9px 14px;
+    background: #f8fbff;
+    font-weight: 600;
+}
+
+.ufsc-nav-btn.active {
+    background: #2271b1;
+    color: #fff;
+    border-color: #2271b1;
+}
+
+.ufsc-dashboard-content > .ufsc-dashboard-section {
+    background: #fff;
+    border: 1px solid #dbe4ef;
+    border-radius: 18px;
+    padding: clamp(14px, 2vw, 22px);
+}
+
+.ufsc-club-hero {
+    display: grid;
+    grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+    gap: 24px;
+    border-radius: 18px;
+    border: 1px solid #d9e3ee;
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+.ufsc-club-hero-media img.photo-club-front {
+    width: 100%;
+    max-width: none;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.ufsc-hero-media-actions {
+    display: grid;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.ufsc-club-hero-content h4 {
+    font-size: clamp(1.35rem, 2.2vw, 1.95rem);
+    margin: 0 0 6px;
+}
+
+.ufsc-club-profile-layout {
+    gap: 20px;
+}
+
+.ufsc-profile-cards .ufsc-card {
+    border-radius: 14px;
+    border: 1px solid #dbe4ef;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+}
+
+.ufsc-board-columns {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ufsc-board-role-card {
+    border-radius: 12px;
+    border: 1px solid #d3dfec;
+    background: #f8fbff;
+}
+
+.ufsc-form-actions {
+    position: sticky;
+    bottom: 14px;
+    display: flex;
+    justify-content: flex-end;
+    background: #ffffffde;
+    backdrop-filter: blur(8px);
+    border: 1px solid #dbe4ef;
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 18px;
+}
+
+.ufsc-club-profile-documents .ufsc-documents-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.ufsc-document-card {
+    border: 1px solid #d7e2ee;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.ufsc-document-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ufsc-document-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+@media (max-width: 1180px) {
+    .ufsc-dashboard-kpi-band,
+    .ufsc-board-columns {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .ufsc-club-hero,
+    .ufsc-club-profile-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 680px) {
+    .ufsc-dashboard-kpi-band,
+    .ufsc-club-profile-documents .ufsc-documents-grid,
+    .ufsc-board-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .ufsc-form-actions {
+        position: static;
+    }
+}
+
+/* ===== Premium redesign pass 2 (ambitious cockpit/extranet look) ===== */
+.ufsc-club-dashboard,
+.ufsc-club-profile {
+    max-width: min(1680px, 96vw);
+    padding-inline: clamp(14px, 3vw, 40px);
+}
+
+.ufsc-dashboard-shell,
+.ufsc-club-profile-shell {
+    gap: clamp(20px, 2.2vw, 34px);
+}
+
+.ufsc-dashboard-header--premium,
+.ufsc-profile-header {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 24px;
+    box-shadow: 0 26px 46px rgba(9, 30, 52, 0.33);
+}
+
+.ufsc-dashboard-header--premium::before,
+.ufsc-profile-header::before {
+    content: "";
+    position: absolute;
+    inset: auto -60px -90px auto;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+
+.ufsc-dashboard-header--premium h2,
+.ufsc-profile-header h3 {
+    font-size: clamp(1.6rem, 3.1vw, 2.5rem);
+    line-height: 1.15;
+    margin: 0;
+}
+
+.ufsc-dashboard-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.ufsc-dashboard-actions .ufsc-btn {
+    min-height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    box-shadow: 0 8px 16px rgba(7, 23, 39, 0.22);
+}
+
+.ufsc-dashboard-kpi-band {
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+    gap: 18px;
+}
+
+.ufsc-kpi-tile {
+    border-radius: 20px;
+    padding: 22px;
+    background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+}
+
+.ufsc-kpi-tile-value {
+    font-size: clamp(1.7rem, 2.6vw, 2.4rem);
+    font-weight: 800;
+}
+
+.ufsc-cockpit-priority .ufsc-priority-card {
+    border-radius: 18px;
+    border-left: 6px solid #2271b1;
+    background: linear-gradient(180deg, #fff, #f7fbff);
+}
+
+.ufsc-priority-title {
+    margin: 0 0 8px;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.ufsc-priority-list {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 6px;
+}
+
+.ufsc-dashboard-nav {
+    padding: 14px;
+    border-radius: 16px;
+    box-shadow: 0 12px 25px rgba(15, 23, 42, 0.07);
+}
+
+.ufsc-nav-btn {
+    font-size: 0.94rem;
+    min-height: 42px;
+}
+
+.ufsc-dashboard-content > .ufsc-dashboard-section {
+    border-radius: 22px;
+    box-shadow: 0 20px 36px rgba(15, 23, 42, 0.08);
+}
+
+.ufsc-club-hero {
+    border-radius: 22px;
+    padding: clamp(18px, 2vw, 26px);
+    background: linear-gradient(128deg, #ffffff 0%, #f6fbff 56%, #eef6ff 100%);
+    border: 1px solid #d0dff0;
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.11);
+}
+
+.ufsc-club-hero-content .div-attestation {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid #dbe6f2;
+}
+
+.ufsc-profile-insight-band {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+    gap: 14px;
+}
+
+.ufsc-profile-insight {
+    border-radius: 14px;
+    border: 1px solid #d6e2ef;
+    background: #fff;
+    padding: 14px 16px;
+    display: grid;
+    gap: 8px;
+}
+
+.ufsc-profile-insight > span {
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #5f7084;
+}
+
+.ufsc-profile-insight > strong {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.ufsc-club-profile .ufsc-card h4 {
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+}
+
+.ufsc-profile-cards .ufsc-card,
+.ufsc-club-profile-documents .ufsc-card {
+    border-radius: 18px;
+    background: #fff;
+}
+
+.ufsc-board-role-card h5 {
+    margin-bottom: 12px;
+    font-size: 1rem;
+}
+
+.ufsc-document-card {
+    background: linear-gradient(180deg, #fff, #fbfdff);
+}
+
+.ufsc-document-card .ufsc-upload-label {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #edf5ff;
+    border: 1px solid #c8dcf5;
+}
+
+.ufsc-form-actions {
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.09);
+}
+
+@media (max-width: 1200px) {
+    .ufsc-profile-insight-band,
+    .ufsc-dashboard-kpi-band {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .ufsc-profile-insight-band,
+    .ufsc-dashboard-kpi-band {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== V3 refinement for production premium pass ===== */
+.ufsc-premium-v3 .ufsc-dashboard-header--premium {
+    display: block !important;
+}
+
+.ufsc-premium-v3 .ufsc-dashboard-hero-layout {
+    display: grid !important;
+    grid-template-columns: minmax(340px, 380px) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+    width: 100%;
+}
+
+.ufsc-premium-v3 .ufsc-hero-left {
+    display: grid;
+    gap: 14px;
+}
+
+.ufsc-premium-v3 .ufsc-hero-right {
+    display: grid !important;
+    align-content: start;
+    min-width: 0;
+}
+
+.ufsc-premium-v3 .ufsc-dashboard-hero-side {
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(8, 25, 42, 0.26);
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+}
+
+.ufsc-premium-v3 .ufsc-dashboard-hero-side img {
+    width: 100%;
+    max-width: 280px;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(5, 18, 30, 0.4);
+}
+
+.ufsc-premium-v3 .ufsc-dashboard-mainpane {
+    display: grid;
+    gap: 18px;
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-grid {
+    display: grid !important;
+    gap: 12px;
+    grid-template-columns: repeat(3, minmax(170px, 1fr));
+    margin-top: 0;
+    width: 100%;
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-grid .ufsc-kpi-tile {
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    box-shadow: none;
+    backdrop-filter: blur(2px);
+    min-height: 112px;
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-card {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    align-content: start;
+    gap: 8px;
+    padding: 14px 16px;
+    overflow: visible;
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-card.-neutral {
+    border-left: 4px solid rgba(255, 255, 255, 0.55);
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-card.-success {
+    border-left: 4px solid #86efac;
+    background: linear-gradient(180deg, rgba(16,185,129,.35), rgba(255,255,255,.12)) !important;
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-card.-warning {
+    border-left: 4px solid #fbbf24;
+    background: linear-gradient(180deg, rgba(234,179,8,.34), rgba(255,255,255,.12)) !important;
+}
+
+.ufsc-premium-v3 .ufsc-priority-tile {
+    min-height: 128px;
+}
+
+.ufsc-premium-v3 .ufsc-priority-detail {
+    display: block;
+    margin-top: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: .84rem;
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-grid .ufsc-kpi-tile-label {
+    color: rgba(255,255,255,.82);
+}
+
+.ufsc-premium-v3 .ufsc-hero-kpi-grid .ufsc-kpi-tile-value {
+    color: #fff;
+    font-size: clamp(1.55rem, 2vw, 2rem);
+    line-height: 1.1;
+}
+
+.ufsc-premium-v3 .ufsc-dashboard-mainpane .ufsc-dashboard-section {
+    background: #fff;
+}
+
+.ufsc-premium-v3 .ufsc-club-profile-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(320px, 0.8fr);
+}
+
+.ufsc-premium-v3 .ufsc-club-profile-main {
+    gap: 18px;
+    grid-column: 1 / span 2;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ufsc-premium-v3 .ufsc-club-profile-documents {
+    grid-column: 3;
+}
+
+.ufsc-premium-v3 .ufsc-club-profile-documents .ufsc-card {
+    background: linear-gradient(180deg, #ffffff, #f6faff);
+}
+
+.ufsc-premium-v3 .ufsc-board-role-card {
+    background: linear-gradient(180deg, #f9fcff, #edf5ff);
+    border-color: #c8dced;
+}
+
+.ufsc-premium-v3 .ufsc-board-role-card--coach {
+    margin-top: 14px;
+}
+
+.ufsc-premium-v3 .ufsc-form-actions {
+    padding: 14px;
+    border: 1px solid #cfe0f0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(247,251,255,0.95));
+}
+
+.ufsc-premium-v3 .ufsc-field input,
+.ufsc-premium-v3 .ufsc-field select,
+.ufsc-premium-v3 .ufsc-field textarea {
+    border-color: #c5d5e6;
+    border-radius: 10px;
+    min-height: 44px;
+    background: #fdfefe;
+}
+
+.ufsc-premium-v3 .ufsc-field label {
+    font-size: .86rem;
+    color: #2b425a;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+}
+
+@media (max-width: 1180px) {
+    .ufsc-premium-v3 .ufsc-dashboard-hero-layout,
+    .ufsc-premium-v3 .ufsc-club-profile-layout {
+        grid-template-columns: 1fr;
+    }
+    .ufsc-premium-v3 .ufsc-hero-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .ufsc-premium-v3 .ufsc-club-profile-main,
+    .ufsc-premium-v3 .ufsc-club-profile-documents {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 680px) {
+    .ufsc-premium-v3 .ufsc-hero-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===== Stabilisation UI (corrections ciblées) ===== */
+.ufsc-premium-v3 .ufsc-dashboard-header--premium::before,
+.ufsc-premium-v3 .ufsc-profile-header::before {
+    width: 190px;
+    height: 190px;
+    opacity: .32;
+}
+
+.ufsc-premium-v3 .ufsc-profile-header .ufsc-permission-notice {
+    max-width: 360px;
+    font-size: .9rem;
+    line-height: 1.35;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.25);
+    border-radius: 10px;
+    padding: 8px 10px;
+}
+
+.ufsc-premium-v3 .ufsc-profile-insight {
+    padding: 16px 18px;
+    gap: 10px;
+}
+
+.ufsc-premium-v3 .ufsc-club-profile-layout {
+    grid-template-columns: 1fr;
+    max-width: 1320px;
+    margin: 0 auto;
+}
+
+.ufsc-premium-v3 .ufsc-section-board {
+    grid-column: 1 / -1;
+}
+
+.ufsc-premium-v3 .ufsc-club-profile-main {
+    grid-template-columns: repeat(2, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.ufsc-premium-v3 .ufsc-section-board .ufsc-board-columns {
+    grid-template-columns: repeat(3, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+.ufsc-premium-v3 .ufsc-section-board .ufsc-board-role-card h5 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ufsc-premium-v3 .ufsc-section-board .ufsc-field input,
+.ufsc-premium-v3 .ufsc-section-board .ufsc-field select,
+.ufsc-premium-v3 .ufsc-section-board .ufsc-field textarea {
+    min-height: 42px;
+}
+
+.ufsc-premium-v3 .ufsc-club-profile-documents .ufsc-documents-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.ufsc-premium-v3 .ufsc-document-name {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.3;
+}
+
+.ufsc-premium-v3 .ufsc-document-card {
+    min-height: 0;
+}
+
+.ufsc-premium-v3 .ufsc-document-card .ufsc-upload-label {
+    background: #1f5f94;
+    border-color: #1f5f94;
+    color: #fff;
+    font-weight: 600;
+}
+
+.ufsc-premium-v3 .ufsc-document-card .ufsc-upload-label:hover {
+    background: #174a72;
+    border-color: #174a72;
+}
+
+@media (max-width: 1380px) {
+    .ufsc-premium-v3 .ufsc-club-profile-main {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .ufsc-premium-v3 .ufsc-section-board .ufsc-board-columns {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1024px) {
+    .ufsc-premium-v3 .ufsc-club-profile-layout {
+        grid-template-columns: 1fr;
+    }
+    .ufsc-premium-v3 .ufsc-club-profile-main,
+    .ufsc-premium-v3 .ufsc-club-profile-documents .ufsc-documents-grid {
+        grid-template-columns: 1fr;
+    }
+    .ufsc-premium-v3 .ufsc-section-board .ufsc-board-columns {
+        grid-template-columns: 1fr;
+    }
+}
