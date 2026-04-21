@@ -544,6 +544,9 @@ class UFSC_Frontend_Shortcodes {
                                                 <?php esc_html_e( 'Affecter', 'ufsc-clubs' ); ?>
                                             </button>
                                         </form>
+                                        <small class="ufsc-bureau-assignment-hint">
+                                            <?php esc_html_e( 'Si ce rôle est déjà attribué à une autre licence, il sera déplacé automatiquement.', 'ufsc-clubs' ); ?>
+                                        </small>
                                     </td>
                                     <td><?php echo esc_html( $gender ); ?></td>
                                     <td><?php echo self::get_status_badge_front($status); ?></td>

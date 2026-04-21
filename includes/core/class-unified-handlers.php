@@ -489,7 +489,18 @@ class UFSC_Unified_Handlers {
         }
 
         $new_role = $requested_role;
+        $replaced_licence_ids = array();
         if ( '' !== $new_role ) {
+            $replaced_licence_ids = $wpdb->get_col(
+                $wpdb->prepare(
+                    "SELECT id FROM {$table} WHERE club_id = %d AND role = %s AND id <> %d",
+                    $requested_club,
+                    $new_role,
+                    $licence_id
+                )
+            );
+            $replaced_licence_ids = array_filter( array_map( 'absint', (array) $replaced_licence_ids ) );
+
             $wpdb->update(
                 $table,
                 array( 'role' => '' ),
@@ -524,6 +535,9 @@ class UFSC_Unified_Handlers {
         $success_message = '' === $new_role
             ? __( 'Rôle bureau retiré.', 'ufsc-clubs' )
             : sprintf( __( 'Rôle bureau mis à jour : %s.', 'ufsc-clubs' ), self::get_bureau_role_label( $new_role ) );
+        if ( ! empty( $replaced_licence_ids ) ) {
+            $success_message .= ' ' . __( 'Ce rôle était déjà attribué et a été déplacé automatiquement.', 'ufsc-clubs' );
+        }
 
         self::redirect_with_success( $success_message );
     }
