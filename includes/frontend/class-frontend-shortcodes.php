@@ -140,7 +140,7 @@ class UFSC_Frontend_Shortcodes {
 
         ob_start();
         ?>
-        <div class="ufsc-club-dashboard" id="ufsc-dashboard">
+        <div class="ufsc-club-dashboard ufsc-premium-v3" id="ufsc-dashboard">
             <div class="ufsc-dashboard-shell">
                 <div class="ufsc-dashboard-header ufsc-dashboard-header--premium">
                     <div class="ufsc-dashboard-brand">
@@ -158,6 +158,9 @@ class UFSC_Frontend_Shortcodes {
                             <div class="ufsc-dashboard-status-line">
                                 <span class="ufsc-badge ufsc-badge-info"><?php esc_html_e( 'État du club', 'ufsc-clubs' ); ?></span>
                                 <?php echo self::get_status_badge_front( $club_status ); ?>
+                                <?php if ( ! empty( $club->num_affiliation ) ) : ?>
+                                    <span class="ufsc-badge ufsc-badge-region"><?php echo esc_html( sprintf( __( 'Affiliation %s', 'ufsc-clubs' ), $club->num_affiliation ) ); ?></span>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -172,6 +175,22 @@ class UFSC_Frontend_Shortcodes {
                                 <?php esc_html_e( 'Mettre à jour le club', 'ufsc-clubs' ); ?>
                             </a>
                         <?php endif; ?>
+                    </div>
+                    <div class="ufsc-dashboard-hero-side">
+                        <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
+                            <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
+                        <?php endif; ?>
+                        <div class="ufsc-dashboard-hero-side-meta">
+                            <?php if ( ! empty( $attestation_dashboard['can_view'] ) ) : ?>
+                                <?php if ( ! empty( $attestation_dashboard['url'] ) ) : ?>
+                                    <a href="<?php echo esc_url( $attestation_dashboard['url'] ); ?>" target="_blank" rel="noopener" class="ufsc-btn ufsc-btn-secondary">
+                                        <?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?>
+                                    </a>
+                                <?php else : ?>
+                                    <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Attestation en cours', 'ufsc-clubs' ); ?></span>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
 
@@ -215,53 +234,65 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-dashboard-nav">
-                <?php if ( in_array( 'licences', $sections ) ): ?>
-                    <button class="ufsc-nav-btn active" data-section="licences">
-                        <?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?>
-                    </button>
-                <?php endif; ?>
-                <?php if ( in_array( 'stats', $sections ) ): ?>
-                    <button class="ufsc-nav-btn" data-section="stats">
-                        <?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?>
-                    </button>
-                <?php endif; ?>
-                <?php if ( in_array( 'profile', $sections ) ): ?>
-                    <button class="ufsc-nav-btn" data-section="profile">
-                        <?php esc_html_e( 'Mon Club', 'ufsc-clubs' ); ?>
-                    </button>
-                <?php endif; ?>
-                <?php if ( in_array( 'add_licence', $sections ) ): ?>
-                    <button class="ufsc-nav-btn" data-section="add_licence">
-                        <?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?>
-                    </button>
-                <?php endif; ?>
-            </div>
-
-                <div class="ufsc-dashboard-content">
-                    <?php if ( in_array( 'licences', $sections ) ): ?>
-                        <div id="ufsc-section-licences" class="ufsc-dashboard-section active">
-                            <?php echo self::render_club_licences( array( 'club_id' => $club_id ) ); ?>
+                <div class="ufsc-dashboard-workspace">
+                    <aside class="ufsc-dashboard-sidepanel">
+                        <h3><?php esc_html_e( 'Accès rapides', 'ufsc-clubs' ); ?></h3>
+                        <div class="ufsc-dashboard-shortcuts">
+                            <?php if ( in_array( 'licences', $sections, true ) ) : ?>
+                                <button class="ufsc-nav-btn active" data-section="licences"><?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?></button>
+                            <?php endif; ?>
+                            <?php if ( in_array( 'stats', $sections, true ) ) : ?>
+                                <button class="ufsc-nav-btn" data-section="stats"><?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?></button>
+                            <?php endif; ?>
+                            <?php if ( in_array( 'profile', $sections, true ) ) : ?>
+                                <button class="ufsc-nav-btn" data-section="profile"><?php esc_html_e( 'Mon Club', 'ufsc-clubs' ); ?></button>
+                            <?php endif; ?>
+                            <?php if ( in_array( 'add_licence', $sections, true ) ) : ?>
+                                <button class="ufsc-nav-btn" data-section="add_licence"><?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?></button>
+                            <?php endif; ?>
                         </div>
-                    <?php endif; ?>
-
-                    <?php if ( in_array( 'stats', $sections ) ): ?>
-                        <div id="ufsc-section-stats" class="ufsc-dashboard-section">
-                            <?php echo self::render_club_stats( array( 'club_id' => $club_id ) ); ?>
+                    </aside>
+                    <div class="ufsc-dashboard-mainpane">
+                        <div class="ufsc-dashboard-nav">
+                            <?php if ( in_array( 'licences', $sections ) ): ?>
+                                <button class="ufsc-nav-btn active" data-section="licences"><?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?></button>
+                            <?php endif; ?>
+                            <?php if ( in_array( 'stats', $sections ) ): ?>
+                                <button class="ufsc-nav-btn" data-section="stats"><?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?></button>
+                            <?php endif; ?>
+                            <?php if ( in_array( 'profile', $sections ) ): ?>
+                                <button class="ufsc-nav-btn" data-section="profile"><?php esc_html_e( 'Mon Club', 'ufsc-clubs' ); ?></button>
+                            <?php endif; ?>
+                            <?php if ( in_array( 'add_licence', $sections ) ): ?>
+                                <button class="ufsc-nav-btn" data-section="add_licence"><?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?></button>
+                            <?php endif; ?>
                         </div>
-                    <?php endif; ?>
+                        <div class="ufsc-dashboard-content">
+                            <?php if ( in_array( 'licences', $sections ) ): ?>
+                                <div id="ufsc-section-licences" class="ufsc-dashboard-section active">
+                                    <?php echo self::render_club_licences( array( 'club_id' => $club_id ) ); ?>
+                                </div>
+                            <?php endif; ?>
 
-                    <?php if ( in_array( 'profile', $sections ) ): ?>
-                        <div id="ufsc-section-profile" class="ufsc-dashboard-section">
-                            <?php echo self::render_club_profile( array( 'club_id' => $club_id ) ); ?>
-                        </div>
-                    <?php endif; ?>
+                            <?php if ( in_array( 'stats', $sections ) ): ?>
+                                <div id="ufsc-section-stats" class="ufsc-dashboard-section">
+                                    <?php echo self::render_club_stats( array( 'club_id' => $club_id ) ); ?>
+                                </div>
+                            <?php endif; ?>
 
-                    <?php if ( in_array( 'add_licence', $sections ) ): ?>
-                        <div id="ufsc-section-add_licence" class="ufsc-dashboard-section">
-                            <?php echo self::render_add_licence( array( 'club_id' => $club_id ) ); ?>
+                            <?php if ( in_array( 'profile', $sections ) ): ?>
+                                <div id="ufsc-section-profile" class="ufsc-dashboard-section">
+                                    <?php echo self::render_club_profile( array( 'club_id' => $club_id ) ); ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ( in_array( 'add_licence', $sections ) ): ?>
+                                <div id="ufsc-section-add_licence" class="ufsc-dashboard-section">
+                                    <?php echo self::render_add_licence( array( 'club_id' => $club_id ) ); ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
-                    <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -273,7 +304,7 @@ class UFSC_Frontend_Shortcodes {
 
                 // Update nav
                 $('.ufsc-nav-btn').removeClass('active');
-                $(this).addClass('active');
+                $('.ufsc-nav-btn[data-section="' + section + '"]').addClass('active');
 
                 // Show section
                 $('.ufsc-dashboard-section').removeClass('active');
@@ -992,7 +1023,7 @@ class UFSC_Frontend_Shortcodes {
         $regions = UFSC_CL_Utils::regions();
         ?>
 
-        <div class="ufsc-club-profile">
+        <div class="ufsc-club-profile ufsc-premium-v3">
             <div class="ufsc-club-profile-shell">
                 <div class="ufsc-section-header ufsc-profile-header">
                     <div>
@@ -1192,12 +1223,14 @@ class UFSC_Frontend_Shortcodes {
                         </div>
                     </div>
 
-                    <h5><?php esc_html_e( 'Entraîneur', 'ufsc-clubs' ); ?></h5>
-                    <div class="ufsc-grid">
-                        <?php self::render_field( 'entraineur_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                        <?php self::render_field( 'entraineur_nom', $club, __( 'Nom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
-                        <?php self::render_field( 'entraineur_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
-                        <?php self::render_field( 'entraineur_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
+                    <div class="ufsc-board-role-card ufsc-board-role-card--coach">
+                        <h5><?php esc_html_e( 'Entraîneur', 'ufsc-clubs' ); ?></h5>
+                        <div class="ufsc-grid">
+                            <?php self::render_field( 'entraineur_prenom', $club, __( 'Prénom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                            <?php self::render_field( 'entraineur_nom', $club, __( 'Nom', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
+                            <?php self::render_field( 'entraineur_tel', $club, __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, $is_admin ); ?>
+                            <?php self::render_field( 'entraineur_email', $club, __( 'Email', 'ufsc-clubs' ), 'email', false, $is_admin ); ?>
+                        </div>
                     </div>
                 </div>
 
