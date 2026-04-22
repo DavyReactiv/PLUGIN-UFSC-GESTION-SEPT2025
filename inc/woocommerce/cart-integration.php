@@ -646,6 +646,23 @@ function ufsc_add_licence_ids_to_cart_idempotent( $product_id, $club_id, $licenc
 		return new WP_Error( 'ufsc_cart_unavailable', __( 'Panier indisponible, veuillez réessayer.', 'ufsc-clubs' ) );
 	}
 
+	// Defense-in-depth: enforce ownership/status guard regardless of caller.
+	if ( ! ufsc_validate_licence_ids_for_cart( $licence_ids, $club_id ) ) {
+		if ( function_exists( 'ufsc_wc_log' ) ) {
+			ufsc_wc_log(
+				'ufsc_add_to_cart_helper_validation_failed',
+				array(
+					'club_id'     => $club_id,
+					'product_id'  => $product_id,
+					'licence_ids' => $licence_ids,
+					'user_id'     => get_current_user_id(),
+				),
+				'warning'
+			);
+		}
+		return new WP_Error( 'ufsc_licence_validation_failed', __( 'Une ou plusieurs licences ne peuvent pas être ajoutées au panier.', 'ufsc-clubs' ) );
+	}
+
 	$added    = array();
 	$existing = array();
 	$failed   = array();
