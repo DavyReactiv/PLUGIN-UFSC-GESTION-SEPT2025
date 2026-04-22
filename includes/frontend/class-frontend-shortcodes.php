@@ -1813,6 +1813,7 @@ class UFSC_Frontend_Shortcodes {
         $action     = isset( $_GET['ufsc_action'] ) ? sanitize_key( $_GET['ufsc_action'] ) : '';
         $licence_id = isset( $_GET['licence_id'] ) ? intval( $_GET['licence_id'] ) : 0;
 
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
         wp_enqueue_script( 'ufsc-licences', UFSC_CL_URL . 'assets/js/ufsc-licences.js', array( 'jquery' ), UFSC_CL_VERSION, true );
 
         ob_start();
