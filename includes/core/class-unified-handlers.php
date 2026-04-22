@@ -995,10 +995,21 @@ class UFSC_Unified_Handlers {
                 self::store_form_and_redirect( $_POST, array( __( 'Panier indisponible, veuillez réessayer.', 'ufsc-clubs' ) ), $new_id );
             }
 
-            $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
-
-            if ( ! $added ) {
-                self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+            if ( function_exists( 'ufsc_add_licence_ids_to_cart_idempotent' ) ) {
+                $add_result = ufsc_add_licence_ids_to_cart_idempotent(
+                    $product_id,
+                    $club_id,
+                    array( $new_id ),
+                    $cart_item_data
+                );
+                if ( is_wp_error( $add_result ) ) {
+                    self::store_form_and_redirect( $_POST, array( $add_result->get_error_message() ), $new_id );
+                }
+            } else {
+                $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
+                if ( ! $added ) {
+                    self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+                }
             }
 
             self::update_licence_status_db( $new_id, 'en_attente' );
@@ -1034,10 +1045,21 @@ class UFSC_Unified_Handlers {
                 'season'              => isset( $wc_settings['season'] ) ? sanitize_text_field( $wc_settings['season'] ) : '',
                 'category'            => isset( $data['categorie'] ) ? sanitize_text_field( $data['categorie'] ) : '',
             );
-            $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
-
-            if ( ! $added ) {
-                self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+            if ( function_exists( 'ufsc_add_licence_ids_to_cart_idempotent' ) ) {
+                $add_result = ufsc_add_licence_ids_to_cart_idempotent(
+                    $product_id,
+                    $club_id,
+                    array( $new_id ),
+                    $cart_item_data
+                );
+                if ( is_wp_error( $add_result ) ) {
+                    self::store_form_and_redirect( $_POST, array( $add_result->get_error_message() ), $new_id );
+                }
+            } else {
+                $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
+                if ( ! $added ) {
+                    self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
+                }
             }
 
             self::update_licence_status_db( $new_id, 'en_attente' );
