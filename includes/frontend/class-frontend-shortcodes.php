@@ -1247,6 +1247,8 @@ class UFSC_Frontend_Shortcodes {
                 </div>
                     </div>
 
+                </div>
+
                 <!-- // UFSC: Submit section -->
                 <div class="ufsc-form-actions">
                     <?php if ( $can_edit ): ?>
@@ -1367,7 +1369,6 @@ class UFSC_Frontend_Shortcodes {
                             <?php endforeach; ?>
                         </div>
                     </div>
-                </div>
                 </div>
                 </div>
 
