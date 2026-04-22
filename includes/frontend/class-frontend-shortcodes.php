@@ -2218,6 +2218,7 @@ class UFSC_Frontend_Shortcodes {
                 'president' => array(),
                 'secretaire' => array(),
                 'tresorier' => array(),
+                'adherent' => array(),
             ),
             'missing_labels' => array(),
             'status_code'    => 'non_conforme',
@@ -2237,7 +2238,7 @@ class UFSC_Frontend_Shortcodes {
             return $data;
         }
 
-        $where = "club_id = %d AND role IN ('president','secretaire','tresorier')";
+        $where = "club_id = %d AND role IN ('president','secretaire','tresorier','adherent')";
         if ( in_array( 'deleted_at', (array) $columns, true ) ) {
             $where .= " AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
         }
@@ -2290,6 +2291,7 @@ class UFSC_Frontend_Shortcodes {
             'president' => __( 'Président', 'ufsc-clubs' ),
             'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
             'tresorier' => __( 'Trésorier', 'ufsc-clubs' ),
+            'adherent'  => __( 'Adhérent', 'ufsc-clubs' ),
         );
 
         $badges = array();
@@ -2312,7 +2314,7 @@ class UFSC_Frontend_Shortcodes {
      */
     private static function render_bureau_role_selector( $licence_id, $assignments ) {
         $current_role = '';
-        foreach ( array( 'president', 'secretaire', 'tresorier' ) as $role ) {
+        foreach ( array( 'president', 'secretaire', 'tresorier', 'adherent' ) as $role ) {
             $assigned_ids = isset( $assignments[ $role ] ) ? array_map( 'intval', (array) $assignments[ $role ] ) : array();
             if ( in_array( (int) $licence_id, $assigned_ids, true ) ) {
                 $current_role = $role;
@@ -2325,6 +2327,7 @@ class UFSC_Frontend_Shortcodes {
             'president'  => __( 'Président', 'ufsc-clubs' ),
             'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
             'tresorier'  => __( 'Trésorier', 'ufsc-clubs' ),
+            'adherent'   => __( 'Adhérent', 'ufsc-clubs' ),
         );
 
         ob_start();

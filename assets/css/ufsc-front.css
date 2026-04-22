@@ -514,6 +514,58 @@
     background-color: #e74c3c; 
 }
 
+/* Scoped licence card actions: unified horizontal buttons without vertical stretching. */
+.ufsc-licence-card .ufsc-licence-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.ufsc-licence-card .ufsc-licence-action-form {
+    display: flex;
+    margin: 0;
+}
+
+.ufsc-licence-card .ufsc-licence-actions .ufsc-action,
+.ufsc-licence-card .ufsc-licence-actions button.ufsc-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 8px 14px;
+    margin: 0;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #fff;
+    color: #1f2937;
+    font-size: 13px;
+    line-height: 1.2;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.ufsc-licence-card .ufsc-licence-actions .ufsc-action-primary {
+    background: #2271b1;
+    border-color: #2271b1;
+    color: #fff;
+}
+
+.ufsc-licence-card .ufsc-licence-actions .ufsc-action-danger {
+    background: #fff5f5;
+    border-color: #f5c2c7;
+    color: #b42318;
+}
+
+@media (max-width: 640px) {
+    .ufsc-licence-card .ufsc-licence-actions .ufsc-action,
+    .ufsc-licence-card .ufsc-licence-actions button.ufsc-action {
+        width: 100%;
+    }
+}
+
 img.photo-club-front {
     max-width: 400px;
 }

@@ -445,7 +445,7 @@ class UFSC_Unified_Handlers {
         $licence_id       = isset( $_POST['licence_id'] ) ? absint( $_POST['licence_id'] ) : 0;
         $requested_role   = isset( $_POST['bureau_role'] ) ? sanitize_key( wp_unslash( $_POST['bureau_role'] ) ) : '';
         $requested_club   = isset( $_POST['club_id'] ) ? absint( $_POST['club_id'] ) : 0;
-        $allowed_roles    = array( '', 'president', 'secretaire', 'tresorier' );
+        $allowed_roles    = array( '', 'president', 'secretaire', 'tresorier', 'adherent' );
 
         if ( ! in_array( $requested_role, $allowed_roles, true ) || $licence_id <= 0 ) {
             self::redirect_with_error( 'Paramètres invalides' );
@@ -1621,6 +1621,7 @@ class UFSC_Unified_Handlers {
             'president'  => __( 'Président', 'ufsc-clubs' ),
             'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
             'tresorier'  => __( 'Trésorier', 'ufsc-clubs' ),
+            'adherent'   => __( 'Adhérent', 'ufsc-clubs' ),
         );
 
         return isset( $labels[ $role ] ) ? $labels[ $role ] : __( 'Aucun', 'ufsc-clubs' );
