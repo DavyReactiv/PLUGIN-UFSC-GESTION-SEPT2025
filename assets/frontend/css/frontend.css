@@ -1790,3 +1790,52 @@ textarea:focus {
     border-radius: 6px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+
+/* UFSC patch: scoped, unified CTA styles for licence/cart actions only. */
+.ufsc-row-actions,
+.ufsc-licence-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.ufsc-row-actions .ufsc-btn,
+.ufsc-row-actions .ufsc-action,
+.ufsc-licence-actions .ufsc-btn,
+.ufsc-licence-actions .ufsc-action {
+    border-radius: 999px;
+    font-weight: 600;
+    line-height: 1.2;
+    min-height: 38px;
+    padding: 9px 16px;
+    text-decoration: none;
+    border: 1px solid rgba(15, 23, 42, 0.14);
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    transition: all .18s ease;
+}
+
+.ufsc-row-actions .ufsc-btn:hover,
+.ufsc-row-actions .ufsc-action:hover,
+.ufsc-licence-actions .ufsc-btn:hover,
+.ufsc-licence-actions .ufsc-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+
+.ufsc-row-actions .ufsc-btn-primary,
+.ufsc-licence-actions .ufsc-btn-primary {
+    background: linear-gradient(135deg, #0d6efd, #2563eb);
+    border-color: transparent;
+    color: #fff;
+}
+
+.ufsc-row-actions .ufsc-btn-danger,
+.ufsc-licence-actions .ufsc-btn-danger,
+.ufsc-licence-actions .ufsc-action-danger {
+    background: #fff5f5;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
