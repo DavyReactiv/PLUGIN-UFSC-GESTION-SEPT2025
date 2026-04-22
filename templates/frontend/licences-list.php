@@ -63,6 +63,22 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
             $renew_open_label = $renew_start_ts > 0 ? wp_date( 'd/m/Y', $renew_start_ts ) : __( '30/07', 'ufsc-clubs' );
 
             $can_renew = $renew_open && ! $renew_done && ! $is_locked && ! empty( $current_season ) && $season_label === $current_season;
+            $is_in_cart = false;
+            if ( function_exists( 'WC' ) && WC() && WC()->cart ) {
+                foreach ( WC()->cart->get_cart() as $cart_item ) {
+                    $item_ids = array();
+                    if ( function_exists( 'ufsc_extract_licence_ids_from_cart_item' ) ) {
+                        $item_ids = ufsc_extract_licence_ids_from_cart_item( $cart_item );
+                    } elseif ( isset( $cart_item['ufsc_licence_id'] ) ) {
+                        $item_ids[] = absint( $cart_item['ufsc_licence_id'] );
+                    }
+
+                    if ( in_array( absint( $licence->id ?? 0 ), array_map( 'absint', (array) $item_ids ), true ) ) {
+                        $is_in_cart = true;
+                        break;
+                    }
+                }
+            }
             ?>
             <div class="ufsc-card ufsc-licence-card">
                 <div class="ufsc-licence-card-header">
@@ -99,6 +115,19 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                     <?php endif; ?>
 
                     <?php if ( ! $is_locked ) : ?>
+                        <?php if ( ! empty( $wc_settings['product_license_id'] ) ) : ?>
+                            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+                                <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
+                                <input type="hidden" name="action" value="ufsc_add_to_cart">
+                                <input type="hidden" name="product_id" value="<?php echo esc_attr( (int) $wc_settings['product_license_id'] ); ?>">
+                                <input type="hidden" name="ufsc_club_id" value="<?php echo esc_attr( (int) ( $licence->club_id ?? 0 ) ); ?>">
+                                <input type="hidden" name="ufsc_license_ids" value="<?php echo esc_attr( (int) ( $licence->id ?? 0 ) ); ?>">
+                                <button type="submit" class="ufsc-action">
+                                    <?php echo $is_in_cart ? esc_html__( 'Payer maintenant / Voir panier', 'ufsc-clubs' ) : esc_html__( 'Ajouter au panier', 'ufsc-clubs' ); ?>
+                                </button>
+                            </form>
+                        <?php endif; ?>
+
                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'edit', 'licence_id' => $licence->id ) ) ); ?>">
                             <?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?>
                         </a>

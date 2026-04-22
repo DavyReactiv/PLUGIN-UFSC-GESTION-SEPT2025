@@ -2543,6 +2543,29 @@ class UFSC_SQL_Admin
         $wc_item_id       = isset( $snapshot->wc_order_item_id ) ? (int) $snapshot->wc_order_item_id : 0;
         $wc_txn_id        = isset( $snapshot->wc_transaction_id ) ? (string) $snapshot->wc_transaction_id : '';
 
+        // Fallback to licence table linkage columns when snapshot is partially empty.
+        if ( function_exists( 'ufsc_get_licences_table' ) ) {
+            global $wpdb;
+            $table = ufsc_get_licences_table();
+            $row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", (int) $licence_id ) );
+            if ( $row ) {
+                if ( ! $wc_order_id && isset( $row->order_id ) ) {
+                    $wc_order_id = (int) $row->order_id;
+                }
+                if ( ! $wc_item_id && isset( $row->order_item_id ) ) {
+                    $wc_item_id = (int) $row->order_item_id;
+                }
+                if ( '' === $payment_date && isset( $row->paid_date ) ) {
+                    $payment_date = (string) $row->paid_date;
+                }
+            }
+        }
+
+        $order_admin_url    = $wc_order_id ? admin_url( 'post.php?post=' . $wc_order_id . '&action=edit' ) : '';
+        $order_frontend_url = ( $wc_order_id && function_exists( 'wc_get_endpoint_url' ) && function_exists( 'wc_get_page_permalink' ) )
+            ? wc_get_endpoint_url( 'view-order', $wc_order_id, wc_get_page_permalink( 'myaccount' ) )
+            : '';
+
         echo '<div class="ufsc-payment-traceability" style="margin-top:20px;padding:15px;border:1px solid #dcdcde;background:#fff;">';
         echo '<h3 style="margin-top:0;">' . esc_html__( 'Traçabilité du paiement', 'ufsc-clubs' ) . '</h3>';
         echo '<p class="description">' . esc_html__( 'Bloc de suivi administratif et comptable du rattachement paiement/licence.', 'ufsc-clubs' ) . '</p>';
@@ -2552,7 +2575,19 @@ class UFSC_SQL_Admin
         echo '<tr><th>' . esc_html__( 'Gateway', 'ufsc-clubs' ) . '</th><td>' . esc_html( UFSC_Licence_Payments::get_readable_payment_gateway( $payment_gateway ) ) . ' <code>' . esc_html( $payment_gateway ?: '-' ) . '</code></td></tr>';
         echo '<tr><th>' . esc_html__( 'Mode de règlement (métier)', 'ufsc-clubs' ) . '</th><td>' . esc_html( UFSC_Licence_Payments::get_readable_payment_method( $payment_method ) ) . ' <code>' . esc_html( $payment_method ?: '-' ) . '</code></td></tr>';
         echo '<tr><th>' . esc_html__( 'Référence paiement', 'ufsc-clubs' ) . '</th><td>' . esc_html( $payment_ref ?: '-' ) . '</td></tr>';
-        echo '<tr><th>' . esc_html__( 'Commande WooCommerce liée', 'ufsc-clubs' ) . '</th><td>' . ( $wc_order_id ? '#' . esc_html( (string) $wc_order_id ) : '-' ) . '</td></tr>';
+        echo '<tr><th>' . esc_html__( 'Commande WooCommerce liée', 'ufsc-clubs' ) . '</th><td>';
+        if ( $wc_order_id ) {
+            echo '#' . esc_html( (string) $wc_order_id );
+            if ( $order_admin_url ) {
+                echo ' — <a href="' . esc_url( $order_admin_url ) . '" target="_blank" rel="noopener">' . esc_html__( 'Ouvrir la commande (admin)', 'ufsc-clubs' ) . '</a>';
+            }
+            if ( $order_frontend_url ) {
+                echo ' — <a href="' . esc_url( $order_frontend_url ) . '" target="_blank" rel="noopener">' . esc_html__( 'Voir côté client', 'ufsc-clubs' ) . '</a>';
+            }
+        } else {
+            echo '-';
+        }
+        echo '</td></tr>';
         echo '<tr><th>' . esc_html__( 'Order item WooCommerce', 'ufsc-clubs' ) . '</th><td>' . ( $wc_item_id ? esc_html( (string) $wc_item_id ) : '-' ) . '</td></tr>';
         echo '<tr><th>' . esc_html__( 'Transaction', 'ufsc-clubs' ) . '</th><td>' . esc_html( $wc_txn_id ?: '-' ) . '</td></tr>';
         echo '<tr><th>' . esc_html__( 'Montant', 'ufsc-clubs' ) . '</th><td>' . esc_html( '' !== $payment_amount ? $payment_amount . ' ' . $payment_currency : '-' ) . '</td></tr>';
