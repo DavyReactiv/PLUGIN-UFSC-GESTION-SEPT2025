@@ -99,14 +99,14 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                     </a>
 
                     <?php if ( $can_renew && ! empty( $wc_settings['product_license_id'] ) ) : ?>
-                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-action-form">
                             <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
                             <input type="hidden" name="action" value="ufsc_add_to_cart">
                             <input type="hidden" name="product_id" value="<?php echo esc_attr( (int) $wc_settings['product_license_id'] ); ?>">
                             <input type="hidden" name="ufsc_action" value="renew_licence">
                             <input type="hidden" name="ufsc_renew_from_licence_id" value="<?php echo esc_attr( (int) ( $licence->id ?? 0 ) ); ?>">
                             <input type="hidden" name="ufsc_target_season" value="<?php echo esc_attr( $next_season ); ?>">
-                            <button type="submit" class="ufsc-action"><?php esc_html_e( 'Renouveler', 'ufsc-clubs' ); ?></button>
+                            <button type="submit" class="ufsc-action ufsc-action-primary"><?php esc_html_e( 'Renouveler', 'ufsc-clubs' ); ?></button>
                         </form>
                     <?php elseif ( ! $renew_open ) : ?>
                         <span class="ufsc-text-muted" title="<?php esc_attr_e( 'Le renouvellement n\'est pas encore ouvert.', 'ufsc-clubs' ); ?>">
@@ -116,13 +116,13 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
                     <?php if ( ! $is_locked ) : ?>
                         <?php if ( ! empty( $wc_settings['product_license_id'] ) ) : ?>
-                            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline">
+                            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-action-form">
                                 <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
                                 <input type="hidden" name="action" value="ufsc_add_to_cart">
                                 <input type="hidden" name="product_id" value="<?php echo esc_attr( (int) $wc_settings['product_license_id'] ); ?>">
                                 <input type="hidden" name="ufsc_club_id" value="<?php echo esc_attr( (int) ( $licence->club_id ?? 0 ) ); ?>">
                                 <input type="hidden" name="ufsc_license_ids" value="<?php echo esc_attr( (int) ( $licence->id ?? 0 ) ); ?>">
-                                <button type="submit" class="ufsc-action">
+                                <button type="submit" class="ufsc-action ufsc-action-primary">
                                     <?php echo $is_in_cart ? esc_html__( 'Payer maintenant / Voir panier', 'ufsc-clubs' ) : esc_html__( 'Ajouter au panier', 'ufsc-clubs' ); ?>
                                 </button>
                             </form>
@@ -132,12 +132,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                             <?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?>
                         </a>
 
-                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline"
+                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-action-form"
                               onsubmit="return confirm('<?php echo esc_js( __( 'Confirmer la suppression de cette licence ?', 'ufsc-clubs' ) ); ?>');">
                             <?php wp_nonce_field( 'ufsc_delete_licence' ); ?>
                             <input type="hidden" name="action" value="ufsc_delete_licence">
                             <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
-                            <button type="submit" class="ufsc-action ufsc-action-danger" style="background:none;border:none;padding:0;cursor:pointer;">
+                            <button type="submit" class="ufsc-action ufsc-action-danger">
                                 <?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?>
                             </button>
                         </form>
