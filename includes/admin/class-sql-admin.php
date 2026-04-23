@@ -2304,10 +2304,7 @@ class UFSC_SQL_Admin
         echo '<select name="bulk_action" id="bulk-action-selector">';
         echo '<option value="">' . esc_html__('Actions groupées', 'ufsc-clubs') . '</option>';
         echo '<option value="validate">' . esc_html__('Valider', 'ufsc-clubs') . '</option>';
-        echo '<option value="reject">' . esc_html__('Refuser', 'ufsc-clubs') . '</option>';
-        echo '<option value="pending">' . esc_html__('En attente', 'ufsc-clubs') . '</option>';
         echo '<option value="delete">' . esc_html__('Corbeille', 'ufsc-clubs') . '</option>';
-        echo '<option value="restore">' . esc_html__('Restaurer', 'ufsc-clubs') . '</option>';
         echo '</select>';
         echo ' <button type="submit" class="button">' . esc_html__('Appliquer', 'ufsc-clubs') . '</button>';
         echo ' <button type="button" class="button ufsc-send-to-payment">' . esc_html__('Envoyer au paiement', 'ufsc-clubs') . '</button>';
