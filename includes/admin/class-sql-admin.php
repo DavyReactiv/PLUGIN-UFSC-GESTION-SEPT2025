@@ -2161,6 +2161,18 @@ class UFSC_SQL_Admin
                     $notice_type = 'notice-success';
                     $message     = sprintf( __( '%d licence(s) envoyée(s) à la corbeille.', 'ufsc-clubs' ), $bulk_count );
                     break;
+                case 'archived_duplicate':
+                    $notice_type = 'notice-success';
+                    $message     = sprintf( __( '%d licence(s) archivée(s) comme doublon technique.', 'ufsc-clubs' ), $bulk_count );
+                    break;
+                case 'none_archived':
+                    $notice_type = 'notice-warning';
+                    $message     = __( 'Aucune licence archivée.', 'ufsc-clubs' );
+                    break;
+                case 'partial_archive_duplicate':
+                    $notice_type = 'notice-warning';
+                    $message     = __( 'Certaines licences n’ont pas pu être archivées.', 'ufsc-clubs' );
+                    break;
                 case 'no_selection':
                     $notice_type = 'notice-warning';
                     $message     = __( 'Aucune licence sélectionnée.', 'ufsc-clubs' );
@@ -2309,6 +2321,7 @@ class UFSC_SQL_Admin
         echo '<option value="">' . esc_html__('Actions groupées', 'ufsc-clubs') . '</option>';
         echo '<option value="validate">' . esc_html__('Valider', 'ufsc-clubs') . '</option>';
         echo '<option value="delete">' . esc_html__('Corbeille', 'ufsc-clubs') . '</option>';
+        echo '<option value="archive_duplicate">' . esc_html__( 'Archiver doublon technique', 'ufsc-clubs' ) . '</option>';
         echo '</select>';
         echo ' <button type="submit" class="button">' . esc_html__('Appliquer', 'ufsc-clubs') . '</button>';
         echo ' <button type="button" class="button ufsc-send-to-payment">' . esc_html__('Envoyer au paiement', 'ufsc-clubs') . '</button>';
@@ -4851,7 +4864,7 @@ class UFSC_SQL_Admin
             self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'no_action' ), $redirect_base ) );
         }
 
-        $allowed_actions = array( 'validate', 'delete' );
+        $allowed_actions = array( 'validate', 'delete', 'archive_duplicate' );
         if ( ! in_array( $action, $allowed_actions, true ) ) {
             self::debug_log_bulk_licences( 'Invalid action requested.', array( 'action' => $action ) );
             self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'invalid_action' ), $redirect_base ) );
@@ -4872,6 +4885,7 @@ class UFSC_SQL_Admin
         }
 
         $modified_count = 0;
+        $failed_count   = 0;
         switch ($action) {
             case 'validate':
                 $modified_count = self::bulk_validate_items($item_ids, $table, $pk);
@@ -4879,16 +4893,33 @@ class UFSC_SQL_Admin
             case 'delete':
                 $modified_count = self::bulk_delete_items($item_ids, $table, $pk);
                 break;
+            case 'archive_duplicate':
+                $archive_result = self::bulk_archive_duplicate_items( $item_ids, $table, $pk );
+                $modified_count = isset( $archive_result['archived'] ) ? (int) $archive_result['archived'] : 0;
+                $failed_count   = isset( $archive_result['failed'] ) ? (int) $archive_result['failed'] : 0;
+                break;
         }
 
-        $bulk_message = $modified_count > 0
-            ? ( 'validate' === $action ? 'validated' : 'trashed' )
-            : 'technical_error';
+        $bulk_message = 'technical_error';
+        if ( 'validate' === $action ) {
+            $bulk_message = $modified_count > 0 ? 'validated' : 'technical_error';
+        } elseif ( 'delete' === $action ) {
+            $bulk_message = $modified_count > 0 ? 'trashed' : 'technical_error';
+        } elseif ( 'archive_duplicate' === $action ) {
+            if ( $modified_count > 0 && $failed_count > 0 ) {
+                $bulk_message = 'partial_archive_duplicate';
+            } elseif ( $modified_count > 0 ) {
+                $bulk_message = 'archived_duplicate';
+            } else {
+                $bulk_message = 'none_archived';
+            }
+        }
         self::debug_log_bulk_licences(
             'Bulk action processed.',
             array(
                 'action' => $action,
                 'modified' => (int) $modified_count,
+                'failed' => (int) $failed_count,
                 'ids_clean' => $item_ids,
                 'last_error' => $GLOBALS['wpdb']->last_error ?? '',
             )
@@ -5112,6 +5143,120 @@ class UFSC_SQL_Admin
             }
         }
         return $deleted;
+    }
+
+    private static function bulk_archive_duplicate_items( $item_ids, $table, $pk ) {
+        global $wpdb;
+
+        $columns = self::get_table_columns( $table );
+        if ( ! in_array( 'deleted_at', $columns, true ) ) {
+            return array(
+                'archived' => 0,
+                'failed'   => count( (array) $item_ids ),
+            );
+        }
+
+        $archived   = 0;
+        $failed     = 0;
+        $reason_txt = 'Doublon technique généré par l’ancien processus panier licence. Paiement conservé et rattaché à la commande WooCommerce existante. Licence archivée administrativement sans suppression comptable.';
+        $note_col   = '';
+        foreach ( array( 'admin_note', 'notes', 'commentaire', 'note' ) as $candidate ) {
+            if ( in_array( $candidate, $columns, true ) ) {
+                $note_col = $candidate;
+                break;
+            }
+        }
+
+        foreach ( $item_ids as $item_id ) {
+            $item_id = (int) $item_id;
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", $item_id ) );
+            self::debug_log_bulk_licences(
+                'Archive duplicate before update.',
+                array(
+                    'id' => $item_id,
+                    'exists' => (bool) $row,
+                    'deleted_at' => $row->deleted_at ?? null,
+                    'order_id' => $row->order_id ?? null,
+                    'wc_order_id' => $row->wc_order_id ?? null,
+                    'payment_order_id' => $row->payment_order_id ?? null,
+                    'statut' => $row->statut ?? null,
+                    'status' => $row->status ?? null,
+                )
+            );
+            if ( ! $row ) {
+                $failed++;
+                continue;
+            }
+            if ( isset( $row->club_id ) && (int) $row->club_id > 0 ) {
+                UFSC_Scope::assert_club_in_scope( (int) $row->club_id );
+            }
+
+            if ( isset( $row->deleted_at ) && ! empty( $row->deleted_at ) && '0000-00-00 00:00:00' !== $row->deleted_at ) {
+                $archived++;
+                continue;
+            }
+
+            $update_data = array(
+                'deleted_at' => current_time( 'mysql' ),
+            );
+            $update_formats = array( '%s' );
+            if ( in_array( 'deleted_by', $columns, true ) ) {
+                $update_data['deleted_by'] = get_current_user_id();
+                $update_formats[] = '%d';
+            }
+            if ( in_array( 'updated_at', $columns, true ) ) {
+                $update_data['updated_at'] = current_time( 'mysql' );
+                $update_formats[] = '%s';
+            }
+            if ( in_array( 'updated_by', $columns, true ) ) {
+                $update_data['updated_by'] = get_current_user_id();
+                $update_formats[] = '%d';
+            }
+            if ( '' !== $note_col ) {
+                $existing_note = isset( $row->{$note_col} ) ? trim( (string) $row->{$note_col} ) : '';
+                $update_data[ $note_col ] = '' === $existing_note ? $reason_txt : $existing_note . "\n" . $reason_txt;
+                $update_formats[] = '%s';
+            }
+
+            $where = array( $pk => $item_id );
+            $result = $wpdb->update( $table, $update_data, $where, $update_formats, array( '%d' ) );
+            self::debug_log_bulk_licences(
+                'Archive duplicate update.',
+                array(
+                    'id' => $item_id,
+                    'data' => $update_data,
+                    'where' => $where,
+                    'result' => $result,
+                    'last_error' => $wpdb->last_error,
+                )
+            );
+
+            $after_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", $item_id ) );
+            self::debug_log_bulk_licences(
+                'Archive duplicate after update.',
+                array(
+                    'id' => $item_id,
+                    'exists' => (bool) $after_row,
+                    'deleted_at' => $after_row->deleted_at ?? null,
+                    'order_id' => $after_row->order_id ?? null,
+                    'wc_order_id' => $after_row->wc_order_id ?? null,
+                    'payment_order_id' => $after_row->payment_order_id ?? null,
+                    'statut' => $after_row->statut ?? null,
+                    'status' => $after_row->status ?? null,
+                )
+            );
+
+            if ( false !== $result && ( $result > 0 || ( $after_row && ! empty( $after_row->deleted_at ) && '0000-00-00 00:00:00' !== $after_row->deleted_at ) ) ) {
+                $archived++;
+            } else {
+                $failed++;
+            }
+        }
+
+        return array(
+            'archived' => $archived,
+            'failed'   => $failed,
+        );
     }
 
     private static function bulk_restore_items($item_ids, $table, $pk) {
