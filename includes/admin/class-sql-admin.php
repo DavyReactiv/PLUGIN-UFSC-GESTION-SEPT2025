@@ -232,6 +232,25 @@ class UFSC_SQL_Admin
     }
 
     /**
+     * Debug log helper for bulk licences actions.
+     *
+     * @param string $message Log message.
+     * @param array  $context Optional context.
+     * @return void
+     */
+    private static function debug_log_bulk_licences( $message, $context = array() ) {
+        if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+            return;
+        }
+
+        $prefix = '[UFSC Gestion] Bulk licences ';
+        if ( ! empty( $context ) ) {
+            $message .= ' ' . wp_json_encode( $context );
+        }
+        error_log( $prefix . $message );
+    }
+
+    /**
      * Build a licences list redirect URL while preserving active filters.
      *
      * @param array $extra_args Query args to merge.
@@ -2127,6 +2146,61 @@ class UFSC_SQL_Admin
         if (isset($_GET['error'])) {
             echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
         }
+        if ( isset( $_GET['bulk_message'] ) ) {
+            $bulk_message = sanitize_key( wp_unslash( $_GET['bulk_message'] ) );
+            $bulk_count   = isset( $_GET['bulk_count'] ) ? absint( $_GET['bulk_count'] ) : 0;
+            $notice_type  = 'notice-error';
+            $message      = __( 'Une erreur est survenue pendant la mise à jour.', 'ufsc-clubs' );
+
+            switch ( $bulk_message ) {
+                case 'validated':
+                    $notice_type = 'notice-success';
+                    $message     = sprintf( __( '%d licence(s) validée(s) avec succès.', 'ufsc-clubs' ), $bulk_count );
+                    break;
+                case 'trashed':
+                    $notice_type = 'notice-success';
+                    $message     = sprintf( __( '%d licence(s) envoyée(s) à la corbeille.', 'ufsc-clubs' ), $bulk_count );
+                    break;
+                case 'archived_duplicate':
+                    $notice_type = 'notice-success';
+                    $message     = sprintf( __( '%d licence(s) archivée(s) comme doublon technique.', 'ufsc-clubs' ), $bulk_count );
+                    break;
+                case 'none_archived':
+                    $notice_type = 'notice-warning';
+                    $message     = __( 'Aucune licence archivée.', 'ufsc-clubs' );
+                    break;
+                case 'partial_archive_duplicate':
+                    $notice_type = 'notice-warning';
+                    $message     = __( 'Certaines licences n’ont pas pu être archivées.', 'ufsc-clubs' );
+                    break;
+                case 'no_selection':
+                    $notice_type = 'notice-warning';
+                    $message     = __( 'Aucune licence sélectionnée.', 'ufsc-clubs' );
+                    break;
+                case 'no_action':
+                    $notice_type = 'notice-warning';
+                    $message     = __( 'Aucune action groupée sélectionnée.', 'ufsc-clubs' );
+                    break;
+                case 'invalid_action':
+                    $notice_type = 'notice-error';
+                    $message     = __( 'Action groupée non autorisée.', 'ufsc-clubs' );
+                    break;
+                case 'forbidden':
+                    $notice_type = 'notice-error';
+                    $message     = __( 'Vous n’avez pas les droits nécessaires.', 'ufsc-clubs' );
+                    break;
+                case 'invalid_nonce':
+                    $notice_type = 'notice-error';
+                    $message     = __( 'Action expirée ou non autorisée.', 'ufsc-clubs' );
+                    break;
+                case 'technical_error':
+                    $notice_type = 'notice-error';
+                    $message     = __( 'Une erreur est survenue pendant la mise à jour.', 'ufsc-clubs' );
+                    break;
+            }
+
+            echo '<div class="notice ' . esc_attr( $notice_type ) . ' is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+        }
         if ( $filter_club > 0 ) {
             self::render_bureau_alert_for_club( $filter_club );
         }
@@ -2246,10 +2320,8 @@ class UFSC_SQL_Admin
         echo '<select name="bulk_action" id="bulk-action-selector">';
         echo '<option value="">' . esc_html__('Actions groupées', 'ufsc-clubs') . '</option>';
         echo '<option value="validate">' . esc_html__('Valider', 'ufsc-clubs') . '</option>';
-        echo '<option value="reject">' . esc_html__('Refuser', 'ufsc-clubs') . '</option>';
-        echo '<option value="pending">' . esc_html__('En attente', 'ufsc-clubs') . '</option>';
         echo '<option value="delete">' . esc_html__('Corbeille', 'ufsc-clubs') . '</option>';
-        echo '<option value="restore">' . esc_html__('Restaurer', 'ufsc-clubs') . '</option>';
+        echo '<option value="archive_duplicate">' . esc_html__( 'Archiver doublon technique', 'ufsc-clubs' ) . '</option>';
         echo '</select>';
         echo ' <button type="submit" class="button">' . esc_html__('Appliquer', 'ufsc-clubs') . '</button>';
         echo ' <button type="button" class="button ufsc-send-to-payment">' . esc_html__('Envoyer au paiement', 'ufsc-clubs') . '</button>';
@@ -2335,13 +2407,7 @@ class UFSC_SQL_Admin
                 } elseif ( '' === $delete_block_reason ) {
                     echo '<a class="button button-small button-link-delete" href="' . esc_url($trash_url) . '" title="' . esc_attr__('Mettre en corbeille', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Mettre en corbeille', 'ufsc-clubs') . '" onclick="return confirm(\'' . esc_js(__('Êtes-vous sûr de vouloir mettre cette licence en corbeille ?', 'ufsc-clubs')) . '\')">' . esc_html__('Corbeille', 'ufsc-clubs') . '</a>';
                 } else {
-                    echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline" onsubmit="var r=prompt(\'' . esc_js( __( 'Motif d\'annulation (obligatoire)', 'ufsc-clubs' ) ) . '\'); if(!r){return false;} this.querySelector(\'[name=cancel_reason]\').value=r; return true;">';
-                    wp_nonce_field( 'ufsc_cancel_licence' );
-                    echo '<input type="hidden" name="action" value="ufsc_cancel_licence" />';
-                    echo '<input type="hidden" name="licence_id" value="' . (int) $r->$pk . '" />';
-                    echo '<input type="hidden" name="cancel_reason" value="" />';
-                    echo '<button type="submit" class="button button-small" title="' . esc_attr( $delete_block_reason ) . '">' . esc_html__( 'Annuler', 'ufsc-clubs' ) . '</button>';
-                    echo '</form>';
+                    echo '<button type="button" class="button button-small ufsc-cancel-licence" data-licence-id="' . (int) $r->$pk . '" title="' . esc_attr( $delete_block_reason ) . '">' . esc_html__( 'Annuler', 'ufsc-clubs' ) . '</button>';
                 }
                 echo '</div>';
                 echo '</td>';
@@ -2352,6 +2418,27 @@ class UFSC_SQL_Admin
         }
         echo '</tbody></table>';
         echo '</form>';
+        echo '<form method="post" id="ufsc-cancel-licence-form" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:none;">';
+        wp_nonce_field( 'ufsc_cancel_licence' );
+        echo '<input type="hidden" name="action" value="ufsc_cancel_licence" />';
+        echo '<input type="hidden" name="licence_id" value="" />';
+        echo '<input type="hidden" name="cancel_reason" value="" />';
+        echo '</form>';
+        echo '<script>
+            document.addEventListener("DOMContentLoaded", function () {
+                var cancelForm = document.getElementById("ufsc-cancel-licence-form");
+                if (!cancelForm) { return; }
+                document.querySelectorAll(".ufsc-cancel-licence").forEach(function (button) {
+                    button.addEventListener("click", function () {
+                        var reason = window.prompt("' . esc_js( __( 'Motif d\'annulation (obligatoire)', 'ufsc-clubs' ) ) . '");
+                        if (!reason) { return; }
+                        cancelForm.querySelector("input[name=licence_id]").value = this.getAttribute("data-licence-id") || "";
+                        cancelForm.querySelector("input[name=cancel_reason]").value = reason;
+                        cancelForm.submit();
+                    });
+                });
+            });
+        </script>';
 
         // Pagination
         if ($total_pages > 1) {
@@ -4724,71 +4811,126 @@ class UFSC_SQL_Admin
 
     public static function handle_bulk_actions()
     {
+        if ( 'POST' !== strtoupper( $_SERVER['REQUEST_METHOD'] ?? '' ) ) {
+            return;
+        }
+
         $page = isset( $_REQUEST['page'] ) ? sanitize_key( wp_unslash( $_REQUEST['page'] ) ) : '';
         if ( 'ufsc-sql-licences' !== $page ) {
-            return;
-        }
-
-        if (! isset($_POST['_wpnonce']) || ! wp_verify_nonce($_POST['_wpnonce'], 'ufsc_bulk_actions')) {
-            return;
-        }
-        if (! isset($_POST['bulk_action']) || empty($_POST['bulk_action'])) {
-            return;
-        }
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
-            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
-        }
-
-        if (! isset($_POST['licence_ids']) || empty($_POST['licence_ids'])) {
-            add_action('admin_notices', function () {
-                echo '<div class="notice notice-warning is-dismissible"><p>Aucun élément sélectionné';
-                echo '</p></div>';
-            });
             return;
         }
 
         $settings = UFSC_SQL::get_settings();
         $table    = $settings['table_licences'];
         $pk       = $settings['pk_licence'];
-        $action   = sanitize_text_field($_POST['bulk_action']);
-        if ( in_array( $action, array( 'delete', 'restore' ), true ) ) {
-            $can_manage_licences = ( class_exists( 'UFSC_Capabilities' ) && UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) )
-                || current_user_can( 'manage_options' );
-            if ( ! $can_manage_licences ) {
-                return;
+        $requested_return_to = isset( $_POST['return_to'] ) ? wp_unslash( $_POST['return_to'] ) : '';
+        $redirect_base       = self::get_safe_licences_return_url( $requested_return_to );
+        if ( '' === $redirect_base ) {
+            $redirect_base = self::build_licences_redirect_url();
+        }
+
+        self::debug_log_bulk_licences(
+            'Incoming POST.',
+            array(
+                'post_keys' => array_keys( $_POST ),
+                'nonce_present' => isset( $_POST['_wpnonce'] ),
+                'table' => $table,
+                'pk' => $pk,
+                'capability' => 'UFSC_Capabilities::CAP_LICENCE_EDIT',
+            )
+        );
+
+        if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ufsc_bulk_actions' ) ) {
+            self::debug_log_bulk_licences( 'Invalid nonce.' );
+            self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'invalid_nonce' ), $redirect_base ) );
+        }
+        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
+            self::debug_log_bulk_licences( 'Forbidden action.' );
+            self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'forbidden' ), $redirect_base ) );
+        }
+
+        $action = '';
+        foreach ( array( 'bulk_action', 'action', 'action2' ) as $action_key ) {
+            if ( isset( $_POST[ $action_key ] ) ) {
+                $candidate = sanitize_text_field( wp_unslash( $_POST[ $action_key ] ) );
+                if ( '' !== $candidate && '-1' !== $candidate ) {
+                    $action = $candidate;
+                    break;
+                }
             }
         }
-        $item_ids = array_values( array_unique( array_filter( array_map( 'intval', (array) $_POST['licence_ids'] ) ) ) );
-        if ( empty( $item_ids ) ) {
-            return;
+        self::debug_log_bulk_licences( 'Action resolved.', array( 'action' => $action ) );
+        if ( '' === $action ) {
+            self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'no_action' ), $redirect_base ) );
         }
+
+        $allowed_actions = array( 'validate', 'delete', 'archive_duplicate' );
+        if ( ! in_array( $action, $allowed_actions, true ) ) {
+            self::debug_log_bulk_licences( 'Invalid action requested.', array( 'action' => $action ) );
+            self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'invalid_action' ), $redirect_base ) );
+        }
+
+        $raw_ids  = isset( $_POST['licence_ids'] ) ? (array) wp_unslash( $_POST['licence_ids'] ) : array();
+        $item_ids = array_values( array_unique( array_filter( array_map( 'absint', $raw_ids ) ) ) );
+        self::debug_log_bulk_licences(
+            'Received bulk request.',
+            array(
+                'action' => $action,
+                'ids_raw' => $raw_ids,
+                'ids_clean' => $item_ids,
+            )
+        );
+        if ( empty( $item_ids ) ) {
+            self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'no_selection' ), $redirect_base ) );
+        }
+
+        $modified_count = 0;
+        $failed_count   = 0;
         switch ($action) {
             case 'validate':
-                self::bulk_validate_items($item_ids, $table);
-                break;
-            case 'reject':
-                self::bulk_reject_items($item_ids, $table);
-                break;
-            case 'pending':
-                self::bulk_pending_items($item_ids, $table);
+                $modified_count = self::bulk_validate_items($item_ids, $table, $pk);
                 break;
             case 'delete':
-                self::bulk_delete_items($item_ids, $table, $pk);
+                $modified_count = self::bulk_delete_items($item_ids, $table, $pk);
                 break;
-            case 'restore':
-                self::bulk_restore_items($item_ids, $table, $pk);
+            case 'archive_duplicate':
+                $archive_result = self::bulk_archive_duplicate_items( $item_ids, $table, $pk );
+                $modified_count = isset( $archive_result['archived'] ) ? (int) $archive_result['archived'] : 0;
+                $failed_count   = isset( $archive_result['failed'] ) ? (int) $archive_result['failed'] : 0;
                 break;
         }
 
-        if (! self::is_cli()) {
-            $requested_return_to = isset( $_POST['return_to'] ) ? wp_unslash( $_POST['return_to'] ) : '';
-            $redirect_base       = self::get_safe_licences_return_url( $requested_return_to );
-            if ( '' === $redirect_base ) {
-                $redirect_base = self::build_licences_redirect_url();
+        $bulk_message = 'technical_error';
+        if ( 'validate' === $action ) {
+            $bulk_message = $modified_count > 0 ? 'validated' : 'technical_error';
+        } elseif ( 'delete' === $action ) {
+            $bulk_message = $modified_count > 0 ? 'trashed' : 'technical_error';
+        } elseif ( 'archive_duplicate' === $action ) {
+            if ( $modified_count > 0 && $failed_count > 0 ) {
+                $bulk_message = 'partial_archive_duplicate';
+            } elseif ( $modified_count > 0 ) {
+                $bulk_message = 'archived_duplicate';
+            } else {
+                $bulk_message = 'none_archived';
             }
+        }
+        self::debug_log_bulk_licences(
+            'Bulk action processed.',
+            array(
+                'action' => $action,
+                'modified' => (int) $modified_count,
+                'failed' => (int) $failed_count,
+                'ids_clean' => $item_ids,
+                'last_error' => $GLOBALS['wpdb']->last_error ?? '',
+            )
+        );
+
+        if (! self::is_cli()) {
             $redirect_to = add_query_arg(
                 array(
-                    'processed' => count( $item_ids ),
+                    'processed'    => count( $item_ids ),
+                    'bulk_message' => $bulk_message,
+                    'bulk_count'   => (int) $modified_count,
                 ),
                 $redirect_base
             );
@@ -4797,32 +4939,52 @@ class UFSC_SQL_Admin
         }
     }
 
-    private static function bulk_validate_items($item_ids, $table)
+    private static function bulk_validate_items($item_ids, $table, $pk = 'id')
     {
         global $wpdb;
-        if (function_exists('ufsc_table_has_column') && ! ufsc_table_has_column($table, 'statut')) {
-            return;
-        }
 
+        $updated = 0;
+        $columns = self::get_table_columns( $table );
+        $has_statut = in_array( 'statut', $columns, true );
+        $has_status = in_array( 'status', $columns, true );
         foreach ($item_ids as $item_id) {
+            $result = false;
             if ( class_exists( 'UFSC_Licence_Status' ) ) {
-                UFSC_Licence_Status::update_status_columns( $table, array( 'id' => $item_id ), 'valide', array( '%d' ) );
-            } else {
-                $wpdb->update(
-                    $table,
-                    ['statut' => 'valide'],
-                    ['id' => $item_id],
-                    ['%s'],
-                    ['%d']
-                );
+                $result = UFSC_Licence_Status::update_status_columns( $table, array( $pk => $item_id ), 'valide', array( '%d' ) );
+            }
+            if ( false === $result ) {
+                if ( $has_statut ) {
+                    $result = $wpdb->update(
+                        $table,
+                        array( 'statut' => 'valide' ),
+                        array( $pk => $item_id ),
+                        array( '%s' ),
+                        array( '%d' )
+                    );
+                } elseif ( $has_status ) {
+                    $result = $wpdb->update(
+                        $table,
+                        array( 'status' => 'valide' ),
+                        array( $pk => $item_id ),
+                        array( '%s' ),
+                        array( '%d' )
+                    );
+                }
+            }
+            if ( false !== $result ) {
+                $updated++;
             }
         }
 
-        add_action('admin_notices', function () use ($item_ids) {
-            echo '<div class="notice notice-success is-dismissible"><p>';
-            printf(_n('%d élément validé.', '%d éléments validés.', count($item_ids)), count($item_ids));
-            echo '</p></div>';
-        });
+        self::debug_log_bulk_licences(
+            'Validate done.',
+            array(
+                'requested' => count( $item_ids ),
+                'updated' => $updated,
+                'last_error' => $wpdb->last_error,
+            )
+        );
+        return $updated;
     }
 
     private static function bulk_reject_items($item_ids, $table)
@@ -4886,13 +5048,24 @@ class UFSC_SQL_Admin
         global $wpdb;
 
         $deleted = 0;
-        $blocked = 0;
         $columns = self::get_table_columns( $table );
         if ( ! in_array( 'deleted_at', $columns, true ) ) {
-            return;
+            return 0;
         }
         foreach ($item_ids as $item_id) {
-            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", (int) $item_id ) );
+            $item_id = (int) $item_id;
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", $item_id ) );
+            self::debug_log_bulk_licences(
+                'Delete item before update.',
+                array(
+                    'id' => $item_id,
+                    'exists' => (bool) $row,
+                    'deleted_at' => $row->deleted_at ?? null,
+                    'deleted_by' => $row->deleted_by ?? null,
+                    'statut' => $row->statut ?? null,
+                    'status' => $row->status ?? null,
+                )
+            );
             if ( ! $row ) {
                 continue;
             }
@@ -4900,10 +5073,18 @@ class UFSC_SQL_Admin
                 UFSC_Scope::assert_club_in_scope( (int) $row->club_id );
             }
             if ( $row && '' !== self::get_licence_delete_block_reason( $row ) ) {
-                $blocked++;
+                self::debug_log_bulk_licences(
+                    'Delete item blocked.',
+                    array(
+                        'id' => $item_id,
+                        'reason' => self::get_licence_delete_block_reason( $row ),
+                    )
+                );
                 continue;
             }
             if ( isset( $row->deleted_at ) && ! empty( $row->deleted_at ) && '0000-00-00 00:00:00' !== $row->deleted_at ) {
+                self::debug_log_bulk_licences( 'Delete item already trashed.', array( 'id' => $item_id ) );
+                $deleted++;
                 continue;
             }
 
@@ -4915,31 +5096,167 @@ class UFSC_SQL_Admin
                 $update_data['deleted_by'] = get_current_user_id();
                 $update_formats[] = '%d';
             }
+            if ( in_array( 'updated_at', $columns, true ) ) {
+                $update_data['updated_at'] = current_time( 'mysql' );
+                $update_formats[] = '%s';
+            }
+            if ( in_array( 'updated_by', $columns, true ) ) {
+                $update_data['updated_by'] = get_current_user_id();
+                $update_formats[] = '%d';
+            }
+
+            $where = array( $pk => $item_id );
 
             $result = $wpdb->update(
                 $table,
                 $update_data,
-                array( $pk => $item_id ),
+                $where,
                 $update_formats,
                 array( '%d' )
             );
-            if ( false !== $result ) {
+            self::debug_log_bulk_licences(
+                'Delete item update.',
+                array(
+                    'id' => $item_id,
+                    'data' => $update_data,
+                    'where' => $where,
+                    'result' => $result,
+                    'last_error' => $wpdb->last_error,
+                )
+            );
+
+            $after_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", $item_id ) );
+            self::debug_log_bulk_licences(
+                'Delete item after update.',
+                array(
+                    'id' => $item_id,
+                    'exists' => (bool) $after_row,
+                    'deleted_at' => $after_row->deleted_at ?? null,
+                    'deleted_by' => $after_row->deleted_by ?? null,
+                    'statut' => $after_row->statut ?? null,
+                    'status' => $after_row->status ?? null,
+                )
+            );
+
+            if ( false !== $result && ( $result > 0 || ( $after_row && ! empty( $after_row->deleted_at ) && '0000-00-00 00:00:00' !== $after_row->deleted_at ) ) ) {
                 $deleted++;
             }
         }
+        return $deleted;
+    }
 
-        add_action('admin_notices', function () use ($deleted, $blocked) {
-            if ( $deleted > 0 ) {
-                echo '<div class="notice notice-success is-dismissible"><p>';
-                printf(_n('%d élément mis en corbeille.', '%d éléments mis en corbeille.', $deleted), $deleted);
-                echo '</p></div>';
+    private static function bulk_archive_duplicate_items( $item_ids, $table, $pk ) {
+        global $wpdb;
+
+        $columns = self::get_table_columns( $table );
+        if ( ! in_array( 'deleted_at', $columns, true ) ) {
+            return array(
+                'archived' => 0,
+                'failed'   => count( (array) $item_ids ),
+            );
+        }
+
+        $archived   = 0;
+        $failed     = 0;
+        $reason_txt = 'Doublon technique généré par l’ancien processus panier licence. Paiement conservé et rattaché à la commande WooCommerce existante. Licence archivée administrativement sans suppression comptable.';
+        $note_col   = '';
+        foreach ( array( 'admin_note', 'notes', 'commentaire', 'note' ) as $candidate ) {
+            if ( in_array( $candidate, $columns, true ) ) {
+                $note_col = $candidate;
+                break;
             }
-            if ( $blocked > 0 ) {
-                echo '<div class="notice notice-warning is-dismissible"><p>';
-                printf(_n('%d suppression bloquée (licence validée/commande).', '%d suppressions bloquées (licence validée/commande).', $blocked), $blocked);
-                echo '</p></div>';
+        }
+
+        foreach ( $item_ids as $item_id ) {
+            $item_id = (int) $item_id;
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", $item_id ) );
+            self::debug_log_bulk_licences(
+                'Archive duplicate before update.',
+                array(
+                    'id' => $item_id,
+                    'exists' => (bool) $row,
+                    'deleted_at' => $row->deleted_at ?? null,
+                    'order_id' => $row->order_id ?? null,
+                    'wc_order_id' => $row->wc_order_id ?? null,
+                    'payment_order_id' => $row->payment_order_id ?? null,
+                    'statut' => $row->statut ?? null,
+                    'status' => $row->status ?? null,
+                )
+            );
+            if ( ! $row ) {
+                $failed++;
+                continue;
             }
-        });
+            if ( isset( $row->club_id ) && (int) $row->club_id > 0 ) {
+                UFSC_Scope::assert_club_in_scope( (int) $row->club_id );
+            }
+
+            if ( isset( $row->deleted_at ) && ! empty( $row->deleted_at ) && '0000-00-00 00:00:00' !== $row->deleted_at ) {
+                $archived++;
+                continue;
+            }
+
+            $update_data = array(
+                'deleted_at' => current_time( 'mysql' ),
+            );
+            $update_formats = array( '%s' );
+            if ( in_array( 'deleted_by', $columns, true ) ) {
+                $update_data['deleted_by'] = get_current_user_id();
+                $update_formats[] = '%d';
+            }
+            if ( in_array( 'updated_at', $columns, true ) ) {
+                $update_data['updated_at'] = current_time( 'mysql' );
+                $update_formats[] = '%s';
+            }
+            if ( in_array( 'updated_by', $columns, true ) ) {
+                $update_data['updated_by'] = get_current_user_id();
+                $update_formats[] = '%d';
+            }
+            if ( '' !== $note_col ) {
+                $existing_note = isset( $row->{$note_col} ) ? trim( (string) $row->{$note_col} ) : '';
+                $update_data[ $note_col ] = '' === $existing_note ? $reason_txt : $existing_note . "\n" . $reason_txt;
+                $update_formats[] = '%s';
+            }
+
+            $where = array( $pk => $item_id );
+            $result = $wpdb->update( $table, $update_data, $where, $update_formats, array( '%d' ) );
+            self::debug_log_bulk_licences(
+                'Archive duplicate update.',
+                array(
+                    'id' => $item_id,
+                    'data' => $update_data,
+                    'where' => $where,
+                    'result' => $result,
+                    'last_error' => $wpdb->last_error,
+                )
+            );
+
+            $after_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", $item_id ) );
+            self::debug_log_bulk_licences(
+                'Archive duplicate after update.',
+                array(
+                    'id' => $item_id,
+                    'exists' => (bool) $after_row,
+                    'deleted_at' => $after_row->deleted_at ?? null,
+                    'order_id' => $after_row->order_id ?? null,
+                    'wc_order_id' => $after_row->wc_order_id ?? null,
+                    'payment_order_id' => $after_row->payment_order_id ?? null,
+                    'statut' => $after_row->statut ?? null,
+                    'status' => $after_row->status ?? null,
+                )
+            );
+
+            if ( false !== $result && ( $result > 0 || ( $after_row && ! empty( $after_row->deleted_at ) && '0000-00-00 00:00:00' !== $after_row->deleted_at ) ) ) {
+                $archived++;
+            } else {
+                $failed++;
+            }
+        }
+
+        return array(
+            'archived' => $archived,
+            'failed'   => $failed,
+        );
     }
 
     private static function bulk_restore_items($item_ids, $table, $pk) {
