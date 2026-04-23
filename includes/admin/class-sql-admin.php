@@ -5022,7 +5022,19 @@ class UFSC_SQL_Admin
             return 0;
         }
         foreach ($item_ids as $item_id) {
-            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", (int) $item_id ) );
+            $item_id = (int) $item_id;
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", $item_id ) );
+            self::debug_log_bulk_licences(
+                'Delete item before update.',
+                array(
+                    'id' => $item_id,
+                    'exists' => (bool) $row,
+                    'deleted_at' => $row->deleted_at ?? null,
+                    'deleted_by' => $row->deleted_by ?? null,
+                    'statut' => $row->statut ?? null,
+                    'status' => $row->status ?? null,
+                )
+            );
             if ( ! $row ) {
                 continue;
             }
@@ -5030,9 +5042,18 @@ class UFSC_SQL_Admin
                 UFSC_Scope::assert_club_in_scope( (int) $row->club_id );
             }
             if ( $row && '' !== self::get_licence_delete_block_reason( $row ) ) {
+                self::debug_log_bulk_licences(
+                    'Delete item blocked.',
+                    array(
+                        'id' => $item_id,
+                        'reason' => self::get_licence_delete_block_reason( $row ),
+                    )
+                );
                 continue;
             }
             if ( isset( $row->deleted_at ) && ! empty( $row->deleted_at ) && '0000-00-00 00:00:00' !== $row->deleted_at ) {
+                self::debug_log_bulk_licences( 'Delete item already trashed.', array( 'id' => $item_id ) );
+                $deleted++;
                 continue;
             }
 
@@ -5044,15 +5065,49 @@ class UFSC_SQL_Admin
                 $update_data['deleted_by'] = get_current_user_id();
                 $update_formats[] = '%d';
             }
+            if ( in_array( 'updated_at', $columns, true ) ) {
+                $update_data['updated_at'] = current_time( 'mysql' );
+                $update_formats[] = '%s';
+            }
+            if ( in_array( 'updated_by', $columns, true ) ) {
+                $update_data['updated_by'] = get_current_user_id();
+                $update_formats[] = '%d';
+            }
+
+            $where = array( $pk => $item_id );
 
             $result = $wpdb->update(
                 $table,
                 $update_data,
-                array( $pk => $item_id ),
+                $where,
                 $update_formats,
                 array( '%d' )
             );
-            if ( false !== $result ) {
+            self::debug_log_bulk_licences(
+                'Delete item update.',
+                array(
+                    'id' => $item_id,
+                    'data' => $update_data,
+                    'where' => $where,
+                    'result' => $result,
+                    'last_error' => $wpdb->last_error,
+                )
+            );
+
+            $after_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", $item_id ) );
+            self::debug_log_bulk_licences(
+                'Delete item after update.',
+                array(
+                    'id' => $item_id,
+                    'exists' => (bool) $after_row,
+                    'deleted_at' => $after_row->deleted_at ?? null,
+                    'deleted_by' => $after_row->deleted_by ?? null,
+                    'statut' => $after_row->statut ?? null,
+                    'status' => $after_row->status ?? null,
+                )
+            );
+
+            if ( false !== $result && ( $result > 0 || ( $after_row && ! empty( $after_row->deleted_at ) && '0000-00-00 00:00:00' !== $after_row->deleted_at ) ) ) {
                 $deleted++;
             }
         }
