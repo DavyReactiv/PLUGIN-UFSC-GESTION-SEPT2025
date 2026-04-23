@@ -2165,9 +2165,17 @@ class UFSC_SQL_Admin
                     $notice_type = 'notice-success';
                     $message     = sprintf( __( '%d licence(s) archivée(s) comme doublon technique.', 'ufsc-clubs' ), $bulk_count );
                     break;
+                case 'pending_updated':
+                    $notice_type = 'notice-success';
+                    $message     = sprintf( __( '%d licence(s) mise(s) en attente avec succès.', 'ufsc-clubs' ), $bulk_count );
+                    break;
                 case 'none_archived':
                     $notice_type = 'notice-warning';
                     $message     = __( 'Aucune licence archivée.', 'ufsc-clubs' );
+                    break;
+                case 'none_updated':
+                    $notice_type = 'notice-warning';
+                    $message     = __( 'Aucune licence mise à jour.', 'ufsc-clubs' );
                     break;
                 case 'partial_archive_duplicate':
                     $notice_type = 'notice-warning';
@@ -2320,6 +2328,7 @@ class UFSC_SQL_Admin
         echo '<select name="bulk_action" id="bulk-action-selector">';
         echo '<option value="">' . esc_html__('Actions groupées', 'ufsc-clubs') . '</option>';
         echo '<option value="validate">' . esc_html__('Valider', 'ufsc-clubs') . '</option>';
+        echo '<option value="pending">' . esc_html__( 'Mettre en attente', 'ufsc-clubs' ) . '</option>';
         echo '<option value="delete">' . esc_html__('Corbeille', 'ufsc-clubs') . '</option>';
         echo '<option value="archive_duplicate">' . esc_html__( 'Archiver doublon technique', 'ufsc-clubs' ) . '</option>';
         echo '</select>';
@@ -4829,26 +4838,6 @@ class UFSC_SQL_Admin
             $redirect_base = self::build_licences_redirect_url();
         }
 
-        self::debug_log_bulk_licences(
-            'Incoming POST.',
-            array(
-                'post_keys' => array_keys( $_POST ),
-                'nonce_present' => isset( $_POST['_wpnonce'] ),
-                'table' => $table,
-                'pk' => $pk,
-                'capability' => 'UFSC_Capabilities::CAP_LICENCE_EDIT',
-            )
-        );
-
-        if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ufsc_bulk_actions' ) ) {
-            self::debug_log_bulk_licences( 'Invalid nonce.' );
-            self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'invalid_nonce' ), $redirect_base ) );
-        }
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
-            self::debug_log_bulk_licences( 'Forbidden action.' );
-            self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'forbidden' ), $redirect_base ) );
-        }
-
         $action = '';
         foreach ( array( 'bulk_action', 'action', 'action2' ) as $action_key ) {
             if ( isset( $_POST[ $action_key ] ) ) {
@@ -4859,12 +4848,42 @@ class UFSC_SQL_Admin
                 }
             }
         }
-        self::debug_log_bulk_licences( 'Action resolved.', array( 'action' => $action ) );
-        if ( '' === $action ) {
-            self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'no_action' ), $redirect_base ) );
+        $allowed_actions = array( 'validate', 'pending', 'delete', 'archive_duplicate' );
+        $has_bulk_ids    = isset( $_POST['licence_ids'] ) && is_array( $_POST['licence_ids'] );
+        $raw_bulk_action = isset( $_POST['bulk_action'] ) ? sanitize_text_field( wp_unslash( $_POST['bulk_action'] ) ) : '';
+        if ( $has_bulk_ids && isset( $_POST['bulk_action'] ) && ( '' === $raw_bulk_action || '-1' === $raw_bulk_action ) ) {
+            if ( isset( $_POST['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ufsc_bulk_actions' ) ) {
+                self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'no_action' ), $redirect_base ) );
+            }
+            return;
+        }
+        $is_bulk_request = $has_bulk_ids && in_array( $action, $allowed_actions, true );
+        if ( ! $is_bulk_request ) {
+            if ( isset( $_POST['licence_ids'] ) || isset( $_POST['bulk_action'] ) ) {
+                self::debug_log_bulk_licences( 'Skipped non-bulk POST.' );
+            }
+            return;
+        }
+        self::debug_log_bulk_licences(
+            'Incoming POST.',
+            array(
+                'post_keys' => array_keys( $_POST ),
+                'nonce_present' => isset( $_POST['_wpnonce'] ),
+                'action' => $action,
+                'table' => $table,
+                'pk' => $pk,
+                'capability' => 'UFSC_Capabilities::CAP_LICENCE_EDIT',
+            )
+        );
+        if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ufsc_bulk_actions' ) ) {
+            self::debug_log_bulk_licences( 'Invalid nonce.' );
+            self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'invalid_nonce' ), $redirect_base ) );
+        }
+        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
+            self::debug_log_bulk_licences( 'Forbidden action.' );
+            self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'forbidden' ), $redirect_base ) );
         }
 
-        $allowed_actions = array( 'validate', 'delete', 'archive_duplicate' );
         if ( ! in_array( $action, $allowed_actions, true ) ) {
             self::debug_log_bulk_licences( 'Invalid action requested.', array( 'action' => $action ) );
             self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'invalid_action' ), $redirect_base ) );
@@ -4890,6 +4909,9 @@ class UFSC_SQL_Admin
             case 'validate':
                 $modified_count = self::bulk_validate_items($item_ids, $table, $pk);
                 break;
+            case 'pending':
+                $modified_count = self::bulk_pending_items( $item_ids, $table, $pk );
+                break;
             case 'delete':
                 $modified_count = self::bulk_delete_items($item_ids, $table, $pk);
                 break;
@@ -4903,6 +4925,8 @@ class UFSC_SQL_Admin
         $bulk_message = 'technical_error';
         if ( 'validate' === $action ) {
             $bulk_message = $modified_count > 0 ? 'validated' : 'technical_error';
+        } elseif ( 'pending' === $action ) {
+            $bulk_message = $modified_count > 0 ? 'pending_updated' : 'none_updated';
         } elseif ( 'delete' === $action ) {
             $bulk_message = $modified_count > 0 ? 'trashed' : 'technical_error';
         } elseif ( 'archive_duplicate' === $action ) {
@@ -5015,32 +5039,63 @@ class UFSC_SQL_Admin
         });
     }
 
-    private static function bulk_pending_items($item_ids, $table)
+    private static function bulk_pending_items( $item_ids, $table, $pk = 'id' )
     {
         global $wpdb;
-        if (function_exists('ufsc_table_has_column') && ! ufsc_table_has_column($table, 'statut')) {
-            return;
-        }
+        $updated = 0;
+        $columns = self::get_table_columns( $table );
+        $has_statut = in_array( 'statut', $columns, true );
+        $has_status = in_array( 'status', $columns, true );
+        $has_deleted_at = in_array( 'deleted_at', $columns, true );
 
-        foreach ($item_ids as $item_id) {
+        foreach ( $item_ids as $item_id ) {
+            $item_id = (int) $item_id;
+            $row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE {$pk} = %d", $item_id ) );
+            if ( ! $row ) {
+                continue;
+            }
+            if ( $has_deleted_at && isset( $row->deleted_at ) && ! empty( $row->deleted_at ) && '0000-00-00 00:00:00' !== $row->deleted_at ) {
+                continue;
+            }
+
+            $result = false;
             if ( class_exists( 'UFSC_Licence_Status' ) ) {
-                UFSC_Licence_Status::update_status_columns( $table, array( 'id' => $item_id ), 'en_attente', array( '%d' ) );
-            } else {
-                $result = $wpdb->update(
-                    $table,
-                    ['statut' => 'en_attente'],
-                    ['id' => $item_id],
-                    ['%s'],
-                    ['%d']
-                );
+                $result = UFSC_Licence_Status::update_status_columns( $table, array( $pk => $item_id ), 'en_attente', array( '%d' ) );
+            }
+            if ( false === $result ) {
+                if ( $has_statut ) {
+                    $result = $wpdb->update(
+                        $table,
+                        array( 'statut' => 'en_attente' ),
+                        array( $pk => $item_id ),
+                        array( '%s' ),
+                        array( '%d' )
+                    );
+                } elseif ( $has_status ) {
+                    $result = $wpdb->update(
+                        $table,
+                        array( 'status' => 'en_attente' ),
+                        array( $pk => $item_id ),
+                        array( '%s' ),
+                        array( '%d' )
+                    );
+                }
+            }
+
+            if ( false !== $result ) {
+                $updated++;
             }
         }
 
-        add_action('admin_notices', function () use ($item_ids) {
-            echo '<div class="notice notice-success is-dismissible"><p>';
-            printf(_n('%d élément refusé.', '%d éléments en attente.', count($item_ids)), count($item_ids));
-            echo '</p></div>';
-        });
+        self::debug_log_bulk_licences(
+            'Pending done.',
+            array(
+                'requested' => count( $item_ids ),
+                'updated' => $updated,
+                'last_error' => $wpdb->last_error,
+            )
+        );
+        return $updated;
     }
 
     private static function bulk_delete_items($item_ids, $table, $pk)
