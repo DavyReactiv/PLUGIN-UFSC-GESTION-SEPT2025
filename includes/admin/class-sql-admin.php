@@ -2165,6 +2165,10 @@ class UFSC_SQL_Admin
                     $notice_type = 'notice-warning';
                     $message     = __( 'Aucune licence sélectionnée.', 'ufsc-clubs' );
                     break;
+                case 'no_action':
+                    $notice_type = 'notice-warning';
+                    $message     = __( 'Aucune action groupée sélectionnée.', 'ufsc-clubs' );
+                    break;
                 case 'invalid_action':
                     $notice_type = 'notice-error';
                     $message     = __( 'Action groupée non autorisée.', 'ufsc-clubs' );
@@ -4812,6 +4816,17 @@ class UFSC_SQL_Admin
             $redirect_base = self::build_licences_redirect_url();
         }
 
+        self::debug_log_bulk_licences(
+            'Incoming POST.',
+            array(
+                'post_keys' => array_keys( $_POST ),
+                'nonce_present' => isset( $_POST['_wpnonce'] ),
+                'table' => $table,
+                'pk' => $pk,
+                'capability' => 'UFSC_Capabilities::CAP_LICENCE_EDIT',
+            )
+        );
+
         if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ufsc_bulk_actions' ) ) {
             self::debug_log_bulk_licences( 'Invalid nonce.' );
             self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'invalid_nonce' ), $redirect_base ) );
@@ -4821,9 +4836,19 @@ class UFSC_SQL_Admin
             self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'forbidden' ), $redirect_base ) );
         }
 
-        $action = isset( $_POST['bulk_action'] ) ? sanitize_text_field( wp_unslash( $_POST['bulk_action'] ) ) : '';
+        $action = '';
+        foreach ( array( 'bulk_action', 'action', 'action2' ) as $action_key ) {
+            if ( isset( $_POST[ $action_key ] ) ) {
+                $candidate = sanitize_text_field( wp_unslash( $_POST[ $action_key ] ) );
+                if ( '' !== $candidate && '-1' !== $candidate ) {
+                    $action = $candidate;
+                    break;
+                }
+            }
+        }
+        self::debug_log_bulk_licences( 'Action resolved.', array( 'action' => $action ) );
         if ( '' === $action ) {
-            return;
+            self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'no_action' ), $redirect_base ) );
         }
 
         $allowed_actions = array( 'validate', 'delete' );
@@ -4886,30 +4911,48 @@ class UFSC_SQL_Admin
     private static function bulk_validate_items($item_ids, $table, $pk = 'id')
     {
         global $wpdb;
-        if (function_exists('ufsc_table_has_column') && ! ufsc_table_has_column($table, 'statut')) {
-            return 0;
-        }
 
         $updated = 0;
+        $columns = self::get_table_columns( $table );
+        $has_statut = in_array( 'statut', $columns, true );
+        $has_status = in_array( 'status', $columns, true );
         foreach ($item_ids as $item_id) {
+            $result = false;
             if ( class_exists( 'UFSC_Licence_Status' ) ) {
                 $result = UFSC_Licence_Status::update_status_columns( $table, array( $pk => $item_id ), 'valide', array( '%d' ) );
-                if ( false !== $result ) {
-                    $updated++;
-                }
-            } else {
-                $result = $wpdb->update(
-                    $table,
-                    ['statut' => 'valide'],
-                    [ $pk => $item_id ],
-                    ['%s'],
-                    ['%d']
-                );
-                if ( false !== $result ) {
-                    $updated++;
+            }
+            if ( false === $result ) {
+                if ( $has_statut ) {
+                    $result = $wpdb->update(
+                        $table,
+                        array( 'statut' => 'valide' ),
+                        array( $pk => $item_id ),
+                        array( '%s' ),
+                        array( '%d' )
+                    );
+                } elseif ( $has_status ) {
+                    $result = $wpdb->update(
+                        $table,
+                        array( 'status' => 'valide' ),
+                        array( $pk => $item_id ),
+                        array( '%s' ),
+                        array( '%d' )
+                    );
                 }
             }
+            if ( false !== $result ) {
+                $updated++;
+            }
         }
+
+        self::debug_log_bulk_licences(
+            'Validate done.',
+            array(
+                'requested' => count( $item_ids ),
+                'updated' => $updated,
+                'last_error' => $wpdb->last_error,
+            )
+        );
         return $updated;
     }
 
