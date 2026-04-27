@@ -43,6 +43,39 @@ if ( ! function_exists( 'ufsc_get_current_season_label' ) ) {
 	}
 }
 
+/**
+ * Admin-facing season label helper (sports season: 01/09 -> 31/08).
+ * Non-destructive: prefers a valid stored option when available.
+ */
+if ( ! function_exists( 'ufsc_get_admin_current_season_label' ) ) {
+	function ufsc_get_admin_current_season_label() {
+		$stored = get_option( 'ufsc_current_season', '' );
+		$stored = is_string( $stored ) ? sanitize_text_field( $stored ) : '';
+		if ( preg_match( '/^(\d{4})-(\d{4})$/', $stored, $matches ) && ( (int) $matches[2] ) === ( (int) $matches[1] + 1 ) ) {
+			return $stored;
+		}
+
+		$timezone   = function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' );
+		$now        = new DateTimeImmutable( 'now', $timezone );
+		$month      = (int) $now->format( 'n' );
+		$year       = (int) $now->format( 'Y' );
+		$start_year = ( $month >= 9 ) ? $year : ( $year - 1 );
+
+		return sprintf( '%d-%d', $start_year, $start_year + 1 );
+	}
+}
+
+if ( ! function_exists( 'ufsc_get_admin_next_season_label' ) ) {
+	function ufsc_get_admin_next_season_label() {
+		$current = ufsc_get_admin_current_season_label();
+		if ( preg_match( '/^(\d{4})-(\d{4})$/', $current, $matches ) ) {
+			return sprintf( '%d-%d', (int) $matches[1] + 1, (int) $matches[2] + 1 );
+		}
+
+		return '';
+	}
+}
+
 if ( ! function_exists( 'ufsc_get_next_season' ) ) {
 	function ufsc_get_next_season() {
 		$stored = get_option( 'ufsc_next_season', '' );

@@ -334,6 +334,39 @@ class UFSC_SQL_Admin
     }
 
     /**
+     * Read a scalar request value safely as string.
+     *
+     * @param array  $source Request array.
+     * @param string $key    Request key.
+     * @param string $default Default value.
+     * @return string
+     */
+    private static function request_string( $source, $key, $default = '' ) {
+        if ( ! is_array( $source ) || ! isset( $source[ $key ] ) ) {
+            return $default;
+        }
+
+        $value = wp_unslash( $source[ $key ] );
+        if ( is_array( $value ) || null === $value ) {
+            return $default;
+        }
+
+        return sanitize_text_field( (string) $value );
+    }
+
+    /**
+     * Get current season label for admin UX.
+     *
+     * @return string
+     */
+    private static function get_admin_current_season_label() {
+        if ( function_exists( 'ufsc_get_admin_current_season_label' ) ) {
+            return (string) ufsc_get_admin_current_season_label();
+        }
+        return __( 'saison en cours', 'ufsc-clubs' );
+    }
+
+    /**
      * Filter data array to columns that exist in the table.
      *
      * @param string $table Table name.
@@ -702,10 +735,10 @@ class UFSC_SQL_Admin
     public static function register_hidden_pages()
     {
         // Enregistrer les pages cachées pour les actions directes (mentionnées dans les specs)
-        add_submenu_page(null, __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
-        add_submenu_page(null, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
+        add_submenu_page('', __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
+        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
         // Alias pour compatibilité avec la spec (licenses vs licences)
-        add_submenu_page(null, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-licenses', [__CLASS__, 'render_licences']);
+        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-licenses', [__CLASS__, 'render_licences']);
     }
 
     /* ---------------- Menus complets (obsolète - remplacé par menu unifié) ---------------- */
@@ -1182,18 +1215,14 @@ class UFSC_SQL_Admin
         }
         echo '<div class="wrap ufsc-admin ufsc-admin-page">';
 
-        if ($readonly) {
-            echo '<h2 class="ufsc-admin-title">' . ($id ? esc_html__('Consulter le club', 'ufsc-clubs') : esc_html__('Nouveau club', 'ufsc-clubs')) . '</h2>';
-        } else {
-            echo '<h2 class="ufsc-admin-title">' . ($id ? esc_html__('Éditer le club', 'ufsc-clubs') : esc_html__('Nouveau club', 'ufsc-clubs')) . '</h2>';
-        }
+        echo '<h2 class="ufsc-admin-title">' . esc_html__( 'Fiche club — Suivi administratif et affiliation', 'ufsc-clubs' ) . '</h2>';
 
         // Affichage des messages
         if (isset($_GET['updated']) && $_GET['updated'] == '1') {
             echo UFSC_CL_Utils::show_success(__('Club enregistré avec succès', 'ufsc-clubs'));
         }
         if (isset($_GET['error'])) {
-            echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
+            echo UFSC_CL_Utils::show_error( self::request_string( $_GET, 'error' ) );
         }
 
         if ( $row ) {
@@ -1238,7 +1267,8 @@ class UFSC_SQL_Admin
         echo '<div class="ufsc-admin-help">' . esc_html__( 'Date création :', 'ufsc-clubs' ) . ' ' . esc_html( (string) self::get_row_field_value( $row, 'date_creation' ) ?: '—' ) . '</div>';
         echo '<div class="ufsc-admin-help">' . esc_html__( 'Date affiliation :', 'ufsc-clubs' ) . ' ' . esc_html( (string) self::get_row_field_value( $row, 'date_affiliation' ) ?: '—' ) . '</div>';
         echo '</div>';
-        echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Cette fiche regroupe les informations administratives du club, ses dirigeants, ses documents transmis et l’état de son affiliation.', 'ufsc-clubs' ) . '</p>';
+        echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Cette fiche centralise l’identité du club, ses coordonnées, les dirigeants, les documents transmis et l’état de son affiliation pour la saison suivie.', 'ufsc-clubs' ) . '</p>';
+        echo '<p class="ufsc-admin-help">' . esc_html__( 'Saison affichée :', 'ufsc-clubs' ) . ' ' . esc_html( self::get_admin_current_season_label() ) . '</p>';
         echo '</section>';
 
         $rendered_keys = array();
@@ -2352,8 +2382,11 @@ class UFSC_SQL_Admin
             )
         );
 
-        echo '<div class="wrap ufsc-admin ufsc-admin-page"><h1 class="ufsc-admin-title">' . esc_html__('Licences (SQL)', 'ufsc-clubs') . '</h1>';
-        echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Gérez ici l’ensemble des licences rattachées aux clubs UFSC. Utilisez les filtres pour retrouver rapidement une licence, contrôler son statut, vérifier son paiement ou détecter les doublons d’identité.', 'ufsc-clubs' ) . '</p>';
+        $current_season_label = self::get_admin_current_season_label();
+        echo '<div class="wrap ufsc-admin ufsc-admin-page"><h1 class="ufsc-admin-title">' . esc_html__( 'Licences UFSC — Gestion administrative par saison', 'ufsc-clubs' ) . '</h1>';
+        echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Consultez, filtrez et mettez à jour les licences rattachées aux clubs pour la saison en cours. Les filtres permettent de contrôler rapidement les statuts, les paiements, les brouillons et les éventuels doublons d’identité.', 'ufsc-clubs' ) . '</p>';
+        echo '<p class="ufsc-admin-help">' . esc_html__( 'Saison affichée :', 'ufsc-clubs' ) . ' ' . esc_html( $current_season_label ? $current_season_label : __( 'saison en cours', 'ufsc-clubs' ) ) . '</p>';
+        echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Renouvellement des licences : les licences sont suivies par saison. Lors du passage à la nouvelle saison, les licences pourront être renouvelées individuellement selon les règles définies par l’UFSC.', 'ufsc-clubs' ) . '</p></div>';
 
         // Affichage des notices
         if (isset($_GET['updated']) && $_GET['updated'] == '1') {
@@ -2364,7 +2397,7 @@ class UFSC_SQL_Admin
             echo UFSC_CL_Utils::show_success(__('La licence #' . $deleted_id . ' a été supprimée.', 'ufsc-clubs'));
         }
         if (isset($_GET['error'])) {
-            echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
+            echo UFSC_CL_Utils::show_error( self::request_string( $_GET, 'error' ) );
         }
         if ( isset( $_GET['bulk_message'] ) ) {
             $bulk_message = sanitize_key( wp_unslash( $_GET['bulk_message'] ) );
@@ -2836,9 +2869,9 @@ class UFSC_SQL_Admin
         }
 
         if ($readonly) {
-            echo '<h1 class="ufsc-admin-title">' . ($id ? esc_html__('Consulter la licence', 'ufsc-clubs') : esc_html__('Nouvelle licence', 'ufsc-clubs')) . '</h1>';
+            echo '<h1 class="ufsc-admin-title">' . esc_html__( 'Fiche licence — Identité, statut et rattachement club', 'ufsc-clubs' ) . '</h1>';
         } else {
-            echo '<h1 class="ufsc-admin-title">' . ($id ? esc_html__('Éditer la licence', 'ufsc-clubs') : esc_html__('Ajouter une nouvelle licence', 'ufsc-clubs')) . '</h1>';
+            echo '<h1 class="ufsc-admin-title">' . esc_html__( 'Fiche licence — Identité, statut et rattachement club', 'ufsc-clubs' ) . '</h1>';
             if (! $id) {
                 echo '<div class="ufsc-form-intro" style="background: #f8f9fa; padding: 15px; margin: 15px 0; border-left: 4px solid #2271b1; border-radius: 4px;">';
                 echo '<p><strong>' . esc_html__('Instructions pour l\'ajout d\'une licence', 'ufsc-clubs') . '</strong></p>';
@@ -2870,7 +2903,7 @@ class UFSC_SQL_Admin
             echo UFSC_CL_Utils::show_success($message);
         }
         if (isset($_GET['error'])) {
-            echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
+            echo UFSC_CL_Utils::show_error( self::request_string( $_GET, 'error' ) );
         }
 
         if (! $readonly) {
@@ -2898,7 +2931,8 @@ class UFSC_SQL_Admin
         echo '<div class="ufsc-admin-help">' . esc_html__( 'Statut :', 'ufsc-clubs' ) . ' ' . esc_html( function_exists( 'ufsc_get_licence_status_label_fr' ) ? ufsc_get_licence_status_label_fr( (string) self::get_row_field_value( $row, 'statut' ) ) : (string) self::get_row_field_value( $row, 'statut' ) ) . '</div>';
         echo '<div class="ufsc-admin-help">' . esc_html__( 'Date inscription :', 'ufsc-clubs' ) . ' ' . esc_html( (string) self::get_row_field_value( $row, 'date_inscription' ) ?: '—' ) . '</div>';
         echo '</div>';
-        echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Cette fiche permet de consulter les informations du licencié, son rattachement club, son statut administratif, ses options, son paiement et ses documents.', 'ufsc-clubs' ) . '</p>';
+        echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Cette fiche permet de contrôler les informations du licencié, son rattachement au club, son statut administratif, son paiement et les documents liés à la saison.', 'ufsc-clubs' ) . '</p>';
+        echo '<p class="ufsc-admin-help">' . esc_html__( 'Saison affichée :', 'ufsc-clubs' ) . ' ' . esc_html( self::get_admin_current_season_label() ) . '</p>';
         echo '</section>';
 
         $rendered_keys = array();

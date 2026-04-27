@@ -6,6 +6,14 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Enhanced admin list with filters, search, and pagination
  */
 class UFSC_Licences_List_Table {
+    private static function get_current_request_url() {
+        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+        if ( ! is_string( $request_uri ) || '' === $request_uri ) {
+            return admin_url( 'admin.php?page=ufsc-sql-licences' );
+        }
+
+        return $request_uri;
+    }
 
     /**
      * Render enhanced licences list
@@ -294,7 +302,7 @@ class UFSC_Licences_List_Table {
         echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-licences&action=new' ) ) . '" class="button button-primary">';
         echo esc_html__( 'Ajouter une licence', 'ufsc-clubs' );
         echo '</a> ';
-        echo '<a href="' . esc_url( add_query_arg( 'export', '1' ) ) . '" class="button">';
+        echo '<a href="' . esc_url( add_query_arg( 'export', '1', self::get_current_request_url() ) ) . '" class="button">';
         echo esc_html__( 'Exporter CSV', 'ufsc-clubs' );
         echo '</a>';
         echo '</p>';
@@ -393,7 +401,7 @@ class UFSC_Licences_List_Table {
         echo ' | ';
         echo '<select onchange="window.location.href=this.value">';
         foreach ( array( 20, 50, 100 ) as $per_page ) {
-            $url = add_query_arg( 'per_page', $per_page );
+            $url = add_query_arg( 'per_page', $per_page, self::get_current_request_url() );
             echo '<option value="' . esc_url( $url ) . '"' . selected( $pagination['per_page'], $per_page, false ) . '>';
             echo sprintf( esc_html__( '%d par page', 'ufsc-clubs' ), $per_page );
             echo '</option>';
@@ -510,7 +518,7 @@ class UFSC_Licences_List_Table {
         echo '<div class="tablenav bottom">';
         echo '<div class="tablenav-pages">';
         
-        $base_url = remove_query_arg( 'paged' );
+        $base_url = remove_query_arg( 'paged', self::get_current_request_url() );
         
         // Previous page
         if ( $current_page > 1 ) {
@@ -670,7 +678,7 @@ class UFSC_Licences_List_Table {
      */
     private static function get_sortable_header( $column, $title, $sorting ) {
         $order = ( $sorting['orderby'] === $column && $sorting['order'] === 'asc' ) ? 'desc' : 'asc';
-        $url = add_query_arg( array( 'orderby' => $column, 'order' => $order ) );
+        $url = add_query_arg( array( 'orderby' => $column, 'order' => $order ), self::get_current_request_url() );
         
         $arrow = '';
         if ( $sorting['orderby'] === $column ) {
