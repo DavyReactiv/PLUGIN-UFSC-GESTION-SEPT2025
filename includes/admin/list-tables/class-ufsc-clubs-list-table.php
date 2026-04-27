@@ -6,6 +6,22 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Enhanced admin list with filters, search, and pagination
  */
 class UFSC_Clubs_List_Table {
+    private static function get_current_request_url() {
+        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+        if ( ! is_string( $request_uri ) || '' === $request_uri ) {
+            return admin_url( 'admin.php?page=ufsc-sql-clubs' );
+        }
+
+        return $request_uri;
+    }
+
+    private static function get_admin_season_label() {
+        if ( function_exists( 'ufsc_get_admin_current_season_label' ) ) {
+            return (string) ufsc_get_admin_current_season_label();
+        }
+
+        return __( 'saison en cours', 'ufsc-clubs' );
+    }
 
     /**
      * Render enhanced clubs list
@@ -51,7 +67,10 @@ class UFSC_Clubs_List_Table {
 
         // Render the page
         echo '<div class="wrap">';
-        echo '<h1>' . esc_html__( 'Clubs (SQL)', 'ufsc-clubs' ) . '</h1>';
+        echo '<h1 class="ufsc-admin-title">' . esc_html__( 'Clubs UFSC — Affiliations et suivi administratif', 'ufsc-clubs' ) . '</h1>';
+        echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Retrouvez ici l’ensemble des clubs enregistrés, leur région, leur statut d’affiliation, le nombre de licences associées et l’état des documents administratifs. Cette page permet de suivre les clubs actifs, en attente ou à renouveler.', 'ufsc-clubs' ) . '</p>';
+        echo '<p class="ufsc-admin-help">' . esc_html__( 'Saison affichée :', 'ufsc-clubs' ) . ' ' . esc_html( self::get_admin_season_label() ) . '</p>';
+        echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Renouvellement des affiliations : à chaque nouvelle saison, les clubs devront confirmer ou renouveler leur affiliation afin de maintenir leurs licences actives.', 'ufsc-clubs' ) . '</p></div>';
 
         // Affichage des notices
         if ( isset($_GET['updated']) && $_GET['updated'] == '1' ) {
@@ -62,7 +81,10 @@ class UFSC_Clubs_List_Table {
             echo UFSC_CL_Utils::show_success(__('Le club #'.$deleted_id.' a été supprimé.', 'ufsc-clubs'));
         }
         if ( isset($_GET['error']) ) {
-            echo UFSC_CL_Utils::show_error(sanitize_text_field($_GET['error']));
+            $error_value = wp_unslash( $_GET['error'] );
+            if ( ! is_array( $error_value ) && null !== $error_value ) {
+                echo UFSC_CL_Utils::show_error( sanitize_text_field( (string) $error_value ) );
+            }
         }
 
         // Action buttons
@@ -229,11 +251,12 @@ class UFSC_Clubs_List_Table {
         echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&action=new' ) ) . '" class="button button-primary">';
         echo esc_html__( 'Ajouter un club', 'ufsc-clubs' );
         echo '</a> ';
-        echo '<a href="' . esc_url( add_query_arg( 'export', 'csv' ) ) . '" class="button">';
+        $current_url = self::get_current_request_url();
+        echo '<a href="' . esc_url( add_query_arg( 'export', 'csv', $current_url ) ) . '" class="button">';
         echo esc_html__( 'Exporter CSV', 'ufsc-clubs' );
         echo '</a>';
 
-        echo '<a href="' . esc_url( add_query_arg( 'export', 'xlsx' ) ) . '" class="button">';
+        echo '<a href="' . esc_url( add_query_arg( 'export', 'xlsx', $current_url ) ) . '" class="button">';
         echo esc_html__( 'Exporter XLSX', 'ufsc-clubs' );
         echo '</a>';
 
@@ -333,7 +356,7 @@ class UFSC_Clubs_List_Table {
         echo ' | ';
         echo '<select onchange="window.location.href=this.value">';
         foreach ( array( 20, 50, 100 ) as $per_page ) {
-            $url = add_query_arg( 'per_page', $per_page );
+            $url = add_query_arg( 'per_page', $per_page, self::get_current_request_url() );
             echo '<option value="' . esc_url( $url ) . '"' . selected( $pagination['per_page'], $per_page, false ) . '>';
             echo sprintf( esc_html__( '%d par page', 'ufsc-clubs' ), $per_page );
             echo '</option>';
@@ -489,7 +512,7 @@ class UFSC_Clubs_List_Table {
         echo '<div class="tablenav bottom">';
         echo '<div class="tablenav-pages">';
 
-        $base_url = remove_query_arg( 'paged' );
+        $base_url = remove_query_arg( 'paged', self::get_current_request_url() );
 
         // Previous page
         if ( $current_page > 1 ) {
@@ -584,7 +607,7 @@ class UFSC_Clubs_List_Table {
      */
     private static function get_sortable_header( $column, $title, $sorting ) {
         $order = ( $sorting['orderby'] === $column && $sorting['order'] === 'asc' ) ? 'desc' : 'asc';
-        $url = add_query_arg( array( 'orderby' => $column, 'order' => $order ) );
+        $url = add_query_arg( array( 'orderby' => $column, 'order' => $order ), self::get_current_request_url() );
 
         $arrow = '';
         if ( $sorting['orderby'] === $column ) {
