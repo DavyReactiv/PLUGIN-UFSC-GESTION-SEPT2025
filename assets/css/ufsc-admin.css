@@ -1,0 +1,93 @@
+.ufsc-admin.ufsc-admin-page {
+    background: #f6f8fb;
+    padding: 8px 14px 20px;
+    border: 1px solid #d9e2ec;
+    border-radius: 10px;
+}
+
+.ufsc-admin-title {
+    color: #0f4c81;
+    margin-bottom: 6px;
+}
+
+.ufsc-admin-subtitle,
+.ufsc-admin-help {
+    color: #6b7280;
+}
+
+.ufsc-admin-header {
+    background: #fff;
+    border: 1px solid #d9e2ec;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 12px 0 16px;
+    box-shadow: 0 1px 2px rgba(15, 76, 129, 0.06);
+}
+
+.ufsc-admin-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    margin-bottom: 8px;
+    color: #1f2937;
+}
+
+.ufsc-admin-filterbar {
+    border: 1px solid #d9e2ec;
+}
+
+.ufsc-admin-card {
+    background: #fff;
+    border: 1px solid #d9e2ec;
+    border-radius: 10px;
+    margin: 0 0 14px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.ufsc-admin-card-header {
+    padding: 12px 14px 0;
+}
+
+.ufsc-admin-card-title {
+    margin: 0;
+    color: #0f4c81;
+}
+
+.ufsc-admin-card-description {
+    margin: 6px 0 0;
+}
+
+.ufsc-admin-card .ufsc-admin-grid {
+    padding: 12px 14px 14px;
+}
+
+.ufsc-admin-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border: 1px solid #d9e2ec;
+    background: #e8f2ff;
+    color: #0f4c81;
+}
+
+.ufsc-admin-badge--warning {
+    background: #fff7e6;
+    color: #8a5a00;
+    border-color: #f59e0b;
+}
+
+.ufsc-admin-alert {
+    border-left: 4px solid #f59e0b;
+    background: #fff;
+    padding: 10px 12px;
+}
+
+@media (max-width: 782px) {
+    .ufsc-admin-toolbar {
+        flex-direction: column;
+        gap: 8px;
+    }
+}

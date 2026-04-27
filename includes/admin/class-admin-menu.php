@@ -129,6 +129,7 @@ class UFSC_CL_Admin_Menu {
 		$page = isset( $_GET['page'] ) ? (string) wp_unslash( $_GET['page'] ) : '';
 		if ( 0 === strpos( $page, 'ufsc-' ) || false !== strpos( $hook, 'ufsc' ) ) {
 			wp_enqueue_style( 'ufsc-admin', UFSC_CL_URL . 'assets/admin/css/admin.css', array(), UFSC_CL_VERSION );
+			wp_enqueue_style( 'ufsc-admin-premium', UFSC_CL_URL . 'assets/css/ufsc-admin.css', array( 'ufsc-admin' ), UFSC_CL_VERSION );
 			wp_enqueue_script( 'ufsc-admin', UFSC_CL_URL . 'assets/admin/js/admin.js', array( 'jquery' ), UFSC_CL_VERSION, true );
 
 			// Enqueue license form validation script on license pages

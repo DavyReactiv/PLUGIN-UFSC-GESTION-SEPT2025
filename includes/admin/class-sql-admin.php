@@ -1180,11 +1180,12 @@ class UFSC_SQL_Admin
         if ( $row && property_exists( $row, 'region' ) ) {
             UFSC_Scope::assert_in_scope( $row->region );
         }
+        echo '<div class="wrap ufsc-admin ufsc-admin-page">';
 
         if ($readonly) {
-            echo '<h2>' . ($id ? esc_html__('Consulter le club', 'ufsc-clubs') : esc_html__('Nouveau club', 'ufsc-clubs')) . '</h2>';
+            echo '<h2 class="ufsc-admin-title">' . ($id ? esc_html__('Consulter le club', 'ufsc-clubs') : esc_html__('Nouveau club', 'ufsc-clubs')) . '</h2>';
         } else {
-            echo '<h2>' . ($id ? esc_html__('Éditer le club', 'ufsc-clubs') : esc_html__('Nouveau club', 'ufsc-clubs')) . '</h2>';
+            echo '<h2 class="ufsc-admin-title">' . ($id ? esc_html__('Éditer le club', 'ufsc-clubs') : esc_html__('Nouveau club', 'ufsc-clubs')) . '</h2>';
         }
 
         // Affichage des messages
@@ -1228,15 +1229,45 @@ class UFSC_SQL_Admin
             echo '<input type="hidden" name="page" value="ufsc-sql-clubs"/>';
         }
 
-        echo '<div class="ufsc-grid">';
-        foreach ($fields as $k => $conf) {
-            if ( 'quota_licences' === $k ) {
+        echo '<section class="ufsc-admin-header">';
+        echo '<div class="ufsc-admin-toolbar">';
+        echo '<div><strong>' . esc_html( (string) self::get_row_field_value( $row, 'nom' ) ?: '—' ) . '</strong></div>';
+        echo '<div class="ufsc-admin-help">' . esc_html__( 'Région :', 'ufsc-clubs' ) . ' ' . esc_html( (string) self::get_row_field_value( $row, 'region' ) ?: '—' ) . '</div>';
+        echo '<div class="ufsc-admin-help">' . esc_html__( 'Statut :', 'ufsc-clubs' ) . ' ' . esc_html( (string) self::get_row_field_value( $row, 'statut' ) ?: '—' ) . '</div>';
+        echo '<div class="ufsc-admin-help">' . esc_html__( 'N° affiliation :', 'ufsc-clubs' ) . ' ' . esc_html( (string) self::get_row_field_value( $row, 'num_affiliation' ) ?: '—' ) . '</div>';
+        echo '<div class="ufsc-admin-help">' . esc_html__( 'Date création :', 'ufsc-clubs' ) . ' ' . esc_html( (string) self::get_row_field_value( $row, 'date_creation' ) ?: '—' ) . '</div>';
+        echo '<div class="ufsc-admin-help">' . esc_html__( 'Date affiliation :', 'ufsc-clubs' ) . ' ' . esc_html( (string) self::get_row_field_value( $row, 'date_affiliation' ) ?: '—' ) . '</div>';
+        echo '</div>';
+        echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Cette fiche regroupe les informations administratives du club, ses dirigeants, ses documents transmis et l’état de son affiliation.', 'ufsc-clubs' ) . '</p>';
+        echo '</section>';
+
+        $rendered_keys = array();
+        $sections = array(
+            array( 'Identité du club', '', array( 'nom', 'type', 'region', 'siren', 'ape', 'rna_number', 'num_declaration', 'date_declaration' ) ),
+            array( 'Coordonnées', '', array( 'adresse', 'complement_adresse', 'precision_distribution', 'code_postal', 'ville', 'telephone', 'email', 'url_site', 'url_facebook', 'url_instagram' ) ),
+            array( 'Dirigeants', '', array( 'president_prenom', 'president_nom', 'president_poste', 'president_tel', 'president_email', 'president_date_naissance', 'president_adresse', 'secretaire_prenom', 'secretaire_nom', 'secretaire_poste', 'secretaire_tel', 'secretaire_email', 'secretaire_date_naissance', 'secretaire_adresse', 'tresorier_prenom', 'tresorier_nom', 'tresorier_poste', 'tresorier_tel', 'tresorier_email', 'tresorier_date_naissance', 'tresorier_adresse', 'entraineur_prenom', 'entraineur_nom', 'entraineur_tel', 'entraineur_email' ) ),
+            array( 'Documents administratifs', '', array( 'statuts', 'recepisse', 'jo', 'pv_ag', 'cer', 'attestation_cer', 'doc_attestation_affiliation', 'doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer' ) ),
+            array( 'Affiliation et statut', '', array( 'statut', 'date_affiliation', 'num_affiliation' ) ),
+            array( 'Traçabilité', '', array( 'date_creation', 'responsable_id', 'contact' ) ),
+        );
+
+        foreach ( $sections as $section ) {
+            $keys = self::get_existing_section_keys( $fields, $section[2] );
+            if ( empty( $keys ) ) {
                 continue;
             }
-            $val = $row ? (isset($row->$k) ? $row->$k : '') : '';
-            self::render_field_club($k, $conf, $val, $readonly);
+            self::render_club_form_section( $section[0], $section[1], $keys, $fields, $row, $readonly );
+            $rendered_keys = array_merge( $rendered_keys, $keys );
         }
-        echo '</div>';
+
+        $remaining_keys = array();
+        foreach ( array_keys( $fields ) as $k ) {
+            if ( 'quota_licences' === $k || in_array( $k, $rendered_keys, true ) ) {
+                continue;
+            }
+            $remaining_keys[] = $k;
+        }
+        self::render_club_form_section( __( 'Autres informations', 'ufsc-clubs' ), '', $remaining_keys, $fields, $row, $readonly );
 
         // Add Documents section for non-readonly mode
         // if (!$readonly) {
@@ -1301,6 +1332,7 @@ class UFSC_SQL_Admin
             }
             echo '</p>';
         }
+        echo '</div>';
     }
 
     private static function render_field_club($k, $conf, $val, $readonly = false)
@@ -1916,6 +1948,144 @@ class UFSC_SQL_Admin
         error_log( '[UFSC][licences][' . sanitize_key( (string) $context ) . '] ' . wp_json_encode( $payload ) );
     }
 
+    private static function debug_log_admin_ux( $message, $context = array() ) {
+        if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+            return;
+        }
+
+        $line = 'UFSC Gestion Admin UX - ' . sanitize_text_field( (string) $message );
+        if ( ! empty( $context ) ) {
+            $line .= ' ' . wp_json_encode( $context );
+        }
+        error_log( $line );
+    }
+
+    private static function debug_log_status_filter( $context = array() ) {
+        if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+            return;
+        }
+        error_log( 'UFSC Gestion Status Filter - ' . wp_json_encode( $context ) );
+    }
+
+    private static function debug_log_duplicate_filter( $context = array() ) {
+        if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+            return;
+        }
+        error_log( 'UFSC Gestion Duplicate Identity Filter - ' . wp_json_encode( $context ) );
+    }
+
+    private static function get_admin_status_filter_options() {
+        return array(
+            ''            => __( 'Tous', 'ufsc-clubs' ),
+            'brouillon'   => __( 'Brouillon', 'ufsc-clubs' ),
+            'valide'      => __( 'Validé', 'ufsc-clubs' ),
+            'en_attente'  => __( 'En attente', 'ufsc-clubs' ),
+            'rejete'      => __( 'Rejeté', 'ufsc-clubs' ),
+            'refuse'      => __( 'Refusé', 'ufsc-clubs' ),
+            'paye'        => __( 'Payé', 'ufsc-clubs' ),
+            'a_regler'    => __( 'À régler', 'ufsc-clubs' ),
+            'desactive'   => __( 'Désactivé', 'ufsc-clubs' ),
+        );
+    }
+
+    private static function get_status_filter_raw_values( $status ) {
+        $status = sanitize_key( (string) $status );
+
+        $map = array(
+            'brouillon'  => array( 'brouillon', 'draft' ),
+            'valide'     => array( 'valide', 'validé', 'validee', 'validée', 'validee', 'validated', 'validate' ),
+            'en_attente' => array( 'en_attente', 'en attente', 'pending' ),
+            'rejete'     => array( 'rejete', 'rejeté', 'rejected' ),
+            'refuse'     => array( 'refuse', 'refusé', 'refused' ),
+            'a_regler'   => array( 'a_regler', 'à régler', 'a regler', 'non_payee', 'non payee', 'unpaid' ),
+            'desactive'  => array( 'desactive', 'désactivé', 'disabled', 'inactive' ),
+        );
+
+        if ( function_exists( 'ufsc_get_licence_status_raw_values_for_norm' ) && isset( $map[ $status ] ) ) {
+            $map[ $status ] = array_merge( $map[ $status ], (array) ufsc_get_licence_status_raw_values_for_norm( $status ) );
+        }
+
+        $values = isset( $map[ $status ] ) ? $map[ $status ] : array( $status );
+        return array_values( array_unique( array_filter( array_map( 'strval', $values ) ) ) );
+    }
+
+    private static function get_duplicate_identity_name_sql( $alias, $column ) {
+        $field = $alias . '.' . $column;
+        return "LOWER(TRIM(REPLACE(REPLACE(REPLACE({$field}, '\\r', ' '), '\\n', ' '), '  ', ' ')))";
+    }
+
+    private static function get_duplicate_identity_date_sql( $alias, $column ) {
+        $field = $alias . '.' . $column;
+        return "COALESCE(
+            DATE_FORMAT(STR_TO_DATE({$field}, '%Y-%m-%d'), '%Y-%m-%d'),
+            DATE_FORMAT(STR_TO_DATE({$field}, '%d/%m/%Y'), '%Y-%m-%d'),
+            DATE_FORMAT(STR_TO_DATE({$field}, '%d-%m-%Y'), '%Y-%m-%d')
+        )";
+    }
+
+    private static function get_duplicate_filter_sql_clause( $licences_table, $licence_columns, $visibility = 'active', $primary_key = 'id' ) {
+        if ( ! in_array( 'nom', $licence_columns, true ) || ! in_array( 'prenom', $licence_columns, true ) || ! in_array( 'date_naissance', $licence_columns, true ) ) {
+            return '0 = 1';
+        }
+
+        $name_l   = self::get_duplicate_identity_name_sql( 'l', 'nom' );
+        $first_l  = self::get_duplicate_identity_name_sql( 'l', 'prenom' );
+        $date_l   = self::get_duplicate_identity_date_sql( 'l', 'date_naissance' );
+        $name_l2  = self::get_duplicate_identity_name_sql( 'l2', 'nom' );
+        $first_l2 = self::get_duplicate_identity_name_sql( 'l2', 'prenom' );
+        $date_l2  = self::get_duplicate_identity_date_sql( 'l2', 'date_naissance' );
+
+        $visibility_sql = self::build_licence_visibility_condition( 'l2', $licence_columns, $visibility );
+        $visibility_sql = $visibility_sql ? ' AND ' . $visibility_sql : '';
+
+        $pk = preg_replace( '/[^a-zA-Z0-9_]/', '', (string) $primary_key );
+        if ( '' === $pk ) {
+            $pk = 'id';
+        }
+
+        return "EXISTS (
+            SELECT 1
+            FROM `{$licences_table}` l2
+            WHERE l2.`{$pk}` <> l.`{$pk}`
+              {$visibility_sql}
+              AND {$name_l} <> '' AND {$first_l} <> '' AND {$date_l} <> ''
+              AND {$name_l2} <> '' AND {$first_l2} <> '' AND {$date_l2} <> ''
+              AND {$name_l2} = {$name_l}
+              AND {$first_l2} = {$first_l}
+              AND {$date_l2} = {$date_l}
+            LIMIT 1
+        )";
+    }
+
+    private static function get_duplicate_identity_ids( $licences_table, $licence_columns, $ids = array(), $visibility = 'active', $primary_key = 'id' ) {
+        global $wpdb;
+        if ( empty( $ids ) ) {
+            return array();
+        }
+
+        $ids = array_values( array_unique( array_filter( array_map( 'absint', $ids ) ) ) );
+        if ( empty( $ids ) ) {
+            return array();
+        }
+
+        $pk = preg_replace( '/[^a-zA-Z0-9_]/', '', (string) $primary_key );
+        if ( '' === $pk ) {
+            $pk = 'id';
+        }
+        $filter_clause = self::get_duplicate_filter_sql_clause( $licences_table, $licence_columns, $visibility, $pk );
+        $placeholders  = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+        $sql           = "SELECT l.`{$pk}` FROM `{$licences_table}` l WHERE l.`{$pk}` IN ({$placeholders}) AND {$filter_clause}";
+        $prepared      = $wpdb->prepare( $sql, ...$ids );
+        return array_map( 'intval', (array) $wpdb->get_col( $prepared ) );
+    }
+
+    private static function render_duplicate_badge( $is_duplicate ) {
+        if ( ! $is_duplicate ) {
+            return '';
+        }
+        return '<span class="ufsc-admin-badge ufsc-admin-badge--warning">' . esc_html__( 'Doublon identité', 'ufsc-clubs' ) . '</span>';
+    }
+
     private static function build_licence_visibility_condition( $alias, $licence_columns, $visibility = 'active' ) {
         if ( ! in_array( 'deleted_at', $licence_columns, true ) ) {
             return '';
@@ -1937,6 +2107,8 @@ class UFSC_SQL_Admin
             'filter_region'     => isset( $input['filter_region'] ) ? sanitize_text_field( wp_unslash( $input['filter_region'] ) ) : '',
             'filter_club'       => isset( $input['filter_club'] ) ? (int) $input['filter_club'] : 0,
             'filter_status'     => isset( $input['filter_status'] ) ? sanitize_text_field( wp_unslash( $input['filter_status'] ) ) : '',
+            'filter_payment'    => isset( $input['filter_payment'] ) ? sanitize_key( wp_unslash( $input['filter_payment'] ) ) : '',
+            'filter_duplicate'  => isset( $input['filter_duplicate'] ) ? sanitize_key( wp_unslash( $input['filter_duplicate'] ) ) : '',
             'filter_visibility' => isset( $input['filter_visibility'] ) ? sanitize_key( wp_unslash( $input['filter_visibility'] ) ) : 'active',
         );
     }
@@ -1948,6 +2120,8 @@ class UFSC_SQL_Admin
         $filter_region = $filters['filter_region'];
         $filter_club = (int) $filters['filter_club'];
         $filter_status = $filters['filter_status'];
+        $filter_payment = $filters['filter_payment'];
+        $filter_duplicate = $filters['filter_duplicate'];
 
         if (! empty($search)) {
             $search_like   = '%' . $wpdb->esc_like($search) . '%';
@@ -1994,16 +2168,28 @@ class UFSC_SQL_Admin
         }
 
         if (! empty($filter_status) && in_array('statut', $licence_columns, true)) {
-            $normalized_filter = function_exists( 'ufsc_normalize_license_status' )
-                ? ufsc_normalize_license_status( $filter_status )
-                : $filter_status;
+            $normalized_filter = sanitize_key( (string) $filter_status );
+            if ( function_exists( 'ufsc_normalize_license_status' ) && ! in_array( $normalized_filter, array( 'paye', 'rejete' ), true ) ) {
+                $normalized_filter = ufsc_normalize_license_status( $filter_status );
+            }
 
             if ( 'brouillon' === $normalized_filter ) {
-                $where_conditions[] = "(l.statut IS NULL OR l.statut = '' OR l.statut IN ('brouillon','draft'))";
+                $raw_values = self::get_status_filter_raw_values( 'brouillon' );
+                $placeholders = implode( ', ', array_fill( 0, count( $raw_values ), '%s' ) );
+                $where_conditions[] = $wpdb->prepare( "(l.statut IS NULL OR l.statut = '' OR l.statut IN ({$placeholders}))", ...$raw_values );
+            } elseif ( 'paye' === $normalized_filter ) {
+                $payment_conditions = array();
+                if ( in_array( 'payment_status', $licence_columns, true ) ) {
+                    $payment_conditions[] = "LOWER(COALESCE(l.payment_status, '')) IN ('paid','completed','processing')";
+                }
+                foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_col ) {
+                    if ( in_array( $paid_col, $licence_columns, true ) ) {
+                        $payment_conditions[] = "COALESCE(l.{$paid_col}, 0) = 1";
+                    }
+                }
+                $where_conditions[] = ! empty( $payment_conditions ) ? '(' . implode( ' OR ', $payment_conditions ) . ')' : '1 = 0';
             } else {
-                $raw_values = function_exists( 'ufsc_get_licence_status_raw_values_for_norm' )
-                    ? ufsc_get_licence_status_raw_values_for_norm( $normalized_filter )
-                    : array( $normalized_filter );
+                $raw_values = self::get_status_filter_raw_values( $normalized_filter );
                 if ( empty( $raw_values ) ) {
                     $where_conditions[] = '1 = 0';
                 } else {
@@ -2011,11 +2197,41 @@ class UFSC_SQL_Admin
                     $where_conditions[] = $wpdb->prepare( "l.statut IN ({$placeholders})", ...$raw_values );
                 }
             }
+
+            self::debug_log_status_filter(
+                array(
+                    'requested' => $filter_status,
+                    'normalized' => $normalized_filter,
+                )
+            );
+        }
+
+        if ( in_array( $filter_payment, array( 'paid', 'unpaid' ), true ) ) {
+            $payment_parts = array();
+            if ( in_array( 'payment_status', $licence_columns, true ) ) {
+                $payment_parts[] = "LOWER(COALESCE(l.payment_status, '')) IN ('paid','completed','processing')";
+            }
+            foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_col ) {
+                if ( in_array( $paid_col, $licence_columns, true ) ) {
+                    $payment_parts[] = "COALESCE(l.{$paid_col}, 0) = 1";
+                }
+            }
+            if ( ! empty( $payment_parts ) ) {
+                $paid_clause = '(' . implode( ' OR ', $payment_parts ) . ')';
+                $where_conditions[] = ( 'paid' === $filter_payment ) ? $paid_clause : '(NOT ' . $paid_clause . ')';
+            }
         }
 
         $visibility = in_array( $filters['filter_visibility'], array( 'active', 'trash', 'all' ), true )
             ? $filters['filter_visibility']
             : 'active';
+
+        if ( 'duplicates' === $filter_duplicate ) {
+            $licences_table = function_exists( 'ufsc_get_licences_table' ) ? ufsc_get_licences_table() : UFSC_SQL::get_settings()['table_licences'];
+            $where_conditions[] = self::get_duplicate_filter_sql_clause( $licences_table, $licence_columns, $visibility, UFSC_SQL::get_settings()['pk_licence'] ?? 'id' );
+            self::debug_log_duplicate_filter( array( 'enabled' => true, 'visibility' => $visibility ) );
+        }
+
         $visibility_condition = self::build_licence_visibility_condition( 'l', $licence_columns, $visibility );
         if ( $visibility_condition ) {
             $where_conditions[] = $visibility_condition;
@@ -2049,6 +2265,8 @@ class UFSC_SQL_Admin
         $filter_region = $filters['filter_region'];
         $filter_club   = $filters['filter_club'];
         $filter_status = $filters['filter_status'];
+        $filter_payment = $filters['filter_payment'];
+        $filter_duplicate = $filters['filter_duplicate'];
         $filter_visibility = in_array( $filters['filter_visibility'], array( 'active', 'trash', 'all' ), true ) ? $filters['filter_visibility'] : 'active';
         $scope_slug    = UFSC_Scope::get_user_scope_region();
         $scope_label   = $scope_slug ? UFSC_Scope::get_region_label( $scope_slug ) : '';
@@ -2100,6 +2318,7 @@ class UFSC_SQL_Admin
             self::build_select_column('l', 'payee', $licence_columns),
             self::build_select_column('l', 'is_paid', $licence_columns),
             self::build_select_column('l', 'date_creation', $licence_columns),
+            self::get_duplicate_filter_sql_clause( $licences_table, $licence_columns, $filter_visibility, $pk ) . ' AS is_duplicate_identity',
         );
 
         if ($join_sql && in_array('nom', $club_columns, true)) {
@@ -2133,7 +2352,8 @@ class UFSC_SQL_Admin
             )
         );
 
-        echo '<div class="wrap"><h1>' . esc_html__('Licences (SQL)', 'ufsc-clubs') . '</h1>';
+        echo '<div class="wrap ufsc-admin ufsc-admin-page"><h1 class="ufsc-admin-title">' . esc_html__('Licences (SQL)', 'ufsc-clubs') . '</h1>';
+        echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Gérez ici l’ensemble des licences rattachées aux clubs UFSC. Utilisez les filtres pour retrouver rapidement une licence, contrôler son statut, vérifier son paiement ou détecter les doublons d’identité.', 'ufsc-clubs' ) . '</p>';
 
         // Affichage des notices
         if (isset($_GET['updated']) && $_GET['updated'] == '1') {
@@ -2244,11 +2464,11 @@ class UFSC_SQL_Admin
         }
 
         // Search and Filters
-        echo '<div class="ufsc-list-filters" style="background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px;">';
+        echo '<div class="ufsc-list-filters ufsc-admin-filterbar" style="background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px;">';
         echo '<form method="get" class="ufsc-filters-form">';
         echo '<input type="hidden" name="page" value="ufsc-sql-licences" />';
 
-        echo '<div style="display: grid; grid-template-columns: 1fr 200px 200px 150px 160px auto; gap: 10px; align-items: end;">';
+        echo '<div class="ufsc-admin-grid" style="display: grid; grid-template-columns: 1fr 200px 200px 180px 170px 170px 160px auto; gap: 10px; align-items: end;">';
 
         // Search
         echo '<div>';
@@ -2288,10 +2508,28 @@ class UFSC_SQL_Admin
         echo '<div>';
         echo '<label for="filter_status"><strong>' . esc_html__('Statut', 'ufsc-clubs') . '</strong></label>';
         echo '<select name="filter_status" id="filter_status">';
-        echo '<option value="">' . esc_html__('Tous', 'ufsc-clubs') . '</option>';
-        foreach (UFSC_SQL::statuses() as $status_key => $status_label) {
+        foreach ( self::get_admin_status_filter_options() as $status_key => $status_label ) {
             echo '<option value="' . esc_attr($status_key) . '" ' . selected($filter_status, $status_key, false) . '>' . esc_html($status_label) . '</option>';
         }
+        echo '</select>';
+        echo '</div>';
+
+        // Payment filter
+        echo '<div>';
+        echo '<label for="filter_payment"><strong>' . esc_html__('Paiement', 'ufsc-clubs') . '</strong></label>';
+        echo '<select name="filter_payment" id="filter_payment">';
+        echo '<option value="">' . esc_html__('Tous', 'ufsc-clubs') . '</option>';
+        echo '<option value="paid"' . selected( $filter_payment, 'paid', false ) . '>' . esc_html__( 'Payé', 'ufsc-clubs' ) . '</option>';
+        echo '<option value="unpaid"' . selected( $filter_payment, 'unpaid', false ) . '>' . esc_html__( 'À régler', 'ufsc-clubs' ) . '</option>';
+        echo '</select>';
+        echo '</div>';
+
+        // Duplicate identity filter
+        echo '<div>';
+        echo '<label for="filter_duplicate"><strong>' . esc_html__('Doublon', 'ufsc-clubs') . '</strong></label>';
+        echo '<select name="filter_duplicate" id="filter_duplicate">';
+        echo '<option value="">' . esc_html__('Tous', 'ufsc-clubs') . '</option>';
+        echo '<option value="duplicates"' . selected( $filter_duplicate, 'duplicates', false ) . '>' . esc_html__( 'Identités en doublon', 'ufsc-clubs' ) . '</option>';
         echo '</select>';
         echo '</div>';
 
@@ -2308,7 +2546,7 @@ class UFSC_SQL_Admin
         // Filter button
         echo '<div>';
         echo '<button type="submit" class="button">' . esc_html__('Filtrer', 'ufsc-clubs') . '</button>';
-        if (! empty($search) || ! empty($filter_region) || ! empty($filter_club) || ! empty($filter_status) || 'active' !== $filter_visibility) {
+        if (! empty($search) || ! empty($filter_region) || ! empty($filter_club) || ! empty($filter_status) || ! empty( $filter_payment ) || ! empty( $filter_duplicate ) || 'active' !== $filter_visibility) {
             echo ' <a href="' . admin_url('admin.php?page=ufsc-sql-licences') . '" class="button">' . esc_html__('Effacer', 'ufsc-clubs') . '</a>';
         }
         echo '</div>';
@@ -2340,7 +2578,7 @@ class UFSC_SQL_Admin
         // Results info
         echo '<div class="ufsc-results-info" style="margin: 10px 0;">';
         echo '<p>' . sprintf(esc_html__('%d licence(s) trouvée(s)', 'ufsc-clubs'), $total_items);
-        if (! empty($search) || ! empty($filter_region) || ! empty($filter_club) || ! empty($filter_status) || 'active' !== $filter_visibility) {
+        if (! empty($search) || ! empty($filter_region) || ! empty($filter_club) || ! empty($filter_status) || ! empty( $filter_payment ) || ! empty( $filter_duplicate ) || 'active' !== $filter_visibility) {
             echo ' ' . esc_html__('(filtré)', 'ufsc-clubs');
         }
         echo '</p>';
@@ -2397,6 +2635,7 @@ class UFSC_SQL_Admin
 
                 // Display status badge with colored dot
                 echo self::get_status_badge($normalized_status);
+                echo ' ' . wp_kses_post( self::render_duplicate_badge( ! empty( $r->is_duplicate_identity ) ) );
 
                 echo '</td>';
                 echo '<td>' . esc_html($r->date_creation ?: '') . '</td>';
@@ -2466,6 +2705,12 @@ class UFSC_SQL_Admin
             if (! empty($filter_status)) {
                 $pagination_base .= '&filter_status=' . urlencode($filter_status);
             }
+            if (! empty($filter_payment)) {
+                $pagination_base .= '&filter_payment=' . urlencode($filter_payment);
+            }
+            if (! empty($filter_duplicate)) {
+                $pagination_base .= '&filter_duplicate=' . urlencode($filter_duplicate);
+            }
             if ( ! empty( $filter_visibility ) && 'active' !== $filter_visibility ) {
                 $pagination_base .= '&filter_visibility=' . urlencode( $filter_visibility );
             }
@@ -2514,6 +2759,65 @@ class UFSC_SQL_Admin
         fclose($out);
     }
 
+    private static function get_row_field_value( $row, $key ) {
+        if ( ! $row ) {
+            return '';
+        }
+        return isset( $row->{$key} ) ? $row->{$key} : '';
+    }
+
+    private static function get_existing_section_keys( $fields, $requested_keys ) {
+        $keys = array();
+        foreach ( $requested_keys as $key ) {
+            if ( isset( $fields[ $key ] ) ) {
+                $keys[] = $key;
+            }
+        }
+        return $keys;
+    }
+
+    private static function render_licence_form_section( $title, $description, $keys, $fields, $row, $readonly = false ) {
+        if ( empty( $keys ) ) {
+            return;
+        }
+
+        echo '<section class="ufsc-admin-card ufsc-admin-section">';
+        echo '<header class="ufsc-admin-card-header">';
+        echo '<h3 class="ufsc-admin-card-title">' . esc_html( $title ) . '</h3>';
+        if ( $description ) {
+            echo '<p class="ufsc-admin-card-description">' . esc_html( $description ) . '</p>';
+        }
+        echo '</header>';
+        echo '<div class="ufsc-grid ufsc-admin-grid">';
+        foreach ( $keys as $k ) {
+            $val = self::get_row_field_value( $row, $k );
+            self::render_field_licence( $k, $fields[ $k ], $val, $readonly );
+        }
+        echo '</div>';
+        echo '</section>';
+    }
+
+    private static function render_club_form_section( $title, $description, $keys, $fields, $row, $readonly = false ) {
+        if ( empty( $keys ) ) {
+            return;
+        }
+
+        echo '<section class="ufsc-admin-card ufsc-admin-section">';
+        echo '<header class="ufsc-admin-card-header">';
+        echo '<h3 class="ufsc-admin-card-title">' . esc_html( $title ) . '</h3>';
+        if ( $description ) {
+            echo '<p class="ufsc-admin-card-description">' . esc_html( $description ) . '</p>';
+        }
+        echo '</header>';
+        echo '<div class="ufsc-grid ufsc-admin-grid">';
+        foreach ( $keys as $k ) {
+            $val = self::get_row_field_value( $row, $k );
+            self::render_field_club( $k, $fields[ $k ], $val, $readonly );
+        }
+        echo '</div>';
+        echo '</section>';
+    }
+
     private static function render_licence_form($id, $readonly = false)
     {
         global $wpdb;
@@ -2532,9 +2836,9 @@ class UFSC_SQL_Admin
         }
 
         if ($readonly) {
-            echo '<h1>' . ($id ? esc_html__('Consulter la licence', 'ufsc-clubs') : esc_html__('Nouvelle licence', 'ufsc-clubs')) . '</h1>';
+            echo '<h1 class="ufsc-admin-title">' . ($id ? esc_html__('Consulter la licence', 'ufsc-clubs') : esc_html__('Nouvelle licence', 'ufsc-clubs')) . '</h1>';
         } else {
-            echo '<h1>' . ($id ? esc_html__('Éditer la licence', 'ufsc-clubs') : esc_html__('Ajouter une nouvelle licence', 'ufsc-clubs')) . '</h1>';
+            echo '<h1 class="ufsc-admin-title">' . ($id ? esc_html__('Éditer la licence', 'ufsc-clubs') : esc_html__('Ajouter une nouvelle licence', 'ufsc-clubs')) . '</h1>';
             if (! $id) {
                 echo '<div class="ufsc-form-intro" style="background: #f8f9fa; padding: 15px; margin: 15px 0; border-left: 4px solid #2271b1; border-radius: 4px;">';
                 echo '<p><strong>' . esc_html__('Instructions pour l\'ajout d\'une licence', 'ufsc-clubs') . '</strong></p>';
@@ -2578,15 +2882,53 @@ class UFSC_SQL_Admin
             echo '<input type="hidden" name="return_to" value="' . esc_url( $return_url ) . '" />';
         }
 
-        echo '<div class="ufsc-grid">';
-        foreach ($fields as $k => $conf) {
-            if ( 'is_included' === $k ) {
+        $club_name = '';
+        if ( $row && ! empty( $row->club_id ) && function_exists( 'ufsc_get_clubs_table' ) ) {
+            $club_name = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT nom FROM `' . ufsc_get_clubs_table() . '` WHERE id = %d LIMIT 1', (int) $row->club_id ) );
+        }
+        $duplicate_badge = ( $id && ! empty( self::get_duplicate_identity_ids( $t, self::get_table_columns( $t ), array( $id ), 'active', $pk ) ) )
+            ? self::render_duplicate_badge( true )
+            : '';
+        echo '<section class="ufsc-admin-header">';
+        echo '<div class="ufsc-admin-toolbar">';
+        echo '<div><strong>' . esc_html( trim( (string) self::get_row_field_value( $row, 'prenom' ) . ' ' . (string) self::get_row_field_value( $row, 'nom' ) ) ?: '—' ) . '</strong> ';
+        echo wp_kses_post( $duplicate_badge ) . '</div>';
+        echo '<div class="ufsc-admin-help">' . esc_html__( 'Club :', 'ufsc-clubs' ) . ' ' . esc_html( $club_name ?: '—' ) . '</div>';
+        echo '<div class="ufsc-admin-help">' . esc_html__( 'Région :', 'ufsc-clubs' ) . ' ' . esc_html( (string) self::get_row_field_value( $row, 'region' ) ?: '—' ) . '</div>';
+        echo '<div class="ufsc-admin-help">' . esc_html__( 'Statut :', 'ufsc-clubs' ) . ' ' . esc_html( function_exists( 'ufsc_get_licence_status_label_fr' ) ? ufsc_get_licence_status_label_fr( (string) self::get_row_field_value( $row, 'statut' ) ) : (string) self::get_row_field_value( $row, 'statut' ) ) . '</div>';
+        echo '<div class="ufsc-admin-help">' . esc_html__( 'Date inscription :', 'ufsc-clubs' ) . ' ' . esc_html( (string) self::get_row_field_value( $row, 'date_inscription' ) ?: '—' ) . '</div>';
+        echo '</div>';
+        echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Cette fiche permet de consulter les informations du licencié, son rattachement club, son statut administratif, ses options, son paiement et ses documents.', 'ufsc-clubs' ) . '</p>';
+        echo '</section>';
+
+        $rendered_keys = array();
+        $sections = array(
+            array( 'Identité', '', array( 'nom', 'prenom', 'sexe', 'date_naissance', 'profession' ) ),
+            array( 'Coordonnées', '', array( 'adresse', 'suite_adresse', 'code_postal', 'ville', 'email', 'tel_fixe', 'tel_mobile' ) ),
+            array( 'Rattachement club', '', array( 'club_id', 'region', 'responsable_id', 'note' ) ),
+            array( 'Informations fédérales et sportives', '', array( 'competition', 'licence_delegataire', 'numero_licence_delegataire', 'infos_fsasptt', 'infos_asptt', 'infos_cr', 'infos_partenaires' ) ),
+            array( 'Assurances, autorisations et réductions', '', array( 'assurance_dommage_corporel', 'assurance_assistance', 'honorabilite', 'diffusion_image', 'reduction_benevole', 'reduction_benevole_num', 'reduction_postier', 'reduction_postier_num', 'identifiant_laposte_flag', 'identifiant_laposte' ) ),
+            array( 'Paiement et statut', '', array( 'statut', 'date_inscription' ) ),
+            array( 'Documents', '', array( 'certificat_date', 'certificat_url' ) ),
+        );
+
+        foreach ( $sections as $section ) {
+            $keys = self::get_existing_section_keys( $fields, $section[2] );
+            if ( empty( $keys ) ) {
                 continue;
             }
-            $val = $row ? (isset($row->$k) ? $row->$k : '') : '';
-            self::render_field_licence($k, $conf, $val, $readonly);
+            self::render_licence_form_section( $section[0], $section[1], $keys, $fields, $row, $readonly );
+            $rendered_keys = array_merge( $rendered_keys, $keys );
         }
-        echo '</div>';
+
+        $remaining_keys = array();
+        foreach ( array_keys( $fields ) as $k ) {
+            if ( 'is_included' === $k || in_array( $k, $rendered_keys, true ) ) {
+                continue;
+            }
+            $remaining_keys[] = $k;
+        }
+        self::render_licence_form_section( __( 'Autres informations', 'ufsc-clubs' ), '', $remaining_keys, $fields, $row, $readonly );
 
         if ( $id && class_exists( 'UFSC_Licence_Payments' ) ) {
             self::render_payment_traceability_block( $id, $readonly );
