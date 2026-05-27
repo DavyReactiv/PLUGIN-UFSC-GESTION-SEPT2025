@@ -123,6 +123,7 @@ class UFSC_Mail_Service {
         echo '</table>';
         echo '<p><button class="button button-secondary" name="submit_type" value="preview">' . esc_html__( 'Prévisualiser les destinataires', 'ufsc-clubs' ) . '</button> ';
         echo '<button class="button" formaction="' . esc_url( admin_url( 'admin-post.php?action=ufsc_mail_test' ) ) . '">' . esc_html__( 'Envoyer un test', 'ufsc-clubs' ) . '</button> ';
+        echo '<span class="ufsc-communication-help" style="display:block;margin-top:8px;">' . esc_html__( 'Attention : si le champ Limiter la campagne est vide ou égal à 0, tous les destinataires valides de la cible sélectionnée seront mis en file.', 'ufsc-clubs' ) . '</span>';
         echo '<button class="button button-primary" name="submit_type" value="queue">' . esc_html__( 'Créer la campagne et mettre en file', 'ufsc-clubs' ) . '</button></p>';
         echo '</form>';
 
