@@ -12,6 +12,7 @@ class UFSC_Mail_Service {
         add_filter( 'cron_schedules', array( __CLASS__, 'cron_schedules' ) );
         add_action( self::CRON_HOOK, array( __CLASS__, 'process_queue' ) );
         add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+        add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
         add_action( 'admin_post_ufsc_mail_preview', array( __CLASS__, 'handle_preview' ) );
         add_action( 'admin_post_ufsc_mail_test', array( __CLASS__, 'handle_test' ) );
         add_action( 'admin_post_ufsc_mail_create_campaign', array( __CLASS__, 'handle_create_campaign' ) );
@@ -29,6 +30,17 @@ class UFSC_Mail_Service {
         return $schedules;
     }
 
+
+    public static function enqueue_assets( $hook ) {
+        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+        if ( 'ufsc-communication-clubs' !== $page ) { return; }
+        wp_enqueue_style( 'ufsc-communication-admin', UFSC_CL_URL . 'includes/communication/assets/admin-communication.css', array(), UFSC_CL_VERSION );
+    }
+
+    private static function status_badge( $status ) {
+        $status = sanitize_key( (string) $status );
+        return '<span class="ufsc-communication-badge ufsc-status-' . esc_attr( $status ) . '">' . esc_html( $status ) . '</span>';
+    }
     private static function capability() {
         return defined( 'UFSC_Capabilities::CAP_MANAGE_COMMUNICATION' ) ? UFSC_Capabilities::CAP_MANAGE_COMMUNICATION : 'manage_options';
     }
@@ -47,7 +59,8 @@ class UFSC_Mail_Service {
         $campaigns = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ufsc_mail_campaigns ORDER BY id DESC LIMIT 30" );
         $view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'list';
 
-        echo '<div class="wrap"><h1>' . esc_html__( 'Communication clubs', 'ufsc-clubs' ) . '</h1>';
+        echo '<div class="wrap ufsc-communication-wrap">';
+        echo '<div class="ufsc-communication-header"><h1>' . esc_html__( 'Communication clubs', 'ufsc-clubs' ) . '</h1><p class="ufsc-communication-sub">' . esc_html__( 'Créez, testez et envoyez des messages aux clubs affiliés via une file d’attente sécurisée.', 'ufsc-clubs' ) . '</p></div>';
         self::render_notices();
         echo '<p>' . esc_html__( 'Les emails sont envoyés progressivement pour éviter de surcharger le serveur.', 'ufsc-clubs' ) . '</p>';
         echo '<p>' . esc_html__( 'Les emails sont envoyés via le système email WordPress. Pour une bonne délivrabilité, vérifiez que le SMTP du site est correctement configuré, idéalement avec Brevo, SPF, DKIM et DMARC.', 'ufsc-clubs' ) . '</p>';
@@ -66,12 +79,12 @@ class UFSC_Mail_Service {
     private static function render_notices() {
         $code = isset( $_GET['ufsc_mail_notice'] ) ? sanitize_key( wp_unslash( $_GET['ufsc_mail_notice'] ) ) : '';
         $messages = array(
-            'campaign_created' => array( 'success', __( 'Campagne créée et file alimentée.', 'ufsc-clubs' ) ),
-            'test_sent' => array( 'success', __( 'Email de test envoyé.', 'ufsc-clubs' ) ),
+            'campaign_created' => array( 'success', __( 'Campagne créée avec succès. Les emails seront envoyés progressivement.', 'ufsc-clubs' ) ),
+            'test_sent' => array( 'success', __( 'Test envoyé avec succès.', 'ufsc-clubs' ) ),
             'test_failed' => array( 'error', __( 'Échec de l’envoi du test.', 'ufsc-clubs' ) ),
-            'queue_processed' => array( 'success', __( 'File traitée.', 'ufsc-clubs' ) ),
-            'no_recipients' => array( 'warning', __( 'Aucun destinataire trouvé.', 'ufsc-clubs' ) ),
-            'failed_requeued' => array( 'success', __( 'Échecs remis en file d’attente.', 'ufsc-clubs' ) ),
+            'queue_processed' => array( 'success', __( 'La file a été traitée. Consultez le détail pour les volumes envoyés et les échecs.', 'ufsc-clubs' ) ),
+            'no_recipients' => array( 'warning', __( 'Aucun destinataire valide trouvé.', 'ufsc-clubs' ) ),
+            'failed_requeued' => array( 'success', __( 'Les emails échoués ont été remis en attente.', 'ufsc-clubs' ) ),
         );
         if ( isset( $messages[ $code ] ) ) {
             list( $type, $text ) = $messages[ $code ];
@@ -158,10 +171,24 @@ class UFSC_Mail_Service {
     }
 
     private static function render_campaigns_list( $campaigns ) {
-        echo '<h2>' . esc_html__( 'Dernières campagnes', 'ufsc-clubs' ) . '</h2><table class="widefat striped"><tr><th>ID</th><th>Date</th><th>Objet</th><th>Cible</th><th>Statut</th><th>Total</th><th>Envoyés</th><th>Échecs</th><th>Actions</th></tr>';
+        $total = count( (array) $campaigns ); $running = 0; $completed = 0; $errors = 0;
+        foreach ( (array) $campaigns as $c ) {
+            $st = (string) $c->status;
+            if ( in_array( $st, array( 'queued', 'sending', 'processing' ), true ) ) { $running++; }
+            if ( in_array( $st, array( 'completed' ), true ) ) { $completed++; }
+            if ( in_array( $st, array( 'failed', 'completed_with_errors' ), true ) ) { $errors++; }
+        }
+        echo '<div class="ufsc-communication-grid">';
+        echo '<div class="ufsc-communication-card"><div>Campagnes totales</div><div class="ufsc-communication-stat">' . (int) $total . '</div></div>';
+        echo '<div class="ufsc-communication-card"><div>En cours</div><div class="ufsc-communication-stat">' . (int) $running . '</div></div>';
+        echo '<div class="ufsc-communication-card"><div>Terminées</div><div class="ufsc-communication-stat">' . (int) $completed . '</div></div>';
+        echo '<div class="ufsc-communication-card"><div>Avec erreurs</div><div class="ufsc-communication-stat">' . (int) $errors . '</div></div>';
+        echo '</div>';
+        echo '<h2>' . esc_html__( 'Dernières campagnes', 'ufsc-clubs' ) . '</h2><table class="widefat striped ufsc-communication-table"><tr><th>ID</th><th>Date</th><th>Objet</th><th>Cible</th><th>Statut</th><th>Progression</th><th>Échecs</th><th>Actions</th></tr>';
         foreach ( (array) $campaigns as $c ) {
             $detail_url = add_query_arg( array( 'page' => 'ufsc-communication-clubs', 'view' => 'detail', 'campaign_id' => (int) $c->id ), admin_url( 'admin.php' ) );
-            echo '<tr><td>' . (int) $c->id . '</td><td>' . esc_html( (string) $c->created_at ) . '</td><td>' . esc_html( (string) $c->subject ) . '</td><td>' . esc_html( (string) $c->target_type ) . '</td><td>' . esc_html( (string) $c->status ) . '</td><td>' . (int) $c->total_recipients . '</td><td>' . (int) $c->sent_count . '</td><td>' . (int) $c->failed_count . '</td><td><a class="button button-small" href="' . esc_url( $detail_url ) . '">' . esc_html__( 'Voir', 'ufsc-clubs' ) . '</a></td></tr>';
+            $pct = ( (int) $c->total_recipients > 0 ) ? min( 100, (int) round( ( (int) $c->sent_count / (int) $c->total_recipients ) * 100 ) ) : 0;
+            echo '<tr><td>' . (int) $c->id . '</td><td>' . esc_html( (string) $c->created_at ) . '</td><td>' . esc_html( (string) $c->subject ) . '</td><td>' . esc_html( (string) $c->target_type ) . '</td><td>' . self::status_badge( $c->status ) . '</td><td><div class="ufsc-communication-progress"><span style="width:' . (int) $pct . '%"></span></div><small>' . (int) $c->sent_count . '/' . (int) $c->total_recipients . '</small></td><td>' . (int) $c->failed_count . '</td><td><a class="button button-small" href="' . esc_url( $detail_url ) . '">' . esc_html__( 'Voir', 'ufsc-clubs' ) . '</a></td></tr>';
         }
         echo '</table>';
     }
@@ -177,9 +204,11 @@ class UFSC_Mail_Service {
         $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$queue} WHERE campaign_id=%d ORDER BY id ASC LIMIT 200", $id ) );
         $pending = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$queue} WHERE campaign_id=%d AND status IN ('pending','processing')", $id ) );
         echo '<h2>' . esc_html( $campaign->name ) . ' (#' . (int) $campaign->id . ')</h2>';
-        echo '<p><strong>Objet:</strong> ' . esc_html( $campaign->subject ) . '</p><p><strong>Statut:</strong> ' . esc_html( $campaign->status ) . '</p>';
-        echo '<p><strong>Total:</strong> ' . (int) $campaign->total_recipients . ' | <strong>Envoyés:</strong> ' . (int) $campaign->sent_count . ' | <strong>Échecs:</strong> ' . (int) $campaign->failed_count . ' | <strong>En attente:</strong> ' . $pending . '</p>';
+        echo '<p><strong>Objet:</strong> ' . esc_html( $campaign->subject ) . '</p><p><strong>Statut:</strong> ' . self::status_badge( $campaign->status ) . '</p>';
+        $pct = ( (int) $campaign->total_recipients > 0 ) ? min(100,(int) round(((int)$campaign->sent_count/(int)$campaign->total_recipients)*100)) : 0;
+        echo '<p><strong>Total:</strong> ' . (int) $campaign->total_recipients . ' | <strong>Envoyés:</strong> ' . (int) $campaign->sent_count . ' | <strong>Échecs:</strong> ' . (int) $campaign->failed_count . ' | <strong>En attente:</strong> ' . $pending . '</p><div class="ufsc-communication-progress"><span style="width:' . (int) $pct . '%"></span></div>';
 
+        echo '<div class="ufsc-communication-actions">';
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;margin-right:8px;">';
         wp_nonce_field( self::NONCE_ACTION );
         echo '<input type="hidden" name="action" value="ufsc_mail_process_now" /><input type="hidden" name="campaign_id" value="' . (int) $id . '" /><button class="button">Traiter la file maintenant</button></form>';
@@ -187,10 +216,11 @@ class UFSC_Mail_Service {
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;">';
         wp_nonce_field( self::NONCE_ACTION );
         echo '<input type="hidden" name="action" value="ufsc_mail_retry_failed" /><input type="hidden" name="campaign_id" value="' . (int) $id . '" /><button class="button">Relancer les échecs</button></form>';
+        echo '<a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs' ) ) . '">Retour à la liste</a></div>';
 
         echo '<h3>Destinataires (200 max)</h3><table class="widefat striped"><tr><th>Club</th><th>Email</th><th>Statut</th><th>Tentatives</th><th>Erreur</th><th>Envoyé le</th></tr>';
         foreach ( (array) $rows as $r ) {
-            echo '<tr><td>' . esc_html( $r->club_name ) . '</td><td>' . esc_html( $r->recipient_email ) . '</td><td>' . esc_html( $r->status ) . '</td><td>' . (int) $r->attempts . '</td><td>' . esc_html( (string) $r->last_error ) . '</td><td>' . esc_html( (string) $r->sent_at ) . '</td></tr>';
+            echo '<tr><td>' . esc_html( $r->club_name ) . '</td><td>' . esc_html( $r->recipient_email ) . '</td><td>' . self::status_badge( $r->status ) . '</td><td>' . (int) $r->attempts . '</td><td>' . esc_html( (string) $r->last_error ) . '</td><td>' . esc_html( (string) $r->sent_at ) . '</td></tr>';
         }
         echo '</table>';
     }
