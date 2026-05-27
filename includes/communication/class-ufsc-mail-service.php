@@ -105,6 +105,8 @@ class UFSC_Mail_Service {
         echo '<option value="affiliated_up_to_date" ' . selected( $target, 'affiliated_up_to_date', false ) . '>' . esc_html__( 'Clubs affiliés et à jour', 'ufsc-clubs' ) . '</option>';
         echo '</select></td></tr>';
         echo '<tr><th><label for="ufsc_test_email">' . esc_html__( 'Email de test', 'ufsc-clubs' ) . '</label></th><td><input id="ufsc_test_email" name="test_email" type="email" class="regular-text" value="' . esc_attr( $test_email ) . '" /></td></tr>';
+        $limit_recipients = isset( $data['limit_recipients'] ) ? absint( $data['limit_recipients'] ) : 0;
+        echo '<tr><th><label for="ufsc_limit_recipients">' . esc_html__( 'Limiter la campagne (destinataires)', 'ufsc-clubs' ) . '</label></th><td><input id="ufsc_limit_recipients" name="limit_recipients" type="number" min="0" step="1" class="small-text" value="' . esc_attr( (string) $limit_recipients ) . '" /> <p class="description">' . esc_html__( 'Option facultative pour un envoi réel de test (ex: 1, 2, 3).', 'ufsc-clubs' ) . '</p></td></tr>';
         echo '</table>';
         echo '<p><button class="button button-secondary" name="submit_type" value="preview">' . esc_html__( 'Prévisualiser les destinataires', 'ufsc-clubs' ) . '</button> ';
         echo '<button class="button" formaction="' . esc_url( admin_url( 'admin-post.php?action=ufsc_mail_test' ) ) . '">' . esc_html__( 'Envoyer un test', 'ufsc-clubs' ) . '</button> ';
@@ -119,6 +121,10 @@ class UFSC_Mail_Service {
     private static function render_preview_block( $preview ) {
         echo '<h3>' . esc_html__( 'Prévisualisation destinataires', 'ufsc-clubs' ) . '</h3>';
         echo '<ul><li>' . esc_html__( 'Clubs trouvés :', 'ufsc-clubs' ) . ' ' . (int) $preview['total_clubs'] . '</li><li>' . esc_html__( 'Emails valides :', 'ufsc-clubs' ) . ' ' . (int) $preview['valid_count'] . '</li><li>' . esc_html__( 'Ignorés :', 'ufsc-clubs' ) . ' ' . (int) $preview['ignored_count'] . '</li></ul>';
+
+        if ( ! empty( $preview['limit_recipients'] ) ) {
+            echo '<div class="notice notice-info inline"><p>' . sprintf( esc_html__( 'Mode test limité : seuls %d destinataires seront mis en file.', 'ufsc-clubs' ), (int) $preview['limit_recipients'] ) . '</p></div>';
+        }
 
         if ( ! empty( $preview['valid_recipients'] ) ) {
             echo '<table class="widefat"><tr><th>Club</th><th>Email</th></tr>';
@@ -192,7 +198,7 @@ class UFSC_Mail_Service {
     public static function handle_preview() {
         self::guard_action();
         $data = self::read_form_data();
-        $preview = self::compute_recipients_preview( $data['target_type'] );
+        $preview = self::compute_recipients_preview( $data['target_type'], isset( $data['limit_recipients'] ) ? absint( $data['limit_recipients'] ) : 0 );
         $data['preview'] = $preview;
         set_transient( self::FORM_TRANSIENT_PREFIX . get_current_user_id(), $data, 20 * MINUTE_IN_SECONDS );
 
@@ -255,6 +261,7 @@ class UFSC_Mail_Service {
             'test_email' => sanitize_email( wp_unslash( $_POST['test_email'] ?? '' ) ),
             'submit_type' => sanitize_key( wp_unslash( $_POST['submit_type'] ?? 'preview' ) ),
             'idempotency_token' => sanitize_text_field( wp_unslash( $_POST['idempotency_token'] ?? '' ) ),
+            'limit_recipients' => absint( wp_unslash( $_POST['limit_recipients'] ?? 0 ) ),
         );
     }
 
@@ -300,9 +307,21 @@ class UFSC_Mail_Service {
         }
     }
 
-    private static function compute_recipients_preview( $target ) {
+    private static function compute_recipients_preview( $target, $limit_recipients = 0 ) {
         $result = self::get_targeted_recipients( $target );
-        return array( 'total_clubs' => count( $result['raw'] ), 'valid_count' => count( $result['valid'] ), 'ignored_count' => count( $result['ignored'] ), 'valid_recipients' => $result['valid'], 'ignored_reasons' => $result['ignored'] );
+        $limit_recipients = absint( $limit_recipients );
+        $valid_recipients = $result['valid'];
+        if ( $limit_recipients > 0 ) {
+            $valid_recipients = array_slice( $valid_recipients, 0, $limit_recipients );
+        }
+        return array(
+            'total_clubs' => count( $result['raw'] ),
+            'valid_count' => count( $result['valid'] ),
+            'ignored_count' => count( $result['ignored'] ),
+            'valid_recipients' => $valid_recipients,
+            'ignored_reasons' => $result['ignored'],
+            'limit_recipients' => $limit_recipients,
+        );
     }
 
     private static function get_targeted_recipients( $target ) {
