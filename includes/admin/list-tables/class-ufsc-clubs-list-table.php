@@ -31,6 +31,9 @@ class UFSC_Clubs_List_Table {
 
         $settings = UFSC_SQL::get_settings();
         $clubs_table = $settings['table_clubs'];
+        if ( function_exists( 'ufsc_sanitize_table_name' ) ) {
+            $clubs_table = ufsc_sanitize_table_name( $clubs_table );
+        }
         $club_columns = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $clubs_table ) : array();
         $licence_counts = UFSC_CL_Utils::get_valid_licence_counts_by_club();
 
@@ -80,18 +83,15 @@ class UFSC_Clubs_List_Table {
         echo '<div class="ufsc-renewal-notice"><span class="dashicons dashicons-info"></span><p>' . esc_html__( 'Renouvellement des affiliations : à chaque nouvelle saison, les clubs devront confirmer ou renouveler leur affiliation afin de maintenir leurs licences actives.', 'ufsc-clubs' ) . '</p></div>';
 
         // Affichage des notices
-        if ( isset($_GET['updated']) && $_GET['updated'] == '1' ) {
+        if ( '1' === self::get_query_value( 'updated', 'key' ) ) {
             echo UFSC_CL_Utils::show_success(__('Club enregistré avec succès', 'ufsc-clubs'));
         }
-        if ( isset($_GET['deleted']) && $_GET['deleted'] == '1' ) {
-            $deleted_id = isset($_GET['deleted_id']) ? (int) $_GET['deleted_id'] : '';
+        if ( '1' === self::get_query_value( 'deleted', 'key' ) ) {
+            $deleted_id = absint( self::get_query_value( 'deleted_id' ) );
             echo UFSC_CL_Utils::show_success(__('Le club #'.$deleted_id.' a été supprimé.', 'ufsc-clubs'));
         }
-        if ( isset($_GET['error']) ) {
-            $error_value = wp_unslash( $_GET['error'] );
-            if ( ! is_array( $error_value ) && null !== $error_value ) {
-                echo UFSC_CL_Utils::show_error( sanitize_text_field( (string) $error_value ) );
-            }
+        if ( '' !== self::get_query_value( 'error' ) ) {
+            echo UFSC_CL_Utils::show_error( self::get_query_value( 'error' ) );
         }
 
         // Action buttons
@@ -122,16 +122,20 @@ class UFSC_Clubs_List_Table {
 
 
 
-    private static function get_query_value( $key, $type = 'text' ) {
-        if ( ! isset( $_GET[ $key ] ) ) {
+    private static function get_request_value( $source, $key, $type = 'text' ) {
+        if ( ! is_array( $source ) || ! isset( $source[ $key ] ) ) {
             return '';
         }
-        $value = wp_unslash( $_GET[ $key ] );
+        $value = wp_unslash( $source[ $key ] );
         if ( is_array( $value ) || null === $value ) {
             return '';
         }
         $value = (string) $value;
         return 'key' === $type ? sanitize_key( $value ) : sanitize_text_field( $value );
+    }
+
+    private static function get_query_value( $key, $type = 'text' ) {
+        return self::get_request_value( $_GET, $key, $type );
     }
 
     /**
@@ -164,10 +168,11 @@ class UFSC_Clubs_List_Table {
      */
     private static function get_pagination_params() {
         $per_page_options = array( 20, 50, 100 );
-        $per_page = isset( $_GET['per_page'] ) && in_array( (int) $_GET['per_page'], $per_page_options ) ? (int) $_GET['per_page'] : 20;
+        $requested_per_page = absint( self::get_query_value( 'per_page' ) );
+        $per_page = in_array( $requested_per_page, $per_page_options, true ) ? $requested_per_page : 20;
 
         return array(
-            'paged' => isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1,
+            'paged' => max( 1, absint( self::get_query_value( 'paged' ) ) ),
             'per_page' => $per_page
         );
     }
@@ -178,11 +183,30 @@ class UFSC_Clubs_List_Table {
     private static function get_sorting_params() {
         $allowed_orderby = array( 'nom', 'date_creation', 'region' );
         $allowed_order = array( 'asc', 'desc' );
+        $requested_orderby = self::get_query_value( 'orderby', 'key' );
+        $requested_order = self::get_query_value( 'order', 'key' );
 
         return array(
-            'orderby' => isset( $_GET['orderby'] ) && in_array( sanitize_key( wp_unslash( $_GET['orderby'] ) ), $allowed_orderby, true ) ? sanitize_key( wp_unslash( $_GET['orderby'] ) ) : 'date_creation',
-            'order' => isset( $_GET['order'] ) && in_array( sanitize_key( wp_unslash( $_GET['order'] ) ), $allowed_order, true ) ? sanitize_key( wp_unslash( $_GET['order'] ) ) : 'desc'
+            'orderby' => in_array( $requested_orderby, $allowed_orderby, true ) ? $requested_orderby : 'date_creation',
+            'order' => in_array( $requested_order, $allowed_order, true ) ? $requested_order : 'desc'
         );
+    }
+
+    /**
+     * Expand common legacy club status aliases while preserving exact filtering for unknown values.
+     */
+    private static function get_status_filter_values( $status ) {
+        $normalized = sanitize_key( (string) $status );
+        if ( in_array( $normalized, array( 'actif', 'active', 'valide', 'validated' ), true ) ) {
+            return array( 'actif', 'active', 'valide', 'validated' );
+        }
+        if ( in_array( $normalized, array( 'en_attente', 'pending', 'a_regler', 'creating', 'en_cours_de_creation' ), true ) ) {
+            return array( 'en_attente', 'pending', 'a_regler', 'creating', 'en_cours_de_creation' );
+        }
+        if ( in_array( $normalized, array( 'suspendu', 'suspended', 'refuse', 'rejected', 'desactive', 'inactive' ), true ) ) {
+            return array( 'suspendu', 'suspended', 'refuse', 'rejected', 'desactive', 'inactive' );
+        }
+        return array( (string) $status );
     }
 
     /**
@@ -220,7 +244,13 @@ class UFSC_Clubs_List_Table {
 
         // Status filter
         if ( ! empty( $filters['statut'] ) && self::has_column( $columns, $clubs_table, 'statut' ) ) {
-            $conditions[] = $wpdb->prepare( "statut = %s", $filters['statut'] );
+            $status_values = self::get_status_filter_values( $filters['statut'] );
+            if ( count( $status_values ) > 1 ) {
+                $placeholders = implode( ',', array_fill( 0, count( $status_values ), '%s' ) );
+                $conditions[] = $wpdb->prepare( "statut IN ({$placeholders})", $status_values );
+            } else {
+                $conditions[] = $wpdb->prepare( "statut = %s", $filters['statut'] );
+            }
         }
 
         // Date range filters
@@ -245,7 +275,7 @@ class UFSC_Clubs_List_Table {
             }
         }
 
-        if ( ! empty( $filters['affiliation_status'] ) && self::has_column( $columns, $clubs_table, 'num_affiliation' ) ) {
+        if ( ! empty( $filters['affiliation_status'] ) && self::has_verified_column( $columns, $clubs_table, 'num_affiliation' ) ) {
             if ( 'assigned' === $filters['affiliation_status'] ) {
                 $conditions[] = "(num_affiliation IS NOT NULL AND num_affiliation != '')";
             } elseif ( 'missing' === $filters['affiliation_status'] ) {
@@ -283,6 +313,30 @@ class UFSC_Clubs_List_Table {
 
 
     /**
+     * Check a SQL column only when its presence can be verified.
+     *
+     * The generic has_column() keeps a permissive fallback for legacy filters.
+     * New optional SQL filters/statistics must be stricter so they are skipped
+     * instead of referencing a missing column on older installations.
+     */
+    private static function has_verified_column( $columns, $table, $column ) {
+        if ( is_array( $columns ) && ! empty( $columns ) ) {
+            return in_array( $column, $columns, true );
+        }
+
+        if ( function_exists( 'ufsc_table_has_column' ) ) {
+            return ufsc_table_has_column( $table, $column );
+        }
+
+        if ( function_exists( 'ufsc_table_columns' ) ) {
+            $fetched = ufsc_table_columns( $table );
+            return is_array( $fetched ) && in_array( $column, $fetched, true );
+        }
+
+        return false;
+    }
+
+    /**
      * Return document fields that are physically available on the clubs table.
      */
     private static function get_available_document_fields( $columns, $clubs_table ) {
@@ -296,7 +350,7 @@ class UFSC_Clubs_List_Table {
         );
         $available = array();
         foreach ( $doc_fields as $field ) {
-            if ( self::has_column( $columns, $clubs_table, $field ) ) {
+            if ( self::has_verified_column( $columns, $clubs_table, $field ) ) {
                 $available[] = $field;
             }
         }
@@ -308,7 +362,7 @@ class UFSC_Clubs_List_Table {
      */
     private static function get_season_column( $columns, $clubs_table ) {
         foreach ( array( 'season', 'saison', 'paid_season', 'season_end_year' ) as $column ) {
-            if ( self::has_column( $columns, $clubs_table, $column ) ) {
+            if ( self::has_verified_column( $columns, $clubs_table, $column ) ) {
                 return $column;
             }
         }
@@ -322,6 +376,10 @@ class UFSC_Clubs_List_Table {
         global $wpdb;
         $settings       = UFSC_SQL::get_settings();
         $licences_table = isset( $settings['table_licences'] ) ? $settings['table_licences'] : '';
+        if ( function_exists( 'ufsc_sanitize_table_name' ) ) {
+            $licences_table = ufsc_sanitize_table_name( $licences_table );
+            $clubs_table = ufsc_sanitize_table_name( $clubs_table );
+        }
         if ( '' === $licences_table ) {
             return '';
         }
@@ -329,15 +387,15 @@ class UFSC_Clubs_List_Table {
             return '';
         }
         $licence_columns = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $licences_table ) : array();
-        if ( ! self::has_column( $licence_columns, $licences_table, 'club_id' ) || ! self::has_column( array(), $clubs_table, 'id' ) ) {
+        if ( ! self::has_verified_column( $licence_columns, $licences_table, 'club_id' ) || ! self::has_verified_column( array(), $clubs_table, 'id' ) ) {
             return '';
         }
 
         $parts = array( "l.club_id = `{$clubs_table}`.id" );
-        if ( self::has_column( $licence_columns, $licences_table, 'statut' ) ) {
+        if ( self::has_verified_column( $licence_columns, $licences_table, 'statut' ) ) {
             $parts[] = $wpdb->prepare( 'l.statut = %s', 'valide' );
         }
-        if ( self::has_column( $licence_columns, $licences_table, 'deleted_at' ) ) {
+        if ( self::has_verified_column( $licence_columns, $licences_table, 'deleted_at' ) ) {
             $parts[] = "(l.deleted_at IS NULL OR l.deleted_at = '0000-00-00 00:00:00')";
         }
 
@@ -401,7 +459,7 @@ class UFSC_Clubs_List_Table {
     private static function render_statistics_cards( $columns, $clubs_table, $licence_counts ) {
         global $wpdb;
         $where_scope = '';
-        if ( self::has_column( $columns, $clubs_table, 'region' ) ) {
+        if ( self::has_verified_column( $columns, $clubs_table, 'region' ) ) {
             $scope_condition = UFSC_Scope::build_scope_condition( 'region' );
             if ( $scope_condition ) {
                 $where_scope = 'WHERE ' . $scope_condition;
@@ -418,7 +476,7 @@ class UFSC_Clubs_List_Table {
             'missing_affiliation' => null,
         );
 
-        if ( self::has_column( $columns, $clubs_table, 'statut' ) ) {
+        if ( self::has_verified_column( $columns, $clubs_table, 'statut' ) ) {
             $scope_prefix = '' === $where_scope ? 'WHERE' : $where_scope . ' AND';
             $active_statuses = array( 'actif', 'active', 'valide', 'validated' );
             $pending_statuses = array( 'en_attente', 'pending', 'a_regler', 'creating', 'en_cours_de_creation' );
@@ -440,7 +498,7 @@ class UFSC_Clubs_List_Table {
             $stats['documents_incomplete'] = max( 0, $stats['total'] - $stats['documents_complete'] );
         }
 
-        if ( self::has_column( $columns, $clubs_table, 'num_affiliation' ) ) {
+        if ( self::has_verified_column( $columns, $clubs_table, 'num_affiliation' ) ) {
             $scope_prefix = '' === $where_scope ? 'WHERE' : $where_scope . ' AND';
             $stats['missing_affiliation'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$clubs_table}` {$scope_prefix} (num_affiliation IS NULL OR num_affiliation = '')" );
         }
@@ -608,11 +666,12 @@ class UFSC_Clubs_List_Table {
      */
     private static function render_clubs_table( $clubs, $sorting, $licence_counts ) {
         // Affichage des notices
-        if ( isset($_GET['processed']) ) {
-            if ( $_GET['processed'] == '1' ) {
-                echo UFSC_CL_Utils::show_success(sprintf( __( '%d élément(s) traité(s)', 'ufsc-clubs' ), $_GET['processed']));
-            } elseif ( $_GET['processed'] == '0' ) {
-                echo UFSC_CL_Utils::show_error(sprintf( __( 'Impossible de supprimer les clubs - présence probable de licences liées.', 'ufsc-clubs' ), $_GET['processed']));
+        if ( isset( $_GET['processed'] ) ) {
+            $processed = absint( wp_unslash( $_GET['processed'] ) );
+            if ( 1 === $processed ) {
+                echo UFSC_CL_Utils::show_success( sprintf( __( '%d élément(s) traité(s)', 'ufsc-clubs' ), $processed ) );
+            } elseif ( 0 === $processed ) {
+                echo UFSC_CL_Utils::show_error( __( 'Impossible de supprimer les clubs - présence probable de licences liées.', 'ufsc-clubs' ) );
             }
         }
 
@@ -739,7 +798,7 @@ class UFSC_Clubs_List_Table {
     if ( current_user_can( 'manage_options' ) ) {
         echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a> ';
         echo '<a href="' . esc_url( $documents_url ) . '" class="button button-small">' . esc_html__( 'Documents', 'ufsc-clubs' ) . '</a> ';
-        echo '<button type="button" class="button button-small ufsc-button-disabled" disabled="disabled" title="' . esc_attr__( 'Relance à brancher sur une action email sécurisée existante.', 'ufsc-clubs' ) . '">' . esc_html__( 'Relancer', 'ufsc-clubs' ) . '</button> ';
+        echo '<button type="button" class="button button-small ufsc-button-disabled" disabled="disabled" aria-disabled="true" title="' . esc_attr__( 'Relance à brancher sur une action email sécurisée existante.', 'ufsc-clubs' ) . '">' . esc_html__( 'Relancer', 'ufsc-clubs' ) . '</button> ';
         echo '<a href="' . esc_url( $delete_url ) . '" class="button button-small button-link-delete" onclick="return confirm(\'' . esc_js( __( 'Êtes-vous sûr de vouloir supprimer ce club ?', 'ufsc-clubs' ) ) . '\')">' . esc_html__( 'Supprimer', 'ufsc-clubs' ) . '</a>';
     }
     echo '</td>';
@@ -993,7 +1052,7 @@ class UFSC_Clubs_List_Table {
     }
 
     public static function handle_bulk_actions() {
-        $page = isset( $_REQUEST['page'] ) ? sanitize_key( wp_unslash( $_REQUEST['page'] ) ) : '';
+        $page = self::get_request_value( $_REQUEST, 'page', 'key' );
         if ( 'ufsc-sql-clubs' !== $page ) {
             return;
         }
@@ -1001,11 +1060,13 @@ class UFSC_Clubs_List_Table {
             return;
         }
 
-        if (!isset($_POST['_wpnonce']) || !wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ufsc_bulk_clubs_actions')) {
+        $nonce = self::get_request_value( $_POST, '_wpnonce' );
+        if ( ! $nonce || ! wp_verify_nonce( $nonce, 'ufsc_bulk_clubs_actions' ) ) {
             return;
         }
 
-        if (!isset($_POST['bulk_action']) || empty($_POST['bulk_action'])) {
+        $action    = self::get_request_value( $_POST, 'bulk_action', 'key' );
+        if ( '' === $action ) {
             return;
         }
 
@@ -1017,8 +1078,8 @@ class UFSC_Clubs_List_Table {
         }
         $settings  = UFSC_SQL::get_settings();
         $table     = $settings['table_clubs'];
-        $action    = isset( $_POST['bulk_action'] ) ? sanitize_key( wp_unslash( $_POST['bulk_action'] ) ) : '';
-        $item_ids  = array_values( array_unique( array_filter( array_map( 'intval', (array) $_POST['club_ids'] ) ) ) );
+        $raw_ids   = isset( $_POST['club_ids'] ) ? (array) wp_unslash( $_POST['club_ids'] ) : array();
+        $item_ids  = array_values( array_unique( array_filter( array_map( 'absint', $raw_ids ) ) ) );
         if ( empty( $item_ids ) ) {
             return;
         }
