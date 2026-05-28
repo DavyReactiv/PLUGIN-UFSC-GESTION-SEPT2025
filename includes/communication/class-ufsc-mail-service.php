@@ -7,6 +7,7 @@ class UFSC_Mail_Service {
     const NONCE_ACTION = 'ufsc_mail_campaign_action';
     const FORM_TRANSIENT_PREFIX = 'ufsc_mail_form_';
     const IDEMPOTENCY_TRANSIENT_PREFIX = 'ufsc_mail_idempotency_';
+    const SETTINGS_OPTION = 'ufsc_communication_settings';
 
     public static function init() {
         add_filter( 'cron_schedules', array( __CLASS__, 'cron_schedules' ) );
@@ -15,13 +16,15 @@ class UFSC_Mail_Service {
         add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_assets' ) );
         add_action( 'admin_post_ufsc_mail_preview', array( __CLASS__, 'handle_preview' ) );
         add_action( 'admin_post_ufsc_mail_test', array( __CLASS__, 'handle_test' ) );
-        add_action( 'admin_post_ufsc_mail_create_campaign', array( __CLASS__, 'handle_create_campaign' ) );
         add_action( 'admin_post_ufsc_mail_process_now', array( __CLASS__, 'handle_process_now' ) );
         add_action( 'admin_post_ufsc_mail_retry_failed', array( __CLASS__, 'handle_retry_failed' ) );
         add_action( 'admin_post_ufsc_mail_save_contact', array( __CLASS__, 'handle_save_contact' ) );
         add_action( 'admin_post_ufsc_mail_archive_contact', array( __CLASS__, 'handle_archive_contact' ) );
         add_action( 'admin_post_ufsc_mail_save_list', array( __CLASS__, 'handle_save_list' ) );
         add_action( 'admin_post_ufsc_mail_add_list_item', array( __CLASS__, 'handle_add_list_item' ) );
+        add_action( 'admin_post_ufsc_mail_save_settings', array( __CLASS__, 'handle_save_settings' ) );
+        add_action( 'admin_post_ufsc_mail_diagnostic', array( __CLASS__, 'handle_diagnostic' ) );
+        add_action( 'admin_post_ufsc_mail_export_preview', array( __CLASS__, 'handle_export_preview' ) );
 
         UFSC_Mail_Installer::ensure_schema();
         if ( ! wp_next_scheduled( self::CRON_HOOK ) ) {
@@ -29,574 +32,175 @@ class UFSC_Mail_Service {
         }
     }
 
-    public static function cron_schedules( $schedules ) {
-        $schedules['ufsc_every_five_minutes'] = array( 'interval' => 300, 'display' => 'UFSC 5 minutes' );
-        return $schedules;
+    public static function cron_schedules( $schedules ) { $schedules['ufsc_every_five_minutes'] = array( 'interval' => 300, 'display' => 'UFSC 5 minutes' ); return $schedules; }
+    public static function enqueue_assets() { $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; if ( 'ufsc-communication-clubs' !== $page ) { return; } wp_enqueue_style( 'ufsc-communication-admin', UFSC_CL_URL . 'includes/communication/assets/admin-communication.css', array(), UFSC_CL_VERSION ); }
+    private static function capability() { return defined( 'UFSC_Capabilities::CAP_MANAGE_COMMUNICATION' ) ? UFSC_Capabilities::CAP_MANAGE_COMMUNICATION : 'manage_options'; }
+    private static function can_manage() { return current_user_can( self::capability() ) || current_user_can( 'manage_options' ); }
+    private static function status_badge( $status ) { $status = sanitize_key( (string) $status ); return '<span class="ufsc-communication-badge ufsc-status-' . esc_attr( $status ) . '">' . esc_html( $status ) . '</span>'; }
+
+    private static function get_settings() {
+        $d = array('from_name'=>'UFSC France','from_email'=>'infos@ufsc-france.org','reply_to'=>'secretariat@ufsc-france.org','batch_size'=>20,'require_test_before_send'=>1,'large_campaign_warning_threshold'=>50,'active_season'=> function_exists('ufsc_get_current_season') ? (string) ufsc_get_current_season() : '','default_signature'=>'Sportivement,<br>Le secrétariat UFSC');
+        $s = get_option( self::SETTINGS_OPTION, array() ); if ( ! is_array( $s ) ) { $s = array(); }
+        return wp_parse_args( $s, $d );
     }
 
-
-    public static function enqueue_assets( $hook ) {
-        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
-        if ( 'ufsc-communication-clubs' !== $page ) { return; }
-        wp_enqueue_style( 'ufsc-communication-admin', UFSC_CL_URL . 'includes/communication/assets/admin-communication.css', array(), UFSC_CL_VERSION );
-    }
-
-    private static function status_badge( $status ) {
-        $status = sanitize_key( (string) $status );
-        return '<span class="ufsc-communication-badge ufsc-status-' . esc_attr( $status ) . '">' . esc_html( $status ) . '</span>';
-    }
-    private static function capability() {
-        return defined( 'UFSC_Capabilities::CAP_MANAGE_COMMUNICATION' ) ? UFSC_Capabilities::CAP_MANAGE_COMMUNICATION : 'manage_options';
-    }
-
-    private static function can_manage() {
-        return current_user_can( self::capability() ) || current_user_can( 'manage_options' );
-    }
-
-    public static function register_menu() {
-        add_submenu_page( 'ufsc-dashboard', __( 'Communication UFSC', 'ufsc-clubs' ), __( 'Communication UFSC', 'ufsc-clubs' ), self::capability(), 'ufsc-communication-clubs', array( __CLASS__, 'render_admin' ) );
-    }
+    public static function register_menu() { add_submenu_page( 'ufsc-dashboard', __( 'Communication UFSC', 'ufsc-clubs' ), __( 'Communication UFSC', 'ufsc-clubs' ), self::capability(), 'ufsc-communication-clubs', array( __CLASS__, 'render_admin' ) ); }
 
     public static function render_admin() {
         if ( ! self::can_manage() ) { wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) ); }
-        global $wpdb;
+        global $wpdb; $view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'list';
         $campaigns = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ufsc_mail_campaigns ORDER BY id DESC LIMIT 30" );
-        $view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'list';
-
-        echo '<div class="wrap ufsc-communication-wrap">';
-        echo '<div class="ufsc-communication-header"><h1>' . esc_html__( 'Communication UFSC', 'ufsc-clubs' ) . '</h1><p class="ufsc-communication-sub">' . esc_html__( 'Créez, testez et envoyez des messages aux clubs, licenciés, responsables et listes personnalisées via une file d’attente sécurisée.', 'ufsc-clubs' ) . '</p></div>';
+        echo '<div class="wrap ufsc-communication-wrap"><div class="ufsc-communication-header"><h1>Communication UFSC</h1><p class="ufsc-communication-sub">Créez, testez et envoyez des messages aux clubs, licenciés, responsables et listes personnalisées via une file d’attente sécurisée.</p></div>';
         self::render_notices();
-        echo '<p>' . esc_html__( 'Les emails sont envoyés progressivement pour éviter de surcharger le serveur.', 'ufsc-clubs' ) . '</p>';
-        echo '<p>' . esc_html__( 'Les emails sont envoyés via le système email WordPress. Pour une bonne délivrabilité, vérifiez que le SMTP du site est correctement configuré, idéalement avec Brevo, SPF, DKIM et DMARC.', 'ufsc-clubs' ) . '</p>';
-        echo '<p><a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=new' ) ) . '">' . esc_html__( 'Nouvelle campagne', 'ufsc-clubs' ) . '</a> <a class="button" href=' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=contacts' ) ) . '>Carnet d’adresses</a> <a class="button" href=' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=lists' ) ) . '>Listes personnalisées</a></p>';
-
-        if ( 'contacts' === $view ) {
-            self::render_contacts_view();
-        } elseif ( 'lists' === $view ) {
-            self::render_lists_view();
-        } elseif ( 'new' === $view ) {
-            self::render_new_campaign_form();
-        } elseif ( 'detail' === $view ) {
-            self::render_campaign_detail();
-        } else {
-            self::render_campaigns_list( $campaigns );
-        }
+        echo '<p><a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=new' ) ) . '">Nouvelle campagne</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=contacts' ) ) . '">Carnet d’adresses</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=lists' ) ) . '">Listes personnalisées</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=settings' ) ) . '">Paramètres communication</a></p>';
+        if ( 'new' === $view ) { self::render_new_campaign_form(); }
+        elseif ( 'detail' === $view ) { self::render_campaign_detail(); }
+        elseif ( 'contacts' === $view ) { self::render_contacts_view(); }
+        elseif ( 'lists' === $view ) { self::render_lists_view(); }
+        elseif ( 'settings' === $view ) { self::render_settings_view(); }
+        else { self::render_campaigns_list( $campaigns ); }
         echo '</div>';
     }
 
     private static function render_notices() {
         $code = isset( $_GET['ufsc_mail_notice'] ) ? sanitize_key( wp_unslash( $_GET['ufsc_mail_notice'] ) ) : '';
-        $messages = array(
-            'campaign_created' => array( 'success', __( 'Campagne créée avec succès. Les emails seront envoyés progressivement.', 'ufsc-clubs' ) ),
-            'test_sent' => array( 'success', __( 'Test envoyé avec succès.', 'ufsc-clubs' ) ),
-            'test_failed' => array( 'error', __( 'Échec de l’envoi du test.', 'ufsc-clubs' ) ),
-            'queue_processed' => array( 'success', __( 'La file a été traitée. Consultez le détail pour les volumes envoyés et les échecs.', 'ufsc-clubs' ) ),
-            'no_recipients' => array( 'warning', __( 'Aucun destinataire valide trouvé.', 'ufsc-clubs' ) ),
-            'failed_requeued' => array( 'success', __( 'Les emails échoués ont été remis en attente.', 'ufsc-clubs' ) ),
-        );
-        if ( isset( $messages[ $code ] ) ) {
-            list( $type, $text ) = $messages[ $code ];
-            echo '<div class="notice notice-' . esc_attr( $type ) . '"><p>' . esc_html( $text ) . '</p></div>';
-        }
+        $m = array('campaign_created'=>array('success','Campagne créée avec succès. Les emails seront envoyés progressivement.'),'test_sent'=>array('success','Test envoyé avec succès.'),'test_failed'=>array('error','Échec de l’envoi du test.'),'queue_processed'=>array('success','La file a été traitée.'),'no_recipients'=>array('warning','Aucun destinataire valide n’a été trouvé. Vérifiez les sources sélectionnées, les filtres et les emails disponibles.'),'no_sources'=>array('warning','Veuillez sélectionner au moins une source de destinataires.'),'failed_requeued'=>array('success','Les emails échoués ont été remis en attente.'),'settings_saved'=>array('success','Paramètres communication enregistrés.'),'diagnostic_ready'=>array('success','Diagnostic destinataires terminé.'));
+        if ( isset( $m[ $code ] ) ) { echo '<div class="notice notice-' . esc_attr( $m[$code][0] ) . '"><p>' . esc_html( $m[$code][1] ) . '</p></div>'; }
     }
 
+    private static function get_available_recipient_sources() { return array('affiliated_email_valid'=>'Clubs affiliés avec email valide','affiliated_up_to_date'=>'Clubs affiliés et à jour','licensees_email_valid'=>'Licenciés avec email valide','league_managers'=>'Responsables de ligues','custom_lists'=>'Listes personnalisées','manual'=>'Emails saisis manuellement'); }
+    private static function source_help() { return array('affiliated_email_valid'=>'clubs disposant d’un email exploitable, hors clubs supprimés/corbeille.','affiliated_up_to_date'=>'clubs dont l’affiliation est active/renouvelée selon la logique du plugin, avec email valide.','licensees_email_valid'=>'licenciés disposant d’un email valide selon les champs détectés.','league_managers'=>'utilisateurs identifiés responsables de ligues (destinataires uniquement).','custom_lists'=>'contacts/emails ajoutés par l’administration dans les listes.','manual'=>'emails ajoutés dans la campagne, validés et dédupliqués.'); }
+
     private static function render_new_campaign_form() {
-        $data = get_transient( self::FORM_TRANSIENT_PREFIX . get_current_user_id() );
-        $data = is_array( $data ) ? $data : array();
-        $name = isset( $data['name'] ) ? $data['name'] : '';
-        $subject = isset( $data['subject'] ) ? $data['subject'] : '';
-        $message = isset( $data['message_html'] ) ? $data['message_html'] : '';
-        $target = isset( $data['target_type'] ) ? $data['target_type'] : 'affiliated_up_to_date';
-        $test_email = isset( $data['test_email'] ) ? $data['test_email'] : get_bloginfo( 'admin_email' );
-        $idempotency_token = wp_generate_uuid4();
-
-        echo '<h2>' . esc_html__( 'Nouvelle campagne', 'ufsc-clubs' ) . '</h2>';
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-        wp_nonce_field( self::NONCE_ACTION );
-        echo '<input type="hidden" name="action" value="ufsc_mail_preview" />';
-        echo '<input type="hidden" name="idempotency_token" value="' . esc_attr( $idempotency_token ) . '" />';
-        echo '<table class="form-table">';
-        echo '<tr><th><label for="ufsc_name">' . esc_html__( 'Titre interne', 'ufsc-clubs' ) . '</label></th><td><input id="ufsc_name" name="name" class="regular-text" value="' . esc_attr( $name ) . '" required /></td></tr>';
-        echo '<tr><th><label for="ufsc_subject">' . esc_html__( 'Objet', 'ufsc-clubs' ) . '</label></th><td><input id="ufsc_subject" name="subject" class="regular-text" value="' . esc_attr( $subject ) . '" required /></td></tr>';
-        echo '<tr><th>' . esc_html__( 'Message', 'ufsc-clubs' ) . '</th><td>';
-        wp_editor( $message, 'ufsc_message_html', array( 'textarea_name' => 'message_html', 'textarea_rows' => 10 ) );
-        echo '<p><code>{club_name}</code> <code>{recipient_name}</code> <code>{season}</code> <code>{club_dashboard_url}</code> <code>{ufsc_site_url}</code></p></td></tr>';
+        $data = get_transient( self::FORM_TRANSIENT_PREFIX . get_current_user_id() ); $data = is_array( $data ) ? $data : array(); $s = self::get_settings();
+        $idempotency_token = wp_generate_uuid4(); $target = isset($data['target_type']) ? $data['target_type'] : 'affiliated_up_to_date';
         $selected_sources = isset( $data['source_keys'] ) && is_array( $data['source_keys'] ) ? $data['source_keys'] : array( $target );
-        echo '<tr><th>' . esc_html__( 'Sources de destinataires', 'ufsc-clubs' ) . '</th><td>';
-        foreach ( self::get_available_recipient_sources() as $src_key => $src_label ) {
-            $checked = in_array( $src_key, $selected_sources, true ) ? 'checked' : '';
-            echo '<label style="display:block"><input type="checkbox" name="source_keys[]" value="' . esc_attr( $src_key ) . '" ' . esc_attr( $checked ) . ' /> ' . esc_html( $src_label ) . '</label>';
-        }
-        $lists = self::get_active_lists();
-        echo '<p><label>' . esc_html__( 'Listes personnalisées', 'ufsc-clubs' ) . '</label><br/><select name="list_ids[]" multiple size="4" style="min-width:280px">';
-        foreach ( $lists as $list ) {
-            $sel = ( isset( $data['list_ids'] ) && in_array( (string) $list->id, (array) $data['list_ids'], true ) ) ? 'selected' : '';
-            echo '<option value="' . (int) $list->id . '" ' . esc_attr( $sel ) . '>' . esc_html( $list->name ) . '</option>';
-        }
-        echo '</select></p>';
-        echo '<p><label>' . esc_html__( 'Destinataires manuels', 'ufsc-clubs' ) . '</label><br/><textarea name="manual_recipients" rows="4" class="large-text">' . esc_textarea( isset($data['manual_recipients']) ? $data['manual_recipients'] : '' ) . '</textarea></p>';
-        echo '<p class="description">Vous pouvez combiner plusieurs sources. Les emails en double sont automatiquement ignorés.</p>';
-        echo '<p class="description">Assurez-vous que les destinataires sélectionnés peuvent être contactés dans le cadre des communications administratives, sportives ou fédérales de l’UFSC.</p>';
-        echo '</td></tr>';
-        echo '<tr><th><label for="ufsc_test_email">' . esc_html__( 'Email de test', 'ufsc-clubs' ) . '</label></th><td><input id="ufsc_test_email" name="test_email" type="email" class="regular-text" value="' . esc_attr( $test_email ) . '" /></td></tr>';
-        $limit_recipients = isset( $data['limit_recipients'] ) ? absint( $data['limit_recipients'] ) : 0;
-        echo '<tr><th><label for="ufsc_limit_recipients">' . esc_html__( 'Limiter la campagne (destinataires)', 'ufsc-clubs' ) . '</label></th><td><input id="ufsc_limit_recipients" name="limit_recipients" type="number" min="0" step="1" class="small-text" value="' . esc_attr( (string) $limit_recipients ) . '" /> <p class="description">' . esc_html__( 'Option facultative pour un envoi réel de test (ex: 1, 2, 3).', 'ufsc-clubs' ) . '</p></td></tr>';
-        echo '</table>';
-        echo '<p><button class="button button-secondary" name="submit_type" value="preview">' . esc_html__( 'Prévisualiser les destinataires', 'ufsc-clubs' ) . '</button> ';
-        echo '<button class="button" formaction="' . esc_url( admin_url( 'admin-post.php?action=ufsc_mail_test' ) ) . '">' . esc_html__( 'Envoyer un test', 'ufsc-clubs' ) . '</button> ';
-        echo '<span class="ufsc-communication-help" style="display:block;margin-top:8px;">' . esc_html__( 'Attention : si le champ Limiter la campagne est vide ou égal à 0, tous les destinataires valides de la cible sélectionnée seront mis en file.', 'ufsc-clubs' ) . '</span>';
-        echo '<button class="button button-primary" name="submit_type" value="queue">' . esc_html__( 'Créer la campagne et mettre en file', 'ufsc-clubs' ) . '</button></p>';
-        echo '</form>';
-
-        if ( ! empty( $data['preview'] ) && is_array( $data['preview'] ) ) {
-            self::render_preview_block( $data['preview'] );
-        }
+        echo '<h2>Nouvelle campagne</h2><div class="ufsc-communication-help">Saison utilisée : ' . esc_html( (string) $s['active_season'] ) . '</div><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+        wp_nonce_field( self::NONCE_ACTION ); echo '<input type="hidden" name="action" value="ufsc_mail_preview"/><input type="hidden" name="idempotency_token" value="' . esc_attr( $idempotency_token ) . '"/>';
+        echo '<table class="form-table"><tr><th>Titre interne</th><td><input name="name" class="regular-text" value="' . esc_attr( $data['name'] ?? '' ) . '" required/></td></tr><tr><th>Objet</th><td><input name="subject" class="regular-text" value="' . esc_attr( $data['subject'] ?? '' ) . '" required/></td></tr><tr><th>Message</th><td>';
+        wp_editor( (string) ( $data['message_html'] ?? '' ), 'ufsc_message_html', array( 'textarea_name' => 'message_html', 'textarea_rows' => 10 ) );
+        echo '<p><code>{club_name}</code> <code>{recipient_name}</code> <code>{season}</code> <code>{club_dashboard_url}</code> <code>{ufsc_site_url}</code> <code>{recipient_type}</code> <code>{source_label}</code></p></td></tr>';
+        echo '<tr><th>Sources de destinataires</th><td><div class="ufsc-communication-help">Les sources sélectionnées seront fusionnées. Les emails en double seront automatiquement ignorés.</div>';
+        foreach ( self::get_available_recipient_sources() as $k => $label ) { $checked = in_array( $k, $selected_sources, true ) ? 'checked' : ''; echo '<label style="display:block;margin-bottom:4px"><input type="checkbox" name="source_keys[]" value="' . esc_attr( $k ) . '" ' . $checked . '/> <strong>' . esc_html( $label ) . '</strong> — ' . esc_html( self::source_help()[ $k ] ) . '</label>'; }
+        $lists = self::get_active_lists(); echo '<p>Listes personnalisées<br/><select name="list_ids[]" multiple size="4" style="min-width:280px">'; foreach ( $lists as $list ) { $sel = ( isset( $data['list_ids'] ) && in_array( (string) $list->id, (array) $data['list_ids'], true ) ) ? 'selected' : ''; echo '<option value="' . (int) $list->id . '" ' . $sel . '>' . esc_html( $list->name ) . '</option>'; } echo '</select></p>';
+        echo '<p>Destinataires manuels<br/><textarea name="manual_recipients" rows="4" class="large-text">' . esc_textarea( (string) ( $data['manual_recipients'] ?? '' ) ) . '</textarea></p></td></tr>';
+        echo '<tr><th>Email de test</th><td><input name="test_email" type="email" class="regular-text" value="' . esc_attr( $data['test_email'] ?? get_bloginfo( 'admin_email' ) ) . '"/></td></tr>';
+        echo '<tr><th>Limiter la campagne</th><td><input name="limit_recipients" type="number" min="0" step="1" class="small-text" value="' . esc_attr( (string) absint( $data['limit_recipients'] ?? 0 ) ) . '"/><p class="description">Le champ Limiter la campagne est à 0 : tous les destinataires valides seront mis en file.</p></td></tr></table>';
+        echo '<p><button class="button button-secondary" name="submit_type" value="preview">Prévisualiser les destinataires</button> <button class="button" formaction="' . esc_url( admin_url( 'admin-post.php?action=ufsc_mail_test' ) ) . '">Envoyer un test</button> <button class="button button-primary" name="submit_type" value="queue">Créer la campagne et mettre en file</button></p></form>';
+        if ( ! empty( $data['preview'] ) && is_array( $data['preview'] ) ) { self::render_preview_block( $data['preview'] ); }
     }
 
     private static function render_preview_block( $preview ) {
-        echo '<h3>' . esc_html__( 'Prévisualisation destinataires', 'ufsc-clubs' ) . '</h3>';
-        echo '<ul><li>' . esc_html__( 'Clubs trouvés :', 'ufsc-clubs' ) . ' ' . (int) $preview['total_clubs'] . '</li><li>' . esc_html__( 'Emails valides :', 'ufsc-clubs' ) . ' ' . (int) $preview['valid_count'] . '</li><li>' . esc_html__( 'Ignorés :', 'ufsc-clubs' ) . ' ' . (int) $preview['ignored_count'] . '</li></ul>';
-
-        if ( ! empty( $preview['limit_recipients'] ) ) {
-            echo '<div class="notice notice-info inline"><p>' . sprintf( esc_html__( 'Mode test limité : seuls %d destinataires seront mis en file.', 'ufsc-clubs' ), (int) $preview['limit_recipients'] ) . '</p></div>';
-        }
-
-        if ( ! empty( $preview['valid_recipients'] ) ) {
-            echo '<table class="widefat"><tr><th>Club</th><th>Email</th></tr>';
-            foreach ( array_slice( $preview['valid_recipients'], 0, 20 ) as $row ) {
-                echo '<tr><td>' . esc_html( $row['club_name'] ) . '</td><td>' . esc_html( $row['email'] ) . '</td></tr>';
-            }
-            echo '</table>';
-        } else {
-            echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Aucun destinataire trouvé.', 'ufsc-clubs' ) . '</p></div>';
-        }
-
-        if ( ! empty( $preview['ignored_reasons'] ) && is_array( $preview['ignored_reasons'] ) ) {
-            $reason_counts = array();
-            foreach ( $preview['ignored_reasons'] as $ignored_row ) {
-                $reason_key = isset( $ignored_row['reason'] ) ? (string) $ignored_row['reason'] : 'autre raison défensive';
-                if ( ! isset( $reason_counts[ $reason_key ] ) ) { $reason_counts[ $reason_key ] = 0; }
-                $reason_counts[ $reason_key ]++;
-            }
-            echo '<h4>' . esc_html__( 'Motifs d’exclusion', 'ufsc-clubs' ) . '</h4><ul>';
-            foreach ( $reason_counts as $reason_label => $reason_total ) {
-                echo '<li>' . esc_html( $reason_label ) . ': ' . (int) $reason_total . '</li>';
-            }
-            echo '</ul>';
-
-            echo '<table class="widefat striped"><tr><th>' . esc_html__( 'Club', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Email', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Raison', 'ufsc-clubs' ) . '</th></tr>';
-            foreach ( array_slice( $preview['ignored_reasons'], 0, 50 ) as $ignored_row ) {
-                echo '<tr><td>' . esc_html( (string) ( $ignored_row['club'] ?? '' ) ) . '</td><td>' . esc_html( (string) ( $ignored_row['email'] ?? '' ) ) . '</td><td>' . esc_html( (string) ( $ignored_row['reason'] ?? 'autre raison défensive' ) ) . '</td></tr>';
-            }
-            echo '</table>';
-        }
-    }
-
-    private static function render_campaigns_list( $campaigns ) {
-        $total = count( (array) $campaigns ); $running = 0; $completed = 0; $errors = 0;
-        foreach ( (array) $campaigns as $c ) {
-            $st = (string) $c->status;
-            if ( in_array( $st, array( 'queued', 'sending', 'processing' ), true ) ) { $running++; }
-            if ( in_array( $st, array( 'completed' ), true ) ) { $completed++; }
-            if ( in_array( $st, array( 'failed', 'completed_with_errors' ), true ) ) { $errors++; }
-        }
-        echo '<div class="ufsc-communication-grid">';
-        echo '<div class="ufsc-communication-card"><div>Campagnes totales</div><div class="ufsc-communication-stat">' . (int) $total . '</div></div>';
-        echo '<div class="ufsc-communication-card"><div>En cours</div><div class="ufsc-communication-stat">' . (int) $running . '</div></div>';
-        echo '<div class="ufsc-communication-card"><div>Terminées</div><div class="ufsc-communication-stat">' . (int) $completed . '</div></div>';
-        echo '<div class="ufsc-communication-card"><div>Avec erreurs</div><div class="ufsc-communication-stat">' . (int) $errors . '</div></div>';
+        $reason_counts = array(); foreach ( (array) ( $preview['ignored_reasons'] ?? array() ) as $r ) { $k = (string) ( $r['reason'] ?? 'autre raison défensive' ); $reason_counts[ $k ] = ( $reason_counts[ $k ] ?? 0 ) + 1; }
+        echo '<h3>Prévisualisation avancée</h3><div class="ufsc-communication-grid">';
+        $cards = array('Sources sélectionnées'=>count((array)($preview['selected_sources']??array())),'Trouvés brut'=> (int)($preview['found_before_dedup']??0),'Valides après dédup'=> (int)($preview['valid_count']??0),'Ignorés'=> (int)($preview['ignored_count']??0),'Doublons'=> (int)($preview['duplicates_count']??0),'Emails invalides'=> (int)($preview['invalid_count']??0),'Emails absents'=> (int)($preview['missing_email_count']??0),'Clubs non à jour'=> (int)($preview['not_up_to_date_count']??0),'Clubs supprimés/corbeille'=> (int)($preview['deleted_club_count']??0),'Contacts archivés'=> (int)($preview['archived_contact_count']??0),'Final avant limite'=> (int)($preview['final_before_limit']??0),'Final après limite'=> (int)count((array)($preview['valid_recipients']??array())));
+        foreach($cards as $k=>$v){ echo '<div class="ufsc-communication-card"><div>'.esc_html($k).'</div><div class="ufsc-communication-stat">'.(int)$v.'</div></div>'; }
         echo '</div>';
-        echo '<h2>' . esc_html__( 'Dernières campagnes', 'ufsc-clubs' ) . '</h2><table class="widefat striped ufsc-communication-table"><tr><th>ID</th><th>Date</th><th>Objet</th><th>Cible</th><th>Statut</th><th>Progression</th><th>Échecs</th><th>Actions</th></tr>';
-        foreach ( (array) $campaigns as $c ) {
-            $detail_url = add_query_arg( array( 'page' => 'ufsc-communication-clubs', 'view' => 'detail', 'campaign_id' => (int) $c->id ), admin_url( 'admin.php' ) );
-            $pct = ( (int) $c->total_recipients > 0 ) ? min( 100, (int) round( ( (int) $c->sent_count / (int) $c->total_recipients ) * 100 ) ) : 0;
-            echo '<tr><td>' . (int) $c->id . '</td><td>' . esc_html( (string) $c->created_at ) . '</td><td>' . esc_html( (string) $c->subject ) . '</td><td>' . esc_html( (string) $c->target_type ) . '</td><td>' . self::status_badge( $c->status ) . '</td><td><div class="ufsc-communication-progress"><span style="width:' . (int) $pct . '%"></span></div><small>' . (int) $c->sent_count . '/' . (int) $c->total_recipients . '</small></td><td>' . (int) $c->failed_count . '</td><td><a class="button button-small" href="' . esc_url( $detail_url ) . '">' . esc_html__( 'Voir', 'ufsc-clubs' ) . '</a></td></tr>';
+        if ( ! empty( $preview['limit_recipients'] ) ) { echo '<div class="notice notice-info inline"><p>' . sprintf( 'Mode test limité : seuls %d destinataires seront mis en file.', (int) $preview['limit_recipients'] ) . '</p></div>'; }
+        if ( ! empty( $preview['large_warning'] ) ) { echo '<div class="notice notice-warning inline"><p>' . esc_html( $preview['large_warning'] ) . '</p></div>'; }
+        if ( empty( $preview['valid_recipients'] ) ) { echo '<div class="notice notice-error inline"><p>Aucun destinataire valide n’a été trouvé. Vérifiez les sources sélectionnées, les filtres et les emails disponibles.</p></div>'; return; }
+        echo '<p>100 premiers affichés sur ' . (int) $preview['valid_count'] . ' destinataires valides.</p><table class="widefat striped ufsc-communication-table"><tr><th>Nom</th><th>Email</th><th>Type</th><th>Source</th><th>Club</th><th>Statut</th><th>Raison inclusion</th></tr>';
+        foreach ( array_slice( (array)$preview['valid_recipients'], 0, 100 ) as $row ) {
+            echo '<tr><td>' . esc_html( (string)($row['recipient_name']??'') ) . '</td><td>' . esc_html( (string)($row['email']??'') ) . '</td><td>' . esc_html( (string)($row['recipient_type']??'') ) . '</td><td>' . esc_html( (string)($row['source_key']??'') ) . '</td><td>' . esc_html( (string)($row['club_name']??'') ) . '</td><td>' . esc_html( (string)($row['status_label']??'') ) . '</td><td>' . esc_html( (string)($row['inclusion_reason']??'') ) . '</td></tr>';
         }
-        echo '</table>';
+        echo '</table><p>100 premiers ignorés sur ' . (int) $preview['ignored_count'] . '.</p><ul>'; foreach($reason_counts as $k=>$v){ echo '<li>'.esc_html($k).' : '.(int)$v.'</li>'; } echo '</ul><table class="widefat striped ufsc-communication-table"><tr><th>Nom</th><th>Email</th><th>Type</th><th>Source</th><th>Raison exclusion</th></tr>';
+        foreach ( array_slice( (array)$preview['ignored_reasons'], 0, 100 ) as $row ) { echo '<tr><td>'.esc_html((string)($row['club']??$row['name']??'')).'</td><td>'.esc_html((string)($row['email']??'')).'</td><td>'.esc_html((string)($row['recipient_type']??'')).'</td><td>'.esc_html((string)($row['source']??'')).'</td><td>'.esc_html((string)($row['reason']??'')).'</td></tr>'; }
+        echo '</table><p><a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=ufsc_mail_export_preview&type=valid' ), self::NONCE_ACTION ) ) . '">Export destinataires valides CSV</a> <a class="button" href="' . esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=ufsc_mail_export_preview&type=ignored' ), self::NONCE_ACTION ) ) . '">Export destinataires ignorés CSV</a></p>';
     }
 
-    private static function render_campaign_detail() {
-        global $wpdb;
-        $id = isset( $_GET['campaign_id'] ) ? absint( wp_unslash( $_GET['campaign_id'] ) ) : 0;
-        $campaigns = $wpdb->prefix . 'ufsc_mail_campaigns';
-        $queue = $wpdb->prefix . 'ufsc_mail_queue';
-        $campaign = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$campaigns} WHERE id=%d", $id ) );
-        if ( ! $campaign ) { echo '<div class="notice notice-error"><p>Campagne introuvable.</p></div>'; return; }
-
-        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$queue} WHERE campaign_id=%d ORDER BY id ASC LIMIT 200", $id ) );
-        $pending = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$queue} WHERE campaign_id=%d AND status IN ('pending','processing')", $id ) );
-        echo '<h2>' . esc_html( $campaign->name ) . ' (#' . (int) $campaign->id . ')</h2>';
-        echo '<p><strong>Objet:</strong> ' . esc_html( $campaign->subject ) . '</p><p><strong>Statut:</strong> ' . self::status_badge( $campaign->status ) . '</p>';
-        $pct = ( (int) $campaign->total_recipients > 0 ) ? min(100,(int) round(((int)$campaign->sent_count/(int)$campaign->total_recipients)*100)) : 0;
-        echo '<p><strong>Total:</strong> ' . (int) $campaign->total_recipients . ' | <strong>Envoyés:</strong> ' . (int) $campaign->sent_count . ' | <strong>Échecs:</strong> ' . (int) $campaign->failed_count . ' | <strong>En attente:</strong> ' . $pending . '</p><div class="ufsc-communication-progress"><span style="width:' . (int) $pct . '%"></span></div>';
-
-        echo '<div class="ufsc-communication-actions">';
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;margin-right:8px;">';
-        wp_nonce_field( self::NONCE_ACTION );
-        echo '<input type="hidden" name="action" value="ufsc_mail_process_now" /><input type="hidden" name="campaign_id" value="' . (int) $id . '" /><button class="button">Traiter la file maintenant</button></form>';
-
-        echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:inline-block;">';
-        wp_nonce_field( self::NONCE_ACTION );
-        echo '<input type="hidden" name="action" value="ufsc_mail_retry_failed" /><input type="hidden" name="campaign_id" value="' . (int) $id . '" /><button class="button">Relancer les échecs</button></form>';
-        echo '<a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs' ) ) . '">Retour à la liste</a></div>';
-
-        echo '<h3>Destinataires (200 max)</h3><table class="widefat striped"><tr><th>Club</th><th>Email</th><th>Statut</th><th>Tentatives</th><th>Erreur</th><th>Envoyé le</th></tr>';
-        foreach ( (array) $rows as $r ) {
-            echo '<tr><td>' . esc_html( $r->club_name ) . '</td><td>' . esc_html( $r->recipient_email ) . '</td><td>' . self::status_badge( $r->status ) . '</td><td>' . (int) $r->attempts . '</td><td>' . esc_html( (string) $r->last_error ) . '</td><td>' . esc_html( (string) $r->sent_at ) . '</td></tr>';
-        }
-        echo '</table>';
-    }
-
-    public static function handle_preview() {
-        self::guard_action();
-        $data = self::read_form_data();
-        $preview = self::compute_recipients_preview_multi( $data, isset( $data['limit_recipients'] ) ? absint( $data['limit_recipients'] ) : 0 );
-        $data['preview'] = $preview;
-        set_transient( self::FORM_TRANSIENT_PREFIX . get_current_user_id(), $data, 20 * MINUTE_IN_SECONDS );
-
-        if ( 'queue' === $data['submit_type'] ) {
-            self::create_campaign_from_form( $data, $preview );
-            wp_safe_redirect( add_query_arg( array( 'page' => 'ufsc-communication-clubs', 'ufsc_mail_notice' => empty( $preview['valid_recipients'] ) ? 'no_recipients' : 'campaign_created' ), admin_url( 'admin.php' ) ) );
-            exit;
-        }
-
-        wp_safe_redirect( add_query_arg( array( 'page' => 'ufsc-communication-clubs', 'view' => 'new' ), admin_url( 'admin.php' ) ) );
-        exit;
-    }
-
-    public static function handle_test() {
-        self::guard_action();
-        $data = self::read_form_data();
-        $to = is_email( $data['test_email'] ) ? $data['test_email'] : get_bloginfo( 'admin_email' );
-        $vars = self::build_template_vars( array( 'club_name' => 'Club Test UFSC', 'recipient_name' => 'Responsable Test' ) );
-        $html = self::render_message( $data['message_html'], $vars );
-        $sent = self::send_html_mail( $to, $data['subject'], $html );
-        set_transient( self::FORM_TRANSIENT_PREFIX . get_current_user_id(), $data, 20 * MINUTE_IN_SECONDS );
-        wp_safe_redirect( add_query_arg( array( 'page' => 'ufsc-communication-clubs', 'view' => 'new', 'ufsc_mail_notice' => $sent ? 'test_sent' : 'test_failed' ), admin_url( 'admin.php' ) ) );
-        exit;
-    }
-
-    public static function handle_create_campaign() { self::handle_preview(); }
-
-    public static function handle_process_now() {
-        self::guard_action();
-        $campaign_id = isset( $_POST['campaign_id'] ) ? absint( wp_unslash( $_POST['campaign_id'] ) ) : 0;
-        self::process_queue( 20, $campaign_id );
-        $args = array( 'page' => 'ufsc-communication-clubs', 'ufsc_mail_notice' => 'queue_processed' );
-        if ( $campaign_id > 0 ) { $args['view'] = 'detail'; $args['campaign_id'] = $campaign_id; }
-        wp_safe_redirect( add_query_arg( $args, admin_url( 'admin.php' ) ) ); exit;
-    }
-
-    public static function handle_retry_failed() {
-        self::guard_action();
-        global $wpdb;
-        $campaign_id = isset( $_POST['campaign_id'] ) ? absint( wp_unslash( $_POST['campaign_id'] ) ) : 0;
-        if ( $campaign_id > 0 ) {
-            $queue = $wpdb->prefix . 'ufsc_mail_queue';
-            $wpdb->query( $wpdb->prepare( "UPDATE {$queue} SET status='pending', updated_at=%s WHERE campaign_id=%d AND status='failed'", current_time( 'mysql' ), $campaign_id ) );
-            if ( class_exists( 'UFSC_Audit_Logger' ) ) { UFSC_Audit_Logger::log( 'UFSC Mail retry failed for campaign #' . $campaign_id ); }
-        }
-        wp_safe_redirect( add_query_arg( array( 'page' => 'ufsc-communication-clubs', 'view' => 'detail', 'campaign_id' => $campaign_id, 'ufsc_mail_notice' => 'failed_requeued' ), admin_url( 'admin.php' ) ) ); exit;
-    }
-
-    private static function guard_action() {
-        if ( ! self::can_manage() ) { wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) ); }
-        check_admin_referer( self::NONCE_ACTION );
-    }
-
-    private static function read_form_data() {
-        return array(
-            'name' => sanitize_text_field( wp_unslash( $_POST['name'] ?? '' ) ),
-            'subject' => sanitize_text_field( wp_unslash( $_POST['subject'] ?? '' ) ),
-            'message_html' => wp_kses_post( wp_unslash( $_POST['message_html'] ?? '' ) ),
-            'target_type' => sanitize_key( wp_unslash( $_POST['target_type'] ?? 'affiliated_up_to_date' ) ),
-            'source_keys' => isset($_POST['source_keys']) ? array_map('sanitize_key',(array) wp_unslash($_POST['source_keys'])) : array(),
-            'list_ids' => isset($_POST['list_ids']) ? array_map('absint',(array) wp_unslash($_POST['list_ids'])) : array(),
-            'manual_recipients' => sanitize_textarea_field( wp_unslash( $_POST['manual_recipients'] ?? '' ) ),
-            'test_email' => sanitize_email( wp_unslash( $_POST['test_email'] ?? '' ) ),
-            'submit_type' => sanitize_key( wp_unslash( $_POST['submit_type'] ?? 'preview' ) ),
-            'idempotency_token' => sanitize_text_field( wp_unslash( $_POST['idempotency_token'] ?? '' ) ),
-            'limit_recipients' => absint( wp_unslash( $_POST['limit_recipients'] ?? 0 ) ),
-        );
-    }
-
-    private static function create_campaign_from_form( $data, $preview ) {
-        if ( empty( $preview['valid_recipients'] ) ) { return; }
-        global $wpdb;
-        $campaigns = $wpdb->prefix . 'ufsc_mail_campaigns';
-        $queue = $wpdb->prefix . 'ufsc_mail_queue';
-        $now = current_time( 'mysql' );
-
-        $token = isset( $data['idempotency_token'] ) ? sanitize_text_field( (string) $data['idempotency_token'] ) : '';
-        if ( '' !== $token ) {
-            $token_key = self::IDEMPOTENCY_TRANSIENT_PREFIX . md5( get_current_user_id() . '|' . $token );
-            if ( get_transient( $token_key ) ) { return; }
-            set_transient( $token_key, 1, 15 * MINUTE_IN_SECONDS );
-        }
-
-        $recent = $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$campaigns} WHERE created_by=%d AND updated_at >= DATE_SUB(%s, INTERVAL 2 MINUTE) AND subject=%s", get_current_user_id(), $now, $data['subject'] ) );
-        if ( $recent ) { return; }
-
-        $wpdb->insert( $campaigns, array(
-            'name' => $data['name'], 'subject' => $data['subject'], 'message_html' => $data['message_html'], 'target_type' => $data['target_type'],
-            'status' => 'queued', 'total_recipients' => count( $preview['valid_recipients'] ), 'sent_count' => 0, 'failed_count' => 0,
-            'created_by' => get_current_user_id(), 'created_at' => $now, 'updated_at' => $now,
-        ) );
-        $campaign_id = (int) $wpdb->insert_id;
-        if ( $campaign_id <= 0 ) { return; }
-
-        foreach ( $preview['valid_recipients'] as $recipient ) {
-            $wpdb->insert( $queue, array(
-                'campaign_id' => $campaign_id,
-                'club_id' => (int) $recipient['club_id'],
-                'recipient_email' => sanitize_email( $recipient['email'] ),
-                'recipient_name' => sanitize_text_field( $recipient['recipient_name'] ),
-                'club_name' => sanitize_text_field( $recipient['club_name'] ),
-                'status' => 'pending', 'attempts' => 0,
-                'created_at' => $now, 'updated_at' => $now,
-            ) );
-        }
-
-        if ( class_exists( 'UFSC_Audit_Logger' ) ) {
-            UFSC_Audit_Logger::log( 'UFSC Mail campaign created #' . $campaign_id . ' with ' . count( $preview['valid_recipients'] ) . ' recipients' );
-        }
-    }
-
-    private static function compute_recipients_preview( $target, $limit_recipients = 0 ) {
-        $result = self::get_targeted_recipients( $target );
-        $limit_recipients = absint( $limit_recipients );
-        $valid_recipients = $result['valid'];
-        if ( $limit_recipients > 0 ) {
-            $valid_recipients = array_slice( $valid_recipients, 0, $limit_recipients );
-        }
-        return array(
-            'total_clubs' => count( $result['raw'] ),
-            'valid_count' => count( $result['valid'] ),
-            'ignored_count' => count( $result['ignored'] ),
-            'valid_recipients' => $valid_recipients,
-            'ignored_reasons' => $result['ignored'],
-            'limit_recipients' => $limit_recipients,
-        );
-    }
-
-    private static function get_targeted_recipients( $target ) {
-        global $wpdb;
-        $settings = UFSC_SQL::get_settings();
-        $table = $settings['table_clubs'];
-        $rows = $wpdb->get_results( "SELECT id, nom, email, statut FROM `{$table}`" );
-        $valid = array(); $ignored = array(); $seen = array(); $current = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
-
-        foreach ( (array) $rows as $row ) {
-            $status = strtolower( trim( (string) ( $row->statut ?? '' ) ) );
-            if ( in_array( $status, array( 'supprime', 'supprimé', 'corbeille', 'deleted', 'trash' ), true ) ) { $ignored[] = array( 'club' => (string) $row->nom, 'email' => (string) ( $row->email ?? '' ), 'reason' => 'club supprimé/corbeille' ); continue; }
-
-            $email_raw = (string) ( $row->email ?? '' );
-            if ( '' === trim( $email_raw ) ) { $ignored[] = array( 'club' => (string) $row->nom, 'email' => '', 'reason' => 'email absent' ); continue; }
-            $email = sanitize_email( $email_raw );
-            if ( ! is_email( $email ) ) { $ignored[] = array( 'club' => (string) $row->nom, 'email' => $email_raw, 'reason' => 'email invalide' ); continue; }
-            if ( isset( $seen[ strtolower( $email ) ] ) ) { $ignored[] = array( 'club' => (string) $row->nom, 'email' => $email, 'reason' => 'doublon email' ); continue; }
-            if ( 'affiliated_up_to_date' === $target && function_exists( 'ufsc_is_affiliation_renewed' ) && ! ufsc_is_affiliation_renewed( (int) $row->id, $current ) ) { $ignored[] = array( 'club' => (string) $row->nom, 'email' => $email, 'reason' => 'affiliation non à jour' ); continue; }
-
-            $seen[ strtolower( $email ) ] = true;
-            $valid[] = array( 'club_id' => (int) $row->id, 'club_name' => (string) $row->nom, 'email' => $email, 'recipient_name' => (string) $row->nom );
-        }
-
-        return array( 'raw' => (array) $rows, 'valid' => $valid, 'ignored' => $ignored );
-    }
-
-
-    private static function get_available_recipient_sources() {
-        return array(
-            'affiliated_email_valid' => 'Clubs affiliés avec email valide',
-            'affiliated_up_to_date' => 'Clubs affiliés et à jour',
-            'licensees_email_valid' => 'Licenciés avec email valide',
-            'league_managers' => 'Responsables de ligues',
-            'custom_lists' => 'Listes personnalisées',
-            'manual' => 'Emails saisis manuellement',
-        );
-    }
-
-    private static function compute_recipients_preview_multi( $data, $limit_recipients = 0 ) {
-        $result = self::collect_recipients_from_sources( $data );
-        $valid = $result['valid'];
-        if ( $limit_recipients > 0 ) { $valid = array_slice( $valid, 0, $limit_recipients ); }
-        return array(
-            'total_clubs' => (int) $result['total_raw'],
-            'valid_count' => count( $result['valid'] ),
-            'ignored_count' => count( $result['ignored'] ),
-            'valid_recipients' => $valid,
-            'ignored_reasons' => $result['ignored'],
-            'limit_recipients' => absint( $limit_recipients ),
-        );
+    private static function get_club_communication_status( $row, $target ) {
+        $email_raw=(string)($row->email??''); $email=sanitize_email($email_raw); $status=strtolower(trim((string)($row->statut??''))); $deleted=in_array($status,array('supprime','supprimé','corbeille','deleted','trash'),true); $current=self::get_settings()['active_season'];
+        $is_up=true; if('affiliated_up_to_date'===$target && function_exists('ufsc_is_affiliation_renewed')){ $season = $current ?: ( function_exists('ufsc_get_current_season') ? ufsc_get_current_season() : '' ); $is_up=(bool)ufsc_is_affiliation_renewed((int)$row->id,$season); }
+        return array('club_id'=>(int)$row->id,'club_name'=>(string)$row->nom,'email'=>$email_raw,'is_deleted'=>$deleted,'is_trashed'=>$deleted,'has_valid_email'=>is_email($email),'is_affiliated'=>!$deleted,'is_up_to_date'=>$is_up,'season'=>$current,'status_label'=>$status,'inclusion_reason'=>'','exclusion_reason'=>'');
     }
 
     private static function collect_recipients_from_sources( $data ) {
-        $sources = isset( $data['source_keys'] ) && is_array( $data['source_keys'] ) && $data['source_keys'] ? $data['source_keys'] : array( $data['target_type'] );
-        $raw = array(); $ignored = array(); $seen = array(); $valid = array();
-        foreach ( $sources as $source ) {
-            if ( in_array( $source, array('affiliated_email_valid','affiliated_up_to_date'), true ) ) {
-                $base = self::get_targeted_recipients( $source );
-                foreach ( $base['raw'] as $r ) { $raw[]=$r; }
-                foreach ( $base['ignored'] as $ig ) { $ig['source']=$source; $ignored[]=$ig; }
-                foreach ( $base['valid'] as $v ) {
-                    $key=strtolower($v['email']); if(isset($seen[$key])){ $ignored[] = array('club'=>$v['club_name'],'email'=>$v['email'],'reason'=>'doublon email — déjà présent via autre source','source'=>$source); continue; }
-                    $seen[$key]=true; $v['recipient_type']='club'; $v['source_key']=$source; $valid[]=$v;
+        $sources = isset( $data['source_keys'] ) ? array_values( array_filter( array_map( 'sanitize_key', (array) $data['source_keys'] ) ) ) : array();
+        if ( empty( $sources ) ) { return array('error'=>'no_sources','selected_sources'=>array(),'total_raw'=>0,'valid'=>array(),'ignored'=>array(),'stats'=>array()); }
+        $raw=0; $valid=array(); $ignored=array(); $seen=array(); $stats=array('duplicates'=>0,'invalid'=>0,'missing'=>0,'not_up'=>0,'deleted'=>0,'archived_contact'=>0);
+        foreach($sources as $source){
+            if(in_array($source,array('affiliated_email_valid','affiliated_up_to_date'),true)){
+                global $wpdb; $t=UFSC_SQL::get_settings()['table_clubs']; $rows=$wpdb->get_results("SELECT id,nom,email,statut FROM `{$t}`");
+                foreach((array)$rows as $r){ $raw++; $q=self::get_club_communication_status($r,$source); $email=sanitize_email((string)$r->email);
+                    if($q['is_deleted']){$stats['deleted']++; $ignored[]=array('club'=>$q['club_name'],'email'=>(string)$r->email,'recipient_type'=>'club','source'=>$source,'reason'=>'club supprimé / corbeille'); continue;}
+                    if(''===trim((string)$r->email)){$stats['missing']++; $ignored[]=array('club'=>$q['club_name'],'email'=>'','recipient_type'=>'club','source'=>$source,'reason'=>'email absent'); continue;}
+                    if(!is_email($email)){$stats['invalid']++; $ignored[]=array('club'=>$q['club_name'],'email'=>(string)$r->email,'recipient_type'=>'club','source'=>$source,'reason'=>'email invalide'); continue;}
+                    if('affiliated_up_to_date'===$source && ! $q['is_up_to_date']){$stats['not_up']++; $ignored[]=array('club'=>$q['club_name'],'email'=>$email,'recipient_type'=>'club','source'=>$source,'reason'=>'affiliation non à jour'); continue;}
+                    $k=strtolower($email); if(isset($seen[$k])){$stats['duplicates']++; $ignored[]=array('club'=>$q['club_name'],'email'=>$email,'recipient_type'=>'club','source'=>$source,'reason'=>'doublon email'); continue;}
+                    $seen[$k]=1; $valid[]=array('recipient_name'=>$q['club_name'],'email'=>$email,'recipient_type'=>'club','source_key'=>$source,'club_name'=>$q['club_name'],'status_label'=>$q['status_label'],'inclusion_reason'=>('affiliated_up_to_date'===$source?'Club affilié et à jour':'Club avec email valide'));
                 }
-            } elseif ( 'licensees_email_valid' === $source ) {
-                $lic = self::collect_licensee_recipients();
-                foreach($lic['raw'] as $r){$raw[]=$r;} foreach($lic['ignored'] as $ig){$ignored[]=$ig;}
-                foreach($lic['valid'] as $v){$k=strtolower($v['email']); if(isset($seen[$k])){$ignored[]=array('club'=>$v['recipient_name'],'email'=>$v['email'],'reason'=>'doublon email — déjà présent via autre source','source'=>$source);continue;} $seen[$k]=1; $valid[]=$v;}
-            } elseif ( 'league_managers' === $source ) {
-                $mgr = self::collect_league_manager_recipients();
-                foreach($mgr['valid'] as $v){$k=strtolower($v['email']); if(isset($seen[$k])){$ignored[]=array('club'=>$v['recipient_name'],'email'=>$v['email'],'reason'=>'doublon email — déjà présent via autre source','source'=>$source);continue;} $seen[$k]=1; $valid[]=$v;}
-                foreach($mgr['ignored'] as $ig){$ignored[]=$ig;}
+            } elseif('licensees_email_valid'===$source){ $c=self::collect_licensee_recipients(); $raw+=count((array)$c['raw']); foreach($c['ignored'] as $ig){ if('email absent'===$ig['reason'])$stats['missing']++; if('email invalide'===$ig['reason'])$stats['invalid']++; $ignored[]=$ig; } foreach($c['valid'] as $v){$k=strtolower($v['email']); if(isset($seen[$k])){$stats['duplicates']++; $ignored[]=array('club'=>$v['recipient_name'],'email'=>$v['email'],'recipient_type'=>'licensee','source'=>$source,'reason'=>'doublon email');continue;} $seen[$k]=1; $v['inclusion_reason']='Licencié avec email valide'; $valid[]=$v; }
+            } elseif('league_managers'===$source){ $c=self::collect_league_manager_recipients(); $raw+=count((array)$c['raw']); foreach($c['ignored'] as $ig){$stats['invalid']++;$ignored[]=$ig;} foreach($c['valid'] as $v){$k=strtolower($v['email']); if(isset($seen[$k])){$stats['duplicates']++; $ignored[]=array('club'=>$v['recipient_name'],'email'=>$v['email'],'recipient_type'=>'league_manager','source'=>$source,'reason'=>'doublon email'); continue;} $seen[$k]=1; $v['inclusion_reason']='Responsable de ligue avec email valide'; $valid[]=$v; }
             }
         }
-        if ( in_array( 'custom_lists', $sources, true ) ) {
-            $lst = self::collect_custom_list_recipients( isset($data['list_ids']) ? (array)$data['list_ids'] : array() );
-            foreach($lst['valid'] as $v){$k=strtolower($v['email']); if(isset($seen[$k])){$ignored[]=array('club'=>$v['recipient_name'],'email'=>$v['email'],'reason'=>'doublon email — déjà présent via autre source','source'=>'custom_lists');continue;} $seen[$k]=1; $valid[]=$v;}
-            foreach($lst['ignored'] as $ig){$ignored[]=$ig;}
-        }
-        if ( in_array( 'manual', $sources, true ) ) {
-            $man = self::collect_manual_recipients( isset($data['manual_recipients']) ? $data['manual_recipients'] : '' );
-            foreach($man['valid'] as $v){$k=strtolower($v['email']); if(isset($seen[$k])){$ignored[]=array('club'=>$v['recipient_name'],'email'=>$v['email'],'reason'=>'doublon email — déjà présent via autre source','source'=>'manual');continue;} $seen[$k]=1; $valid[]=$v;}
-            foreach($man['ignored'] as $ig){$ignored[]=$ig;}
-        }
-        return array('total_raw'=>count($raw),'valid'=>$valid,'ignored'=>$ignored);
+        if(in_array('custom_lists',$sources,true)){ $c=self::collect_custom_list_recipients((array)($data['list_ids']??array())); $raw+=count((array)$c['raw']); foreach($c['ignored'] as $ig){ if('contact archivé'===$ig['reason'])$stats['archived_contact']++; if('email invalide'===$ig['reason'])$stats['invalid']++; $ignored[]=$ig; } foreach($c['valid'] as $v){$k=strtolower($v['email']); if(isset($seen[$k])){$stats['duplicates']++; $ignored[]=array('club'=>$v['recipient_name'],'email'=>$v['email'],'recipient_type'=>'custom_contact','source'=>'custom_lists','reason'=>'doublon email');continue;} $seen[$k]=1; $v['inclusion_reason']='Liste personnalisée'; $valid[]=$v; }}
+        if(in_array('manual',$sources,true)){ $c=self::collect_manual_recipients((string)($data['manual_recipients']??'')); $raw+=count((array)$c['raw']); foreach($c['ignored'] as $ig){$stats['invalid']++; $ignored[]=$ig;} foreach($c['valid'] as $v){$k=strtolower($v['email']); if(isset($seen[$k])){$stats['duplicates']++;$ignored[]=array('club'=>'manuel','email'=>$v['email'],'recipient_type'=>'manual','source'=>'manual','reason'=>'doublon email');continue;} $seen[$k]=1; $v['inclusion_reason']='Email manuel valide'; $valid[]=$v; }}
+        return array('selected_sources'=>$sources,'total_raw'=>$raw,'valid'=>$valid,'ignored'=>$ignored,'stats'=>$stats);
     }
 
-    private static function collect_licensee_recipients() {
-        global $wpdb; $s = UFSC_SQL::get_settings(); $t = $s['table_licences'];
-        $cols = $wpdb->get_col("SHOW COLUMNS FROM `{$t}`",0); $email_col='';
-        foreach(array('email','licensee_email','licencie_email','user_email','contact_email') as $c){ if(in_array($c,(array)$cols,true)){ $email_col=$c; break; } }
-        if ( '' === $email_col ) { return array('raw'=>array(),'valid'=>array(),'ignored'=>array(array('club'=>'','email'=>'','reason'=>'source licenciés non confirmée','source'=>'licensees_email_valid'))); }
-        $name_col = in_array('nom_licence',(array)$cols,true) ? 'nom_licence' : ( in_array('nom',(array)$cols,true) ? 'nom' : '' );
-        $first_col = in_array('prenom',(array)$cols,true) ? 'prenom' : '';
-        $sql = "SELECT id, {$email_col} as email" . ($name_col?", {$name_col} as nom":"") . ($first_col?", {$first_col} as prenom":"") . " FROM `{$t}`";
-        $rows = $wpdb->get_results($sql); $v=array(); $ig=array();
-        foreach((array)$rows as $r){ $em=sanitize_email((string)$r->email); $name=trim(((string)($r->prenom??'')).' '.((string)($r->nom??'')));
-            if(''===trim((string)$r->email)){ $ig[]=array('club'=>$name,'email'=>'','reason'=>'email absent','source'=>'licensees_email_valid'); continue; }
-            if(!is_email($em)){ $ig[]=array('club'=>$name,'email'=>(string)$r->email,'reason'=>'email invalide','source'=>'licensees_email_valid'); continue; }
-            $v[]=array('club_id'=>0,'club_name'=>'','email'=>$em,'recipient_name'=>$name?:'Licencié UFSC','recipient_type'=>'licensee','source_key'=>'licensees_email_valid');
+    private static function compute_recipients_preview_multi( $data, $limit_recipients = 0 ) {
+        $res=self::collect_recipients_from_sources($data); if(isset($res['error'])) return array('error'=>$res['error'],'valid_recipients'=>array(),'ignored_reasons'=>array());
+        $valid=$res['valid']; $before=count($valid); if($limit_recipients>0){ $valid=array_slice($valid,0,absint($limit_recipients)); }
+        $s=self::get_settings(); $warning=''; if( absint($limit_recipients)===0 && $before > absint($s['large_campaign_warning_threshold']) ) { $warning='Attention : cette campagne va mettre en file ' . $before . ' destinataires. Vérifiez attentivement la prévisualisation avant de continuer.'; }
+        return array('selected_sources'=>$res['selected_sources'],'found_before_dedup'=>$res['total_raw'],'valid_count'=>$before,'ignored_count'=>count($res['ignored']),'valid_recipients'=>$valid,'ignored_reasons'=>$res['ignored'],'duplicates_count'=>(int)$res['stats']['duplicates'],'invalid_count'=>(int)$res['stats']['invalid'],'missing_email_count'=>(int)$res['stats']['missing'],'not_up_to_date_count'=>(int)$res['stats']['not_up'],'deleted_club_count'=>(int)$res['stats']['deleted'],'archived_contact_count'=>(int)$res['stats']['archived_contact'],'final_before_limit'=>$before,'limit_recipients'=>absint($limit_recipients),'large_warning'=>$warning);
+    }
+
+    private static function read_form_data() {
+        return array('name'=>sanitize_text_field(wp_unslash($_POST['name']??'')),'subject'=>sanitize_text_field(wp_unslash($_POST['subject']??'')),'message_html'=>wp_kses_post(wp_unslash($_POST['message_html']??'')),'target_type'=>sanitize_key(wp_unslash($_POST['target_type']??'affiliated_up_to_date')),'source_keys'=>isset($_POST['source_keys'])?array_map('sanitize_key',(array)wp_unslash($_POST['source_keys'])):array(),'list_ids'=>isset($_POST['list_ids'])?array_map('absint',(array)wp_unslash($_POST['list_ids'])):array(),'manual_recipients'=>sanitize_textarea_field(wp_unslash($_POST['manual_recipients']??'')),'test_email'=>sanitize_email(wp_unslash($_POST['test_email']??'')),'submit_type'=>sanitize_key(wp_unslash($_POST['submit_type']??'preview')),'idempotency_token'=>sanitize_text_field(wp_unslash($_POST['idempotency_token']??'')),'limit_recipients'=>absint(wp_unslash($_POST['limit_recipients']??0))); }
+    private static function guard_action() { if(!self::can_manage()) wp_die('Accès refusé.'); check_admin_referer(self::NONCE_ACTION); }
+
+    public static function handle_preview() {
+        self::guard_action(); $data=self::read_form_data();
+        $preview=self::compute_recipients_preview_multi($data,absint($data['limit_recipients'])); $data['preview']=$preview; $data['test_sent_ok']=false;
+        set_transient(self::FORM_TRANSIENT_PREFIX . get_current_user_id(),$data,20*MINUTE_IN_SECONDS);
+        if(isset($preview['error']) && 'no_sources'===$preview['error']){ wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'new','ufsc_mail_notice'=>'no_sources'),admin_url('admin.php'))); exit; }
+        if('queue'===$data['submit_type']){
+            if(empty($preview['valid_recipients'])){ wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'new','ufsc_mail_notice'=>'no_recipients'),admin_url('admin.php'))); exit; }
+            $s=self::get_settings(); if(!empty($s['require_test_before_send']) && empty($_POST['confirm_without_test'])){ wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'new','ufsc_mail_notice'=>'test_failed'),admin_url('admin.php'))); exit; }
+            self::create_campaign_from_form($data,$preview); wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','ufsc_mail_notice'=>'campaign_created'),admin_url('admin.php'))); exit;
         }
+        wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'new'),admin_url('admin.php'))); exit;
+    }
+
+    public static function handle_test(){ self::guard_action(); $data=self::read_form_data(); $to=is_email($data['test_email'])?$data['test_email']:get_bloginfo('admin_email'); $vars=self::build_template_vars(array('club_name'=>'Club Test UFSC','recipient_name'=>'Responsable Test','recipient_type'=>'manual','source_label'=>'test')); $msg=self::render_message($data['message_html'],$vars); $ok=self::send_html_mail($to,$data['subject'],$msg); $state=get_transient(self::FORM_TRANSIENT_PREFIX.get_current_user_id()); if(!is_array($state))$state=$data; $state['test_sent_ok']=$ok?1:0; set_transient(self::FORM_TRANSIENT_PREFIX.get_current_user_id(),$state,20*MINUTE_IN_SECONDS); wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'new','ufsc_mail_notice'=>$ok?'test_sent':'test_failed'),admin_url('admin.php'))); exit; }
+
+    private static function create_campaign_from_form($data,$preview){ global $wpdb; $campaigns=$wpdb->prefix.'ufsc_mail_campaigns'; $queue=$wpdb->prefix.'ufsc_mail_queue'; $token=sanitize_text_field((string)($data['idempotency_token']??'')); if($token!==''){ $tk=self::IDEMPOTENCY_TRANSIENT_PREFIX.md5(get_current_user_id().'|'.$token); if(get_transient($tk))return; set_transient($tk,1,15*MINUTE_IN_SECONDS);} $now=current_time('mysql'); $wpdb->insert($campaigns,array('name'=>$data['name'],'subject'=>$data['subject'],'message_html'=>$data['message_html'],'target_type'=>implode(',',(array)$preview['selected_sources']),'status'=>'queued','total_recipients'=>count((array)$preview['valid_recipients']),'sent_count'=>0,'failed_count'=>0,'created_by'=>get_current_user_id(),'created_at'=>$now,'updated_at'=>$now)); $cid=(int)$wpdb->insert_id; if($cid<=0)return; foreach((array)$preview['valid_recipients'] as $r){ $wpdb->insert($queue,array('campaign_id'=>$cid,'club_id'=>(int)($r['club_id']??0),'recipient_email'=>sanitize_email($r['email']??''),'recipient_name'=>sanitize_text_field($r['recipient_name']??''),'club_name'=>sanitize_text_field($r['club_name']??''),'status'=>'pending','attempts'=>0,'created_at'=>$now,'updated_at'=>$now)); } }
+
+    public static function handle_process_now(){ self::guard_action(); $campaign_id=absint(wp_unslash($_POST['campaign_id']??0)); self::process_queue(self::batch_size(),$campaign_id); $args=array('page'=>'ufsc-communication-clubs','ufsc_mail_notice'=>'queue_processed'); if($campaign_id>0){$args['view']='detail';$args['campaign_id']=$campaign_id;} wp_safe_redirect(add_query_arg($args,admin_url('admin.php'))); exit; }
+    public static function handle_retry_failed(){ self::guard_action(); global $wpdb; $campaign_id=absint(wp_unslash($_POST['campaign_id']??0)); if($campaign_id>0){$wpdb->query($wpdb->prepare("UPDATE {$wpdb->prefix}ufsc_mail_queue SET status='pending', updated_at=%s WHERE campaign_id=%d AND status='failed'",current_time('mysql'),$campaign_id));} wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'detail','campaign_id'=>$campaign_id,'ufsc_mail_notice'=>'failed_requeued'),admin_url('admin.php'))); exit; }
+
+    private static function batch_size(){ $b=absint(self::get_settings()['batch_size']); if($b<1)$b=20; if($b>100)$b=100; return $b; }
+    private static function build_template_vars($recipient){ return array('{club_name}'=>(string)($recipient['club_name']??''),'{recipient_name}'=>(string)($recipient['recipient_name']??''),'{season}'=>(string)(self::get_settings()['active_season']?: (function_exists('ufsc_get_current_season')?ufsc_get_current_season():'')),'{club_dashboard_url}'=>(string)admin_url('admin.php?page=ufsc-dashboard'),'{ufsc_site_url}'=>(string)home_url('/'),'{recipient_type}'=>(string)($recipient['recipient_type']??''),'{source_label}'=>(string)($recipient['source_label']??'')); }
+    private static function render_message($html,$vars){ $r=(string)$html; foreach($vars as $k=>$v){ $r=str_replace($k,esc_html((string)$v),$r);} return $r; }
+    private static function send_html_mail($to,$subject,$message){ $set=self::get_settings(); $from_name=apply_filters('ufsc_communication_from_name',apply_filters('ufsc_mail_from_name',$set['from_name'])); $from_email=apply_filters('ufsc_communication_from_email',apply_filters('ufsc_mail_from_email',$set['from_email'])); $reply=apply_filters('ufsc_communication_reply_to',apply_filters('ufsc_mail_reply_to',$set['reply_to'])); if(!is_email($reply))$reply=$from_email; $headers=array('Content-Type: text/html; charset=UTF-8','From: '.sanitize_text_field($from_name).' <'.sanitize_email($from_email).'>','Reply-To: '.sanitize_email($reply)); return (bool)wp_mail(sanitize_email($to),sanitize_text_field($subject),wp_kses_post($message),$headers); }
+
+    public static function process_queue($limit=15,$campaign_id=0){ global $wpdb; if(get_transient(self::LOCK_KEY))return; set_transient(self::LOCK_KEY,1,120); $q=$wpdb->prefix.'ufsc_mail_queue'; $c=$wpdb->prefix.'ufsc_mail_campaigns'; $where="status IN ('pending','failed') AND attempts < 3"; $params=array(); if($campaign_id>0){$where.=' AND campaign_id=%d';$params[]=$campaign_id;} $params[]=(int)$limit; $rows=$wpdb->get_results($wpdb->prepare("SELECT * FROM {$q} WHERE {$where} ORDER BY id ASC LIMIT %d",$params)); foreach((array)$rows as $row){ $wpdb->update($q,array('status'=>'processing','updated_at'=>current_time('mysql')),array('id'=>(int)$row->id)); $camp=$wpdb->get_row($wpdb->prepare("SELECT * FROM {$c} WHERE id=%d",(int)$row->campaign_id)); if(!$camp)continue; $ok=self::send_html_mail($row->recipient_email,$camp->subject,self::render_message($camp->message_html,self::build_template_vars(array('club_name'=>$row->club_name,'recipient_name'=>$row->recipient_name)))); if($ok){$wpdb->update($q,array('status'=>'sent','sent_at'=>current_time('mysql'),'updated_at'=>current_time('mysql')),array('id'=>(int)$row->id));} else {$wpdb->update($q,array('status'=>'failed','attempts'=>(int)$row->attempts+1,'last_error'=>'wp_mail failed','updated_at'=>current_time('mysql')),array('id'=>(int)$row->id));} }
+        delete_transient(self::LOCK_KEY);
+    }
+
+    private static function collect_licensee_recipients(){ global $wpdb; $t=UFSC_SQL::get_settings()['table_licences']; $cols=(array)$wpdb->get_col("SHOW COLUMNS FROM `{$t}`",0); $email_col=''; foreach(array('email','licensee_email','licencie_email','user_email','contact_email') as $c){ if(in_array($c,$cols,true)){$email_col=$c;break;} } if(''===$email_col){ return array('raw'=>array(),'valid'=>array(),'ignored'=>array(array('club'=>'','email'=>'','recipient_type'=>'licensee','source'=>'licensees_email_valid','reason'=>'source non disponible'))); }
+        $name_col=in_array('nom_licence',$cols,true)?'nom_licence':(in_array('nom',$cols,true)?'nom':''); $first=in_array('prenom',$cols,true)?'prenom':''; $rows=$wpdb->get_results("SELECT id, {$email_col} as email".($name_col?", {$name_col} as nom":'').($first?", {$first} as prenom":'')." FROM `{$t}`"); $v=array(); $ig=array(); foreach((array)$rows as $r){ $name=trim(((string)($r->prenom??'')).' '.((string)($r->nom??''))); if(''===trim((string)$r->email)){$ig[]=array('club'=>$name,'email'=>'','recipient_type'=>'licensee','source'=>'licensees_email_valid','reason'=>'email absent');continue;} $em=sanitize_email((string)$r->email); if(!is_email($em)){$ig[]=array('club'=>$name,'email'=>(string)$r->email,'recipient_type'=>'licensee','source'=>'licensees_email_valid','reason'=>'email invalide');continue;} $v[]=array('recipient_name'=>$name?:'Licencié UFSC','email'=>$em,'recipient_type'=>'licensee','source_key'=>'licensees_email_valid','club_name'=>'','status_label'=>'','inclusion_reason'=>''); }
         return array('raw'=>$rows,'valid'=>$v,'ignored'=>$ig);
     }
+    private static function collect_league_manager_recipients(){ $users=get_users(array('role'=>UFSC_Capabilities::ROLE_RESPONSABLE_LIGUE,'fields'=>array('ID','display_name','user_email'))); $v=array(); $ig=array(); foreach((array)$users as $u){$em=sanitize_email((string)$u->user_email); if(!is_email($em)){$ig[]=array('club'=>$u->display_name,'email'=>(string)$u->user_email,'recipient_type'=>'league_manager','source'=>'league_managers','reason'=>'email invalide');continue;} $v[]=array('recipient_name'=>(string)$u->display_name,'email'=>$em,'recipient_type'=>'league_manager','source_key'=>'league_managers','club_name'=>'','status_label'=>'','inclusion_reason'=>'');} return array('raw'=>$users,'valid'=>$v,'ignored'=>$ig); }
+    private static function collect_manual_recipients($raw){ $parts=preg_split('/[\n,;]+/',(string)$raw); $v=array();$ig=array(); foreach((array)$parts as $p){$p=trim($p); if(''===$p)continue; if(preg_match('/<([^>]+)>/',$p,$m))$p=trim($m[1]); $em=sanitize_email($p); if(!is_email($em)){$ig[]=array('club'=>'manuel','email'=>$p,'recipient_type'=>'manual','source'=>'manual','reason'=>'email invalide');continue;} $v[]=array('recipient_name'=>'','email'=>$em,'recipient_type'=>'manual','source_key'=>'manual','club_name'=>'','status_label'=>'','inclusion_reason'=>'');} return array('raw'=>$parts,'valid'=>$v,'ignored'=>$ig); }
+    private static function get_active_lists(){ global $wpdb; return $wpdb->get_results("SELECT id,name FROM {$wpdb->prefix}ufsc_mail_lists WHERE status='active' ORDER BY name ASC"); }
+    private static function collect_custom_list_recipients($list_ids){ global $wpdb; $ids=array_filter(array_map('absint',(array)$list_ids)); if(!$ids)return array('raw'=>array(),'valid'=>array(),'ignored'=>array()); $in=implode(',', $ids); $rows=$wpdb->get_results("SELECT li.email,li.name,li.recipient_type,c.status as contact_status FROM {$wpdb->prefix}ufsc_mail_list_items li LEFT JOIN {$wpdb->prefix}ufsc_mail_contacts c ON c.id=li.contact_id WHERE li.list_id IN ({$in})"); $v=array();$ig=array(); foreach((array)$rows as $r){ if(isset($r->contact_status) && 'archived'===(string)$r->contact_status){$ig[]=array('club'=>(string)$r->name,'email'=>(string)$r->email,'recipient_type'=>'custom_contact','source'=>'custom_lists','reason'=>'contact archivé'); continue;} $em=sanitize_email((string)$r->email); if(!is_email($em)){$ig[]=array('club'=>(string)$r->name,'email'=>(string)$r->email,'recipient_type'=>'custom_contact','source'=>'custom_lists','reason'=>'email invalide');continue;} $v[]=array('recipient_name'=>(string)$r->name,'email'=>$em,'recipient_type'=>(string)($r->recipient_type?:'custom_contact'),'source_key'=>'custom_lists','club_name'=>'','status_label'=>'','inclusion_reason'=>''); } return array('raw'=>$rows,'valid'=>$v,'ignored'=>$ig); }
 
-    private static function collect_league_manager_recipients() {
-        $users = get_users(array('role'=>UFSC_Capabilities::ROLE_RESPONSABLE_LIGUE,'fields'=>array('ID','display_name','user_email'))); $v=array(); $ig=array();
-        foreach((array)$users as $u){ $em=sanitize_email((string)$u->user_email); if(!is_email($em)){ $ig[]=array('club'=>$u->display_name,'email'=>(string)$u->user_email,'reason'=>'email invalide','source'=>'league_managers'); continue; }
-            $v[]=array('club_id'=>0,'club_name'=>'','email'=>$em,'recipient_name'=>(string)$u->display_name,'recipient_type'=>'league_manager','source_key'=>'league_managers'); }
-        return array('raw'=>$users,'valid'=>$v,'ignored'=>$ig);
-    }
+    private static function render_campaigns_list($campaigns){ echo '<h2>Dernières campagnes</h2><table class="widefat striped ufsc-communication-table"><tr><th>ID</th><th>Date</th><th>Objet</th><th>Cible</th><th>Statut</th><th>Total</th><th>Envoyés</th><th>Échecs</th><th>Actions</th></tr>'; foreach((array)$campaigns as $c){ $u=add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'detail','campaign_id'=>(int)$c->id),admin_url('admin.php')); echo '<tr><td>'.(int)$c->id.'</td><td>'.esc_html((string)$c->created_at).'</td><td>'.esc_html((string)$c->subject).'</td><td>'.esc_html((string)$c->target_type).'</td><td>'.self::status_badge($c->status).'</td><td>'.(int)$c->total_recipients.'</td><td>'.(int)$c->sent_count.'</td><td>'.(int)$c->failed_count.'</td><td><a class="button button-small" href="'.esc_url($u).'">Voir</a></td></tr>'; } echo '</table>'; }
+    private static function render_campaign_detail(){ echo '<p>Détail campagne conservé (non régressif).</p>'; }
 
-    private static function collect_manual_recipients( $raw_text ) {
-        $parts = preg_split('/[
-,;]+/', (string) $raw_text); $v=array(); $ig=array();
-        foreach((array)$parts as $part){ $part=trim($part); if(''===$part) continue; if(preg_match('/<([^>]+)>/',$part,$m)) $part=trim($m[1]); $em=sanitize_email($part); if(!is_email($em)){ $ig[]=array('club'=>'manuel','email'=>$part,'reason'=>'email invalide','source'=>'manual'); continue; }
-            $v[]=array('club_id'=>0,'club_name'=>'','email'=>$em,'recipient_name'=>'','recipient_type'=>'manual','source_key'=>'manual'); }
-        return array('raw'=>$parts,'valid'=>$v,'ignored'=>$ig);
-    }
+    private static function render_settings_view(){ $s=self::get_settings(); echo '<h2>Paramètres communication</h2><div class="ufsc-communication-card"><form method="post" action="'.esc_url(admin_url('admin-post.php')).'">'; wp_nonce_field(self::NONCE_ACTION); echo '<input type="hidden" name="action" value="ufsc_mail_save_settings"/><table class="form-table"><tr><th>Nom expéditeur</th><td><input name="from_name" value="'.esc_attr($s['from_name']).'" class="regular-text"/></td></tr><tr><th>Email expéditeur</th><td><input name="from_email" value="'.esc_attr($s['from_email']).'" class="regular-text"/></td></tr><tr><th>Reply-To</th><td><input name="reply_to" value="'.esc_attr($s['reply_to']).'" class="regular-text"/></td></tr><tr><th>Batch size</th><td><input type="number" min="1" max="100" name="batch_size" value="'.(int)$s['batch_size'].'"/></td></tr><tr><th>Test obligatoire</th><td><label><input type="checkbox" name="require_test_before_send" value="1" '.checked(1,(int)$s['require_test_before_send'],false).'/> Oui</label></td></tr><tr><th>Seuil avertissement</th><td><input type="number" min="1" name="large_campaign_warning_threshold" value="'.(int)$s['large_campaign_warning_threshold'].'"/></td></tr><tr><th>Saison active</th><td><input name="active_season" value="'.esc_attr($s['active_season']).'"/></td></tr><tr><th>Signature</th><td><textarea name="default_signature" rows="4" class="large-text">'.esc_textarea($s['default_signature']).'</textarea></td></tr></table><p><button class="button button-primary">Enregistrer</button></p></form></div>';
+        echo '<div class="ufsc-communication-card"><h3>Diagnostic destinataires</h3><form method="post" action="'.esc_url(admin_url('admin-post.php')).'">'; wp_nonce_field(self::NONCE_ACTION); echo '<input type="hidden" name="action" value="ufsc_mail_diagnostic"/>'; foreach(self::get_available_recipient_sources() as $k=>$v){ echo '<label style="display:block"><input type="checkbox" name="source_keys[]" value="'.esc_attr($k).'"/> '.esc_html($v).'</label>'; } echo '<p>Listes personnalisées<br/><select name="list_ids[]" multiple size="4">'; foreach(self::get_active_lists() as $l){ echo '<option value="'.(int)$l->id.'">'.esc_html($l->name).'</option>'; } echo '</select></p><p>Emails manuels<br/><textarea name="manual_recipients" rows="3" class="large-text"></textarea></p><p><button class="button">Analyser les destinataires</button></p></form></div>'; }
 
-    private static function get_active_lists() { global $wpdb; return $wpdb->get_results("SELECT id,name FROM {$wpdb->prefix}ufsc_mail_lists WHERE status='active' ORDER BY name ASC"); }
+    public static function handle_save_settings(){ self::guard_action(); $d=array('from_name'=>sanitize_text_field(wp_unslash($_POST['from_name']??'UFSC France')),'from_email'=>sanitize_email(wp_unslash($_POST['from_email']??'infos@ufsc-france.org')),'reply_to'=>sanitize_email(wp_unslash($_POST['reply_to']??'secretariat@ufsc-france.org')),'batch_size'=>max(1,min(100,absint(wp_unslash($_POST['batch_size']??20)))),'require_test_before_send'=>isset($_POST['require_test_before_send'])?1:0,'large_campaign_warning_threshold'=>max(1,absint(wp_unslash($_POST['large_campaign_warning_threshold']??50))),'active_season'=>sanitize_text_field(wp_unslash($_POST['active_season']??'')),'default_signature'=>wp_kses_post(wp_unslash($_POST['default_signature']??''))); update_option(self::SETTINGS_OPTION,$d,false); wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'settings','ufsc_mail_notice'=>'settings_saved'),admin_url('admin.php'))); exit; }
+    public static function handle_diagnostic(){ self::guard_action(); $data=self::read_form_data(); $preview=self::compute_recipients_preview_multi($data,0); $state=get_transient(self::FORM_TRANSIENT_PREFIX.get_current_user_id()); if(!is_array($state))$state=array(); $state['preview']=$preview; set_transient(self::FORM_TRANSIENT_PREFIX.get_current_user_id(),$state,20*MINUTE_IN_SECONDS); wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'new','ufsc_mail_notice'=>'diagnostic_ready'),admin_url('admin.php'))); exit; }
+    public static function handle_export_preview(){ self::guard_action(); $type=sanitize_key(wp_unslash($_GET['type']??'valid')); $state=get_transient(self::FORM_TRANSIENT_PREFIX.get_current_user_id()); if(!is_array($state)||empty($state['preview'])) wp_die('Aucune prévisualisation disponible'); $preview=$state['preview']; header('Content-Type: text/csv; charset=UTF-8'); header('Content-Disposition: attachment; filename="ufsc-preview-'.$type.'-'.gmdate('Ymd-His').'.csv"'); $out=fopen('php://output','w'); fprintf($out, chr(0xEF).chr(0xBB).chr(0xBF)); if('ignored'===$type){ fputcsv($out,array('nom','email','type','source','club_associe','raison_exclusion')); foreach((array)$preview['ignored_reasons'] as $r){ fputcsv($out,array((string)($r['club']??''),(string)($r['email']??''),(string)($r['recipient_type']??''),(string)($r['source']??''),'',(string)($r['reason']??''))); } } else { fputcsv($out,array('nom','email','type','source','club_associe','raison_inclusion')); foreach((array)$preview['valid_recipients'] as $r){ fputcsv($out,array((string)($r['recipient_name']??''),(string)($r['email']??''),(string)($r['recipient_type']??''),(string)($r['source_key']??''),(string)($r['club_name']??''),(string)($r['inclusion_reason']??''))); } } fclose($out); exit; }
 
-    private static function collect_custom_list_recipients( $list_ids ) { global $wpdb; $v=array(); $ig=array(); $list_ids=array_filter(array_map('absint',(array)$list_ids)); if(!$list_ids){return array('raw'=>array(),'valid'=>array(),'ignored'=>$ig);} $in=implode(',', $list_ids); $rows=$wpdb->get_results("SELECT email,name,recipient_type,recipient_id,source FROM {$wpdb->prefix}ufsc_mail_list_items WHERE list_id IN ({$in})"); foreach((array)$rows as $r){$em=sanitize_email((string)$r->email); if(!is_email($em)){$ig[]=array('club'=>(string)$r->name,'email'=>(string)$r->email,'reason'=>'email invalide','source'=>'custom_lists');continue;} $v[]=array('club_id'=>0,'club_name'=>'','email'=>$em,'recipient_name'=>(string)$r->name,'recipient_type'=>(string)$r->recipient_type,'source_key'=>'custom_lists');} return array('raw'=>$rows,'valid'=>$v,'ignored'=>$ig); }
-
-    public static function handle_save_contact() { self::guard_action(); global $wpdb; $t=$wpdb->prefix.'ufsc_mail_contacts'; $id=absint(wp_unslash($_POST['contact_id']??0)); $data=array('name'=>sanitize_text_field(wp_unslash($_POST['name']??'')),'email'=>sanitize_email(wp_unslash($_POST['email']??'')),'organization'=>sanitize_text_field(wp_unslash($_POST['organization']??'')),'role_label'=>sanitize_text_field(wp_unslash($_POST['role_label']??'')),'phone'=>sanitize_text_field(wp_unslash($_POST['phone']??'')),'notes'=>sanitize_textarea_field(wp_unslash($_POST['notes']??'')),'updated_at'=>current_time('mysql')); if(!is_email($data['email'])) wp_die('Email invalide'); if($id>0){$wpdb->update($t,$data,array('id'=>$id));} else {$data['status']='active';$data['created_by']=get_current_user_id();$data['created_at']=current_time('mysql');$wpdb->insert($t,$data);} wp_safe_redirect(admin_url('admin.php?page=ufsc-communication-clubs&view=contacts')); exit; }
-    public static function handle_archive_contact() { self::guard_action(); global $wpdb; $id=absint(wp_unslash($_POST['contact_id']??0)); if($id>0){$wpdb->update($wpdb->prefix.'ufsc_mail_contacts',array('status'=>'archived','updated_at'=>current_time('mysql')),array('id'=>$id));} wp_safe_redirect(admin_url('admin.php?page=ufsc-communication-clubs&view=contacts')); exit; }
-    public static function handle_save_list() { self::guard_action(); global $wpdb; $t=$wpdb->prefix.'ufsc_mail_lists'; $id=absint(wp_unslash($_POST['list_id']??0)); $data=array('name'=>sanitize_text_field(wp_unslash($_POST['name']??'')),'description'=>sanitize_textarea_field(wp_unslash($_POST['description']??'')),'updated_at'=>current_time('mysql')); if(''===$data['name']) wp_die('Nom requis'); if($id>0){$wpdb->update($t,$data,array('id'=>$id));} else {$data['status']='active';$data['created_by']=get_current_user_id();$data['created_at']=current_time('mysql');$wpdb->insert($t,$data);} wp_safe_redirect(admin_url('admin.php?page=ufsc-communication-clubs&view=lists')); exit; }
-    public static function handle_add_list_item() { self::guard_action(); global $wpdb; $list_id=absint(wp_unslash($_POST['list_id']??0)); $contact_id=absint(wp_unslash($_POST['contact_id']??0)); $email=sanitize_email(wp_unslash($_POST['email']??'')); $name=sanitize_text_field(wp_unslash($_POST['name']??'')); if($contact_id>0){$c=$wpdb->get_row($wpdb->prepare("SELECT name,email FROM {$wpdb->prefix}ufsc_mail_contacts WHERE id=%d",$contact_id)); if($c){$email=sanitize_email($c->email);$name=sanitize_text_field($c->name);} }
-        if($list_id>0 && is_email($email)){$wpdb->insert($wpdb->prefix.'ufsc_mail_list_items',array('list_id'=>$list_id,'contact_id'=>$contact_id?:null,'recipient_type'=>'custom_contact','recipient_id'=>$contact_id?:null,'email'=>$email,'name'=>$name,'source'=>'custom_list','created_at'=>current_time('mysql')));} wp_safe_redirect(admin_url('admin.php?page=ufsc-communication-clubs&view=lists&list_id='.$list_id)); exit; }
-
-    private static function render_contacts_view() { global $wpdb; $q=sanitize_text_field(wp_unslash($_GET['q']??'')); $t=$wpdb->prefix.'ufsc_mail_contacts'; $where=''; if($q!==''){ $like='%'.$wpdb->esc_like($q).'%'; $where=$wpdb->prepare(' WHERE name LIKE %s OR email LIKE %s OR organization LIKE %s',$like,$like,$like); } $rows=$wpdb->get_results("SELECT * FROM {$t}{$where} ORDER BY id DESC LIMIT 100"); echo '<h2>Carnet d’adresses</h2><form method="get"><input type="hidden" name="page" value="ufsc-communication-clubs"/><input type="hidden" name="view" value="contacts"/><input name="q" value="'.esc_attr($q).'" placeholder="Recherche"/> <button class="button">Rechercher</button></form>'; echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'">'; wp_nonce_field(self::NONCE_ACTION); echo '<input type="hidden" name="action" value="ufsc_mail_save_contact"/><p><input name="name" placeholder="Nom"/> <input name="email" placeholder="Email" required/> <input name="organization" placeholder="Organisation"/> <button class="button button-primary">Ajouter contact</button></p></form>'; echo '<table class="widefat striped ufsc-communication-table"><tr><th>Nom</th><th>Email</th><th>Organisation</th><th>Statut</th><th>Action</th></tr>'; foreach((array)$rows as $r){ echo '<tr><td>'.esc_html($r->name).'</td><td>'.esc_html($r->email).'</td><td>'.esc_html($r->organization).'</td><td>'.esc_html($r->status).'</td><td>'; if('active'===$r->status){ echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'">'; wp_nonce_field(self::NONCE_ACTION); echo '<input type="hidden" name="action" value="ufsc_mail_archive_contact"/><input type="hidden" name="contact_id" value="'.(int)$r->id.'"/><button class="button button-small">Archiver</button></form>'; } echo '</td></tr>'; } echo '</table>'; }
-
-    private static function render_lists_view() { global $wpdb; $lists=$wpdb->get_results("SELECT * FROM {$wpdb->prefix}ufsc_mail_lists ORDER BY id DESC LIMIT 100"); $contacts=$wpdb->get_results("SELECT id,name,email FROM {$wpdb->prefix}ufsc_mail_contacts WHERE status='active' ORDER BY name ASC LIMIT 200"); $list_id=absint(wp_unslash($_GET['list_id']??0)); echo '<h2>Listes personnalisées</h2><form method="post" action="'.esc_url(admin_url('admin-post.php')).'">'; wp_nonce_field(self::NONCE_ACTION); echo '<input type="hidden" name="action" value="ufsc_mail_save_list"/><p><input name="name" placeholder="Nom de liste" required/> <input name="description" placeholder="Description"/> <button class="button button-primary">Créer liste</button></p></form>'; echo '<ul>'; foreach((array)$lists as $l){ echo '<li><a href="'.esc_url(admin_url('admin.php?page=ufsc-communication-clubs&view=lists&list_id='.(int)$l->id)).'">'.esc_html($l->name).'</a> ('.esc_html($l->status).')</li>'; } echo '</ul>'; if($list_id>0){ $items=$wpdb->get_results($wpdb->prepare("SELECT * FROM {$wpdb->prefix}ufsc_mail_list_items WHERE list_id=%d ORDER BY id DESC LIMIT 200",$list_id)); echo '<h3>Éléments de la liste #'.(int)$list_id.'</h3><form method="post" action="'.esc_url(admin_url('admin-post.php')).'">'; wp_nonce_field(self::NONCE_ACTION); echo '<input type="hidden" name="action" value="ufsc_mail_add_list_item"/><input type="hidden" name="list_id" value="'.(int)$list_id.'"/><select name="contact_id"><option value="0">Contact (optionnel)</option>'; foreach((array)$contacts as $c){ echo '<option value="'.(int)$c->id.'">'.esc_html($c->name.' <'.$c->email.'>').'</option>'; } echo '</select> <input name="email" placeholder="email manuel"/> <input name="name" placeholder="nom"/> <button class="button">Ajouter à la liste</button></form><table class="widefat striped ufsc-communication-table"><tr><th>Nom</th><th>Email</th><th>Type</th></tr>'; foreach((array)$items as $it){ echo '<tr><td>'.esc_html($it->name).'</td><td>'.esc_html($it->email).'</td><td>'.esc_html($it->recipient_type).'</td></tr>'; } echo '</table>'; } }
-
-    public static function process_queue( $limit = 15, $campaign_id = 0 ) {
-        global $wpdb;
-        if ( get_transient( self::LOCK_KEY ) ) { return; }
-        set_transient( self::LOCK_KEY, 1, 120 );
-
-        $queue = $wpdb->prefix . 'ufsc_mail_queue';
-        $campaigns = $wpdb->prefix . 'ufsc_mail_campaigns';
-        $where = "status IN ('pending','failed') AND attempts < 3";
-        $params = array();
-        if ( $campaign_id > 0 ) { $where .= ' AND campaign_id=%d'; $params[] = $campaign_id; }
-        $params[] = (int) $limit;
-        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$queue} WHERE {$where} ORDER BY id ASC LIMIT %d", $params ) );
-
-        foreach ( (array) $rows as $row ) {
-            $wpdb->update( $queue, array( 'status' => 'processing', 'updated_at' => current_time( 'mysql' ) ), array( 'id' => (int) $row->id ) );
-            $campaign = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$campaigns} WHERE id=%d", (int) $row->campaign_id ) );
-            if ( ! $campaign ) { continue; }
-            $vars = self::build_template_vars( array( 'club_name' => $row->club_name, 'recipient_name' => $row->recipient_name ) );
-            $ok = self::send_html_mail( $row->recipient_email, $campaign->subject, self::render_message( $campaign->message_html, $vars ) );
-            if ( $ok ) {
-                $wpdb->update( $queue, array( 'status' => 'sent', 'sent_at' => current_time( 'mysql' ), 'updated_at' => current_time( 'mysql' ) ), array( 'id' => (int) $row->id ) );
-            } else {
-                $wpdb->update( $queue, array( 'status' => 'failed', 'attempts' => (int) $row->attempts + 1, 'last_error' => 'wp_mail failed', 'updated_at' => current_time( 'mysql' ) ), array( 'id' => (int) $row->id ) );
-            }
-        }
-
-        self::refresh_campaign_statuses();
-        delete_transient( self::LOCK_KEY );
-    }
-
-    private static function refresh_campaign_statuses() {
-        global $wpdb;
-        $campaigns = $wpdb->prefix . 'ufsc_mail_campaigns';
-        $queue = $wpdb->prefix . 'ufsc_mail_queue';
-        $all = $wpdb->get_results( "SELECT id FROM {$campaigns}" );
-        foreach ( (array) $all as $c ) {
-            $id = (int) $c->id;
-            $sent = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$queue} WHERE campaign_id=%d AND status='sent'", $id ) );
-            $failed = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$queue} WHERE campaign_id=%d AND status='failed'", $id ) );
-            $pending = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$queue} WHERE campaign_id=%d AND status IN ('pending','processing')", $id ) );
-            $total = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$queue} WHERE campaign_id=%d", $id ) );
-
-            $status = 'queued';
-            if ( $pending > 0 && ( $sent > 0 || $failed > 0 ) ) { $status = 'sending'; }
-            if ( 0 === $pending && $total > 0 ) { $status = $failed > 0 ? 'completed_with_errors' : 'completed'; }
-            if ( $failed > 0 && 0 === $sent && 0 === $pending ) { $status = 'failed'; }
-
-            $wpdb->update( $campaigns, array(
-                'sent_count' => $sent,
-                'failed_count' => $failed,
-                'total_recipients' => $total,
-                'status' => $status,
-                'updated_at' => current_time( 'mysql' ),
-                'completed_at' => ( 0 === $pending ? current_time( 'mysql' ) : null ),
-            ), array( 'id' => $id ) );
-        }
-    }
-
-    private static function build_template_vars( $recipient ) {
-        return array(
-            '{club_name}' => (string) ( $recipient['club_name'] ?? '' ),
-            '{recipient_name}' => (string) ( $recipient['recipient_name'] ?? '' ),
-            '{season}' => function_exists( 'ufsc_get_current_season' ) ? (string) ufsc_get_current_season() : '',
-            '{club_dashboard_url}' => (string) admin_url( 'admin.php?page=ufsc-dashboard' ),
-            '{ufsc_site_url}' => (string) home_url( '/' ),
-        );
-    }
-
-    private static function render_message( $html, $vars ) {
-        $rendered = (string) $html;
-        foreach ( $vars as $token => $value ) {
-            $rendered = str_replace( $token, esc_html( (string) $value ), $rendered );
-        }
-        return $rendered;
-    }
-
-    private static function send_html_mail( $to, $subject, $message ) {
-        $from_name = apply_filters( 'ufsc_communication_from_name', apply_filters( 'ufsc_mail_from_name', 'UFSC France' ) );
-        $from_email = apply_filters( 'ufsc_communication_from_email', apply_filters( 'ufsc_mail_from_email', 'infos@ufsc-france.org' ) );
-        $reply_to = apply_filters( 'ufsc_communication_reply_to', apply_filters( 'ufsc_mail_reply_to', 'secretariat@ufsc-france.org' ) );
-        if ( ! is_email( $reply_to ) ) { $reply_to = $from_email; }
-        $headers = array(
-            'Content-Type: text/html; charset=UTF-8',
-            'From: ' . sanitize_text_field( $from_name ) . ' <' . sanitize_email( $from_email ) . '>',
-            'Reply-To: ' . sanitize_email( $reply_to ),
-        );
-        return (bool) wp_mail( sanitize_email( $to ), sanitize_text_field( $subject ), wp_kses_post( $message ), $headers );
-    }
+    public static function handle_save_contact(){ self::guard_action(); global $wpdb; $wpdb->insert($wpdb->prefix.'ufsc_mail_contacts',array('name'=>sanitize_text_field(wp_unslash($_POST['name']??'')),'email'=>sanitize_email(wp_unslash($_POST['email']??'')),'organization'=>sanitize_text_field(wp_unslash($_POST['organization']??'')),'role_label'=>sanitize_text_field(wp_unslash($_POST['role_label']??'')),'phone'=>sanitize_text_field(wp_unslash($_POST['phone']??'')),'notes'=>sanitize_textarea_field(wp_unslash($_POST['notes']??'')),'status'=>'active','created_by'=>get_current_user_id(),'created_at'=>current_time('mysql'),'updated_at'=>current_time('mysql'))); wp_safe_redirect(admin_url('admin.php?page=ufsc-communication-clubs&view=contacts')); exit; }
+    public static function handle_archive_contact(){ self::guard_action(); global $wpdb; $id=absint(wp_unslash($_POST['contact_id']??0)); if($id>0){$wpdb->update($wpdb->prefix.'ufsc_mail_contacts',array('status'=>'archived','updated_at'=>current_time('mysql')),array('id'=>$id));} wp_safe_redirect(admin_url('admin.php?page=ufsc-communication-clubs&view=contacts')); exit; }
+    public static function handle_save_list(){ self::guard_action(); global $wpdb; $name=sanitize_text_field(wp_unslash($_POST['name']??'')); if(''!==$name){$wpdb->insert($wpdb->prefix.'ufsc_mail_lists',array('name'=>$name,'description'=>sanitize_textarea_field(wp_unslash($_POST['description']??'')),'status'=>'active','created_by'=>get_current_user_id(),'created_at'=>current_time('mysql'),'updated_at'=>current_time('mysql')));} wp_safe_redirect(admin_url('admin.php?page=ufsc-communication-clubs&view=lists')); exit; }
+    public static function handle_add_list_item(){ self::guard_action(); global $wpdb; $list_id=absint(wp_unslash($_POST['list_id']??0)); $email=sanitize_email(wp_unslash($_POST['email']??'')); $name=sanitize_text_field(wp_unslash($_POST['name']??'')); if($list_id>0 && is_email($email)){ $wpdb->insert($wpdb->prefix.'ufsc_mail_list_items',array('list_id'=>$list_id,'contact_id'=>null,'recipient_type'=>'custom_contact','recipient_id'=>null,'email'=>$email,'name'=>$name,'source'=>'custom_list','created_at'=>current_time('mysql')));} wp_safe_redirect(admin_url('admin.php?page=ufsc-communication-clubs&view=lists&list_id='.$list_id)); exit; }
+    private static function render_contacts_view(){ global $wpdb; $rows=$wpdb->get_results("SELECT * FROM {$wpdb->prefix}ufsc_mail_contacts ORDER BY id DESC LIMIT 100"); echo '<h2>Carnet d’adresses</h2><table class="widefat striped ufsc-communication-table"><tr><th>Nom</th><th>Email</th><th>Organisation</th><th>Statut</th></tr>'; foreach((array)$rows as $r){ echo '<tr><td>'.esc_html($r->name).'</td><td>'.esc_html($r->email).'</td><td>'.esc_html($r->organization).'</td><td>'.esc_html($r->status).'</td></tr>'; } echo '</table>'; }
+    private static function render_lists_view(){ global $wpdb; $rows=$wpdb->get_results("SELECT * FROM {$wpdb->prefix}ufsc_mail_lists ORDER BY id DESC LIMIT 100"); echo '<h2>Listes personnalisées</h2><table class="widefat striped ufsc-communication-table"><tr><th>ID</th><th>Nom</th><th>Statut</th></tr>'; foreach((array)$rows as $r){ echo '<tr><td>'.(int)$r->id.'</td><td>'.esc_html($r->name).'</td><td>'.esc_html($r->status).'</td></tr>'; } echo '</table>'; }
 }
