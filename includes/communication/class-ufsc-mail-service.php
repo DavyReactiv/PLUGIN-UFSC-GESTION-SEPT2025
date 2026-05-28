@@ -242,6 +242,23 @@ class UFSC_Mail_Service {
         return array('raw'=>$rows,'valid'=>$v,'ignored'=>$ig);
     }
     private static function collect_league_manager_recipients(){ $users=get_users(array('role'=>UFSC_Capabilities::ROLE_RESPONSABLE_LIGUE,'fields'=>array('ID','display_name','user_email'))); $v=array(); $ig=array(); foreach((array)$users as $u){$em=sanitize_email((string)$u->user_email); if(!is_email($em)){$ig[]=array('club'=>$u->display_name,'email'=>(string)$u->user_email,'recipient_type'=>'league_manager','source'=>'league_managers','reason'=>'email invalide');continue;} $v[]=array('recipient_name'=>(string)$u->display_name,'email'=>$em,'recipient_type'=>'league_manager','source_key'=>'league_managers','club_name'=>'','status_label'=>'','inclusion_reason'=>'');} return array('raw'=>$users,'valid'=>$v,'ignored'=>$ig); }
+    private static function parse_manual_recipients($raw_input){
+        $raw_input = (string) $raw_input;
+        if ( '' === trim( $raw_input ) ) { return array( 'raw' => array(), 'valid' => array(), 'invalid' => array() ); }
+        $parts = preg_split( '/[\n,;]+/', $raw_input );
+        $valid = array(); $invalid = array(); $seen = array();
+        foreach ( (array) $parts as $part ) {
+            $original = trim( (string) $part ); if ( '' === $original ) { continue; }
+            $name = ''; $email_candidate = $original;
+            if ( preg_match( '/^(.+?)<([^>]+)>$/', $original, $m ) ) { $name = sanitize_text_field( trim( $m[1], " \t\n\r\0\x0B\"'" ) ); $email_candidate = trim( $m[2] ); }
+            $email = sanitize_email( $email_candidate );
+            if ( ! is_email( $email ) ) { $invalid[] = array( 'email' => sanitize_text_field( $email_candidate ), 'name' => $name, 'raw' => sanitize_text_field( $original ) ); continue; }
+            $key = strtolower( $email ); if ( isset( $seen[ $key ] ) ) { continue; }
+            $seen[ $key ] = true; $valid[] = array( 'email' => $email, 'name' => $name, 'raw' => sanitize_text_field( $original ) );
+        }
+        return array( 'raw' => (array) $parts, 'valid' => $valid, 'invalid' => $invalid );
+    }
+
     private static function collect_manual_recipients($raw){ $parts=preg_split('/[\n,;]+/',(string)$raw); $v=array();$ig=array(); foreach((array)$parts as $p){$p=trim($p); if(''===$p)continue; if(preg_match('/<([^>]+)>/',$p,$m))$p=trim($m[1]); $em=sanitize_email($p); if(!is_email($em)){$ig[]=array('club'=>'manuel','email'=>$p,'recipient_type'=>'manual','source'=>'manual','reason'=>'email invalide');continue;} $v[]=array('recipient_name'=>'','email'=>$em,'recipient_type'=>'manual','source_key'=>'manual','club_name'=>'','status_label'=>'','inclusion_reason'=>'');} return array('raw'=>$parts,'valid'=>$v,'ignored'=>$ig); }
     private static function get_active_lists(){ global $wpdb; return $wpdb->get_results("SELECT id,name FROM {$wpdb->prefix}ufsc_mail_lists WHERE status='active' ORDER BY name ASC"); }
     private static function collect_custom_list_recipients($list_ids){ global $wpdb; $ids=array_filter(array_map('absint',(array)$list_ids)); if(!$ids)return array('raw'=>array(),'valid'=>array(),'ignored'=>array()); $in=implode(',', $ids); $rows=$wpdb->get_results("SELECT li.email,li.name,li.recipient_type,c.status as contact_status FROM {$wpdb->prefix}ufsc_mail_list_items li LEFT JOIN {$wpdb->prefix}ufsc_mail_contacts c ON c.id=li.contact_id WHERE li.list_id IN ({$in})"); $v=array();$ig=array(); foreach((array)$rows as $r){ if(isset($r->contact_status) && 'archived'===(string)$r->contact_status){$ig[]=array('club'=>(string)$r->name,'email'=>(string)$r->email,'recipient_type'=>'custom_contact','source'=>'custom_lists','reason'=>'contact archivé'); continue;} $em=sanitize_email((string)$r->email); if(!is_email($em)){$ig[]=array('club'=>(string)$r->name,'email'=>(string)$r->email,'recipient_type'=>'custom_contact','source'=>'custom_lists','reason'=>'email invalide');continue;} $v[]=array('recipient_name'=>(string)$r->name,'email'=>$em,'recipient_type'=>(string)($r->recipient_type?:'custom_contact'),'source_key'=>'custom_lists','club_name'=>'','status_label'=>'','inclusion_reason'=>''); } return array('raw'=>$rows,'valid'=>$v,'ignored'=>$ig); }
