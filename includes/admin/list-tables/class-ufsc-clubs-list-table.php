@@ -433,7 +433,7 @@ class UFSC_Clubs_List_Table {
         if ( ! current_user_can( 'manage_options' ) ) {
             return;
         }
-        echo '<p>';
+        echo '<p class="ufsc-primary-actions">';
         echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&action=new' ) ) . '" class="button button-primary">';
         echo esc_html__( 'Ajouter un club', 'ufsc-clubs' );
         echo '</a> ';
@@ -675,7 +675,7 @@ class UFSC_Clubs_List_Table {
             }
         }
 
-        echo '<form method="post" id="bulk-actions-form">';
+        echo '<form method="post" id="bulk-actions-form" class="ufsc-clubs-table-form">';
         echo '<input type="hidden" name="page" value="ufsc-sql-clubs" />';
         // Bulk actions
         echo '<div class="ufsc-bulk-actions">';
@@ -784,7 +784,7 @@ class UFSC_Clubs_List_Table {
     echo '<td>' . ( $date_creation ? esc_html( mysql2date( 'd/m/Y', $date_creation ) ) : '<em>' . esc_html__( 'Non défini', 'ufsc-clubs' ) . '</em>' ) . '</td>';
 
     // Actions
-    echo '<td class="ufsc-row-actions">';
+    echo '<td class="ufsc-row-actions"><div class="ufsc-actions-grid">';
     $club_id = (int) ( $club->id ?? 0 );
     $view_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=view&id=' . $club_id );
     $edit_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=edit&id=' . $club_id );
@@ -801,7 +801,7 @@ class UFSC_Clubs_List_Table {
         echo '<button type="button" class="button button-small ufsc-button-disabled" disabled="disabled" aria-disabled="true" title="' . esc_attr__( 'Relance à brancher sur une action email sécurisée existante.', 'ufsc-clubs' ) . '">' . esc_html__( 'Relancer', 'ufsc-clubs' ) . '</button> ';
         echo '<a href="' . esc_url( $delete_url ) . '" class="button button-small button-link-delete" onclick="return confirm(\'' . esc_js( __( 'Êtes-vous sûr de vouloir supprimer ce club ?', 'ufsc-clubs' ) ) . '\')">' . esc_html__( 'Supprimer', 'ufsc-clubs' ) . '</a>';
     }
-    echo '</td>';
+    echo '</div></td>';
 
     echo '</tr>';
 }
