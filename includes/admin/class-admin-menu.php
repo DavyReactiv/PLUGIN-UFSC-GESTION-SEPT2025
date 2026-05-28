@@ -136,6 +136,11 @@ class UFSC_CL_Admin_Menu {
 			if ( false !== strpos( $hook, 'ufsc-sql-licences' ) || 'ufsc-sql-licences' === $page || 'ufsc-licences' === $page ) {
 				wp_enqueue_script( 'ufsc-license-form', UFSC_CL_URL . 'assets/js/ufsc-license-form.js', array( 'jquery' ), UFSC_CL_VERSION, true );
 			}
+
+			if ( false !== strpos( $hook, 'ufsc-sql-clubs' ) || 'ufsc-sql-clubs' === $page || 'ufsc-clubs' === $page ) {
+				wp_enqueue_style( 'ufsc-clubs-admin', UFSC_CL_URL . 'assets/admin/css/ufsc-clubs-admin.css', array( 'ufsc-admin' ), UFSC_CL_VERSION );
+				wp_enqueue_script( 'ufsc-clubs-admin', UFSC_CL_URL . 'assets/admin/js/ufsc-clubs-admin.js', array( 'jquery' ), UFSC_CL_VERSION, true );
+			}
 		}
 	}
 
