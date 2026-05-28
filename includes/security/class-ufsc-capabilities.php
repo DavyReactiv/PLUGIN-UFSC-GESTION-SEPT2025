@@ -19,6 +19,7 @@ class UFSC_Capabilities {
     const CAP_COMPETITION_ENTRIES      = 'ufsc_competition_entries_manage';
     const CAP_COMPETITION_EXPORT       = 'ufsc_competition_export';
     const CAP_SCOPE_ALL_REGIONS        = 'ufsc_scope_all_regions';
+    const CAP_MANAGE_COMMUNICATION    = 'ufsc_manage_communication';
 
     /**
      * Register capabilities and roles (idempotent).
@@ -78,6 +79,7 @@ class UFSC_Capabilities {
             self::CAP_COMPETITION_ENTRIES,
             self::CAP_COMPETITION_EXPORT,
             self::CAP_SCOPE_ALL_REGIONS,
+            self::CAP_MANAGE_COMMUNICATION,
         );
     }
 
