@@ -126,7 +126,11 @@ class UFSC_CL_Admin_Menu {
 
 	public static function enqueue_admin( $hook ) {
 		$hook = (string) ( $hook ?? '' );
-		$page = isset( $_GET['page'] ) ? (string) wp_unslash( $_GET['page'] ) : '';
+		$page = '';
+		if ( isset( $_GET['page'] ) ) {
+			$page_value = wp_unslash( $_GET['page'] );
+			$page = is_scalar( $page_value ) ? sanitize_key( (string) $page_value ) : '';
+		}
 		if ( 0 === strpos( $page, 'ufsc-' ) || false !== strpos( $hook, 'ufsc' ) ) {
 			wp_enqueue_style( 'ufsc-admin', UFSC_CL_URL . 'assets/admin/css/admin.css', array(), UFSC_CL_VERSION );
 			wp_enqueue_style( 'ufsc-admin-premium', UFSC_CL_URL . 'assets/css/ufsc-admin.css', array( 'ufsc-admin' ), UFSC_CL_VERSION );
@@ -135,6 +139,11 @@ class UFSC_CL_Admin_Menu {
 			// Enqueue license form validation script on license pages
 			if ( false !== strpos( $hook, 'ufsc-sql-licences' ) || 'ufsc-sql-licences' === $page || 'ufsc-licences' === $page ) {
 				wp_enqueue_script( 'ufsc-license-form', UFSC_CL_URL . 'assets/js/ufsc-license-form.js', array( 'jquery' ), UFSC_CL_VERSION, true );
+			}
+
+			if ( false !== strpos( $hook, 'ufsc-sql-clubs' ) || 'ufsc-sql-clubs' === $page || 'ufsc-clubs' === $page ) {
+				wp_enqueue_style( 'ufsc-clubs-admin', UFSC_CL_URL . 'assets/admin/css/ufsc-clubs-admin.css', array( 'ufsc-admin' ), UFSC_CL_VERSION );
+				wp_enqueue_script( 'ufsc-clubs-admin', UFSC_CL_URL . 'assets/admin/js/ufsc-clubs-admin.js', array( 'jquery' ), UFSC_CL_VERSION, true );
 			}
 		}
 	}
