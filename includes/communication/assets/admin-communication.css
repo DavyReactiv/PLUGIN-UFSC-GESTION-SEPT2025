@@ -15,3 +15,7 @@
 .ufsc-communication-progress{height:10px;background:#e5e7eb;border-radius:999px;overflow:hidden}
 .ufsc-communication-progress > span{display:block;height:100%;background:#1d4ed8}
 @media (max-width:782px){.ufsc-communication-actions .button{width:100%}}
+.ufsc-status-draft{background:#f3f4f6;border-color:#d1d5db;color:#374151}
+.ufsc-status-cancelled{background:#e5e7eb;border-color:#9ca3af;color:#111827}
+.ufsc-status-sending{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8}
+.ufsc-status-completed_with_errors{background:#fff7ed;border-color:#fed7aa;color:#f97316}
