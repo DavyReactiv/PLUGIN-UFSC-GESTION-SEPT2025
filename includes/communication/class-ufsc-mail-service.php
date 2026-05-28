@@ -85,8 +85,9 @@ class UFSC_Mail_Service {
 
     private static function render_notices() {
         $code = isset( $_GET['ufsc_mail_notice'] ) ? sanitize_key( wp_unslash( $_GET['ufsc_mail_notice'] ) ) : '';
-        $m = array('campaign_created'=>array('success','Campagne créée avec succès. Les emails seront envoyés progressivement.'),'test_sent'=>array('success','Test envoyé avec succès.'),'test_failed'=>array('error','Échec de l’envoi du test.'),'queue_processed'=>array('success','La file a été traitée.'),'no_recipients'=>array('warning','Aucun destinataire valide n’a été trouvé. Vérifiez les sources sélectionnées, les emails disponibles ou utilisez le diagnostic destinataires.'),'no_sources'=>array('warning','Veuillez sélectionner au moins une source de destinataires.'),'failed_requeued'=>array('success','Les emails échoués ont été remis en attente.'),'settings_saved'=>array('success','Paramètres communication enregistrés.'),'diagnostic_ready'=>array('success','Diagnostic destinataires terminé.'));
+        $m = array('campaign_created'=>array('success','Campagne créée avec succès et mise en file d’attente.'),'test_sent'=>array('success','Email de test envoyé avec succès.'),'test_failed'=>array('error','Échec de l’envoi du test. Vérifiez la configuration SMTP ou les journaux FluentSMTP.'),'queue_processed'=>array('success','La file a été traitée.'),'no_recipients'=>array('warning','Impossible de créer la campagne : aucun destinataire valide.'),'no_sources'=>array('warning','Impossible de créer la campagne : aucune source sélectionnée.'),'missing_title'=>array('warning','Impossible de créer la campagne : titre interne manquant.'),'missing_subject'=>array('warning','Impossible de créer la campagne : objet manquant.'),'missing_message'=>array('warning','Impossible de créer la campagne : message manquant.'),'failed_requeued'=>array('success','Les emails échoués ont été remis en attente.'),'settings_saved'=>array('success','Paramètres communication enregistrés.'),'diagnostic_ready'=>array('success','Diagnostic destinataires terminé.'));
         if ( isset( $m[ $code ] ) ) { echo '<div class="notice notice-' . esc_attr( $m[$code][0] ) . '"><p>' . esc_html( $m[$code][1] ) . '</p></div>'; }
+        if ( 'test_failed' === $code && self::can_manage() ) { $technical = get_transient( 'ufsc_mail_last_test_error_' . get_current_user_id() ); if ( is_string( $technical ) && '' !== $technical ) { echo '<div class="notice notice-error"><p>' . esc_html( 'Détail technique : ' . wp_trim_words( $technical, 30, '…' ) ) . '</p></div>'; } }
     }
 
     private static function get_available_recipient_sources() { return array('affiliated_email_valid'=>'Clubs affiliés avec email valide','affiliated_up_to_date'=>'Clubs affiliés et à jour','licensees_email_valid'=>'Licenciés avec email valide','league_managers'=>'Responsables de ligues','custom_lists'=>'Listes personnalisées','manual'=>'Emails saisis manuellement'); }
@@ -108,7 +109,8 @@ class UFSC_Mail_Service {
         echo '<tr><th>Email de test</th><td><input name="test_email" type="email" class="regular-text" value="' . esc_attr( $data['test_email'] ?? get_bloginfo( 'admin_email' ) ) . '"/><p class="description">Adresse qui recevra un apercu du message avant l envoi reel.</p></td></tr>';
         echo '<tr><th>Limiter la campagne</th><td><input name="limit_recipients" type="number" min="0" step="1" class="small-text" value="' . esc_attr( (string) absint( $data['limit_recipients'] ?? 0 ) ) . '"/><p class="description">Laissez 0 pour envoyer a tous les destinataires valides. Indiquez 1, 2 ou 3 pour un test reel limite.</p></td></tr></table>';
         echo '<div class="ufsc-communication-help"><strong>Checklist avant creation :</strong><ul><li>Objet verifie</li><li>Message verifie</li><li>Sources selectionnees</li><li>Envoi test recommande</li><li>Previsualisation verifiee</li><li>Destinataires ignores controles</li><li>Limite de campagne verifiee</li></ul></div>';
-        echo '<p><button class="button button-secondary" name="submit_type" value="preview">Prévisualiser les destinataires</button> <button class="button" formaction="' . esc_url( admin_url( 'admin-post.php?action=ufsc_mail_test' ) ) . '">Envoyer un test</button> <button class="button button-primary" name="submit_type" value="queue">Créer la campagne et mettre en file</button></p></form>';
+        echo '<p class="description">Les emails sont envoyés via la configuration SMTP active de WordPress, par exemple FluentSMTP.</p>';
+        echo '<p><button class="button button-secondary" name="submit_type" value="preview">Prévisualiser les destinataires</button> <button class="button" name="action" value="ufsc_mail_test">Envoyer un test</button> <button class="button button-primary" name="submit_type" value="queue">Créer la campagne et mettre en file</button></p></form>';
         if ( ! empty( $data['preview'] ) && is_array( $data['preview'] ) ) { self::render_preview_block( $data['preview'] ); }
     }
 
@@ -119,6 +121,7 @@ class UFSC_Mail_Service {
         foreach($cards as $k=>$v){ echo '<div class="ufsc-communication-card"><div>'.esc_html($k).'</div><div class="ufsc-communication-stat">'.(int)$v.'</div></div>'; }
         echo '</div>';
         if ( ! empty( $preview['limit_recipients'] ) ) { echo '<div class="notice notice-info inline"><p>' . sprintf( 'Mode test limité : seuls %d destinataires seront mis en file.', (int) $preview['limit_recipients'] ) . '</p></div>'; }
+        echo '<div class="notice notice-info inline"><p>Les doublons ne bloquent pas l’envoi. Ils sont automatiquement ignorés.</p><p>La campagne sera envoyée uniquement aux destinataires valides.</p></div>';
         if ( ! empty( $preview['large_warning'] ) ) { echo '<div class="notice notice-warning inline"><p>' . esc_html( $preview['large_warning'] ) . '</p></div>'; }
         if ( empty( $preview['valid_recipients'] ) ) { echo '<div class="notice notice-error inline"><p>Aucun destinataire valide n’a été trouvé. Vérifiez les sources sélectionnées, les emails disponibles ou utilisez le diagnostic destinataires.</p></div>'; return; }
         echo '<p>100 premiers affichés sur ' . (int) $preview['valid_count'] . ' destinataires valides.</p><table class="widefat striped ufsc-communication-table"><tr><th>Nom</th><th>Email</th><th>Type</th><th>Source</th><th>Club</th><th>Statut</th><th>Raison inclusion</th></tr>';
@@ -172,19 +175,43 @@ class UFSC_Mail_Service {
     private static function guard_action() { if(!self::can_manage()) wp_die('Accès refusé.'); check_admin_referer(self::NONCE_ACTION); }
 
     public static function handle_preview() {
-        self::guard_action(); $data=self::read_form_data();
-        $preview=self::compute_recipients_preview_multi($data,absint($data['limit_recipients'])); $data['preview']=$preview; $data['test_sent_ok']=false;
-        set_transient(self::FORM_TRANSIENT_PREFIX . get_current_user_id(),$data,20*MINUTE_IN_SECONDS);
-        if(isset($preview['error']) && 'no_sources'===$preview['error']){ wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'new','ufsc_mail_notice'=>'no_sources'),admin_url('admin.php'))); exit; }
-        if('queue'===$data['submit_type']){
-            if(empty($preview['valid_recipients'])){ wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'new','ufsc_mail_notice'=>'no_recipients'),admin_url('admin.php'))); exit; }
-            $s=self::get_settings(); if(!empty($s['require_test_before_send']) && empty($_POST['confirm_without_test'])){ wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'new','ufsc_mail_notice'=>'test_failed'),admin_url('admin.php'))); exit; }
-            self::create_campaign_from_form($data,$preview); wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','ufsc_mail_notice'=>'campaign_created'),admin_url('admin.php'))); exit;
+        self::guard_action();
+        $data = self::read_form_data();
+        $is_queue = ( 'queue' === $data['submit_type'] );
+        $redirect_args = array( 'page' => 'ufsc-communication-clubs', 'view' => 'new' );
+
+        if ( '' === trim( (string) $data['name'] ) ) { wp_safe_redirect( add_query_arg( $redirect_args + array( 'ufsc_mail_notice' => 'missing_title' ), admin_url( 'admin.php' ) ) ); exit; }
+        if ( '' === trim( (string) $data['subject'] ) ) { wp_safe_redirect( add_query_arg( $redirect_args + array( 'ufsc_mail_notice' => 'missing_subject' ), admin_url( 'admin.php' ) ) ); exit; }
+        if ( '' === trim( wp_strip_all_tags( (string) $data['message_html'] ) ) ) { wp_safe_redirect( add_query_arg( $redirect_args + array( 'ufsc_mail_notice' => 'missing_message' ), admin_url( 'admin.php' ) ) ); exit; }
+
+        $preview = self::compute_recipients_preview_multi( $data, absint( $data['limit_recipients'] ) );
+        $data['preview'] = $preview;
+        set_transient( self::FORM_TRANSIENT_PREFIX . get_current_user_id(), $data, 20 * MINUTE_IN_SECONDS );
+
+        if ( isset( $preview['error'] ) && 'no_sources' === $preview['error'] ) { wp_safe_redirect( add_query_arg( $redirect_args + array( 'ufsc_mail_notice' => 'no_sources' ), admin_url( 'admin.php' ) ) ); exit; }
+        if ( $is_queue ) {
+            if ( empty( $preview['valid_recipients'] ) ) { wp_safe_redirect( add_query_arg( $redirect_args + array( 'ufsc_mail_notice' => 'no_recipients' ), admin_url( 'admin.php' ) ) ); exit; }
+            self::create_campaign_from_form( $data, $preview );
+            wp_safe_redirect( add_query_arg( array( 'page' => 'ufsc-communication-clubs', 'view' => 'history', 'ufsc_mail_notice' => 'campaign_created' ), admin_url( 'admin.php' ) ) ); exit;
         }
-        wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'new'),admin_url('admin.php'))); exit;
+        wp_safe_redirect( add_query_arg( $redirect_args, admin_url( 'admin.php' ) ) ); exit;
     }
 
-    public static function handle_test(){ self::guard_action(); $data=self::read_form_data(); $to=is_email($data['test_email'])?$data['test_email']:get_bloginfo('admin_email'); $vars=self::build_template_vars(array('club_name'=>'Club Test UFSC','recipient_name'=>'Responsable Test','recipient_type'=>'manual','source_label'=>'test')); $msg=self::render_message($data['message_html'],$vars); $ok=self::send_html_mail($to,$data['subject'],$msg); $state=get_transient(self::FORM_TRANSIENT_PREFIX.get_current_user_id()); if(!is_array($state))$state=$data; $state['test_sent_ok']=$ok?1:0; set_transient(self::FORM_TRANSIENT_PREFIX.get_current_user_id(),$state,20*MINUTE_IN_SECONDS); wp_safe_redirect(add_query_arg(array('page'=>'ufsc-communication-clubs','view'=>'new','ufsc_mail_notice'=>$ok?'test_sent':'test_failed'),admin_url('admin.php'))); exit; }
+    public static function handle_test(){
+        self::guard_action();
+        $data = self::read_form_data();
+        $to = is_email( $data['test_email'] ) ? $data['test_email'] : get_bloginfo( 'admin_email' );
+        $last_error = '';
+        $capture_error = function( $wp_error ) use ( &$last_error ) { if ( is_wp_error( $wp_error ) ) { $last_error = sanitize_text_field( $wp_error->get_error_message() ); } };
+        add_action( 'wp_mail_failed', $capture_error );
+        $vars = self::build_template_vars( array( 'club_name' => 'Club Test UFSC', 'recipient_name' => 'Responsable Test', 'recipient_type' => 'manual', 'source_label' => 'test' ) );
+        $ok = self::send_html_mail( $to, $data['subject'], self::render_message( $data['message_html'], $vars ) );
+        remove_action( 'wp_mail_failed', $capture_error );
+        if ( ! $ok && '' !== $last_error ) { set_transient( 'ufsc_mail_last_test_error_' . get_current_user_id(), $last_error, 10 * MINUTE_IN_SECONDS ); }
+        if ( $ok ) { delete_transient( 'ufsc_mail_last_test_error_' . get_current_user_id() ); }
+        $state = get_transient( self::FORM_TRANSIENT_PREFIX . get_current_user_id() ); if ( ! is_array( $state ) ) { $state = $data; } $state['test_sent_ok'] = $ok ? 1 : 0; set_transient( self::FORM_TRANSIENT_PREFIX . get_current_user_id(), $state, 20 * MINUTE_IN_SECONDS );
+        wp_safe_redirect( add_query_arg( array( 'page' => 'ufsc-communication-clubs', 'view' => 'new', 'ufsc_mail_notice' => $ok ? 'test_sent' : 'test_failed' ), admin_url( 'admin.php' ) ) ); exit;
+    }
 
     private static function create_campaign_from_form($data,$preview){ global $wpdb; $campaigns=$wpdb->prefix.'ufsc_mail_campaigns'; $queue=$wpdb->prefix.'ufsc_mail_queue'; $token=sanitize_text_field((string)($data['idempotency_token']??'')); if($token!==''){ $tk=self::IDEMPOTENCY_TRANSIENT_PREFIX.md5(get_current_user_id().'|'.$token); if(get_transient($tk))return; set_transient($tk,1,15*MINUTE_IN_SECONDS);} $now=current_time('mysql'); $wpdb->insert($campaigns,array('name'=>$data['name'],'subject'=>$data['subject'],'message_html'=>$data['message_html'],'target_type'=>implode(',',(array)$preview['selected_sources']),'status'=>'queued','total_recipients'=>count((array)$preview['valid_recipients']),'sent_count'=>0,'failed_count'=>0,'created_by'=>get_current_user_id(),'created_at'=>$now,'updated_at'=>$now)); $cid=(int)$wpdb->insert_id; if($cid<=0)return; foreach((array)$preview['valid_recipients'] as $r){ $wpdb->insert($queue,array('campaign_id'=>$cid,'club_id'=>(int)($r['club_id']??0),'recipient_email'=>sanitize_email($r['email']??''),'recipient_name'=>sanitize_text_field($r['recipient_name']??''),'club_name'=>sanitize_text_field($r['club_name']??''),'status'=>'pending','attempts'=>0,'created_at'=>$now,'updated_at'=>$now)); } }
 
