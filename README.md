@@ -1,16 +1,16 @@
-# UFSC – Gestion Clubs, Licences & Compétitions
+# UFSC – Gestion Clubs & Licences
 
 ## Introduction
 
-**UFSC – Gestion Clubs, Licences & Compétitions** est un plugin WordPress professionnel développé sur mesure pour l’**UFSC — Union Française des Sports de Combat**.
+**UFSC – Gestion Clubs & Licences** est un plugin WordPress professionnel développé sur mesure pour l’**UFSC — Union Française des Sports de Combat**.
 
-Il a pour objectif de centraliser, fiabiliser et sécuriser la gestion fédérale des clubs, licences, affiliations, compétitions, documents administratifs, communications et outils associés, dans un environnement WordPress maintenable et adapté aux besoins métier de l’UFSC.
+Il a pour objectif de centraliser, fiabiliser et sécuriser la gestion fédérale des clubs, licences, affiliations, documents administratifs, communications et outils associés, dans un environnement WordPress maintenable et adapté aux besoins métier de l’UFSC.
 
 Ce plugin est conçu comme un outil métier personnalisé : il accompagne les équipes administratives, les clubs affiliés et les mainteneurs techniques dans la gestion quotidienne des données fédérales.
 
 ## Présentation
 
-Le plugin accompagne la gestion opérationnelle de l’UFSC en regroupant dans WordPress les principaux processus liés aux clubs, aux licences, aux affiliations, aux documents, aux compétitions et aux communications internes.
+Le plugin accompagne la gestion opérationnelle de l’UFSC en regroupant dans WordPress les principaux processus liés aux clubs, aux licences, aux affiliations, aux documents administratifs et aux communications internes.
 
 Il s’appuie sur une approche modulaire afin de limiter les régressions, de préserver les données existantes et de faciliter les évolutions futures. Les fonctionnalités sont pensées pour être utilisées par des administrateurs fédéraux, des responsables de clubs et des développeurs amenés à maintenir ou faire évoluer la solution.
 
@@ -61,13 +61,13 @@ Le plugin vise à :
 - Gestion des statuts.
 - Consultation des pièces liées aux clubs ou dossiers suivis.
 
-### Compétitions
+### Compatibilité avec le module compétition
 
-- Création et gestion d’événements sportifs.
-- Inscriptions aux compétitions.
-- Contrôle des participants.
-- Suivi des catégories et informations associées.
-- Gestion des statuts d’inscription.
+Le plugin UFSC Gestion est conçu pour fonctionner dans l’écosystème des outils métiers UFSC.
+
+La gestion avancée des compétitions, des inscriptions sportives, des catégories, des participants et des statuts d’engagement est portée par un plugin dédié : **UFSC Licences Compétitions**.
+
+Le présent plugin peut être utilisé en complément pour la gestion des clubs, des licences, des affiliations, des communications et des données administratives nécessaires au bon fonctionnement fédéral.
 
 ### Exports, diagnostics et tableaux de bord
 
@@ -140,6 +140,14 @@ Principes généraux :
 
 Le plugin peut s’appuyer sur des tables métiers existantes et sur des tables dédiées aux modules ajoutés, notamment pour les campagnes email, la file d’attente, les contacts et les listes personnalisées.
 
+## Écosystème UFSC
+
+Le plugin UFSC Gestion s’inscrit dans un ensemble d’outils développés sur mesure pour l’**UFSC — Union Française des Sports de Combat**.
+
+Il peut être utilisé en complément d’autres modules ou plugins spécifiques, notamment le plugin **UFSC Licences Compétitions**, dédié à la gestion sportive des compétitions, inscriptions, catégories et engagements.
+
+Cette séparation permet de clarifier les responsabilités fonctionnelles : le présent plugin porte principalement la gestion administrative des clubs, licences, affiliations, documents, communications, diagnostics et exports associés.
+
 ## Compatibilité email
 
 Le module Communication UFSC utilise la fonction WordPress `wp_mail()` pour l’envoi des emails.
@@ -167,7 +175,7 @@ Recommandations :
 - vérifier les parcours critiques avant mise en production ;
 - documenter les modifications fonctionnelles et techniques ;
 - éviter les modifications destructives de tables ou de données ;
-- contrôler les impacts sur les clubs, licences, affiliations, compétitions et communications ;
+- contrôler les impacts sur les clubs, licences, affiliations, communications et l’écosystème compétition lorsque des intégrations existent ;
 - conserver une attention particulière à la non-régression.
 
 ## Avertissement
