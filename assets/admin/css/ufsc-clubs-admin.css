@@ -18,6 +18,12 @@
     width: calc(100% + 20px);
 }
 
+.ufsc-clubs-admin-page *,
+.ufsc-clubs-admin-page *::before,
+.ufsc-clubs-admin-page *::after {
+    box-sizing: border-box;
+}
+
 .ufsc-clubs-shell {
     box-sizing: border-box;
     max-width: none;
@@ -405,6 +411,16 @@
     vertical-align: middle;
 }
 
+.ufsc-clubs-table tbody td:not(.ufsc-row-actions),
+.ufsc-clubs-table tbody th:not(.check-column) {
+    overflow-wrap: anywhere;
+}
+
+.ufsc-clubs-table tbody tr:last-child td,
+.ufsc-clubs-table tbody tr:last-child th {
+    border-bottom: 0;
+}
+
 .ufsc-clubs-table tbody tr:nth-child(odd) {
     background: #ffffff;
 }
@@ -561,6 +577,11 @@
     font-weight: 700;
 }
 
+.ufsc-clubs-admin-page .tablenav-pages .button {
+    border-color: #b9c7df;
+    color: var(--ufsc-blue);
+}
+
 @media screen and (min-width: 1600px) {
     .ufsc-stats-grid {
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -568,6 +589,10 @@
 
     .ufsc-filters-grid {
         grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+
+    .ufsc-clubs-table {
+        min-width: 100%;
     }
 }
 
