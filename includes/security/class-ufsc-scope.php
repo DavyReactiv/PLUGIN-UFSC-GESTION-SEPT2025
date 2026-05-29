@@ -85,11 +85,19 @@ class UFSC_Scope {
             return false;
         }
 
-        if ( user_can( $user_id, UFSC_Capabilities::CAP_SCOPE_ALL_REGIONS ) ) {
+        if ( user_can( $user_id, 'manage_options' ) ) {
             return true;
         }
 
-        return user_can( $user_id, 'manage_options' );
+        if ( class_exists( 'UFSC_Permissions' ) && user_can( $user_id, UFSC_Permissions::CAP_ALL_REGIONS_ACCESS ) ) {
+            return true;
+        }
+
+        if ( class_exists( 'UFSC_Capabilities' ) && user_can( $user_id, UFSC_Capabilities::CAP_SCOPE_ALL_REGIONS ) ) {
+            return true;
+        }
+
+        return class_exists( 'UFSC_Permissions' ) && '1' === (string) get_user_meta( $user_id, UFSC_Permissions::META_ALL_REGIONS, true );
     }
 
     /**
@@ -131,9 +139,20 @@ class UFSC_Scope {
      * @return array
      */
     public static function get_scope_region_values() {
+        if ( self::user_has_all_regions() ) {
+            return array();
+        }
+
+        if ( function_exists( 'ufsc_get_user_regions' ) ) {
+            $regions = ufsc_get_user_regions();
+            if ( ! empty( $regions ) ) {
+                return array_values( array_unique( array_map( 'sanitize_text_field', $regions ) ) );
+            }
+        }
+
         $slug = self::get_user_scope_region();
         if ( ! $slug ) {
-            return array();
+            return array( '__ufsc_no_region_allowed__' );
         }
 
         $label = self::get_region_label( $slug );

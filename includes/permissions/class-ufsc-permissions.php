@@ -33,7 +33,7 @@ class UFSC_Permissions {
     public static function maybe_register_roles_and_caps() {
         self::ensure_ufsc_roles_have_read();
 
-        $version = '2026-05-29-2';
+        $version = '2026-05-29-3';
         if ( get_option( 'ufsc_permissions_caps_version' ) === $version ) {
             return;
         }
@@ -78,8 +78,13 @@ class UFSC_Permissions {
     public static function ensure_ufsc_roles_have_read() {
         foreach ( array_keys( self::get_role_capabilities() ) as $role_key ) {
             $role = get_role( $role_key );
-            if ( $role && ! $role->has_cap( 'read' ) ) {
-                $role->add_cap( 'read' );
+            if ( ! $role ) {
+                continue;
+            }
+            foreach ( array( 'read', 'level_0' ) as $native_cap ) {
+                if ( ! $role->has_cap( $native_cap ) ) {
+                    $role->add_cap( $native_cap );
+                }
             }
         }
     }
@@ -110,6 +115,7 @@ class UFSC_Permissions {
                 'label' => __( 'Lecture régionale', 'ufsc-clubs' ),
                 'caps'  => array(
                     'read' => true,
+                    'level_0' => true,
                     self::CAP_GESTION_READ  => true,
                     self::CAP_LICENCES_READ => true,
                 ),
@@ -118,6 +124,7 @@ class UFSC_Permissions {
                 'label' => __( 'Gestion régionale', 'ufsc-clubs' ),
                 'caps'  => array(
                     'read' => true,
+                    'level_0' => true,
                     self::CAP_GESTION_READ    => true,
                     self::CAP_GESTION_MANAGE  => true,
                     self::CAP_LICENCES_READ   => true,
@@ -128,6 +135,7 @@ class UFSC_Permissions {
                 'label' => __( 'Gestion compétitions', 'ufsc-clubs' ),
                 'caps'  => array(
                     'read' => true,
+                    'level_0' => true,
                     self::CAP_GESTION_READ          => true,
                     self::CAP_LICENCES_READ         => true,
                     self::CAP_COMPETITIONS_READ     => true,
@@ -138,6 +146,7 @@ class UFSC_Permissions {
                 'label' => __( 'Admin UFSC limité', 'ufsc-clubs' ),
                 'caps'  => array(
                     'read' => true,
+                    'level_0' => true,
                     self::CAP_GESTION_READ          => true,
                     self::CAP_LICENCES_READ         => true,
                     self::CAP_COMPETITIONS_READ     => true,

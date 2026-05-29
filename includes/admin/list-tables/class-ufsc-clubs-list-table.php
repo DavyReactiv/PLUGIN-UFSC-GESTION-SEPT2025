@@ -82,7 +82,12 @@ class UFSC_Clubs_List_Table {
         echo '</div>';
         echo '<div class="ufsc-renewal-notice"><span class="dashicons dashicons-info"></span><p>' . esc_html__( 'Renouvellement des affiliations : à chaque nouvelle saison, les clubs devront confirmer ou renouveler leur affiliation afin de maintenir leurs licences actives.', 'ufsc-clubs' ) . '</p></div>';
         if ( function_exists( 'ufsc_user_has_all_regions_access' ) && ! ufsc_user_has_all_regions_access() ) {
-            echo '<div class="notice notice-info"><p>' . esc_html__( 'Résultats filtrés selon vos régions UFSC autorisées.', 'ufsc-clubs' ) . '</p></div>';
+            $allowed_regions = function_exists( 'ufsc_current_user_allowed_regions' ) ? ufsc_current_user_allowed_regions() : array();
+            if ( empty( $allowed_regions ) ) {
+                echo '<div class="notice notice-warning"><p>' . esc_html__( 'Aucune région n’est associée à votre compte. Contactez un administrateur UFSC.', 'ufsc-clubs' ) . '</p></div>';
+            } else {
+                echo '<div class="notice notice-info"><p>' . esc_html__( 'Résultats filtrés selon vos régions UFSC autorisées.', 'ufsc-clubs' ) . '</p></div>';
+            }
         }
 
         // Affichage des notices
@@ -485,7 +490,7 @@ class UFSC_Clubs_List_Table {
             'pending' => 0,
             'documents_complete' => null,
             'documents_incomplete' => null,
-            'licences' => array_sum( array_map( 'intval', (array) $licence_counts ) ),
+            'licences' => self::sum_licence_counts_for_scope( $columns, $clubs_table, $licence_counts, $where_scope ),
             'missing_affiliation' => null,
         );
 
@@ -538,6 +543,31 @@ class UFSC_Clubs_List_Table {
             echo '</div>';
         }
         echo '</div>';
+    }
+
+
+    /**
+     * Sum licence counts only for clubs in the same regional perimeter as the cards/table.
+     */
+    private static function sum_licence_counts_for_scope( $columns, $clubs_table, $licence_counts, $where_scope ) {
+        if ( '' === $where_scope ) {
+            return array_sum( array_map( 'intval', (array) $licence_counts ) );
+        }
+
+        global $wpdb;
+        $id_column = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id';
+        if ( ! self::has_verified_column( $columns, $clubs_table, $id_column ) ) {
+            $id_column = 'id';
+        }
+
+        $club_ids = $wpdb->get_col( "SELECT `{$id_column}` FROM `{$clubs_table}` {$where_scope}" );
+        $total    = 0;
+        foreach ( (array) $club_ids as $club_id ) {
+            $club_id = (int) $club_id;
+            $total  += isset( $licence_counts[ $club_id ] ) ? (int) $licence_counts[ $club_id ] : 0;
+        }
+
+        return $total;
     }
 
     /**
