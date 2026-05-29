@@ -735,19 +735,19 @@ class UFSC_SQL_Admin
     public static function register_hidden_pages()
     {
         // Enregistrer les pages cachées pour les actions directes (mentionnées dans les specs)
-        add_submenu_page('', __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
-        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
+        add_submenu_page('', __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
+        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
         // Alias pour compatibilité avec la spec (licenses vs licences)
-        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-licenses', [__CLASS__, 'render_licences']);
+        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-licenses', [__CLASS__, 'render_licences']);
     }
 
     /* ---------------- Menus complets (obsolète - remplacé par menu unifié) ---------------- */
     public static function register_menus()
     {
-        add_menu_page(__('UFSC – Données (SQL)', 'ufsc-clubs'), __('UFSC – Données (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql', [__CLASS__, 'render_dashboard'], 'dashicons-database', 59);
-        add_submenu_page('ufsc-sql', __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
-        add_submenu_page('ufsc-sql', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
-        add_submenu_page('ufsc-sql', __('Réglages (SQL)', 'ufsc-clubs'), __('Réglages (SQL)', 'ufsc-clubs'), UFSC_Capabilities::CAP_MANAGE_READ, 'ufsc-sql-settings', [__CLASS__, 'render_settings']);
+        add_menu_page(__('UFSC – Données (SQL)', 'ufsc-clubs'), __('UFSC – Données (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql', [__CLASS__, 'render_dashboard'], 'dashicons-database', 59);
+        add_submenu_page('ufsc-sql', __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
+        add_submenu_page('ufsc-sql', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
+        add_submenu_page('ufsc-sql', __('Réglages (SQL)', 'ufsc-clubs'), __('Réglages (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_SETTINGS_MANAGE, 'ufsc-sql-settings', [__CLASS__, 'render_settings']);
     }
 
     /* ---------------- Dashboard ---------------- */
@@ -796,7 +796,7 @@ class UFSC_SQL_Admin
     /* ---------------- Liste Clubs ---------------- */
     public static function render_clubs()
     {
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_MANAGE_READ ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_READ ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
         // Handle save first
@@ -805,18 +805,24 @@ class UFSC_SQL_Admin
         }
         // Check if we should show edit/new form
         if (isset($_GET['action']) && $_GET['action'] === 'edit') {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
                 wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
             }
             $id = (int) $_GET['id'];
+            if ( ! self::current_user_can_access_club_region( $id ) ) {
+                wp_die( __( 'Accès refusé : ce club appartient à une région non autorisée.', 'ufsc-clubs' ) );
+            }
             self::render_club_form($id);
             return;
         } elseif (isset($_GET['action']) && $_GET['action'] === 'view') {
             $id = (int) $_GET['id'];
+            if ( ! self::current_user_can_access_club_region( $id ) ) {
+                wp_die( __( 'Accès refusé : ce club appartient à une région non autorisée.', 'ufsc-clubs' ) );
+            }
             self::render_club_form($id, true); // true = readonly mode
             return;
         } elseif (isset($_GET['action']) && $_GET['action'] === 'new') {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
                 wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
             }
             self::render_club_form(0);
@@ -830,14 +836,45 @@ class UFSC_SQL_Admin
         UFSC_Clubs_List_Table::render();
     }
 
+
+    /**
+     * Check current user's regional access to a club row when the SQL table exposes a region column.
+     *
+     * @param int $club_id Club ID.
+     * @return bool
+     */
+    private static function current_user_can_access_club_region( $club_id ) {
+        $club_id = absint( $club_id );
+        if ( ! $club_id || ! function_exists( 'ufsc_user_has_all_regions_access' ) || ufsc_user_has_all_regions_access() ) {
+            return true;
+        }
+
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $table    = $settings['table_clubs'];
+        $pk       = $settings['pk_club'];
+        $columns  = self::get_table_columns( $table );
+
+        if ( ! in_array( 'region', $columns, true ) ) {
+            return true;
+        }
+
+        $region = $wpdb->get_var( $wpdb->prepare( "SELECT `region` FROM `{$table}` WHERE `{$pk}` = %d", $club_id ) );
+        if ( '' === (string) $region ) {
+            return true;
+        }
+
+        return function_exists( 'ufsc_is_region_allowed_for_current_user' ) && ufsc_is_region_allowed_for_current_user( (string) $region );
+    }
+
     /* ---------------- Handle clubs export ---------------- */
 
     private static function handle_clubs_export()
     {
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_MANAGE_READ ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_READ ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
         global $wpdb;
@@ -1357,7 +1394,7 @@ class UFSC_SQL_Admin
             echo '</form>';
         } else {
             echo '<p><a class="button" href="' . esc_url(admin_url('admin.php?page=ufsc-sql-clubs')) . '">' . esc_html__('Retour à la liste', 'ufsc-clubs') . '</a>';
-            if (current_user_can('manage_options')) {
+            if (ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE )) {
                 echo ' <a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=ufsc-sql-clubs&action=edit&id=' . $id)) . '">' . esc_html__('Modifier', 'ufsc-clubs') . '</a>';
             }
             echo '</p>';
@@ -1551,7 +1588,7 @@ class UFSC_SQL_Admin
         $id      = isset($_POST['id']) ? (int) $_POST['id'] : 0;
 
         // Permission check to ensure user can manage this club
-        if (! current_user_can('manage_options') && ufsc_get_user_club_id($user_id) !== $id) {
+        if (! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) && ufsc_get_user_club_id($user_id) !== $id) {
             set_transient('ufsc_error_' . $user_id, __('Permissions insuffisantes', 'ufsc-clubs'), 30);
             self::maybe_redirect(wp_get_referer());
             return; // Abort processing if user lacks rights
@@ -1571,8 +1608,14 @@ class UFSC_SQL_Admin
         }
         if ( $id ) {
             UFSC_Scope::assert_club_in_scope( $id );
+            if ( ! self::current_user_can_access_club_region( $id ) ) {
+                wp_die( __( 'Accès refusé : ce club appartient à une région non autorisée.', 'ufsc-clubs' ) );
+            }
         } elseif ( isset( $data['region'] ) ) {
             UFSC_Scope::assert_in_scope( $data['region'] );
+            if ( function_exists( 'ufsc_user_can_access_region' ) && ! ufsc_user_can_access_region( $data['region'] ) ) {
+                wp_die( __( 'Accès refusé : région non autorisée.', 'ufsc-clubs' ) );
+            }
         }
         if (! isset($data['statut']) || $data['statut'] === '') {
             $data['statut'] = 'en_attente';
@@ -1667,7 +1710,7 @@ class UFSC_SQL_Admin
             if ($id) {
                 self::handle_club_document_uploads($id);
 
-                $can_manage_docs = current_user_can('manage_options') || current_user_can('edit_post', $id) || (class_exists('UFSC_Capabilities') && UFSC_Capabilities::user_can(UFSC_Capabilities::CAP_MANAGE_READ));
+                $can_manage_docs = ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) || current_user_can('edit_post', $id) || (class_exists('UFSC_Capabilities') && UFSC_Capabilities::user_can(UFSC_Capabilities::CAP_MANAGE_READ));
                 $has_docs_nonce  = isset($_POST['ufsc_club_docs_nonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['ufsc_club_docs_nonce'])), 'ufsc_club_docs_action');
                 $doc_errors      = [];
 
@@ -1943,7 +1986,7 @@ class UFSC_SQL_Admin
         if (! current_user_can('read')) {
             wp_die(__('Accès refusé.', 'ufsc-clubs'));
         }
-        if (! current_user_can('manage_options')) {
+        if (! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE )) {
             wp_die('Accès refusé');
         }
         check_admin_referer('ufsc_sql_delete_club');
@@ -2272,7 +2315,7 @@ class UFSC_SQL_Admin
 
     public static function render_licences()
     {
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_MANAGE_READ ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_READ ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
 
@@ -2469,13 +2512,13 @@ class UFSC_SQL_Admin
         // Add nonce for AJAX operations
         echo '<input type="hidden" id="ufsc-ajax-nonce" value="' . wp_create_nonce('ufsc_ajax_nonce') . '" />';
 
-        if ( current_user_can( 'manage_options' ) ) {
+        if ( ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
             echo '<p><a href="' . esc_url(admin_url('admin.php?page=ufsc-sql-licences&action=new')) . '" class="button button-primary">' . esc_html__('Ajouter une licence', 'ufsc-clubs') . '</a> ';
             echo '<a href="' . esc_url(admin_url('admin.php?page=ufsc-exports')) . '" class="button">' . esc_html__('Exporter', 'ufsc-clubs') . '</a></p>';
         }
 
         if (isset($_GET['action']) && $_GET['action'] === 'edit') {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
                 wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
             }
             $id = (int) $_GET['id'];
@@ -2488,7 +2531,7 @@ class UFSC_SQL_Admin
             echo '</div>';
             return;
         } elseif (isset($_GET['action']) && $_GET['action'] === 'new') {
-            if ( ! current_user_can( 'manage_options' ) ) {
+            if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
                 wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
             }
             self::render_licence_form(0);
@@ -2986,7 +3029,7 @@ class UFSC_SQL_Admin
             echo '</form>';
         } else {
             echo '<p><a class="button" href="' . esc_url( $return_url ) . '">' . esc_html__('Retour à la liste', 'ufsc-clubs') . '</a>';
-            if (current_user_can('manage_options')) {
+            if (ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE )) {
                 echo ' <a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=ufsc-sql-licences&action=edit&id=' . $id . '&return_to=' . rawurlencode( $return_url ))) . '">' . esc_html__('Modifier', 'ufsc-clubs') . '</a>';
             }
             echo '</p>';
@@ -3236,7 +3279,7 @@ class UFSC_SQL_Admin
         }
 
         // Vérifier droits sur le club
-        if (! current_user_can('manage_options') && ufsc_get_user_club_id($user_id) !== $club_id) {
+        if (! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) && ufsc_get_user_club_id($user_id) !== $club_id) {
             set_transient('ufsc_error_' . $user_id, __('Permissions insuffisantes', 'ufsc-clubs'), 30);
             self::maybe_redirect(wp_get_referer());
             return;
@@ -3434,7 +3477,7 @@ class UFSC_SQL_Admin
         if (! current_user_can('read')) {
             wp_die(__('Accès refusé.', 'ufsc-clubs'));
         }
-        if (! current_user_can('manage_options')) {
+        if (! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE )) {
             wp_die('Accès refusé');
         }
 
@@ -3678,7 +3721,7 @@ class UFSC_SQL_Admin
 
     public static function handle_delete_licence()
     {
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
+        if ( ! ( UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) || ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) ) {
             wp_die(__('Accès refusé.', 'ufsc-clubs'));
         }
 
@@ -3688,7 +3731,8 @@ class UFSC_SQL_Admin
 
     public static function handle_trash_licence( $check_nonce = true ) {
         $can_manage_licences = ( class_exists( 'UFSC_Capabilities' ) && UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) )
-            || current_user_can( 'manage_options' );
+            || ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE )
+            || ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE );
         if ( ! $can_manage_licences ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
@@ -3770,7 +3814,7 @@ class UFSC_SQL_Admin
     }
 
     public static function handle_restore_licence() {
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
+        if ( ! ( UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) || ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
         check_admin_referer( 'ufsc_sql_restore_licence' );
@@ -3817,7 +3861,7 @@ class UFSC_SQL_Admin
     }
 
     public static function handle_force_delete_licence() {
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
+        if ( ! ( UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) || ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
         check_admin_referer( 'ufsc_sql_force_delete_licence' );
@@ -3869,7 +3913,7 @@ class UFSC_SQL_Admin
     public static function handle_ajax_update_licence_status()
     {
         // Check nonce and permissions
-        if (! wp_verify_nonce($_POST['nonce'], 'ufsc_ajax_nonce') || ! current_user_can('manage_options')) {
+        if (! wp_verify_nonce($_POST['nonce'], 'ufsc_ajax_nonce') || ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE )) {
             wp_die();
         }
 
@@ -3938,7 +3982,7 @@ class UFSC_SQL_Admin
     public static function handle_ajax_send_to_payment()
     {
         // Check nonce and permissions
-        if (! wp_verify_nonce($_POST['nonce'], 'ufsc_ajax_nonce') || ! current_user_can('manage_options')) {
+        if (! wp_verify_nonce($_POST['nonce'], 'ufsc_ajax_nonce') || ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE )) {
             wp_die();
         }
 
@@ -4065,7 +4109,7 @@ class UFSC_SQL_Admin
         if (! current_user_can('read')) {
             wp_die(__('Accès refusé.', 'ufsc-clubs'));
         }
-        if (! current_user_can('manage_options')) {
+        if (! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE )) {
             wp_die('Accès refusé');
         }
         check_admin_referer('ufsc_export_data');
@@ -4273,10 +4317,10 @@ class UFSC_SQL_Admin
      */
     public static function render_exports()
     {
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_MANAGE_READ ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_READ ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
         echo '<div class="wrap">';
@@ -4427,10 +4471,10 @@ class UFSC_SQL_Admin
      */
     public static function render_import()
     {
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_MANAGE_READ ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_READ ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
         echo '<div class="wrap">';
@@ -4715,7 +4759,7 @@ class UFSC_SQL_Admin
      */
     public static function handle_import_data()
     {
-        if (! current_user_can('manage_options')) {
+        if (! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE )) {
             wp_die('Accès refusé');
         }
 
@@ -4760,7 +4804,7 @@ class UFSC_SQL_Admin
      */
     public static function handle_process_import()
     {
-        if (! current_user_can('manage_options')) {
+        if (! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE )) {
             wp_die('Accès refusé');
         }
 
@@ -5255,7 +5299,7 @@ class UFSC_SQL_Admin
             self::debug_log_bulk_licences( 'Invalid nonce.' );
             self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'invalid_nonce' ), $redirect_base ) );
         }
-        if ( ! UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) ) {
+        if ( ! ( UFSC_Capabilities::user_can( UFSC_Capabilities::CAP_LICENCE_EDIT ) || ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) ) {
             self::debug_log_bulk_licences( 'Forbidden action.' );
             self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'forbidden' ), $redirect_base ) );
         }

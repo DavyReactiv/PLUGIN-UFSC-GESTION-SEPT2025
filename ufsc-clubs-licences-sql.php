@@ -17,6 +17,7 @@ require_once UFSC_CL_DIR.'includes/core/class-utils.php';
 require_once UFSC_CL_DIR.'includes/core/column-map.php';
 require_once UFSC_CL_DIR.'includes/security/class-ufsc-capabilities.php';
 require_once UFSC_CL_DIR.'includes/security/class-ufsc-scope.php';
+require_once UFSC_CL_DIR.'includes/permissions/class-ufsc-permissions.php';
 require_once UFSC_CL_DIR.'includes/admin/class-admin-menu.php';
 require_once UFSC_CL_DIR.'includes/admin/class-ufsc-settings-page.php';
 require_once UFSC_CL_DIR.'includes/core/class-sql.php';
@@ -143,6 +144,7 @@ final class UFSC_CL_Bootstrap {
         add_action( 'init', array( 'UFSC_Unified_Handlers', 'init' ) );
         add_action( 'init', array( 'UFSC_Cache_Manager', 'init' ) );
         add_action( 'init', array( 'UFSC_Capabilities', 'register_caps' ) );
+        add_action( 'init', array( 'UFSC_Permissions', 'init' ) );
         add_action( 'init', array( 'UFSC_User_Profile_Scope_Field', 'init' ) );
         add_action( 'plugins_loaded', array( 'UFSC_DB_Migrations', 'run_migrations' ) );
 
@@ -166,6 +168,7 @@ final class UFSC_CL_Bootstrap {
             ufsc_flush_table_columns_cache();
         }
         UFSC_Capabilities::register_caps();
+        UFSC_Permissions::register_roles_and_caps();
         UFSC_DB_Migrations::run_migrations();
         if ( class_exists( 'UFSC_Licence_Payments' ) ) { UFSC_Licence_Payments::maybe_migrate(); }
         flush_rewrite_rules();

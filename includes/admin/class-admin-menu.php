@@ -10,7 +10,7 @@ class UFSC_CL_Admin_Menu {
 		add_menu_page(
 			__( 'UFSC Gestion', 'ufsc-clubs' ),
 			__( 'UFSC Gestion', 'ufsc-clubs' ),
-			UFSC_Capabilities::CAP_MANAGE_READ,
+			UFSC_Permissions::CAP_GESTION_READ,
 			'ufsc-dashboard',
 			array( __CLASS__, 'render_dashboard' ),
 			'dashicons-groups',
@@ -22,7 +22,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Tableau de bord', 'ufsc-clubs' ),
 			__( 'Tableau de bord', 'ufsc-clubs' ),
-			UFSC_Capabilities::CAP_MANAGE_READ,
+			UFSC_Permissions::CAP_GESTION_READ,
 			'ufsc-dashboard',
 			array( __CLASS__, 'render_dashboard' )
 		);
@@ -31,7 +31,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Clubs', 'ufsc-clubs' ),
 			__( 'Clubs', 'ufsc-clubs' ),
-			UFSC_Capabilities::CAP_MANAGE_READ,
+			UFSC_Permissions::CAP_GESTION_READ,
 			'ufsc-clubs',
 			array( 'UFSC_SQL_Admin', 'render_clubs' )
 		);
@@ -40,7 +40,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Licences', 'ufsc-clubs' ),
 			__( 'Licences', 'ufsc-clubs' ),
-			UFSC_Capabilities::CAP_MANAGE_READ,
+			UFSC_Permissions::CAP_GESTION_READ,
 			'ufsc-licences',
 			array( 'UFSC_SQL_Admin', 'render_licences' )
 		);
@@ -49,7 +49,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Exports', 'ufsc-clubs' ),
 			__( 'Exports', 'ufsc-clubs' ),
-			UFSC_Capabilities::CAP_MANAGE_READ,
+			UFSC_Permissions::CAP_GESTION_READ,
 			'ufsc-exports',
 			array( 'UFSC_SQL_Admin', 'render_exports' )
 		);
@@ -58,7 +58,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Import', 'ufsc-clubs' ),
 			__( 'Import', 'ufsc-clubs' ),
-			UFSC_Capabilities::CAP_MANAGE_READ,
+			UFSC_Permissions::CAP_GESTION_MANAGE,
 			'ufsc-import',
 			array( 'UFSC_SQL_Admin', 'render_import' )
 		);
@@ -67,7 +67,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Paramètres', 'ufsc-clubs' ),
 			__( 'Paramètres', 'ufsc-clubs' ),
-			UFSC_Capabilities::CAP_MANAGE_READ,
+			UFSC_Permissions::CAP_SETTINGS_MANAGE,
 			'ufsc-settings',
 			array( 'UFSC_Settings_Page', 'render' )
 		);
@@ -76,7 +76,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'WooCommerce', 'ufsc-clubs' ),
 			__( 'WooCommerce', 'ufsc-clubs' ),
-			UFSC_Capabilities::CAP_MANAGE_READ,
+			UFSC_Permissions::CAP_SETTINGS_MANAGE,
 			'ufsc-woocommerce',
 			array( 'UFSC_SQL_Admin', 'render_woocommerce_settings' )
 		);
@@ -173,7 +173,7 @@ class UFSC_CL_Admin_Menu {
 		echo '</div>';
 
 		// Cache refresh button
-		if ( current_user_can( 'manage_options' ) ) {
+		if ( ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
 			$refresh_url = add_query_arg( 'ufsc_refresh_cache', '1', admin_url( 'admin.php?page=ufsc-dashboard' ) );
 			$refresh_url = wp_nonce_url( $refresh_url, 'ufsc_refresh_cache' );
 			echo '<a href="' . esc_url( $refresh_url ) . '" class="button" style="color: white; border-color: rgba(255,255,255,0.3);" title="' . esc_attr__( 'Actualiser les données (cache: 10 min)', 'ufsc-clubs' ) . '">' . esc_html__( '⟳ Actualiser', 'ufsc-clubs' ) . '</a>';
@@ -182,7 +182,7 @@ class UFSC_CL_Admin_Menu {
 		echo '</div>';
 
 		// Handle cache refresh
-		if ( isset( $_GET['ufsc_refresh_cache'] ) && current_user_can( 'manage_options' ) ) {
+		if ( isset( $_GET['ufsc_refresh_cache'] ) && ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
 			check_admin_referer( 'ufsc_refresh_cache' );
 			self::clear_dashboard_cache();
 
@@ -386,7 +386,7 @@ class UFSC_CL_Admin_Menu {
 		// Actions rapides améliorées
 		echo '<div class="ufsc-quick-actions" style="margin-top: 30px;">';
 		echo '<h2>' . esc_html__( 'Actions Rapides', 'ufsc-clubs' ) . '</h2>';
-		if ( current_user_can( 'manage_options' ) ) {
+		if ( ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
 			echo '<div class="ufsc-button-group" style="gap: 12px; flex-wrap: wrap; margin-top: 15px;">';
 			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&action=new' ) ) . '" class="button button-primary">' . esc_html__( 'Nouveau Club', 'ufsc-clubs' ) . '</a>';
 			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-licences&action=new' ) ) . '" class="button button-primary">' . esc_html__( 'Nouvelle Licence', 'ufsc-clubs' ) . '</a>';
