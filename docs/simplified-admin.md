@@ -218,3 +218,16 @@ Les redirections utilisent toujours `admin_url()` et testent des listes de slugs
 - `admin.php?page=ufsc-clubs`
 - `admin.php?page=ufsc_clubs`
 - `admin.php?page=ufsc-dashboard`
+
+## Correctif d’accès aux pages UFSC autorisées
+
+Le module simplifié normalise maintenant les capabilities des menus UFSC détectés dans les globals WordPress :
+
+- les menus identifiés comme **UFSC Gestion** demandent `ufsc_gestion_read` ;
+- les menus identifiés comme **UFSC Licences** demandent `ufsc_licences_read` ;
+- les menus identifiés comme **Compétitions** demandent `ufsc_competitions_read` ;
+- les pages sensibles comme **Droits & accès**, réglages UFSC et réglages WooCommerce UFSC restent exclues de cette normalisation et conservent leurs protections serveur.
+
+Des aliases cachés sont également enregistrés pour les installations qui utilisent des slugs historiques, notamment `ufsc-gestion`, `ufsc_gestion`, `ufsc_lc_licences`, `ufsc-licence-competition` et les variantes `ufsc_competitions` / `ufsc-competitions`.
+
+La protection anti-redirection front-office intercepte les redirections vers `home_url()` pendant une requête wp-admin d’un utilisateur UFSC limité et les remplace par une URL `admin_url()` autorisée. Elle ne donne jamais `manage_options` et ne modifie pas les protections POST/AJAX/admin_post.
