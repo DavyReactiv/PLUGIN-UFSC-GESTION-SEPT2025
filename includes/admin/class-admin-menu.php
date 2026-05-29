@@ -40,7 +40,7 @@ class UFSC_CL_Admin_Menu {
 			'ufsc-dashboard',
 			__( 'Licences', 'ufsc-clubs' ),
 			__( 'Licences', 'ufsc-clubs' ),
-			UFSC_Permissions::CAP_GESTION_READ,
+			UFSC_Permissions::CAP_LICENCES_READ,
 			'ufsc-licences',
 			array( 'UFSC_SQL_Admin', 'render_licences' )
 		);

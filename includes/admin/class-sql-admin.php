@@ -736,9 +736,9 @@ class UFSC_SQL_Admin
     {
         // Enregistrer les pages cachées pour les actions directes (mentionnées dans les specs)
         add_submenu_page('', __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
-        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
+        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
         // Alias pour compatibilité avec la spec (licenses vs licences)
-        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-licenses', [__CLASS__, 'render_licences']);
+        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licenses', [__CLASS__, 'render_licences']);
     }
 
     /* ---------------- Menus complets (obsolète - remplacé par menu unifié) ---------------- */
@@ -746,7 +746,7 @@ class UFSC_SQL_Admin
     {
         add_menu_page(__('UFSC – Données (SQL)', 'ufsc-clubs'), __('UFSC – Données (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql', [__CLASS__, 'render_dashboard'], 'dashicons-database', 59);
         add_submenu_page('ufsc-sql', __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
-        add_submenu_page('ufsc-sql', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
+        add_submenu_page('ufsc-sql', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
         add_submenu_page('ufsc-sql', __('Réglages (SQL)', 'ufsc-clubs'), __('Réglages (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_SETTINGS_MANAGE, 'ufsc-sql-settings', [__CLASS__, 'render_settings']);
     }
 
@@ -2315,7 +2315,7 @@ class UFSC_SQL_Admin
 
     public static function render_licences()
     {
-        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_READ ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_LICENCES_READ ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
 
@@ -2512,13 +2512,13 @@ class UFSC_SQL_Admin
         // Add nonce for AJAX operations
         echo '<input type="hidden" id="ufsc-ajax-nonce" value="' . wp_create_nonce('ufsc_ajax_nonce') . '" />';
 
-        if ( ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
+        if ( ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
             echo '<p><a href="' . esc_url(admin_url('admin.php?page=ufsc-sql-licences&action=new')) . '" class="button button-primary">' . esc_html__('Ajouter une licence', 'ufsc-clubs') . '</a> ';
             echo '<a href="' . esc_url(admin_url('admin.php?page=ufsc-exports')) . '" class="button">' . esc_html__('Exporter', 'ufsc-clubs') . '</a></p>';
         }
 
         if (isset($_GET['action']) && $_GET['action'] === 'edit') {
-            if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
+            if ( ! ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
                 wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
             }
             $id = (int) $_GET['id'];
@@ -2531,7 +2531,7 @@ class UFSC_SQL_Admin
             echo '</div>';
             return;
         } elseif (isset($_GET['action']) && $_GET['action'] === 'new') {
-            if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
+            if ( ! ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
                 wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
             }
             self::render_licence_form(0);
