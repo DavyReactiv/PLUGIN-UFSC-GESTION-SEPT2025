@@ -54,6 +54,7 @@ class UFSC_Simplified_Admin {
         add_action( 'admin_init', array( __CLASS__, 'force_allow_wp_admin_for_limited_ufsc_users' ), 0 );
         add_action( 'admin_init', array( __CLASS__, 'maybe_redirect_from_dashboard' ), 1 );
         add_action( 'admin_init', array( __CLASS__, 'maybe_block_direct_admin_access' ), 20 );
+        add_action( 'admin_menu', array( __CLASS__, 'register_compatibility_parent_pages' ), 1 );
         add_action( 'admin_menu', array( __CLASS__, 'register_authorized_alias_pages' ), 18 );
         add_action( 'admin_menu', array( __CLASS__, 'register_licences_bridge_menu' ), 19 );
         add_action( 'admin_menu', array( __CLASS__, 'register_welcome_page' ), 20 );
@@ -132,6 +133,36 @@ class UFSC_Simplified_Admin {
         return current_user_can( UFSC_Permissions::CAP_COMPETITIONS_READ ) || current_user_can( UFSC_Permissions::CAP_COMPETITIONS_MANAGE );
     }
 
+
+    /**
+     * Register stable compatibility parents before companion plugins add their subpages.
+     *
+     * Some UFSC LC installations attach settings pages to historical parents such as
+     * ufsc_lc or ufsc-licence-competition. Registering hidden parents prevents the
+     * WordPress "parent slug missing" admin notice without exposing sensitive pages.
+     */
+    public static function register_compatibility_parent_pages() {
+        if ( ! self::is_enabled() ) {
+            return;
+        }
+
+        if ( self::can_access_licences() && class_exists( 'UFSC_SQL_Admin' ) ) {
+            foreach ( array( 'ufsc_lc', 'ufsc-lc', 'ufsc_lc_licences' ) as $slug ) {
+                if ( ! self::menu_slug_exists( $slug ) ) {
+                    add_submenu_page( null, __( 'UFSC Licences', 'ufsc-clubs' ), __( 'UFSC Licences', 'ufsc-clubs' ), UFSC_Permissions::CAP_LICENCES_READ, $slug, array( 'UFSC_SQL_Admin', 'render_licences' ) );
+                }
+            }
+        }
+
+        if ( self::can_access_competitions() ) {
+            foreach ( array( 'ufsc_lc_competitions', 'ufsc-licence-competition' ) as $slug ) {
+                if ( ! self::menu_slug_exists( $slug ) ) {
+                    add_submenu_page( null, __( 'Compétitions', 'ufsc-clubs' ), __( 'Compétitions', 'ufsc-clubs' ), UFSC_Permissions::CAP_COMPETITIONS_READ, $slug, array( __CLASS__, 'render_competitions_bridge_page' ) );
+                }
+            }
+        }
+    }
+
     /**
      * Register hidden aliases for UFSC Gestion/Licences slugs used by existing installs.
      */
@@ -141,17 +172,17 @@ class UFSC_Simplified_Admin {
         }
 
         if ( self::can_access_gestion() ) {
-            add_submenu_page( '', __( 'UFSC Gestion', 'ufsc-clubs' ), __( 'UFSC Gestion', 'ufsc-clubs' ), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-gestion', array( 'UFSC_CL_Admin_Menu', 'render_dashboard' ) );
-            add_submenu_page( '', __( 'UFSC Gestion', 'ufsc-clubs' ), __( 'UFSC Gestion', 'ufsc-clubs' ), UFSC_Permissions::CAP_GESTION_READ, 'ufsc_gestion', array( 'UFSC_CL_Admin_Menu', 'render_dashboard' ) );
+            add_submenu_page( null, __( 'UFSC Gestion', 'ufsc-clubs' ), __( 'UFSC Gestion', 'ufsc-clubs' ), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-gestion', array( 'UFSC_CL_Admin_Menu', 'render_dashboard' ) );
+            add_submenu_page( null, __( 'UFSC Gestion', 'ufsc-clubs' ), __( 'UFSC Gestion', 'ufsc-clubs' ), UFSC_Permissions::CAP_GESTION_READ, 'ufsc_gestion', array( 'UFSC_CL_Admin_Menu', 'render_dashboard' ) );
             if ( class_exists( 'UFSC_SQL_Admin' ) ) {
-                add_submenu_page( '', __( 'Clubs UFSC', 'ufsc-clubs' ), __( 'Clubs UFSC', 'ufsc-clubs' ), UFSC_Permissions::CAP_GESTION_READ, 'ufsc_clubs', array( 'UFSC_SQL_Admin', 'render_clubs' ) );
+                add_submenu_page( null, __( 'Clubs UFSC', 'ufsc-clubs' ), __( 'Clubs UFSC', 'ufsc-clubs' ), UFSC_Permissions::CAP_GESTION_READ, 'ufsc_clubs', array( 'UFSC_SQL_Admin', 'render_clubs' ) );
             }
         }
 
         if ( self::can_access_licences() && class_exists( 'UFSC_SQL_Admin' ) ) {
             foreach ( array( 'ufsc_licences', 'ufsc-licence', 'ufsc_licence', 'ufsc-licences-dashboard', 'ufsc_lc_licences' ) as $slug ) {
                 if ( ! self::menu_slug_exists( $slug ) ) {
-                    add_submenu_page( '', __( 'UFSC Licences', 'ufsc-clubs' ), __( 'UFSC Licences', 'ufsc-clubs' ), UFSC_Permissions::CAP_LICENCES_READ, $slug, array( 'UFSC_SQL_Admin', 'render_licences' ) );
+                    add_submenu_page( null, __( 'UFSC Licences', 'ufsc-clubs' ), __( 'UFSC Licences', 'ufsc-clubs' ), UFSC_Permissions::CAP_LICENCES_READ, $slug, array( 'UFSC_SQL_Admin', 'render_licences' ) );
                 }
             }
         }
@@ -159,7 +190,7 @@ class UFSC_Simplified_Admin {
         if ( self::can_access_competitions() ) {
             foreach ( array( 'ufsc-licence-competition', 'ufsc_licence_competition', 'ufsc-competitions', 'ufsc_competitions', 'ufsc-competition', 'ufsc_competition', 'ufsc-competition-dashboard', 'ufsc_competition_dashboard' ) as $slug ) {
                 if ( ! self::menu_slug_exists( $slug ) ) {
-                    add_submenu_page( '', __( 'Compétitions', 'ufsc-clubs' ), __( 'Compétitions', 'ufsc-clubs' ), UFSC_Permissions::CAP_COMPETITIONS_READ, $slug, array( __CLASS__, 'render_competitions_bridge_page' ) );
+                    add_submenu_page( null, __( 'Compétitions', 'ufsc-clubs' ), __( 'Compétitions', 'ufsc-clubs' ), UFSC_Permissions::CAP_COMPETITIONS_READ, $slug, array( __CLASS__, 'render_competitions_bridge_page' ) );
                 }
             }
         }
@@ -196,6 +227,10 @@ class UFSC_Simplified_Admin {
             return;
         }
 
+        if ( self::has_visible_module_menu( 'licences' ) ) {
+            return;
+        }
+
         add_menu_page(
             __( 'UFSC Licences', 'ufsc-clubs' ),
             __( 'UFSC Licences', 'ufsc-clubs' ),
@@ -211,18 +246,27 @@ class UFSC_Simplified_Admin {
      * Register a lightweight UFSC home page for limited users who can open UFSC Gestion.
      */
     public static function register_welcome_page() {
-        if ( ! self::should_apply() || ! self::can_access_gestion() ) {
+        if ( ! self::should_apply() ) {
             return;
         }
 
-        add_submenu_page(
-            'ufsc-dashboard',
-            __( 'Accueil UFSC', 'ufsc-clubs' ),
-            __( 'Accueil UFSC', 'ufsc-clubs' ),
-            UFSC_Permissions::CAP_GESTION_READ,
-            'ufsc-home',
+        add_menu_page(
+            __( 'Espace UFSC', 'ufsc-clubs' ),
+            __( 'Espace UFSC', 'ufsc-clubs' ),
+            'read',
+            'ufsc-limited-dashboard',
             array( __CLASS__, 'render_welcome_page' ),
-            0
+            'dashicons-admin-home',
+            57
+        );
+
+        add_submenu_page(
+            null,
+            __( 'Espace UFSC', 'ufsc-clubs' ),
+            __( 'Espace UFSC', 'ufsc-clubs' ),
+            'read',
+            'ufsc-home',
+            array( __CLASS__, 'render_welcome_page' )
         );
     }
 
@@ -230,7 +274,7 @@ class UFSC_Simplified_Admin {
      * Render simplified home page.
      */
     public static function render_welcome_page() {
-        if ( ! self::can_access_gestion() ) {
+        if ( ! self::should_apply() ) {
             wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ), esc_html__( 'Accès refusé', 'ufsc-clubs' ), array( 'response' => 403 ) );
         }
 
@@ -238,6 +282,7 @@ class UFSC_Simplified_Admin {
             && ! current_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE )
             && ! current_user_can( UFSC_Permissions::CAP_COMPETITIONS_MANAGE );
         $regions = function_exists( 'ufsc_current_user_allowed_regions' ) ? ufsc_current_user_allowed_regions() : array();
+        $urls    = self::get_module_urls();
 
         echo '<div class="wrap ufsc-simplified-home">';
         echo '<h1>' . esc_html__( 'Bienvenue dans votre espace UFSC', 'ufsc-clubs' ) . '</h1>';
@@ -249,14 +294,15 @@ class UFSC_Simplified_Admin {
 
         echo '<div class="ufsc-dashboard-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:20px;">';
         if ( self::can_access_licences() ) {
-            echo '<div class="ufsc-dashboard-card"><h2>' . esc_html__( 'Licences', 'ufsc-clubs' ) . '</h2><p><a class="button button-primary" href="' . esc_url( self::get_licences_url() ) . '">' . esc_html__( 'Accéder aux licences', 'ufsc-clubs' ) . '</a></p></div>';
+            echo '<div class="ufsc-dashboard-card"><h2>' . esc_html__( 'Licences', 'ufsc-clubs' ) . '</h2><p><a class="button button-primary" href="' . esc_url( $urls['licences'] ) . '">' . esc_html__( 'Accéder aux licences', 'ufsc-clubs' ) . '</a></p></div>';
         }
         if ( self::can_access_competitions() ) {
-            echo '<div class="ufsc-dashboard-card"><h2>' . esc_html__( 'Compétitions', 'ufsc-clubs' ) . '</h2><p><a class="button button-primary" href="' . esc_url( self::get_competitions_url() ) . '">' . esc_html__( 'Accéder aux compétitions', 'ufsc-clubs' ) . '</a></p></div>';
+            echo '<div class="ufsc-dashboard-card"><h2>' . esc_html__( 'Compétitions', 'ufsc-clubs' ) . '</h2><p><a class="button button-primary" href="' . esc_url( $urls['competitions'] ) . '">' . esc_html__( 'Accéder aux compétitions', 'ufsc-clubs' ) . '</a></p></div>';
         }
         if ( self::can_access_gestion() ) {
-            echo '<div class="ufsc-dashboard-card"><h2>' . esc_html__( 'UFSC Gestion', 'ufsc-clubs' ) . '</h2><p><a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-dashboard' ) ) . '">' . esc_html__( 'Accéder à UFSC Gestion', 'ufsc-clubs' ) . '</a></p></div>';
+            echo '<div class="ufsc-dashboard-card"><h2>' . esc_html__( 'UFSC Gestion', 'ufsc-clubs' ) . '</h2><p><a class="button" href="' . esc_url( $urls['gestion'] ) . '">' . esc_html__( 'Accéder à UFSC Gestion', 'ufsc-clubs' ) . '</a></p></div>';
         }
+        echo '<div class="ufsc-dashboard-card"><h2>' . esc_html__( 'Profil', 'ufsc-clubs' ) . '</h2><p><a class="button" href="' . esc_url( $urls['profil'] ) . '">' . esc_html__( 'Modifier mon profil', 'ufsc-clubs' ) . '</a></p></div>';
         echo '</div>';
 
         if ( ! empty( $regions ) ) {
@@ -506,6 +552,29 @@ class UFSC_Simplified_Admin {
                 }
             }
         }
+
+        self::deduplicate_limited_top_level_menus();
+    }
+
+    /**
+     * Ensure only one visible top-level entry remains for each simplified UFSC module.
+     */
+    private static function deduplicate_limited_top_level_menus() {
+        global $menu;
+        $seen = array();
+        foreach ( (array) $menu as $index => $item ) {
+            $slug   = isset( $item[2] ) ? (string) $item[2] : '';
+            $title  = isset( $item[0] ) ? wp_strip_all_tags( (string) $item[0] ) : '';
+            $module = 'profile.php' === $slug ? 'profil' : self::module_for_slug( $slug, $title );
+            if ( ! $module ) {
+                continue;
+            }
+            if ( isset( $seen[ $module ] ) ) {
+                unset( $menu[ $index ] );
+                continue;
+            }
+            $seen[ $module ] = true;
+        }
     }
 
     /**
@@ -567,6 +636,10 @@ class UFSC_Simplified_Admin {
             return true;
         }
 
+        if ( self::slug_matches( $slug, array( 'ufsc-limited-dashboard', 'ufsc-home' ) ) ) {
+            return true;
+        }
+
         if ( self::is_gestion_slug( $slug, $title ) ) {
             return self::can_access_gestion();
         }
@@ -594,6 +667,10 @@ class UFSC_Simplified_Admin {
      */
     private static function is_authorized_page_slug( $slug ) {
         $slug = sanitize_key( (string) $slug );
+
+        if ( self::slug_matches( $slug, array( 'ufsc-limited-dashboard', 'ufsc-home' ) ) ) {
+            return true;
+        }
 
         if ( self::is_gestion_slug( $slug ) ) {
             return self::can_access_gestion();
@@ -690,24 +767,47 @@ class UFSC_Simplified_Admin {
      * Whether a menu/submenu slug is already registered in WordPress menu globals.
      */
     private static function menu_slug_exists( $slug ) {
-        global $menu, $submenu;
         $slug = self::normalize_page_slug( $slug );
+        $map  = self::get_registered_menu_slug_map();
+        return isset( $map[ $slug ] );
+    }
 
+    /**
+     * Request-local map of registered admin slugs to avoid repeated menu scans.
+     *
+     * @return array<string,bool>
+     */
+    private static function get_registered_menu_slug_map() {
+        global $menu, $submenu;
+        static $cache = null;
+        static $signature = '';
+
+        $submenu_items = 0;
+        foreach ( (array) $submenu as $items ) {
+            $submenu_items += count( (array) $items );
+        }
+        $current_signature = count( (array) $menu ) . ':' . count( (array) $submenu ) . ':' . $submenu_items;
+        if ( null !== $cache && $signature === $current_signature ) {
+            return $cache;
+        }
+
+        $cache = array();
         foreach ( (array) $menu as $item ) {
-            if ( isset( $item[2] ) && self::normalize_page_slug( (string) $item[2] ) === $slug ) {
-                return true;
+            if ( isset( $item[2] ) ) {
+                $cache[ self::normalize_page_slug( (string) $item[2] ) ] = true;
             }
         }
 
         foreach ( (array) $submenu as $items ) {
             foreach ( (array) $items as $item ) {
-                if ( isset( $item[2] ) && self::normalize_page_slug( (string) $item[2] ) === $slug ) {
-                    return true;
+                if ( isset( $item[2] ) ) {
+                    $cache[ self::normalize_page_slug( (string) $item[2] ) ] = true;
                 }
             }
         }
 
-        return false;
+        $signature = $current_signature;
+        return $cache;
     }
 
     /**
@@ -771,6 +871,9 @@ class UFSC_Simplified_Admin {
         if ( self::is_licences_slug( $slug, $title ) ) {
             return 'licences';
         }
+        if ( self::slug_matches( $slug, array( 'ufsc-limited-dashboard', 'ufsc-home' ) ) ) {
+            return 'espace_ufsc';
+        }
         if ( self::is_gestion_slug( $slug, $title ) ) {
             return 'gestion';
         }
@@ -814,19 +917,64 @@ class UFSC_Simplified_Admin {
             return admin_url( 'profile.php' );
         }
 
-        if ( user_can( $user, UFSC_Permissions::CAP_COMPETITIONS_READ ) || user_can( $user, UFSC_Permissions::CAP_COMPETITIONS_MANAGE ) ) {
-            return self::get_first_candidate_admin_url( 'competitions' );
-        }
-
-        if ( user_can( $user, UFSC_Permissions::CAP_LICENCES_READ ) || user_can( $user, UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
-            return self::get_first_candidate_admin_url( 'licences' );
-        }
-
-        if ( user_can( $user, UFSC_Permissions::CAP_GESTION_READ ) || user_can( $user, UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
-            return self::get_first_candidate_admin_url( 'gestion' );
+        if ( self::is_limited_ufsc_user( $user->ID ) ) {
+            return admin_url( 'admin.php?page=ufsc-limited-dashboard' );
         }
 
         return admin_url( 'profile.php' );
+    }
+
+
+    /**
+     * Central source of truth for simplified UFSC admin URLs.
+     *
+     * @return array<string,string>
+     */
+    public static function get_module_urls() {
+        static $urls = null;
+        if ( null !== $urls ) {
+            return $urls;
+        }
+
+        $urls = array(
+            'espace_ufsc' => admin_url( 'admin.php?page=ufsc-limited-dashboard' ),
+            'gestion'     => self::get_first_candidate_admin_url( 'gestion' ),
+            'clubs'       => self::get_first_existing_slug_url( array( 'ufsc-clubs', 'ufsc-sql-clubs', 'ufsc_clubs' ), 'admin.php?page=ufsc-clubs' ),
+            'licences'    => self::get_first_candidate_admin_url( 'licences' ),
+            'competitions'=> self::get_first_candidate_admin_url( 'competitions' ),
+            'profil'      => admin_url( 'profile.php' ),
+        );
+
+        return $urls;
+    }
+
+    /**
+     * First URL for an already registered slug in a preferred list.
+     */
+    private static function get_first_existing_slug_url( array $slugs, $fallback_path ) {
+        foreach ( $slugs as $slug ) {
+            if ( self::menu_slug_exists( $slug ) ) {
+                return admin_url( 'admin.php?page=' . rawurlencode( self::normalize_page_slug( $slug ) ) );
+            }
+        }
+
+        return admin_url( $fallback_path );
+    }
+
+    /**
+     * Detect whether a visible top-level menu for a module already exists.
+     */
+    private static function has_visible_module_menu( $module ) {
+        global $menu;
+        $module = sanitize_key( (string) $module );
+        foreach ( (array) $menu as $item ) {
+            $slug  = isset( $item[2] ) ? (string) $item[2] : '';
+            $title = isset( $item[0] ) ? wp_strip_all_tags( (string) $item[0] ) : '';
+            if ( $module === self::module_for_slug( $slug, $title ) ) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -875,9 +1023,15 @@ class UFSC_Simplified_Admin {
     private static function get_first_candidate_admin_url( $module ) {
         $detected = self::get_detected_ufsc_menus( $module );
         if ( ! empty( $detected ) ) {
-            $first = reset( $detected );
-            if ( ! empty( $first['slug'] ) ) {
-                return admin_url( 'admin.php?page=' . rawurlencode( $first['slug'] ) );
+            foreach ( $detected as $item ) {
+                if ( 'menu' === $item['type'] && ! empty( $item['slug'] ) ) {
+                    return admin_url( 'admin.php?page=' . rawurlencode( $item['slug'] ) );
+                }
+            }
+            foreach ( $detected as $item ) {
+                if ( 'submenu' === $item['type'] && ! empty( $item['parent'] ) && ! empty( $item['slug'] ) ) {
+                    return admin_url( 'admin.php?page=' . rawurlencode( $item['slug'] ) );
+                }
             }
         }
 
