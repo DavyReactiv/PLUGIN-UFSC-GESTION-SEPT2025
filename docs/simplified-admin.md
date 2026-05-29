@@ -177,3 +177,44 @@ Tester les URL suivantes pour un utilisateur UFSC limité et pour un administrat
 - `/wp-admin/admin.php?page=rank-math`.
 
 Résultat attendu : l’utilisateur UFSC limité est redirigé vers son espace UFSC autorisé, tandis que l’administrateur WordPress reste autorisé.
+
+## Diagnostic administrateur
+
+La page **UFSC Gestion > Droits & accès** affiche aussi un diagnostic réservé aux administrateurs WordPress pour chaque utilisateur UFSC :
+
+- rôle(s) WordPress ;
+- présence de la capability native `read` ;
+- résultat de la détection “utilisateur UFSC limité” ;
+- première URL admin calculée pour la redirection ;
+- régions autorisées.
+
+Ce diagnostic permet notamment de vérifier qu’un compte comme `HichamUFSC`, avec le rôle `ufsc_admin_limited`, possède bien `read` et est envoyé vers une URL `admin_url()` de l’administration simplifiée plutôt que vers le site public.
+
+## Slugs de redirection pris en charge
+
+Les redirections utilisent toujours `admin_url()` et testent des listes de slugs possibles afin de rester compatibles avec les variations entre plugins UFSC.
+
+### Compétitions
+
+- `admin.php?page=ufsc-competitions`
+- `admin.php?page=ufsc_competitions`
+- `admin.php?page=ufsc-competition`
+- `admin.php?page=ufsc_competition`
+- `admin.php?page=ufsc-competition-dashboard`
+- `admin.php?page=ufsc_competition_dashboard`
+
+### UFSC Licences
+
+- `admin.php?page=ufsc-licences`
+- `admin.php?page=ufsc_licences`
+- `admin.php?page=ufsc-licence`
+- `admin.php?page=ufsc_licence`
+- `admin.php?page=ufsc-licences-dashboard`
+
+### UFSC Gestion
+
+- `admin.php?page=ufsc-gestion`
+- `admin.php?page=ufsc_gestion`
+- `admin.php?page=ufsc-clubs`
+- `admin.php?page=ufsc_clubs`
+- `admin.php?page=ufsc-dashboard`

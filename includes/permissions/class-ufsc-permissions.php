@@ -22,6 +22,7 @@ class UFSC_Permissions {
      * Bootstrap hooks.
      */
     public static function init() {
+        self::maybe_register_roles_and_caps();
         add_action( 'admin_init', array( __CLASS__, 'maybe_register_roles_and_caps' ) );
         add_action( 'admin_menu', array( __CLASS__, 'register_permissions_page' ), 30 );
     }
@@ -30,7 +31,9 @@ class UFSC_Permissions {
      * Idempotent role/capability registration.
      */
     public static function maybe_register_roles_and_caps() {
-        $version = '2026-05-29-1';
+        self::ensure_ufsc_roles_have_read();
+
+        $version = '2026-05-29-2';
         if ( get_option( 'ufsc_permissions_caps_version' ) === $version ) {
             return;
         }
@@ -65,6 +68,18 @@ class UFSC_Permissions {
         if ( $administrator ) {
             foreach ( self::get_capabilities() as $cap ) {
                 $administrator->add_cap( $cap );
+            }
+        }
+    }
+
+    /**
+     * Idempotently ensure all UFSC roles keep the native WordPress read capability.
+     */
+    public static function ensure_ufsc_roles_have_read() {
+        foreach ( array_keys( self::get_role_capabilities() ) as $role_key ) {
+            $role = get_role( $role_key );
+            if ( $role && ! $role->has_cap( 'read' ) ) {
+                $role->add_cap( 'read' );
             }
         }
     }
@@ -313,22 +328,31 @@ class UFSC_Permissions {
         echo '<th>' . esc_html__( 'Utilisateur', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Rôles', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Droits UFSC', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'Read', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'UFSC limité', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'Première URL admin', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Régions autorisées', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Action', 'ufsc-clubs' ) . '</th>';
         echo '</tr></thead><tbody>';
 
         if ( empty( $users ) ) {
-            echo '<tr><td colspan="5">' . esc_html__( 'Aucun utilisateur UFSC trouvé.', 'ufsc-clubs' ) . '</td></tr>';
+            echo '<tr><td colspan="8">' . esc_html__( 'Aucun utilisateur UFSC trouvé.', 'ufsc-clubs' ) . '</td></tr>';
         }
 
         foreach ( $users as $user ) {
-            $caps    = self::get_user_ufsc_caps( $user->ID );
-            $regions = ufsc_user_has_all_regions_access( $user->ID ) ? array( __( 'Toutes les régions', 'ufsc-clubs' ) ) : ufsc_get_user_regions( $user->ID );
-            $url     = add_query_arg( array( 'page' => 'ufsc-permissions', 'user_id' => (int) $user->ID ), admin_url( 'admin.php' ) );
+            $caps       = self::get_user_ufsc_caps( $user->ID );
+            $regions    = ufsc_user_has_all_regions_access( $user->ID ) ? array( __( 'Toutes les régions', 'ufsc-clubs' ) ) : ufsc_get_user_regions( $user->ID );
+            $url        = add_query_arg( array( 'page' => 'ufsc-permissions', 'user_id' => (int) $user->ID ), admin_url( 'admin.php' ) );
+            $has_read   = user_can( $user->ID, 'read' );
+            $is_limited = class_exists( 'UFSC_Simplified_Admin' ) && UFSC_Simplified_Admin::is_limited_ufsc_user( $user->ID );
+            $first_url  = class_exists( 'UFSC_Simplified_Admin' ) ? UFSC_Simplified_Admin::get_first_authorized_url_for_user( $user ) : admin_url( 'profile.php' );
             echo '<tr' . ( (int) $selected_user_id === (int) $user->ID ? ' class="active"' : '' ) . '>';
             echo '<td><strong>' . esc_html( $user->display_name ) . '</strong><br><code>' . esc_html( $user->user_login ) . '</code></td>';
             echo '<td>' . esc_html( implode( ', ', (array) $user->roles ) ) . '</td>';
             echo '<td>' . wp_kses_post( self::render_cap_badges( $caps ) ) . '</td>';
+            echo '<td>' . esc_html( $has_read ? __( 'Oui', 'ufsc-clubs' ) : __( 'Non', 'ufsc-clubs' ) ) . '</td>';
+            echo '<td>' . esc_html( $is_limited ? __( 'Oui', 'ufsc-clubs' ) : __( 'Non', 'ufsc-clubs' ) ) . '</td>';
+            echo '<td><code>' . esc_html( $first_url ) . '</code></td>';
             echo '<td>' . esc_html( implode( ', ', $regions ) ) . '</td>';
             echo '<td><a class="button" href="' . esc_url( $url ) . '">' . esc_html__( 'Modifier les droits', 'ufsc-clubs' ) . '</a></td>';
             echo '</tr>';

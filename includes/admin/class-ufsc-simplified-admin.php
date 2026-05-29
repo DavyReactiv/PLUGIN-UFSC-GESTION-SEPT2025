@@ -27,15 +27,29 @@ class UFSC_Simplified_Admin {
     }
 
     /**
+     * UFSC roles considered limited WordPress administrators for the simplified UI.
+     *
+     * @return string[]
+     */
+    private static function limited_user_roles() {
+        return array(
+            'ufsc_region_viewer',
+            'ufsc_region_manager',
+            'ufsc_competition_manager',
+            'ufsc_admin_limited',
+        );
+    }
+
+    /**
      * Bootstrap admin hooks.
      */
     public static function init() {
-        $pagenow = isset( $GLOBALS['pagenow'] ) ? (string) $GLOBALS['pagenow'] : '';
-        if ( ! is_admin() && 'wp-login.php' !== $pagenow ) {
+        add_filter( 'login_redirect', array( __CLASS__, 'filter_login_redirect' ), 20, 3 );
+
+        if ( ! is_admin() ) {
             return;
         }
 
-        add_filter( 'login_redirect', array( __CLASS__, 'filter_login_redirect' ), 20, 3 );
         add_action( 'admin_init', array( __CLASS__, 'maybe_redirect_from_dashboard' ), 1 );
         add_action( 'admin_init', array( __CLASS__, 'maybe_block_direct_admin_access' ), 20 );
         add_action( 'admin_menu', array( __CLASS__, 'register_licences_bridge_menu' ), 19 );
@@ -54,22 +68,36 @@ class UFSC_Simplified_Admin {
     /**
      * Detect non-administrator users with at least one limited UFSC capability.
      */
-    public static function is_limited_ufsc_user() {
-        if ( ! is_user_logged_in() ) {
+    public static function is_limited_ufsc_user( $user_id = null ) {
+        if ( null === $user_id ) {
+            if ( ! is_user_logged_in() ) {
+                return false;
+            }
+            $user_id = get_current_user_id();
+        }
+
+        $user_id = absint( $user_id );
+        if ( ! $user_id ) {
             return false;
         }
 
-        if ( current_user_can( 'manage_options' ) || UFSC_Permissions::is_wordpress_administrator() ) {
+        $user = get_userdata( $user_id );
+        if ( ! $user ) {
             return false;
         }
 
+        if ( user_can( $user_id, 'manage_options' ) || UFSC_Permissions::is_wordpress_administrator( $user_id ) ) {
+            return false;
+        }
+
+        $has_limited_role = (bool) array_intersect( self::limited_user_roles(), (array) $user->roles );
         foreach ( self::limited_user_caps() as $cap ) {
-            if ( current_user_can( $cap ) ) {
+            if ( user_can( $user_id, $cap ) ) {
                 return true;
             }
         }
 
-        return false;
+        return $has_limited_role;
     }
 
     /**
@@ -191,10 +219,8 @@ class UFSC_Simplified_Admin {
             return $redirect_to;
         }
 
-        foreach ( self::limited_user_caps() as $cap ) {
-            if ( user_can( $user, $cap ) ) {
-                return self::get_first_authorized_url_for_user( $user );
-            }
+        if ( self::is_limited_ufsc_user( $user->ID ) ) {
+            return self::get_first_authorized_url_for_user( $user );
         }
 
         return $redirect_to;
@@ -388,8 +414,7 @@ class UFSC_Simplified_Admin {
      * Identify UFSC Gestion menu/page slugs without matching unrelated plugins.
      */
     private static function is_gestion_slug( $slug, $title = '' ) {
-        $slug = sanitize_key( (string) $slug );
-        if ( in_array( $slug, array( 'ufsc-dashboard', 'ufsc-home', 'ufsc-clubs', 'ufsc-exports' ), true ) ) {
+        if ( self::slug_matches( $slug, array( 'ufsc-gestion', 'ufsc_gestion', 'ufsc-clubs', 'ufsc_clubs', 'ufsc-dashboard', 'ufsc-home', 'ufsc-exports' ) ) ) {
             return true;
         }
 
@@ -400,24 +425,56 @@ class UFSC_Simplified_Admin {
      * Identify UFSC Licences menu/page slugs.
      */
     private static function is_licences_slug( $slug, $title = '' ) {
-        $slug = sanitize_key( (string) $slug );
-        if ( in_array( $slug, array( 'ufsc-licences', 'ufsc-sql-licences', 'ufsc-licences-dashboard' ), true ) ) {
+        if ( self::slug_matches( $slug, array( 'ufsc-licences', 'ufsc_licences', 'ufsc-licence', 'ufsc_licence', 'ufsc-licences-dashboard', 'ufsc-sql-licences', 'ufsc-sql-licenses' ) ) ) {
             return true;
         }
 
-        return ( 0 === strpos( $slug, 'ufsc-licence' ) || 0 === strpos( $slug, 'ufsc-licences' ) || self::title_contains( $title, 'ufsc licences' ) );
+        $normalized = self::normalize_page_slug( $slug );
+        return ( 0 === strpos( $normalized, 'ufsc-licence' ) || 0 === strpos( $normalized, 'ufsc_licence' ) || self::title_contains( $title, 'ufsc licences' ) );
     }
 
     /**
      * Identify competition menu/page slugs from the dedicated competition plugin.
      */
     private static function is_competitions_slug( $slug, $title = '' ) {
-        $slug = sanitize_key( (string) $slug );
-        if ( in_array( $slug, array( 'ufsc-competitions', 'competitions', 'edit.php?post_type=ufsc_competition' ), true ) ) {
+        $raw = strtolower( (string) $slug );
+        if ( false !== strpos( $raw, 'post_type=ufsc_competition' ) || false !== strpos( $raw, 'post_type=ufsc-competition' ) ) {
             return true;
         }
 
-        return ( false !== strpos( $slug, 'competition' ) || false !== strpos( $slug, 'competitions' ) || self::title_contains( $title, 'compétitions' ) || self::title_contains( $title, 'competitions' ) );
+        if ( self::slug_matches( $slug, array( 'ufsc-competitions', 'ufsc_competitions', 'ufsc-competition', 'ufsc_competition', 'ufsc-competition-dashboard', 'ufsc_competition_dashboard', 'competitions' ) ) ) {
+            return true;
+        }
+
+        $normalized = self::normalize_page_slug( $slug );
+        return ( false !== strpos( $normalized, 'competition' ) || false !== strpos( $normalized, 'competitions' ) || self::title_contains( $title, 'compétitions' ) || self::title_contains( $title, 'competitions' ) );
+    }
+
+    /**
+     * Extract and normalize a menu/page slug, including admin.php?page=... values.
+     */
+    private static function normalize_page_slug( $slug ) {
+        $slug = html_entity_decode( (string) $slug );
+        if ( false !== strpos( $slug, 'page=' ) ) {
+            $query = wp_parse_url( $slug, PHP_URL_QUERY );
+            if ( $query ) {
+                $args = array();
+                wp_parse_str( $query, $args );
+                if ( ! empty( $args['page'] ) ) {
+                    $slug = (string) $args['page'];
+                }
+            }
+        }
+
+        return sanitize_key( $slug );
+    }
+
+    /**
+     * Whether a raw or normalized slug is in an allowed list.
+     */
+    private static function slug_matches( $slug, array $allowed_slugs ) {
+        $normalized = self::normalize_page_slug( $slug );
+        return in_array( $normalized, array_map( 'sanitize_key', $allowed_slugs ), true );
     }
 
     /**
@@ -432,41 +489,97 @@ class UFSC_Simplified_Admin {
     /**
      * First authorized URL for current user, with requested priority.
      */
-    private static function get_first_authorized_url() {
-        return self::get_first_authorized_url_for_user( wp_get_current_user() );
+    public static function get_first_authorized_url( $user = null ) {
+        if ( null === $user ) {
+            $user = wp_get_current_user();
+        }
+        return self::get_first_authorized_url_for_user( $user );
     }
 
     /**
      * First authorized URL for a user, with requested priority.
+     *
+     * @param WP_User|int $user User object or ID.
      */
-    private static function get_first_authorized_url_for_user( WP_User $user ) {
+    public static function get_first_authorized_url_for_user( $user ) {
+        $user = $user instanceof WP_User ? $user : get_userdata( absint( $user ) );
+        if ( ! $user ) {
+            return admin_url( 'profile.php' );
+        }
+
         if ( user_can( $user, UFSC_Permissions::CAP_COMPETITIONS_READ ) || user_can( $user, UFSC_Permissions::CAP_COMPETITIONS_MANAGE ) ) {
-            return self::get_competitions_url();
+            return self::get_first_candidate_admin_url( 'competitions' );
         }
 
         if ( user_can( $user, UFSC_Permissions::CAP_LICENCES_READ ) || user_can( $user, UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
-            return self::get_licences_url();
+            return self::get_first_candidate_admin_url( 'licences' );
         }
 
         if ( user_can( $user, UFSC_Permissions::CAP_GESTION_READ ) || user_can( $user, UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
-            return admin_url( 'admin.php?page=ufsc-home' );
+            return self::get_first_candidate_admin_url( 'gestion' );
         }
 
         return admin_url( 'profile.php' );
     }
 
     /**
+     * Candidate admin URLs by UFSC module, ordered by preferred slug.
+     *
+     * @return string[]
+     */
+    public static function get_candidate_admin_urls( $module ) {
+        $module = sanitize_key( (string) $module );
+        $paths  = array(
+            'competitions' => array(
+                'admin.php?page=ufsc-competitions',
+                'admin.php?page=ufsc_competitions',
+                'admin.php?page=ufsc-competition',
+                'admin.php?page=ufsc_competition',
+                'admin.php?page=ufsc-competition-dashboard',
+                'admin.php?page=ufsc_competition_dashboard',
+            ),
+            'licences' => array(
+                'admin.php?page=ufsc-licences',
+                'admin.php?page=ufsc_licences',
+                'admin.php?page=ufsc-licence',
+                'admin.php?page=ufsc_licence',
+                'admin.php?page=ufsc-licences-dashboard',
+            ),
+            'gestion' => array(
+                'admin.php?page=ufsc-gestion',
+                'admin.php?page=ufsc_gestion',
+                'admin.php?page=ufsc-clubs',
+                'admin.php?page=ufsc_clubs',
+                'admin.php?page=ufsc-dashboard',
+            ),
+        );
+
+        $paths = isset( $paths[ $module ] ) ? $paths[ $module ] : array( 'profile.php' );
+        $paths = apply_filters( 'ufsc_simplified_admin_candidate_paths', $paths, $module );
+
+        return array_map( 'admin_url', array_values( array_filter( array_map( 'strval', (array) $paths ) ) ) );
+    }
+
+    /**
+     * First candidate admin URL for a module.
+     */
+    private static function get_first_candidate_admin_url( $module ) {
+        $urls = self::get_candidate_admin_urls( $module );
+        return $urls ? reset( $urls ) : admin_url( 'profile.php' );
+    }
+
+    /**
      * Best-known UFSC Licences URL.
      */
     private static function get_licences_url() {
-        return admin_url( 'admin.php?page=ufsc-licences' );
+        return self::get_first_candidate_admin_url( 'licences' );
     }
 
     /**
      * Best-known UFSC Compétitions URL.
      */
     private static function get_competitions_url() {
-        return admin_url( 'admin.php?page=ufsc-competitions' );
+        return self::get_first_candidate_admin_url( 'competitions' );
     }
 
     /**
