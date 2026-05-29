@@ -184,10 +184,16 @@ class UFSC_Permissions {
         echo '<h1>' . esc_html__( 'Droits & accès UFSC', 'ufsc-clubs' ) . '</h1>';
         echo '<p class="description">' . esc_html__( 'Les restrictions UFSC sont vérifiées côté serveur. Le masquage des boutons n’est qu’un confort visuel.', 'ufsc-clubs' ) . '</p>';
 
+        $simplified_notice = self::maybe_handle_simplified_admin_save();
+        if ( $simplified_notice ) {
+            $notice = $simplified_notice;
+        }
+
         if ( $notice ) {
             printf( '<div class="notice notice-%1$s is-dismissible"><p>%2$s</p></div>', esc_attr( $notice['type'] ), esc_html( $notice['message'] ) );
         }
 
+        self::render_simplified_admin_option();
         self::render_users_table( $selected_user_id );
 
         if ( $selected_user_id ) {
@@ -195,6 +201,45 @@ class UFSC_Permissions {
         }
 
         echo '</div>';
+    }
+
+    /**
+     * Save global simplified admin interface option.
+     */
+    private static function maybe_handle_simplified_admin_save() {
+        if ( 'POST' !== strtoupper( $_SERVER['REQUEST_METHOD'] ?? '' ) || empty( $_POST['ufsc_simplified_admin_action'] ) ) {
+            return null;
+        }
+
+        check_admin_referer( 'ufsc_save_simplified_admin', 'ufsc_simplified_admin_nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Accès refusé : seuls les administrateurs WordPress peuvent modifier cette option.', 'ufsc-clubs' ) );
+        }
+
+        update_option( 'ufsc_enable_simplified_admin', ! empty( $_POST['ufsc_enable_simplified_admin'] ) ? '1' : '0', false );
+
+        return array( 'type' => 'success', 'message' => __( 'Option d’interface admin simplifiée sauvegardée.', 'ufsc-clubs' ) );
+    }
+
+    /**
+     * Render the global simplified admin interface option for WordPress administrators.
+     */
+    private static function render_simplified_admin_option() {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            return;
+        }
+
+        $enabled = '0' !== (string) get_option( 'ufsc_enable_simplified_admin', '1' );
+
+        echo '<h2>' . esc_html__( 'Interface admin simplifiée', 'ufsc-clubs' ) . '</h2>';
+        echo '<form method="post" class="ufsc-simplified-admin-settings" style="max-width:900px;margin-bottom:24px;padding:16px;background:#fff;border:1px solid #dcdcde;">';
+        wp_nonce_field( 'ufsc_save_simplified_admin', 'ufsc_simplified_admin_nonce' );
+        echo '<input type="hidden" name="ufsc_simplified_admin_action" value="save" />';
+        echo '<label><input type="checkbox" name="ufsc_enable_simplified_admin" value="1" ' . checked( $enabled, true, false ) . '> ' . esc_html__( 'Activer l’interface admin simplifiée pour les utilisateurs UFSC limités', 'ufsc-clubs' ) . '</label>';
+        echo '<p class="description">' . esc_html__( 'Activée par défaut. Cette option masque les menus inutiles et redirige les utilisateurs UFSC limités, sans remplacer les contrôles serveur.', 'ufsc-clubs' ) . '</p>';
+        submit_button( __( 'Enregistrer cette option', 'ufsc-clubs' ), 'secondary', 'submit', false );
+        echo '</form>';
     }
 
     /**
