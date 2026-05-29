@@ -295,7 +295,7 @@ class UFSC_Licences_List_Table {
      * Render action buttons
      */
     private static function render_action_buttons() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
             return;
         }
         echo '<p>';
@@ -499,7 +499,7 @@ class UFSC_Licences_List_Table {
         $view_url = admin_url( 'admin.php?page=ufsc-sql-licences&action=view&id=' . $licence->id );
         $edit_url = admin_url( 'admin.php?page=ufsc-sql-licences&action=edit&id=' . $licence->id );
         echo '<a href="' . esc_url( $view_url ) . '" class="button button-small">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a> ';
-        if ( current_user_can( 'manage_options' ) ) {
+        if ( ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
             echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a>';
         }
         echo '</td>';

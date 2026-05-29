@@ -110,7 +110,7 @@ function ufsc_validate_woocommerce_product( $product_id ) {
  * Render WooCommerce settings page
  */
 function ufsc_render_woocommerce_settings_page() {
-    if ( ! current_user_can( 'manage_options' ) ) {
+    if ( ! ufsc_user_can( UFSC_Permissions::CAP_SETTINGS_MANAGE ) ) {
         wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
     }
 

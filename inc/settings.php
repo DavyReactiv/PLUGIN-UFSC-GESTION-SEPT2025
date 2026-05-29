@@ -97,7 +97,7 @@ if ( ! function_exists( 'ufsc_admin_date_to_wp_timestamp' ) ) {
     }
 }
 function ufsc_render_settings_page() {
-    if ( ! current_user_can( 'manage_options' ) ) {
+    if ( ! ufsc_user_can( UFSC_Permissions::CAP_SETTINGS_MANAGE ) ) {
         wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
     }
 

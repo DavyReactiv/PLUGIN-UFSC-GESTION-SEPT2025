@@ -81,6 +81,9 @@ class UFSC_Clubs_List_Table {
         echo '<div class="ufsc-season-pill"><span>' . esc_html__( 'Saison affichée', 'ufsc-clubs' ) . '</span><strong>' . esc_html( self::get_admin_season_label() ) . '</strong></div>';
         echo '</div>';
         echo '<div class="ufsc-renewal-notice"><span class="dashicons dashicons-info"></span><p>' . esc_html__( 'Renouvellement des affiliations : à chaque nouvelle saison, les clubs devront confirmer ou renouveler leur affiliation afin de maintenir leurs licences actives.', 'ufsc-clubs' ) . '</p></div>';
+        if ( function_exists( 'ufsc_user_has_all_regions_access' ) && ! ufsc_user_has_all_regions_access() ) {
+            echo '<div class="notice notice-info"><p>' . esc_html__( 'Résultats filtrés selon vos régions UFSC autorisées.', 'ufsc-clubs' ) . '</p></div>';
+        }
 
         // Affichage des notices
         if ( '1' === self::get_query_value( 'updated', 'key' ) ) {
@@ -306,6 +309,16 @@ class UFSC_Clubs_List_Table {
             if ( $scope_condition ) {
                 $conditions[] = $scope_condition;
             }
+
+            if ( function_exists( 'ufsc_user_has_all_regions_access' ) && ! ufsc_user_has_all_regions_access() ) {
+                $allowed_regions = function_exists( 'ufsc_current_user_allowed_regions' ) ? ufsc_current_user_allowed_regions() : array();
+                if ( empty( $allowed_regions ) ) {
+                    $conditions[] = '1 = 0';
+                } else {
+                    $placeholders = implode( ',', array_fill( 0, count( $allowed_regions ), '%s' ) );
+                    $conditions[] = $wpdb->prepare( "region IN ({$placeholders})", $allowed_regions );
+                }
+            }
         }
 
         return $conditions;
@@ -430,7 +443,7 @@ class UFSC_Clubs_List_Table {
      * Render action buttons
      */
     private static function render_action_buttons() {
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
             return;
         }
         echo '<p class="ufsc-primary-actions">';
@@ -795,7 +808,7 @@ class UFSC_Clubs_List_Table {
     $documents_url = add_query_arg( array( 'page' => 'ufsc-sql-clubs', 'action' => 'edit', 'id' => $club_id, 'tab' => 'documents' ), admin_url( 'admin.php' ) );
     echo '<a href="' . esc_url( $view_url ) . '" class="button button-small">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a> ';
     echo '<a href="' . esc_url( $licence_url ) . '" class="button button-small">' . esc_html__( 'Licences', 'ufsc-clubs' ) . '</a> ';
-    if ( current_user_can( 'manage_options' ) ) {
+    if ( ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
         echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a> ';
         echo '<a href="' . esc_url( $documents_url ) . '" class="button button-small">' . esc_html__( 'Documents', 'ufsc-clubs' ) . '</a> ';
         echo '<button type="button" class="button button-small ufsc-button-disabled" disabled="disabled" aria-disabled="true" title="' . esc_attr__( 'Relance à brancher sur une action email sécurisée existante.', 'ufsc-clubs' ) . '">' . esc_html__( 'Relancer', 'ufsc-clubs' ) . '</button> ';
@@ -865,12 +878,14 @@ class UFSC_Clubs_List_Table {
         $scope_label = $scope_slug ? UFSC_Scope::get_region_label( $scope_slug ) : '';
         if ( $scope_label ) {
             $regions = array( $scope_label );
+        } elseif ( function_exists( 'ufsc_user_has_all_regions_access' ) && ! ufsc_user_has_all_regions_access() ) {
+            $regions = function_exists( 'ufsc_current_user_allowed_regions' ) ? ufsc_current_user_allowed_regions() : array();
         } else {
             $regions = $wpdb->get_col( "SELECT DISTINCT region FROM `{$clubs_table}` WHERE region IS NOT NULL AND region != '' ORDER BY region" );
         }
 
         echo '<select name="region">';
-        if ( ! $scope_label ) {
+        if ( ! $scope_label && ( ! function_exists( 'ufsc_user_has_all_regions_access' ) || ufsc_user_has_all_regions_access() ) ) {
             echo '<option value="">' . esc_html__( '— Toutes les régions —', 'ufsc-clubs' ) . '</option>';
         }
         foreach ( $regions as $region ) {
@@ -1056,7 +1071,7 @@ class UFSC_Clubs_List_Table {
         if ( 'ufsc-sql-clubs' !== $page ) {
             return;
         }
-        if ( ! current_user_can( 'manage_options' ) ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
             return;
         }
 

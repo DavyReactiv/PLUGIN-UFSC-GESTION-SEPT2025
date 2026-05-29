@@ -21,6 +21,17 @@ class UFSC_Capabilities {
     const CAP_SCOPE_ALL_REGIONS        = 'ufsc_scope_all_regions';
     const CAP_MANAGE_COMMUNICATION    = 'ufsc_manage_communication';
 
+    // UFSC Gestion central permissions (new canonical capabilities).
+    const CAP_GESTION_READ          = 'ufsc_gestion_read';
+    const CAP_GESTION_MANAGE        = 'ufsc_gestion_manage';
+    const CAP_LICENCES_READ         = 'ufsc_licences_read';
+    const CAP_LICENCES_MANAGE       = 'ufsc_licences_manage';
+    const CAP_COMPETITIONS_READ     = 'ufsc_competitions_read';
+    const CAP_COMPETITIONS_MANAGE   = 'ufsc_competitions_manage';
+    const CAP_SETTINGS_MANAGE       = 'ufsc_settings_manage';
+    const CAP_REGIONS_MANAGE        = 'ufsc_regions_manage';
+    const CAP_ALL_REGIONS_ACCESS    = 'ufsc_all_regions_access';
+
     /**
      * Register capabilities and roles (idempotent).
      */
@@ -36,6 +47,12 @@ class UFSC_Capabilities {
 
         $responsable_caps = array(
             'read'                         => true,
+            self::CAP_GESTION_READ        => true,
+            self::CAP_GESTION_MANAGE      => true,
+            self::CAP_LICENCES_READ       => true,
+            self::CAP_LICENCES_MANAGE     => true,
+            self::CAP_COMPETITIONS_READ   => true,
+            self::CAP_COMPETITIONS_MANAGE => true,
             self::CAP_MANAGE_READ          => true,
             self::CAP_LICENCE_READ         => true,
             self::CAP_LICENCE_CREATE       => true,
@@ -80,6 +97,15 @@ class UFSC_Capabilities {
             self::CAP_COMPETITION_EXPORT,
             self::CAP_SCOPE_ALL_REGIONS,
             self::CAP_MANAGE_COMMUNICATION,
+            self::CAP_GESTION_READ,
+            self::CAP_GESTION_MANAGE,
+            self::CAP_LICENCES_READ,
+            self::CAP_LICENCES_MANAGE,
+            self::CAP_COMPETITIONS_READ,
+            self::CAP_COMPETITIONS_MANAGE,
+            self::CAP_SETTINGS_MANAGE,
+            self::CAP_REGIONS_MANAGE,
+            self::CAP_ALL_REGIONS_ACCESS,
         );
     }
 
@@ -101,6 +127,11 @@ class UFSC_Capabilities {
 
         $aliases = array(
             self::CAP_MANAGE_READ => 'manage_options',
+            self::CAP_GESTION_READ => self::CAP_MANAGE_READ,
+            self::CAP_LICENCES_READ => self::CAP_LICENCE_READ,
+            self::CAP_LICENCES_MANAGE => self::CAP_LICENCE_EDIT,
+            self::CAP_COMPETITIONS_READ => self::CAP_COMPETITION_READ,
+            self::CAP_COMPETITIONS_MANAGE => self::CAP_COMPETITION_EDIT,
         );
 
         if ( isset( $aliases[ $cap ] ) ) {
