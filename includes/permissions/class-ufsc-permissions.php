@@ -17,7 +17,6 @@ class UFSC_Permissions {
     const CAP_SETTINGS_MANAGE       = 'ufsc_settings_manage';
     const CAP_REGIONS_MANAGE        = 'ufsc_regions_manage';
     const CAP_ALL_REGIONS_ACCESS    = 'ufsc_all_regions_access';
-    const CAP_PERMISSIONS_PAGE      = 'ufsc_permissions_page_access';
 
     /**
      * Bootstrap hooks.
@@ -25,7 +24,6 @@ class UFSC_Permissions {
     public static function init() {
         add_action( 'admin_init', array( __CLASS__, 'maybe_register_roles_and_caps' ) );
         add_action( 'admin_menu', array( __CLASS__, 'register_permissions_page' ), 30 );
-        add_filter( 'user_has_cap', array( __CLASS__, 'grant_virtual_caps' ), 10, 4 );
     }
 
     /**
@@ -68,7 +66,6 @@ class UFSC_Permissions {
             foreach ( self::get_capabilities() as $cap ) {
                 $administrator->add_cap( $cap );
             }
-            $administrator->add_cap( self::CAP_PERMISSIONS_PAGE );
         }
     }
 
@@ -136,23 +133,6 @@ class UFSC_Permissions {
     }
 
     /**
-     * Grant virtual OR capability for the Droits & accès page.
-     */
-    public static function grant_virtual_caps( $allcaps, $caps, $args, $user ) {
-        if ( ! is_array( $allcaps ) || empty( $args[0] ) || self::CAP_PERMISSIONS_PAGE !== $args[0] ) {
-            return $allcaps;
-        }
-
-        $user_id = $user instanceof WP_User ? (int) $user->ID : 0;
-        if ( $user_id && self::current_user_can_manage_permissions( $user_id ) ) {
-            $allcaps[ self::CAP_PERMISSIONS_PAGE ] = true;
-        }
-
-        return $allcaps;
-    }
-
-
-    /**
      * Check the immutable WordPress administrator role/capability.
      */
     public static function is_wordpress_administrator( $user_id = null ) {
@@ -165,17 +145,11 @@ class UFSC_Permissions {
     }
 
     /**
-     * Whether a user may open the permissions page.
+     * Whether the current user may open the permissions page.
      */
     public static function current_user_can_manage_permissions( $user_id = null ) {
-        $user_id = $user_id ? absint( $user_id ) : get_current_user_id();
-        if ( ! $user_id ) {
-            return false;
-        }
-        if ( self::is_wordpress_administrator( $user_id ) ) {
-            return true;
-        }
-        return user_can( $user_id, self::CAP_SETTINGS_MANAGE ) || user_can( $user_id, self::CAP_REGIONS_MANAGE );
+        unset( $user_id );
+        return current_user_can( 'manage_options' );
     }
 
     /**
@@ -186,7 +160,7 @@ class UFSC_Permissions {
             'ufsc-dashboard',
             __( 'Droits & accès', 'ufsc-clubs' ),
             __( 'Droits & accès', 'ufsc-clubs' ),
-            self::CAP_PERMISSIONS_PAGE,
+            'manage_options',
             'ufsc-permissions',
             array( __CLASS__, 'render_permissions_page' )
         );
@@ -196,8 +170,8 @@ class UFSC_Permissions {
      * Render and handle the permissions page.
      */
     public static function render_permissions_page() {
-        if ( ! self::current_user_can_manage_permissions() ) {
-            wp_die( esc_html__( 'Accès refusé : vous ne pouvez pas gérer les droits UFSC.', 'ufsc-clubs' ) );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Accès refusé : seuls les administrateurs WordPress peuvent gérer les droits UFSC.', 'ufsc-clubs' ) );
         }
 
         $notice = self::maybe_handle_permissions_save();
@@ -233,8 +207,8 @@ class UFSC_Permissions {
 
         check_admin_referer( 'ufsc_save_user_permissions', 'ufsc_permissions_nonce' );
 
-        if ( ! self::current_user_can_manage_permissions() ) {
-            wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'Accès refusé : seuls les administrateurs WordPress peuvent gérer les droits UFSC.', 'ufsc-clubs' ) );
         }
 
         $target_user_id = isset( $_POST['user_id'] ) ? absint( wp_unslash( $_POST['user_id'] ) ) : 0;

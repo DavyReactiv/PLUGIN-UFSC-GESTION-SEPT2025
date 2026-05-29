@@ -23,8 +23,8 @@ Le rôle WordPress `administrator` reçoit toutes les capabilities UFSC sans ret
 - `ufsc_licences_manage` : modification des licences UFSC.
 - `ufsc_competitions_read` : lecture des compétitions.
 - `ufsc_competitions_manage` : gestion des compétitions.
-- `ufsc_settings_manage` : réglages sensibles UFSC.
-- `ufsc_regions_manage` : gestion des accès régionaux.
+- `ufsc_settings_manage` : réglages sensibles UFSC. Cette capability est conservée pour les pages de réglages et les évolutions futures, mais ne donne pas accès au menu **Droits & accès**.
+- `ufsc_regions_manage` : gestion des accès régionaux pour évolutions futures. Cette capability ne donne pas accès au menu **Droits & accès** dans la version actuelle.
 - `ufsc_all_regions_access` : accès national à toutes les régions.
 
 ## Lecture vs gestion
@@ -53,7 +53,9 @@ Les régions autorisées d'un utilisateur sont stockées dans la meta `_ufsc_all
 
 ## Menu “Droits & accès”
 
-Le sous-menu **UFSC Gestion > Droits & accès** (`ufsc-permissions`) permet de :
+Le sous-menu **UFSC Gestion > Droits & accès** (`ufsc-permissions`) est réservé exclusivement aux vrais administrateurs WordPress disposant de `manage_options`. Les capabilities UFSC `ufsc_settings_manage` et `ufsc_regions_manage` restent disponibles pour évolution future, mais ne permettent pas d'ouvrir cette page ni de gérer les droits d'autres utilisateurs.
+
+Ce menu permet aux administrateurs WordPress de :
 
 - voir les utilisateurs possédant un rôle UFSC ou une capability UFSC ;
 - attribuer ou retirer les capabilities UFSC autorisées ;
@@ -63,6 +65,8 @@ Le sous-menu **UFSC Gestion > Droits & accès** (`ufsc-permissions`) permet de :
 
 Protections importantes :
 
+- la visibilité du menu et l'accès serveur vérifient `current_user_can( 'manage_options' )` ;
+- aucun rôle UFSC limité ne peut gérer les droits d'autres utilisateurs ;
 - un non-administrateur ne peut pas modifier un compte administrateur WordPress ;
 - un non-administrateur ne peut pas s'ajouter lui-même `ufsc_settings_manage`, `ufsc_regions_manage` ou `ufsc_all_regions_access` ;
 - aucune capability arbitraire envoyée depuis le navigateur n'est acceptée.
