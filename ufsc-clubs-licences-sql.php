@@ -62,6 +62,7 @@ require_once UFSC_CL_DIR.'includes/core/class-badge-helper.php';
 require_once UFSC_CL_DIR.'includes/core/class-user-club-mapping.php';
 require_once UFSC_CL_DIR.'includes/admin/class-user-club-admin.php';
 require_once UFSC_CL_DIR.'includes/admin/class-user-profile-scope-field.php';
+require_once UFSC_CL_DIR.'includes/admin/class-ufsc-simplified-admin.php';
 require_once UFSC_CL_DIR.'includes/cli/class-wp-cli-commands.php';
 //require_once UFSC_CL_DIR.'includes/front/redirect-check.php';
 
@@ -145,6 +146,7 @@ final class UFSC_CL_Bootstrap {
         add_action( 'init', array( 'UFSC_Cache_Manager', 'init' ) );
         add_action( 'init', array( 'UFSC_Capabilities', 'register_caps' ) );
         add_action( 'init', array( 'UFSC_Permissions', 'init' ) );
+        add_action( 'init', array( 'UFSC_Simplified_Admin', 'init' ) );
         add_action( 'init', array( 'UFSC_User_Profile_Scope_Field', 'init' ) );
         add_action( 'plugins_loaded', array( 'UFSC_DB_Migrations', 'run_migrations' ) );
 
