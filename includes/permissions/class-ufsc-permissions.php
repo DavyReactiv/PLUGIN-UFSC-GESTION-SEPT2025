@@ -33,7 +33,7 @@ class UFSC_Permissions {
     public static function maybe_register_roles_and_caps() {
         self::ensure_ufsc_roles_have_read();
 
-        $version = '2026-05-29-3';
+        $version = '2026-05-30-1';
         if ( get_option( 'ufsc_permissions_caps_version' ) === $version ) {
             return;
         }
@@ -147,6 +147,8 @@ class UFSC_Permissions {
                 'caps'  => array(
                     'read' => true,
                     'level_0' => true,
+                    'edit_posts' => true,
+                    'upload_files' => true,
                     self::CAP_GESTION_READ          => true,
                     self::CAP_LICENCES_READ         => true,
                     self::CAP_COMPETITIONS_READ     => true,
@@ -218,6 +220,7 @@ class UFSC_Permissions {
         }
 
         self::render_simplified_admin_option();
+        self::render_simplified_admin_diagnostics();
         self::render_users_table( $selected_user_id );
 
         if ( $selected_user_id ) {
@@ -244,6 +247,30 @@ class UFSC_Permissions {
         update_option( 'ufsc_enable_simplified_admin', ! empty( $_POST['ufsc_enable_simplified_admin'] ) ? '1' : '0', false );
 
         return array( 'type' => 'success', 'message' => __( 'Option d’interface admin simplifiée sauvegardée.', 'ufsc-clubs' ) );
+    }
+
+    /**
+     * Render simplified admin URL diagnostics for WordPress administrators.
+     */
+    private static function render_simplified_admin_diagnostics() {
+        if ( ! current_user_can( 'manage_options' ) || ! class_exists( 'UFSC_Simplified_Admin' ) || ! method_exists( 'UFSC_Simplified_Admin', 'get_module_url_diagnostics' ) ) {
+            return;
+        }
+
+        $diagnostics = UFSC_Simplified_Admin::get_module_url_diagnostics();
+        if ( empty( $diagnostics ) ) {
+            return;
+        }
+
+        echo '<details class="ufsc-simplified-admin-diagnostics" style="max-width:900px;margin-bottom:24px;padding:12px 16px;background:#fff;border:1px solid #dcdcde;">';
+        echo '<summary style="cursor:pointer;font-weight:600;">' . esc_html__( 'Diagnostic technique admin simplifié', 'ufsc-clubs' ) . '</summary>';
+        echo '<table class="widefat striped" style="margin-top:12px;"><thead><tr>';
+        echo '<th>' . esc_html__( 'Module', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Slug détecté', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Capability', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'URL utilisée', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Raison', 'ufsc-clubs' ) . '</th>';
+        echo '</tr></thead><tbody>';
+        foreach ( $diagnostics as $module => $item ) {
+            echo '<tr><td>' . esc_html( $module ) . '</td><td><code>' . esc_html( $item['slug'] ) . '</code></td><td><code>' . esc_html( $item['capability'] ) . '</code></td><td><code>' . esc_html( $item['url'] ) . '</code></td><td>' . esc_html( $item['reason'] ) . '</td></tr>';
+        }
+        echo '</tbody></table></details>';
     }
 
     /**

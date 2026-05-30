@@ -735,10 +735,10 @@ class UFSC_SQL_Admin
     public static function register_hidden_pages()
     {
         // Enregistrer les pages cachées pour les actions directes (mentionnées dans les specs)
-        add_submenu_page('', __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
-        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
+        add_submenu_page(null, __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
+        add_submenu_page(null, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
         // Alias pour compatibilité avec la spec (licenses vs licences)
-        add_submenu_page('', __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licenses', [__CLASS__, 'render_licences']);
+        add_submenu_page(null, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licenses', [__CLASS__, 'render_licences']);
     }
 
     /* ---------------- Menus complets (obsolète - remplacé par menu unifié) ---------------- */
