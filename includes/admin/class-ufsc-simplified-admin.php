@@ -296,6 +296,10 @@ class UFSC_Simplified_Admin {
             return;
         }
 
+        if ( self::has_visible_module_menu( 'licences' ) ) {
+            return;
+        }
+
         add_menu_page(
             __( 'UFSC Licences', 'ufsc-clubs' ),
             __( 'UFSC Licences', 'ufsc-clubs' ),
