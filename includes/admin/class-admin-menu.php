@@ -41,7 +41,7 @@ class UFSC_CL_Admin_Menu {
 			__( 'Licences', 'ufsc-clubs' ),
 			__( 'Licences', 'ufsc-clubs' ),
 			UFSC_Permissions::CAP_LICENCES_READ,
-			'ufsc-licences',
+			'ufsc-gestion-licences',
 			array( 'UFSC_SQL_Admin', 'render_licences' )
 		);
 
@@ -137,7 +137,7 @@ class UFSC_CL_Admin_Menu {
 			wp_enqueue_script( 'ufsc-admin', UFSC_CL_URL . 'assets/admin/js/admin.js', array( 'jquery' ), UFSC_CL_VERSION, true );
 
 			// Enqueue license form validation script on license pages
-			if ( false !== strpos( $hook, 'ufsc-sql-licences' ) || 'ufsc-sql-licences' === $page || 'ufsc-licences' === $page ) {
+			if ( false !== strpos( $hook, 'ufsc-sql-licences' ) || 'ufsc-sql-licences' === $page || 'ufsc-gestion-licences' === $page || 'ufsc-licences' === $page ) {
 				wp_enqueue_script( 'ufsc-license-form', UFSC_CL_URL . 'assets/js/ufsc-license-form.js', array( 'jquery' ), UFSC_CL_VERSION, true );
 			}
 
@@ -389,9 +389,9 @@ class UFSC_CL_Admin_Menu {
 		if ( ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
 			echo '<div class="ufsc-button-group" style="gap: 12px; flex-wrap: wrap; margin-top: 15px;">';
 			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&action=new' ) ) . '" class="button button-primary">' . esc_html__( 'Nouveau Club', 'ufsc-clubs' ) . '</a>';
-			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-licences&action=new' ) ) . '" class="button button-primary">' . esc_html__( 'Nouvelle Licence', 'ufsc-clubs' ) . '</a>';
+			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-gestion-licences&action=new' ) ) . '" class="button button-primary">' . esc_html__( 'Nouvelle Licence', 'ufsc-clubs' ) . '</a>';
 			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs' ) ) . '" class="button">' . esc_html__( 'Gérer les Clubs', 'ufsc-clubs' ) . '</a>';
-			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-licences' ) ) . '" class="button">' . esc_html__( 'Gérer les Licences', 'ufsc-clubs' ) . '</a>';
+			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-gestion-licences' ) ) . '" class="button">' . esc_html__( 'Gérer les Licences', 'ufsc-clubs' ) . '</a>';
 			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-settings' ) ) . '" class="button">' . esc_html__( 'Réglages', 'ufsc-clubs' ) . '</a>';
 			echo '</div>';
 		}

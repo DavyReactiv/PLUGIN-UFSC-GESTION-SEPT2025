@@ -150,6 +150,7 @@ class UFSC_Simplified_Admin {
         return array(
             'ufsc-sql-licences',
             'ufsc-sql-licenses',
+            'ufsc-gestion-licences',
             'ufsc-licences',
             'ufsc_licences',
             'ufsc_lc_licences',
@@ -390,7 +391,7 @@ class UFSC_Simplified_Admin {
         }
 
         if ( self::can_access_licences() && class_exists( 'UFSC_SQL_Admin' ) ) {
-            foreach ( array( 'ufsc_licences', 'ufsc-licence', 'ufsc_licence', 'ufsc-licence-documents', 'ufsc-licences-dashboard', 'ufsc_lc_licences' ) as $slug ) {
+            foreach ( array( 'ufsc-gestion-licences', 'ufsc_licences', 'ufsc-licence', 'ufsc_licence', 'ufsc-licence-documents', 'ufsc-licences-dashboard', 'ufsc_lc_licences' ) as $slug ) {
                 if ( ! self::menu_slug_exists( $slug ) ) {
                     add_submenu_page( null, __( 'UFSC Licences', 'ufsc-clubs' ), __( 'UFSC Licences', 'ufsc-clubs' ), UFSC_Permissions::CAP_LICENCES_READ, $slug, array( 'UFSC_SQL_Admin', 'render_licences' ) );
                 }
@@ -1510,6 +1511,7 @@ class UFSC_Simplified_Admin {
             ),
             'licences' => array(
                 'admin.php?page=ufsc-sql-licences',
+                'admin.php?page=ufsc-gestion-licences',
                 'admin.php?page=ufsc-licences',
                 'admin.php?page=ufsc_lc_licences',
                 'admin.php?page=ufsc-sql-licenses',
