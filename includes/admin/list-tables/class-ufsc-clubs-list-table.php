@@ -719,8 +719,9 @@ class UFSC_Clubs_List_Table {
         }
 
         $can_manage_clubs = ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE );
+        $table_mode_class = $can_manage_clubs ? 'ufsc-clubs-table-form--manage' : 'ufsc-clubs-table-form--readonly';
 
-        echo '<form method="post" id="bulk-actions-form" class="ufsc-clubs-table-form">';
+        echo '<form method="post" id="bulk-actions-form" class="ufsc-clubs-table-form ' . esc_attr( $table_mode_class ) . '">';
         echo '<input type="hidden" name="page" value="ufsc-sql-clubs" />';
         if ( $can_manage_clubs ) {
             // Bulk actions are write operations and are hidden for read-only users.
@@ -742,21 +743,21 @@ class UFSC_Clubs_List_Table {
         }
 
         //table
-        echo '<table class="wp-list-table widefat fixed striped ufsc-clubs-table">';
+        echo '<table class="wp-list-table widefat striped ufsc-clubs-table ' . ( $can_manage_clubs ? 'ufsc-clubs-table--manage' : 'ufsc-clubs-table--readonly' ) . '">';
         echo '<thead>';
         echo '<tr>';
         if ( $can_manage_clubs ) {
-            echo '<td class="check-column"><input type="checkbox" id="select-all-club" /></td>';
+            echo '<td class="check-column column-checkbox"><input type="checkbox" id="select-all-club" /></td>';
         }
-        echo '<th>ID</th>';
-        echo '<th>' . self::get_sortable_header( 'nom', __( 'Nom du club', 'ufsc-clubs' ), $sorting ) . '</th>';
-        echo '<th>' . self::get_sortable_header( 'region', __( 'Région', 'ufsc-clubs' ), $sorting ) . '</th>';
-        echo '<th>' . esc_html__( 'N° Affiliation', 'ufsc-clubs' ) . '</th>';
-        echo '<th>' . esc_html__( 'Statut', 'ufsc-clubs' ) . '</th>';
-        echo '<th>' . esc_html__( 'Licences', 'ufsc-clubs' ) . '</th>';
-        echo '<th>' . esc_html__( 'Documents', 'ufsc-clubs' ) . '</th>';
-        echo '<th>' . self::get_sortable_header( 'date_creation', __( 'Créé le', 'ufsc-clubs' ), $sorting ) . '</th>';
-        echo '<th>' . esc_html__( 'Actions', 'ufsc-clubs' ) . '</th>';
+        echo '<th class="column-id">ID</th>';
+        echo '<th class="column-club">' . self::get_sortable_header( 'nom', __( 'Nom du club', 'ufsc-clubs' ), $sorting ) . '</th>';
+        echo '<th class="column-region">' . self::get_sortable_header( 'region', __( 'Région', 'ufsc-clubs' ), $sorting ) . '</th>';
+        echo '<th class="column-affiliation">' . esc_html__( 'N° Affiliation', 'ufsc-clubs' ) . '</th>';
+        echo '<th class="column-status">' . esc_html__( 'Statut', 'ufsc-clubs' ) . '</th>';
+        echo '<th class="column-licences">' . esc_html__( 'Licences', 'ufsc-clubs' ) . '</th>';
+        echo '<th class="column-documents">' . esc_html__( 'Documents', 'ufsc-clubs' ) . '</th>';
+        echo '<th class="column-created">' . self::get_sortable_header( 'date_creation', __( 'Créé le', 'ufsc-clubs' ), $sorting ) . '</th>';
+        echo '<th class="column-actions">' . esc_html__( 'Actions', 'ufsc-clubs' ) . '</th>';
         echo '</tr>';
         echo '</thead>';
         echo '<tbody>';
@@ -788,16 +789,16 @@ class UFSC_Clubs_List_Table {
 
     // Checkbox (write-only bulk actions)
     if ( $can_manage_clubs ) {
-        echo '<th class="check-column"><input type="checkbox" name="club_ids[]" value="' . (int) ( $club->id ?? 0 ) . '" /></th>';
+        echo '<th class="check-column column-checkbox"><input type="checkbox" name="club_ids[]" value="' . (int) ( $club->id ?? 0 ) . '" /></th>';
     }
 
     // ID
-    echo '<td>' . (int) ( $club->id ?? 0 ) . '</td>';
+    echo '<td class="column-id">' . (int) ( $club->id ?? 0 ) . '</td>';
 
     // Nom + Email
     $club_name = isset( $club->nom ) ? $club->nom : '';
     $club_email = isset( $club->email ) ? $club->email : '';
-    echo '<td class="ufsc-club-name-cell"><strong>' . esc_html( $club_name ) . '</strong>';
+    echo '<td class="column-club ufsc-club-name-cell"><strong>' . esc_html( $club_name ) . '</strong>';
     if ( ! empty( $club_email ) ) {
         echo '<br><small>' . esc_html( $club_email ) . '</small>';
     }
@@ -805,16 +806,16 @@ class UFSC_Clubs_List_Table {
     echo '</td>';
 
     // Région
-    echo '<td>' . esc_html( isset( $club->region ) ? $club->region : '' ) . '</td>';
+    echo '<td class="column-region">' . esc_html( isset( $club->region ) ? $club->region : '' ) . '</td>';
 
     // Numéro d’affiliation
-    echo '<td>';
+    echo '<td class="column-affiliation">';
     echo self::render_affiliation_number( isset( $club->num_affiliation ) ? $club->num_affiliation : '' );
     echo '</td>';
 
     // Statut
     $status_value = isset( $club->statut ) ? $club->statut : '';
-    echo '<td>' . self::render_status_badge( $status_value ) . '</td>';
+    echo '<td class="column-status">' . self::render_status_badge( $status_value ) . '</td>';
 
     // Licences validées
     $club_id = (int) ( $club->id ?? 0 );
@@ -828,17 +829,17 @@ class UFSC_Clubs_List_Table {
         admin_url( 'admin.php' )
     );
     $licence_label = sprintf( _n( '%d licence', '%d licences', $licence_count, 'ufsc-clubs' ), $licence_count );
-    echo '<td><a class="ufsc-licence-link" href="' . esc_url( $licence_url ) . '">' . esc_html( $licence_label ) . '</a></td>';
+    echo '<td class="column-licences"><a class="ufsc-licence-link" href="' . esc_url( $licence_url ) . '">' . esc_html( $licence_label ) . '</a></td>';
 
     // Documents
-    echo '<td>' . self::render_documents_badge( $club ) . '</td>';
+    echo '<td class="column-documents">' . self::render_documents_badge( $club ) . '</td>';
 
     // Date de création
     $date_creation = isset( $club->date_creation ) ? $club->date_creation : '';
-    echo '<td>' . ( $date_creation ? esc_html( mysql2date( 'd/m/Y', $date_creation ) ) : '<em>' . esc_html__( 'Non défini', 'ufsc-clubs' ) . '</em>' ) . '</td>';
+    echo '<td class="column-created">' . ( $date_creation ? esc_html( mysql2date( 'd/m/Y', $date_creation ) ) : '<em>' . esc_html__( 'Non défini', 'ufsc-clubs' ) . '</em>' ) . '</td>';
 
     // Actions
-    echo '<td class="ufsc-row-actions"><div class="ufsc-actions-grid">';
+    echo '<td class="column-actions ufsc-row-actions"><div class="ufsc-actions-grid">';
     $club_id = (int) ( $club->id ?? 0 );
     $view_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=view&id=' . $club_id );
     $edit_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=edit&id=' . $club_id );
