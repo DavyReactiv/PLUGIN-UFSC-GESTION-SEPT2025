@@ -281,7 +281,7 @@ class UFSC_SQL_Admin
      * @return string[]
      */
     private static function get_licences_admin_page_slugs() {
-        return array( 'ufsc-gestion-licences', 'ufsc-licences', 'ufsc-sql-licences', 'ufsc-sql-licenses' );
+        return array( 'ufsc_lc_licences', 'ufsc-gestion-licences', 'ufsc-licences', 'ufsc-sql-licences', 'ufsc-sql-licenses' );
     }
 
     /**
@@ -289,7 +289,7 @@ class UFSC_SQL_Admin
      */
     private static function get_licences_admin_page_slug() {
         $page = isset( $_REQUEST['page'] ) ? sanitize_key( wp_unslash( $_REQUEST['page'] ) ) : '';
-        return in_array( $page, self::get_licences_admin_page_slugs(), true ) ? $page : 'ufsc-gestion-licences';
+        return in_array( $page, self::get_licences_admin_page_slugs(), true ) ? $page : 'ufsc_lc_licences';
     }
 
     /**
@@ -768,7 +768,7 @@ class UFSC_SQL_Admin
     {
         // Enregistrer les pages cachées pour les actions directes (mentionnées dans les specs)
         add_submenu_page(null, __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
-        add_submenu_page(null, __('Licences UFSC — Gestion administrative par saison', 'ufsc-clubs'), __('Licences UFSC', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-gestion-licences', [__CLASS__, 'render_licences']);
+        add_submenu_page(null, __('Licences UFSC — Gestion administrative par saison', 'ufsc-clubs'), __('Licences UFSC', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc_lc_licences', [__CLASS__, 'render_licences']);
         add_submenu_page(null, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
         // Alias pour compatibilité avec la spec (licenses vs licences)
         add_submenu_page(null, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licenses', [__CLASS__, 'render_licences']);

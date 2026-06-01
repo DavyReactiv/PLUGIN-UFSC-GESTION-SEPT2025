@@ -150,10 +150,10 @@ class UFSC_Simplified_Admin {
         return array(
             'ufsc-sql-licences',
             'ufsc-sql-licenses',
+            'ufsc_lc_licences',
             'ufsc-gestion-licences',
             'ufsc-licences',
             'ufsc_licences',
-            'ufsc_lc_licences',
             'ufsc-licence',
             'ufsc_licence',
             'ufsc-licence-documents',
@@ -391,7 +391,7 @@ class UFSC_Simplified_Admin {
         }
 
         if ( self::can_access_licences() && class_exists( 'UFSC_SQL_Admin' ) ) {
-            foreach ( array( 'ufsc-gestion-licences', 'ufsc_licences', 'ufsc-licence', 'ufsc_licence', 'ufsc-licence-documents', 'ufsc-licences-dashboard', 'ufsc_lc_licences' ) as $slug ) {
+            foreach ( array( 'ufsc_lc_licences', 'ufsc-gestion-licences', 'ufsc_licences', 'ufsc-licence', 'ufsc_licence', 'ufsc-licence-documents', 'ufsc-licences-dashboard' ) as $slug ) {
                 if ( ! self::menu_slug_exists( $slug ) ) {
                     add_submenu_page( null, __( 'UFSC Licences', 'ufsc-clubs' ), __( 'UFSC Licences', 'ufsc-clubs' ), UFSC_Permissions::CAP_LICENCES_READ, $slug, array( 'UFSC_SQL_Admin', 'render_licences' ) );
                 }
@@ -1339,6 +1339,9 @@ class UFSC_Simplified_Admin {
             'gestion'     => self::get_gestion_admin_url(),
             'clubs'       => self::get_first_existing_slug_url( array( 'ufsc-clubs', 'ufsc-sql-clubs', 'ufsc_clubs' ), 'admin.php?page=ufsc-clubs' ),
             'licences'    => self::get_licences_admin_url(),
+            'licences_sql'=> self::get_licences_admin_url(),
+            'licences_gestion' => self::get_gestion_licences_admin_url(),
+            'gestion_licences' => self::get_gestion_licences_admin_url(),
             'competitions'=> self::get_competitions_admin_url(),
             'profile'     => admin_url( 'profile.php' ),
             'profil'      => admin_url( 'profile.php' ),
@@ -1356,6 +1359,13 @@ class UFSC_Simplified_Admin {
             array( 'ufsc-dashboard', 'ufsc-clubs', 'ufsc-sql-clubs', 'ufsc_clubs', 'ufsc-gestion', 'ufsc_gestion' ),
             'admin.php?page=ufsc-dashboard'
         );
+    }
+
+    /**
+     * Historical UFSC Gestion licences workflow URL.
+     */
+    private static function get_gestion_licences_admin_url() {
+        return admin_url( 'admin.php?page=ufsc_lc_licences' );
     }
 
     /**
@@ -1511,9 +1521,9 @@ class UFSC_Simplified_Admin {
             ),
             'licences' => array(
                 'admin.php?page=ufsc-sql-licences',
+                'admin.php?page=ufsc_lc_licences',
                 'admin.php?page=ufsc-gestion-licences',
                 'admin.php?page=ufsc-licences',
-                'admin.php?page=ufsc_lc_licences',
                 'admin.php?page=ufsc-sql-licenses',
                 'admin.php?page=ufsc_licences',
                 'admin.php?page=ufsc-licence',
