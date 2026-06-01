@@ -163,11 +163,11 @@ class UFSC_Simplified_Admin {
     }
 
     /**
-     * Competition pages exposed by UFSC Licences / Compétitions that are safe for read/manage access.
+     * Competition pages exposed by UFSC Licences / Compétitions that are safe with read access.
      *
      * @return string[]
      */
-    private static function allowed_competition_page_slugs() {
+    private static function read_competition_page_slugs() {
         return array(
             'ufsc-competitions',
             'ufsc_competitions',
@@ -181,7 +181,6 @@ class UFSC_Simplified_Admin {
             'competitions',
             'ufsc-competitions-categories',
             'ufsc-competitions-entries',
-            'ufsc-competitions-entries-import',
             'ufsc-competitions-weighins',
             'ufsc-competitions-bouts',
             'ufsc-competitions-plateau',
@@ -189,12 +188,32 @@ class UFSC_Simplified_Admin {
             'ufsc-competitions-quality',
             'ufsc-competitions-print',
             'ufsc-competitions-officials',
-            'ufsc-competitions-sensitive-ops',
             'ufsc-competitions-estimation',
             'ufsc-competitions-logs',
             'ufsc-competitions-guide',
+        );
+    }
+
+    /**
+     * Competition business-action pages that require the UFSC competition manage capability.
+     *
+     * @return string[]
+     */
+    private static function manage_competition_page_slugs() {
+        return array(
+            'ufsc-competitions-entries-import',
+            'ufsc-competitions-sensitive-ops',
             'ufsc-competitions-entry-validation',
         );
+    }
+
+    /**
+     * All non-settings competition pages allowed by the simplified admin when the matching capability is present.
+     *
+     * @return string[]
+     */
+    private static function allowed_competition_page_slugs() {
+        return array_merge( self::read_competition_page_slugs(), self::manage_competition_page_slugs() );
     }
 
     /**
@@ -213,6 +232,36 @@ class UFSC_Simplified_Admin {
             'ufsc_lc_settings',
             'ufsc-lc-settings',
         );
+    }
+
+    /**
+     * Whether the current user can open a specific non-sensitive competition page.
+     */
+    private static function can_access_competition_page_slug( $slug ) {
+        if ( self::slug_matches( $slug, self::manage_competition_page_slugs() ) ) {
+            return current_user_can( UFSC_Permissions::CAP_COMPETITIONS_MANAGE );
+        }
+
+        if ( self::slug_matches( $slug, self::read_competition_page_slugs() ) ) {
+            return self::can_access_competitions();
+        }
+
+        return self::is_competitions_slug( $slug ) && self::can_access_competitions();
+    }
+
+    /**
+     * Capability required for a competition page after menu normalization.
+     */
+    private static function capability_for_competition_slug( $slug ) {
+        if ( self::slug_matches( $slug, self::manage_competition_page_slugs() ) ) {
+            return UFSC_Permissions::CAP_COMPETITIONS_MANAGE;
+        }
+
+        if ( self::slug_matches( $slug, self::read_competition_page_slugs() ) || self::is_competitions_slug( $slug ) ) {
+            return UFSC_Permissions::CAP_COMPETITIONS_READ;
+        }
+
+        return null;
     }
 
 
@@ -732,8 +781,9 @@ class UFSC_Simplified_Admin {
             return null;
         }
 
-        if ( self::is_competitions_slug( $slug, $title ) ) {
-            return UFSC_Permissions::CAP_COMPETITIONS_READ;
+        $competition_capability = self::capability_for_competition_slug( $slug );
+        if ( $competition_capability ) {
+            return $competition_capability;
         }
 
         if ( self::is_licences_slug( $slug, $title ) ) {
@@ -1026,7 +1076,7 @@ class UFSC_Simplified_Admin {
         }
 
         if ( self::slug_matches( $slug, self::allowed_competition_page_slugs() ) || self::is_competitions_slug( $slug ) ) {
-            return self::can_access_competitions();
+            return self::can_access_competition_page_slug( $slug );
         }
 
         return false;
@@ -1036,7 +1086,7 @@ class UFSC_Simplified_Admin {
      * Identify UFSC Gestion menu/page slugs without matching unrelated plugins.
      */
     private static function is_gestion_slug( $slug, $title = '' ) {
-        if ( self::slug_matches( $slug, array( 'ufsc-gestion', 'ufsc_gestion', 'ufsc-clubs', 'ufsc_clubs', 'ufsc-dashboard', 'ufsc-home', 'ufsc-exports' ) ) ) {
+        if ( self::slug_matches( $slug, array( 'ufsc-gestion', 'ufsc_gestion', 'ufsc-clubs', 'ufsc-sql-clubs', 'ufsc_clubs', 'ufsc-dashboard', 'ufsc-home', 'ufsc-exports' ) ) ) {
             return true;
         }
 
