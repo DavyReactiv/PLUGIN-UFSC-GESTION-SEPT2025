@@ -374,9 +374,19 @@
     border-spacing: 0;
     box-shadow: none;
     margin: 0;
-    min-width: 1220px;
-    table-layout: auto;
+    min-width: 1180px;
+    table-layout: auto !important;
     width: 100%;
+}
+
+.ufsc-clubs-table--readonly {
+    min-width: 1040px;
+}
+
+.ufsc-clubs-table th,
+.ufsc-clubs-table td {
+    overflow-wrap: normal;
+    word-break: normal;
 }
 
 .ufsc-clubs-table thead th,
@@ -411,11 +421,6 @@
     vertical-align: middle;
 }
 
-.ufsc-clubs-table tbody td:not(.ufsc-row-actions),
-.ufsc-clubs-table tbody th:not(.check-column) {
-    overflow-wrap: anywhere;
-}
-
 .ufsc-clubs-table tbody tr:last-child td,
 .ufsc-clubs-table tbody tr:last-child th {
     border-bottom: 0;
@@ -433,26 +438,35 @@
     background: #eef5ff;
 }
 
-.ufsc-clubs-table th:nth-child(1),
-.ufsc-clubs-table td:nth-child(1) { width: 42px; }
-.ufsc-clubs-table th:nth-child(2),
-.ufsc-clubs-table td:nth-child(2) { width: 64px; text-align: center; }
-.ufsc-clubs-table th:nth-child(3),
-.ufsc-clubs-table td:nth-child(3) { min-width: 260px; width: 26%; }
-.ufsc-clubs-table th:nth-child(4),
-.ufsc-clubs-table td:nth-child(4) { min-width: 150px; }
-.ufsc-clubs-table th:nth-child(5),
-.ufsc-clubs-table td:nth-child(5) { min-width: 145px; }
-.ufsc-clubs-table th:nth-child(6),
-.ufsc-clubs-table td:nth-child(6) { min-width: 130px; }
-.ufsc-clubs-table th:nth-child(7),
-.ufsc-clubs-table td:nth-child(7) { min-width: 120px; }
-.ufsc-clubs-table th:nth-child(8),
-.ufsc-clubs-table td:nth-child(8) { min-width: 125px; }
-.ufsc-clubs-table th:nth-child(9),
-.ufsc-clubs-table td:nth-child(9) { min-width: 118px; }
-.ufsc-clubs-table th:nth-child(10),
-.ufsc-clubs-table td:nth-child(10) { min-width: 285px; width: 285px; }
+.ufsc-clubs-table .column-checkbox { width: 42px; }
+.ufsc-clubs-table .column-id { text-align: center; width: 64px; }
+.ufsc-clubs-table .column-club {
+    min-width: 280px;
+    overflow-wrap: normal;
+    white-space: normal;
+    width: 28%;
+    word-break: normal;
+}
+.ufsc-clubs-table .column-region {
+    min-width: 150px;
+    white-space: nowrap;
+}
+.ufsc-clubs-table .column-affiliation { min-width: 145px; }
+.ufsc-clubs-table .column-status { min-width: 130px; }
+.ufsc-clubs-table .column-licences { min-width: 120px; }
+.ufsc-clubs-table .column-documents { min-width: 150px; }
+.ufsc-clubs-table .column-created {
+    min-width: 118px;
+    white-space: nowrap;
+}
+.ufsc-clubs-table .column-actions {
+    min-width: 220px;
+    width: 220px;
+}
+.ufsc-clubs-table--manage .column-actions {
+    min-width: 285px;
+    width: 285px;
+}
 
 .ufsc-clubs-table .check-column input {
     margin-top: 0;
@@ -465,12 +479,20 @@
     font-weight: 800;
     line-height: 1.35;
     margin-bottom: 3px;
+    overflow-wrap: normal;
+    white-space: normal;
+    word-break: normal;
 }
 
 .ufsc-club-name-cell small {
     color: #344054;
+    display: inline-block;
     font-size: 12px;
     line-height: 1.4;
+    max-width: 100%;
+    overflow-wrap: normal;
+    white-space: nowrap;
+    word-break: normal;
 }
 
 .ufsc-badge {
@@ -527,6 +549,10 @@
 }
 
 .ufsc-row-actions {
+    min-width: 220px;
+}
+
+.ufsc-clubs-table--manage .ufsc-row-actions {
     min-width: 285px;
 }
 
