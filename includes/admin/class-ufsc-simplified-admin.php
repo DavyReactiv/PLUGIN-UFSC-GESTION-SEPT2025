@@ -296,7 +296,7 @@ class UFSC_Simplified_Admin {
             return;
         }
 
-        if ( self::has_visible_module_menu( 'licences' ) ) {
+        if ( self::top_level_menu_slug_exists( 'ufsc-sql-licences' ) ) {
             return;
         }
 
@@ -308,6 +308,15 @@ class UFSC_Simplified_Admin {
             array( 'UFSC_SQL_Admin', 'render_licences' ),
             'dashicons-id',
             59
+        );
+
+        add_submenu_page(
+            'ufsc-sql-licences',
+            __( 'Tableau licences', 'ufsc-clubs' ),
+            __( 'Tableau licences', 'ufsc-clubs' ),
+            UFSC_Permissions::CAP_LICENCES_READ,
+            'ufsc-sql-licences',
+            array( 'UFSC_SQL_Admin', 'render_licences' )
         );
     }
 
@@ -650,7 +659,18 @@ class UFSC_Simplified_Admin {
      * Sensitive UFSC pages stay reserved to their existing server-side capabilities.
      */
     private static function is_sensitive_ufsc_slug( $slug ) {
-        return self::slug_matches( $slug, array( 'ufsc-permissions', 'ufsc-settings', 'ufsc-woocommerce', 'ufsc-sql-settings' ) );
+        $normalized = self::normalize_page_slug( $slug );
+        if ( self::slug_matches( $slug, array( 'ufsc-permissions', 'ufsc-settings', 'ufsc-woocommerce', 'ufsc-sql-settings' ) ) ) {
+            return true;
+        }
+
+        foreach ( array( 'settings', 'parametres', 'wpcode', 'members' ) as $needle ) {
+            if ( false !== strpos( $normalized, $needle ) ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -716,7 +736,8 @@ class UFSC_Simplified_Admin {
                     continue;
                 }
 
-                if ( ! self::is_authorized_page_slug( $slug ) ) {
+                $title = isset( $item[0] ) ? wp_strip_all_tags( (string) $item[0] ) : '';
+                if ( self::is_sensitive_limited_submenu_item( $slug, $title ) || ! self::is_authorized_page_slug( $slug ) ) {
                     unset( $submenu[ $parent_slug ][ $index ] );
                 }
             }
@@ -935,7 +956,7 @@ class UFSC_Simplified_Admin {
         }
 
         $normalized = self::normalize_page_slug( $slug );
-        return ( 0 === strpos( $normalized, 'ufsc-licence' ) || 0 === strpos( $normalized, 'ufsc_licence' ) || self::title_contains( $title, 'ufsc licences' ) );
+        return ( 0 === strpos( $normalized, 'ufsc-licence' ) || 0 === strpos( $normalized, 'ufsc_licence' ) || self::title_contains( $title, 'ufsc licences' ) || self::title_contains( $title, 'ufsc lc' ) );
     }
 
     /**
@@ -1258,6 +1279,55 @@ class UFSC_Simplified_Admin {
                 return true;
             }
         }
+        return false;
+    }
+
+    /**
+     * Detect whether a top-level menu slug already exists.
+     */
+    private static function top_level_menu_slug_exists( $slug ) {
+        global $menu;
+        $slug = self::normalize_page_slug( $slug );
+        foreach ( (array) $menu as $item ) {
+            if ( isset( $item[2] ) && $slug === self::normalize_page_slug( (string) $item[2] ) ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Sensitive submenu entries are hidden from limited users unless a manage capability explicitly allows them.
+     */
+    private static function is_sensitive_limited_submenu_item( $slug, $title = '' ) {
+        if ( current_user_can( 'manage_options' ) ) {
+            return false;
+        }
+
+        if ( self::is_sensitive_ufsc_slug( $slug ) ) {
+            return true;
+        }
+
+        $title = strtolower( remove_accents( wp_strip_all_tags( (string) $title ) ) );
+        foreach ( array( 'parametre', 'reglage', 'droits', 'acces' ) as $needle ) {
+            if ( false !== strpos( $title, $needle ) ) {
+                return true;
+            }
+        }
+
+        $normalized_slug = self::normalize_page_slug( $slug );
+        if ( false !== strpos( $title, 'export' ) || false !== strpos( $normalized_slug, 'export' ) ) {
+            return ! ( current_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) || current_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) );
+        }
+
+        if ( false !== strpos( $title, 'import' ) || false !== strpos( $title, 'asptt' ) ) {
+            if ( self::is_competitions_slug( $slug, $title ) && current_user_can( UFSC_Permissions::CAP_COMPETITIONS_MANAGE ) ) {
+                return false;
+            }
+
+            return ! current_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE );
+        }
+
         return false;
     }
 

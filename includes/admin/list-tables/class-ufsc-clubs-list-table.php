@@ -718,30 +718,36 @@ class UFSC_Clubs_List_Table {
             }
         }
 
+        $can_manage_clubs = ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE );
+
         echo '<form method="post" id="bulk-actions-form" class="ufsc-clubs-table-form">';
         echo '<input type="hidden" name="page" value="ufsc-sql-clubs" />';
-        // Bulk actions
-        echo '<div class="ufsc-bulk-actions">';
+        if ( $can_manage_clubs ) {
+            // Bulk actions are write operations and are hidden for read-only users.
+            echo '<div class="ufsc-bulk-actions">';
 
-        wp_nonce_field('ufsc_bulk_clubs_actions');
-        echo '<select name="bulk_action" id="bulk-action-selector">';
-        echo '<option value="">'.esc_html__('Actions groupées', 'ufsc-clubs').'</option>';
-        echo '<option value="delete">'.esc_html__('Supprimer', 'ufsc-clubs').'</option>';
-        echo '<option value="actif">'.esc_html__('Actif', 'ufsc-clubs').'</option>';
-        echo '<option value="en_attente">'.esc_html__('En attente', 'ufsc-clubs').'</option>';
-        echo '<option value="creating">'.esc_html__('En cours de création', 'ufsc-clubs').'</option>';
-        echo '<option value="export_selection" disabled="disabled">'.esc_html__('Exporter la sélection (bientôt)', 'ufsc-clubs').'</option>';
-        echo '<option value="remind_documents" disabled="disabled">'.esc_html__('Relance documents (bientôt)', 'ufsc-clubs').'</option>';
-        echo '<option value="remind_affiliation" disabled="disabled">'.esc_html__('Relance affiliation (bientôt)', 'ufsc-clubs').'</option>';
-        echo '</select>';
-        echo ' <button type="submit" class="button">'.esc_html__('Appliquer', 'ufsc-clubs').'</button>';
-        echo '</div>';
+            wp_nonce_field('ufsc_bulk_clubs_actions');
+            echo '<select name="bulk_action" id="bulk-action-selector">';
+            echo '<option value="">'.esc_html__('Actions groupées', 'ufsc-clubs').'</option>';
+            echo '<option value="delete">'.esc_html__('Supprimer', 'ufsc-clubs').'</option>';
+            echo '<option value="actif">'.esc_html__('Actif', 'ufsc-clubs').'</option>';
+            echo '<option value="en_attente">'.esc_html__('En attente', 'ufsc-clubs').'</option>';
+            echo '<option value="creating">'.esc_html__('En cours de création', 'ufsc-clubs').'</option>';
+            echo '<option value="export_selection" disabled="disabled">'.esc_html__('Exporter la sélection (bientôt)', 'ufsc-clubs').'</option>';
+            echo '<option value="remind_documents" disabled="disabled">'.esc_html__('Relance documents (bientôt)', 'ufsc-clubs').'</option>';
+            echo '<option value="remind_affiliation" disabled="disabled">'.esc_html__('Relance affiliation (bientôt)', 'ufsc-clubs').'</option>';
+            echo '</select>';
+            echo ' <button type="submit" class="button">'.esc_html__('Appliquer', 'ufsc-clubs').'</button>';
+            echo '</div>';
+        }
 
         //table
         echo '<table class="wp-list-table widefat fixed striped ufsc-clubs-table">';
         echo '<thead>';
         echo '<tr>';
-        echo '<td class="check-column"><input type="checkbox" id="select-all-club" /></td>';
+        if ( $can_manage_clubs ) {
+            echo '<td class="check-column"><input type="checkbox" id="select-all-club" /></td>';
+        }
         echo '<th>ID</th>';
         echo '<th>' . self::get_sortable_header( 'nom', __( 'Nom du club', 'ufsc-clubs' ), $sorting ) . '</th>';
         echo '<th>' . self::get_sortable_header( 'region', __( 'Région', 'ufsc-clubs' ), $sorting ) . '</th>';
@@ -759,10 +765,10 @@ class UFSC_Clubs_List_Table {
 
         if ( $clubs ) {
             foreach ( $clubs as $club ) {
-                self::render_club_row( $club, $licence_counts );
+                self::render_club_row( $club, $licence_counts, $can_manage_clubs );
             }
         } else {
-            echo '<tr><td colspan="10">' . esc_html__( 'Aucun club trouvé.', 'ufsc-clubs' ) . '</td></tr>';
+            echo '<tr><td colspan="' . ( $can_manage_clubs ? '10' : '9' ) . '">' . esc_html__( 'Aucun club trouvé.', 'ufsc-clubs' ) . '</td></tr>';
         }
 
         echo '</tbody>';
@@ -774,11 +780,16 @@ class UFSC_Clubs_List_Table {
     /**
      * Render individual club row
      */
-    private static function render_club_row( $club, $licence_counts ) {
+    private static function render_club_row( $club, $licence_counts, $can_manage_clubs = null ) {
+    if ( null === $can_manage_clubs ) {
+        $can_manage_clubs = ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE );
+    }
     echo '<tr>';
 
-    // Checkbox
-    echo '<th class="check-column"><input type="checkbox" name="club_ids[]" value="' . (int) ( $club->id ?? 0 ) . '" /></th>';
+    // Checkbox (write-only bulk actions)
+    if ( $can_manage_clubs ) {
+        echo '<th class="check-column"><input type="checkbox" name="club_ids[]" value="' . (int) ( $club->id ?? 0 ) . '" /></th>';
+    }
 
     // ID
     echo '<td>' . (int) ( $club->id ?? 0 ) . '</td>';
@@ -838,7 +849,7 @@ class UFSC_Clubs_List_Table {
     $documents_url = add_query_arg( array( 'page' => 'ufsc-sql-clubs', 'action' => 'edit', 'id' => $club_id, 'tab' => 'documents' ), admin_url( 'admin.php' ) );
     echo '<a href="' . esc_url( $view_url ) . '" class="button button-small">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a> ';
     echo '<a href="' . esc_url( $licence_url ) . '" class="button button-small">' . esc_html__( 'Licences', 'ufsc-clubs' ) . '</a> ';
-    if ( ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
+    if ( $can_manage_clubs ) {
         echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a> ';
         echo '<a href="' . esc_url( $documents_url ) . '" class="button button-small">' . esc_html__( 'Documents', 'ufsc-clubs' ) . '</a> ';
         echo '<button type="button" class="button button-small ufsc-button-disabled" disabled="disabled" aria-disabled="true" title="' . esc_attr__( 'Relance à brancher sur une action email sécurisée existante.', 'ufsc-clubs' ) . '">' . esc_html__( 'Relancer', 'ufsc-clubs' ) . '</button> ';

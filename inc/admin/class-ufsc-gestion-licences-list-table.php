@@ -24,7 +24,7 @@ class UFSC_Gestion_Licences_List_Table extends WP_List_Table {
      * Table columns.
      */
     public function get_columns() {
-        return array(
+        $columns = array(
             'cb'            => '<input type="checkbox" />',
             'full_name'     => __( 'Nom', 'ufsc-clubs' ),
             'club_nom'      => __( 'Club', 'ufsc-clubs' ),
@@ -32,6 +32,12 @@ class UFSC_Gestion_Licences_List_Table extends WP_List_Table {
             'payment_status'=> __( 'Paiement', 'ufsc-clubs' ),
             'date_creation' => __( 'Créée le', 'ufsc-clubs' ),
         );
+
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
+            unset( $columns['cb'] );
+        }
+
+        return $columns;
     }
 
     protected function get_sortable_columns() {
@@ -43,12 +49,20 @@ class UFSC_Gestion_Licences_List_Table extends WP_List_Table {
     }
 
     protected function get_bulk_actions() {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
+            return array();
+        }
+
         return array(
             'delete' => __( 'Supprimer', 'ufsc-clubs' ),
         );
     }
 
     protected function column_cb( $item ) {
+        if ( ! ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
+            return '';
+        }
+
         return sprintf( '<input type="checkbox" name="licence_ids[]" value="%d" />', $item['id'] );
     }
 
@@ -56,10 +70,11 @@ class UFSC_Gestion_Licences_List_Table extends WP_List_Table {
         $edit_url   = admin_url( 'admin.php?page=ufsc-gestion-licences&action=edit&id=' . $item['id'] );
         $delete_url = wp_nonce_url( admin_url( 'admin-post.php?action=ufsc_sql_delete_licence&id=' . $item['id'] ), 'ufsc_sql_delete_licence' );
 
-        $actions = array(
-            'edit'   => sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), __( 'Modifier', 'ufsc-clubs' ) ),
-            'delete' => sprintf( '<a href="%s">%s</a>', esc_url( $delete_url ), __( 'Supprimer', 'ufsc-clubs' ) ),
-        );
+        $actions = array();
+        if ( ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
+            $actions['edit']   = sprintf( '<a href="%s">%s</a>', esc_url( $edit_url ), __( 'Modifier', 'ufsc-clubs' ) );
+            $actions['delete'] = sprintf( '<a href="%s">%s</a>', esc_url( $delete_url ), __( 'Supprimer', 'ufsc-clubs' ) );
+        }
 
         return sprintf( '<strong>%1$s</strong> %2$s', esc_html( $item['full_name'] ), $this->row_actions( $actions ) );
     }
