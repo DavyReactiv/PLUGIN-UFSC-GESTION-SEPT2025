@@ -439,7 +439,7 @@ class UFSC_CL_Admin_Menu {
 				? ufsc_table_has_column( $t_lics, 'deleted_at' )
 				: false;
 			if ( $has_deleted_at ) {
-				$lics_conditions[] = "(deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
+				$lics_conditions[] = "(deleted_at IS NULL OR CAST(deleted_at AS CHAR) = '' OR CAST(deleted_at AS CHAR) = '0000-00-00 00:00:00')";
 			}
 			$lics_where = ! empty( $lics_conditions ) ? 'WHERE ' . implode( ' AND ', $lics_conditions ) : '';
 			$data['licenses_total']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` {$lics_where}" );
@@ -899,39 +899,109 @@ document.addEventListener('DOMContentLoaded', function() {
 	private static function get_age_distribution( $table, $where_sql, $where_args, $column ) {
 		global $wpdb;
 
+		$distribution = array(
+			'under_12'   => 0,
+			'from_12_15' => 0,
+			'from_16_17' => 0,
+			'from_18_34' => 0,
+			'from_35_49' => 0,
+			'over_50'    => 0,
+			'unknown'    => 0,
+		);
+
 		if ( ! $column ) {
-			return array( 'available' => false, 'buckets' => array(), 'unknown' => 0 );
+			return array( 'available' => false, 'buckets' => $distribution, 'unknown' => 0 );
 		}
 
 		$where_args = is_array( $where_args ) ? $where_args : array();
 
-		$query = "SELECT
-			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) < 12 THEN 1 ELSE 0 END) AS under_12,
-			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) BETWEEN 12 AND 15 THEN 1 ELSE 0 END) AS from_12_15,
-			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) BETWEEN 16 AND 17 THEN 1 ELSE 0 END) AS from_16_17,
-			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) BETWEEN 18 AND 34 THEN 1 ELSE 0 END) AS from_18_34,
-			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) BETWEEN 35 AND 49 THEN 1 ELSE 0 END) AS from_35_49,
-			SUM(CASE WHEN TIMESTAMPDIFF(YEAR, `{$column}`, CURDATE()) >= 50 THEN 1 ELSE 0 END) AS over_50,
-			SUM(CASE WHEN `{$column}` IS NULL OR `{$column}` = '0000-00-00' OR `{$column}` = '' THEN 1 ELSE 0 END) AS unknown
-			FROM `{$table}` {$where_sql}";
+		try {
+			$table_columns = function_exists( 'ufsc_table_columns' )
+				? ufsc_table_columns( $table )
+				: $wpdb->get_col( "DESCRIBE `{$table}`" );
+			$table_columns = is_array( $table_columns ) ? $table_columns : array();
 
-		if ( ! empty( $where_args ) ) {
-			$query = $wpdb->prepare( $query, $where_args );
+			if ( ! in_array( $column, $table_columns, true ) ) {
+				return array( 'available' => false, 'buckets' => $distribution, 'unknown' => 0 );
+			}
+
+			$select_columns = array( '`' . $column . '` AS birth_date' );
+
+			if ( in_array( 'id', $table_columns, true ) ) {
+				$select_columns[] = '`id`';
+			}
+
+			if ( in_array( 'deleted_at', $table_columns, true ) ) {
+				$select_columns[] = '`deleted_at`';
+			}
+
+			$query = 'SELECT ' . implode( ', ', $select_columns ) . " FROM `{$table}` {$where_sql}";
+
+			if ( ! empty( $where_args ) ) {
+				$query = $wpdb->prepare( $query, $where_args );
+			}
+
+			$rows = $wpdb->get_results( $query, ARRAY_A );
+		} catch ( Throwable $e ) {
+			return array( 'available' => true, 'buckets' => $distribution, 'unknown' => 0 );
 		}
 
-		$row = $wpdb->get_row( $query, ARRAY_A );
+		if ( empty( $rows ) ) {
+			return array( 'available' => true, 'buckets' => $distribution, 'unknown' => 0 );
+		}
+
+		$today = new DateTimeImmutable( 'today' );
+
+		foreach ( $rows as $row ) {
+			$birth_date_raw = isset( $row['birth_date'] ) ? trim( (string) $row['birth_date'] ) : '';
+
+			if (
+				'' === $birth_date_raw
+				|| '0000-00-00' === $birth_date_raw
+				|| '0000-00-00 00:00:00' === $birth_date_raw
+			) {
+				$distribution['unknown']++;
+				continue;
+			}
+
+			if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $birth_date_raw ) ) {
+				$distribution['unknown']++;
+				continue;
+			}
+
+			$birth_date = DateTimeImmutable::createFromFormat( '!Y-m-d', $birth_date_raw );
+			$errors     = DateTimeImmutable::getLastErrors();
+
+			if (
+				! $birth_date
+				|| ( is_array( $errors ) && ( ! empty( $errors['warning_count'] ) || ! empty( $errors['error_count'] ) ) )
+				|| $birth_date > $today
+			) {
+				$distribution['unknown']++;
+				continue;
+			}
+
+			$age = (int) $birth_date->diff( $today )->y;
+
+			if ( $age < 12 ) {
+				$distribution['under_12']++;
+			} elseif ( $age <= 15 ) {
+				$distribution['from_12_15']++;
+			} elseif ( $age <= 17 ) {
+				$distribution['from_16_17']++;
+			} elseif ( $age <= 34 ) {
+				$distribution['from_18_34']++;
+			} elseif ( $age <= 49 ) {
+				$distribution['from_35_49']++;
+			} else {
+				$distribution['over_50']++;
+			}
+		}
 
 		return array(
 			'available' => true,
-			'buckets'   => array(
-				'under_12'   => (int) ( $row['under_12'] ?? 0 ),
-				'from_12_15' => (int) ( $row['from_12_15'] ?? 0 ),
-				'from_16_17' => (int) ( $row['from_16_17'] ?? 0 ),
-				'from_18_34' => (int) ( $row['from_18_34'] ?? 0 ),
-				'from_35_49' => (int) ( $row['from_35_49'] ?? 0 ),
-				'over_50'    => (int) ( $row['over_50'] ?? 0 ),
-			),
-			'unknown'   => (int) ( $row['unknown'] ?? 0 ),
+			'buckets'   => $distribution,
+			'unknown'   => $distribution['unknown'],
 		);
 	}
 
