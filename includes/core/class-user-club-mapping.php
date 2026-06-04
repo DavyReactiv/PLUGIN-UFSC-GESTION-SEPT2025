@@ -8,6 +8,25 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class UFSC_User_Club_Mapping {
 
     /**
+     * Return the canonical clubs table used by admin, front-end and mapping.
+     *
+     * @return string
+     */
+    private static function get_clubs_table() {
+        if ( function_exists( 'ufsc_get_clubs_table' ) ) {
+            return ufsc_get_clubs_table();
+        }
+
+        if ( class_exists( 'UFSC_SQL' ) && is_callable( array( 'UFSC_SQL', 'get_settings' ) ) ) {
+            $settings = UFSC_SQL::get_settings();
+            return isset( $settings['table_clubs'] ) ? $settings['table_clubs'] : 'clubs';
+        }
+
+        global $wpdb;
+        return $wpdb->prefix . 'ufsc_clubs';
+    }
+
+    /**
      * Récupère l'ID du club pour un utilisateur
      *
      * @param int $user_id
@@ -16,8 +35,7 @@ class UFSC_User_Club_Mapping {
     public static function get_user_club_id( $user_id ) {
         global $wpdb;
 
-        $settings        = UFSC_SQL::get_settings();
-        $clubs_table     = $settings['table_clubs'];
+        $clubs_table     = self::get_clubs_table();
         $pk_col          = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id';
         $responsable_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id';
 
@@ -40,8 +58,7 @@ class UFSC_User_Club_Mapping {
     public static function get_user_club( $user_id ) {
         global $wpdb;
 
-        $settings        = UFSC_SQL::get_settings();
-        $clubs_table     = $settings['table_clubs'];
+        $clubs_table     = self::get_clubs_table();
         $responsable_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id';
 
         $club = $wpdb->get_row(
@@ -67,8 +84,7 @@ class UFSC_User_Club_Mapping {
         $user = get_user_by( 'id', (int) $user_id );
         if ( ! $user ) { return false; }
 
-        $settings        = UFSC_SQL::get_settings();
-        $clubs_table     = $settings['table_clubs'];
+        $clubs_table     = self::get_clubs_table();
         $pk_col          = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id';
         $responsable_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id';
 
@@ -112,8 +128,7 @@ class UFSC_User_Club_Mapping {
             return true; // déjà sans association
         }
 
-        $settings        = UFSC_SQL::get_settings();
-        $clubs_table     = $settings['table_clubs'];
+        $clubs_table     = self::get_clubs_table();
         $pk_col          = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id';
         $responsable_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id';
 
@@ -147,8 +162,7 @@ class UFSC_User_Club_Mapping {
     public static function get_club_managers() {
         global $wpdb;
 
-        $settings    = UFSC_SQL::get_settings();
-        $clubs_table = $settings['table_clubs'];
+        $clubs_table = self::get_clubs_table();
 
         $results = $wpdb->get_results("
             SELECT c.id as club_id, c.nom as club_name, c.region, c.responsable_id as user_id
@@ -184,8 +198,7 @@ class UFSC_User_Club_Mapping {
     public static function get_clubs_without_managers() {
         global $wpdb;
 
-        $settings    = UFSC_SQL::get_settings();
-        $clubs_table = $settings['table_clubs'];
+        $clubs_table = self::get_clubs_table();
 
         return $wpdb->get_results("
             SELECT id, nom, region, email
@@ -222,8 +235,7 @@ class UFSC_User_Club_Mapping {
     public static function update_club_region( $club_id, $region ) {
         global $wpdb;
 
-        $settings    = UFSC_SQL::get_settings();
-        $clubs_table = $settings['table_clubs'];
+        $clubs_table = self::get_clubs_table();
 
         // Validation de la région via la liste déclarée par le plugin.
         $valid_regions = function_exists( 'ufsc_get_regions_list' ) ? ufsc_get_regions_list() : array();

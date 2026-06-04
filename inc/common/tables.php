@@ -7,21 +7,87 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 
 /**
- * Get the configured table names
+ * Get legacy UFSC Gestion table settings.
  *
- * @return array Table names
+ * This is kept as a non-destructive fallback for installations that were
+ * configured before the SQL admin settings became the canonical source.
+ *
+ * @return array{clubs_table:string,licences_table:string,_source:string} Table names.
  */
-function ufsc_get_table_names() {
+function ufsc_get_legacy_table_names() {
     global $wpdb;
 
     $options = get_option( 'ufsc_gestion_settings', array() );
+    if ( ! is_array( $options ) ) {
+        $options = array();
+    }
 
     $defaults = array(
         'clubs_table'    => $wpdb->prefix . 'ufsc_clubs',
         'licences_table' => $wpdb->prefix . 'ufsc_licences',
     );
 
-    return wp_parse_args( $options, $defaults );
+    $tables = wp_parse_args( $options, $defaults );
+    $tables['clubs_table']    = ufsc_sanitize_table_name( $tables['clubs_table'] ?? '' );
+    $tables['licences_table'] = ufsc_sanitize_table_name( $tables['licences_table'] ?? '' );
+
+    if ( '' === $tables['clubs_table'] ) {
+        $tables['clubs_table'] = $defaults['clubs_table'];
+    }
+    if ( '' === $tables['licences_table'] ) {
+        $tables['licences_table'] = $defaults['licences_table'];
+    }
+
+    $tables['_source'] = 'ufsc_gestion_settings';
+
+    return $tables;
+}
+
+/**
+ * Get the canonical UFSC Gestion table names.
+ *
+ * The unified admin uses UFSC_SQL::get_settings(), therefore this helper uses
+ * the same settings as the canonical source when available. It does not write
+ * options or migrate data; it only resolves the table names read by admin,
+ * front-end and club mapping code.
+ *
+ * @return array{clubs_table:string,licences_table:string,_source:string} Table names and source.
+ */
+function ufsc_get_table_names() {
+    $fallback = ufsc_get_legacy_table_names();
+
+    if ( class_exists( 'UFSC_SQL' ) && is_callable( array( 'UFSC_SQL', 'get_settings' ) ) ) {
+        $settings = UFSC_SQL::get_settings();
+        if ( is_array( $settings ) ) {
+            $clubs_table    = ufsc_sanitize_table_name( $settings['table_clubs'] ?? '' );
+            $licences_table = ufsc_sanitize_table_name( $settings['table_licences'] ?? '' );
+
+            if ( '' !== $clubs_table && '' !== $licences_table ) {
+                return array(
+                    'clubs_table'    => $clubs_table,
+                    'licences_table' => $licences_table,
+                    '_source'        => 'ufsc_sql_settings',
+                );
+            }
+        }
+    }
+
+    return $fallback;
+}
+
+/**
+ * Return a non-sensitive diagnostic about the resolved UFSC data tables.
+ *
+ * @return array{clubs_table:string,licences_table:string,source:string}
+ */
+function ufsc_get_table_diagnostic() {
+    $tables = ufsc_get_table_names();
+
+    return array(
+        'clubs_table'    => $tables['clubs_table'] ?? '',
+        'licences_table' => $tables['licences_table'] ?? '',
+        'source'         => $tables['_source'] ?? 'unknown',
+    );
 }
 
 /**
