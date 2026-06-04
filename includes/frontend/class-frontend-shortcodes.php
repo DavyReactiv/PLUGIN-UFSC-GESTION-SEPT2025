@@ -238,9 +238,6 @@ class UFSC_Frontend_Shortcodes {
 
                 <div class="ufsc-dashboard-mainpane">
                     <div class="ufsc-dashboard-nav">
-                        <?php if ( in_array( 'licences', $sections ) ): ?>
-                            <button class="ufsc-nav-btn active" data-section="licences"><?php esc_html_e( 'Mes Licences', 'ufsc-clubs' ); ?></button>
-                        <?php endif; ?>
                         <?php if ( in_array( 'stats', $sections ) ): ?>
                             <button class="ufsc-nav-btn" data-section="stats"><?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?></button>
                         <?php endif; ?>
@@ -250,11 +247,14 @@ class UFSC_Frontend_Shortcodes {
                         <?php if ( in_array( 'add_licence', $sections ) ): ?>
                             <button class="ufsc-nav-btn" data-section="add_licence"><?php esc_html_e( 'Ajouter une Licence', 'ufsc-clubs' ); ?></button>
                         <?php endif; ?>
+                        <?php if ( in_array( 'licences', $sections ) ): ?>
+                            <button class="ufsc-nav-btn active" data-section="licences"><?php esc_html_e( 'Mes licences UFSC', 'ufsc-clubs' ); ?></button>
+                        <?php endif; ?>
                     </div>
                     <div class="ufsc-dashboard-content">
                         <?php if ( in_array( 'licences', $sections ) ): ?>
                             <div id="ufsc-section-licences" class="ufsc-dashboard-section active">
-                                <?php echo self::render_club_licences( array( 'club_id' => $club_id ) ); ?>
+                                <?php echo self::render_club_licences( array( 'club_id' => $club_id, 'readonly' => true ) ); ?>
                             </div>
                         <?php endif; ?>
 
@@ -382,8 +382,11 @@ class UFSC_Frontend_Shortcodes {
             'page' => 1,
             'status' => '',
             'search' => '',
-            'sort' => 'created_desc'
+            'sort' => 'created_desc',
+            'readonly' => false,
         ), $atts );
+
+        $readonly = filter_var( $atts['readonly'], FILTER_VALIDATE_BOOLEAN );
 
         if ( ! $atts['club_id'] && is_user_logged_in() ) {
             $atts['club_id'] = self::get_user_club_id( get_current_user_id() );
@@ -412,10 +415,10 @@ class UFSC_Frontend_Shortcodes {
 
         if ( ! $is_delete_success && isset( $_GET['view_licence'] ) ) {
             $licence_id = intval( $_GET['view_licence'] );
-            return self::render_single_licence( $licence_id );
+            return self::render_single_licence( $licence_id, $readonly );
         }
 
-        if ( ! $is_delete_success && isset( $_GET['edit_licence'] ) ) {
+        if ( ! $readonly && ! $is_delete_success && isset( $_GET['edit_licence'] ) ) {
             $licence_id = intval( $_GET['edit_licence'] );
             return self::render_add_licence( array(
                 'club_id'    => $atts['club_id'],
@@ -432,6 +435,10 @@ class UFSC_Frontend_Shortcodes {
         $wc_settings = ufsc_get_woocommerce_settings();
 
         ob_start();
+        if ( current_user_can( 'manage_options' ) && function_exists( 'ufsc_get_table_diagnostic' ) ) {
+            $table_diagnostic = ufsc_get_table_diagnostic();
+            echo "<!-- UFSC table diagnostic: source=" . esc_html( $table_diagnostic['source'] ) . "; clubs=" . esc_html( $table_diagnostic['clubs_table'] ) . "; licences=" . esc_html( $table_diagnostic['licences_table'] ) . " -->\n";
+        }
         ?>
         <div class="ufsc-licences-section">
             <div class="ufsc-feedback" id="ufsc-feedback" aria-live="polite">
@@ -448,24 +455,26 @@ class UFSC_Frontend_Shortcodes {
                 <?php endif; ?>
             </div>
             <div class="ufsc-section-header">
-                <h3><?php printf( 'Mes Licences – %s', esc_html( $club_name ) ); ?></h3>
-                <div class="ufsc-section-actions">
-                    <a href="<?php echo esc_url( add_query_arg( 'edit_licence', 0 ) ); ?>"
-                       class="ufsc-btn ufsc-btn-primary">
-                        <?php esc_html_e( 'Ajouter une licence', 'ufsc-clubs' ); ?>
-                    </a>
-                    <a href="<?php echo esc_url( add_query_arg( 'ufsc_export', 'csv' ) ); ?>"
-                       class="ufsc-btn ufsc-btn-secondary">
-                        <?php esc_html_e( 'Exporter CSV', 'ufsc-clubs' ); ?>
-                    </a>
-                    <a href="<?php echo esc_url( add_query_arg( 'ufsc_export', 'xlsx' ) ); ?>"
-                       class="ufsc-btn ufsc-btn-secondary">
-                        <?php esc_html_e( 'Exporter Excel', 'ufsc-clubs' ); ?>
-                    </a>
-                    <button class="ufsc-btn ufsc-btn-secondary" onclick="document.getElementById('ufsc-import-modal').style.display='block'">
-                        <?php esc_html_e( 'Importer CSV', 'ufsc-clubs' ); ?>
-                    </button>
-                </div>
+                <h3><?php printf( 'Mes licences UFSC – %s', esc_html( $club_name ) ); ?></h3>
+                <?php if ( ! $readonly ) : ?>
+                    <div class="ufsc-section-actions">
+                        <a href="<?php echo esc_url( add_query_arg( 'edit_licence', 0 ) ); ?>"
+                           class="ufsc-btn ufsc-btn-primary">
+                            <?php esc_html_e( 'Ajouter une licence', 'ufsc-clubs' ); ?>
+                        </a>
+                        <a href="<?php echo esc_url( add_query_arg( 'ufsc_export', 'csv' ) ); ?>"
+                           class="ufsc-btn ufsc-btn-secondary">
+                            <?php esc_html_e( 'Exporter CSV', 'ufsc-clubs' ); ?>
+                        </a>
+                        <a href="<?php echo esc_url( add_query_arg( 'ufsc_export', 'xlsx' ) ); ?>"
+                           class="ufsc-btn ufsc-btn-secondary">
+                            <?php esc_html_e( 'Exporter Excel', 'ufsc-clubs' ); ?>
+                        </a>
+                        <button class="ufsc-btn ufsc-btn-secondary" onclick="document.getElementById('ufsc-import-modal').style.display='block'">
+                            <?php esc_html_e( 'Importer CSV', 'ufsc-clubs' ); ?>
+                        </button>
+                    </div>
+                <?php endif; ?>
             </div>
             <div class="ufsc-message ufsc-info">
                 <strong><?php esc_html_e( 'Statut du bureau :', 'ufsc-clubs' ); ?></strong>
@@ -539,6 +548,12 @@ class UFSC_Frontend_Shortcodes {
                 </form>
             </div>
 
+            <?php if ( $readonly ) : ?>
+                <div class="ufsc-message ufsc-info">
+                    <?php esc_html_e( 'Ces licences sont les licences administratives UFSC Gestion du club connecté. Les inscriptions et résultats de compétition restent gérés séparément.', 'ufsc-clubs' ); ?>
+                </div>
+            <?php endif; ?>
+
             <!-- Licences List -->
             <div class="ufsc-licences-list">
                 <?php if ( empty( $licences ) ) : ?>
@@ -549,15 +564,18 @@ class UFSC_Frontend_Shortcodes {
                     <table class="ufsc-licence-table">
                         <thead>
                             <tr>
+                                <th><?php esc_html_e( 'N° licence', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'N° ASPTT', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></th>
-                                <th><?php esc_html_e( 'Bureau', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Date de naissance', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Sexe', 'ufsc-clubs' ); ?></th>
-                                <th><?php esc_html_e( 'Status', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Saison', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Catégorie', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Pratique', 'ufsc-clubs' ); ?></th>
-                                <th><?php esc_html_e( 'Âge', 'ufsc-clubs' ); ?></th>
-                                <th><?php esc_html_e( '', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Date de création', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Actions', 'ufsc-clubs' ); ?></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -589,52 +607,31 @@ class UFSC_Frontend_Shortcodes {
                                     $lock_reason = __( 'Verrouillage', 'ufsc-clubs' );
                                 }
                                 $season     = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $licence ) : ( function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '' );
+                                $licence_number = self::get_first_licence_field( $licence, array( 'numero_licence', 'num_licence', 'licence_number', 'numero' ) );
+                                $asptt_number   = self::get_first_licence_field( $licence, array( 'numero_asptt', 'num_asptt', 'asptt_number', 'numero_licence_delegataire' ) );
+                                $category       = self::get_first_licence_field( $licence, array( 'categorie', 'category', 'type_licence', 'cat' ) );
+                                $created_at     = self::get_first_licence_field( $licence, array( 'date_creation', 'created_at', 'date_inscription' ) );
 
                                 $practice = isset( $licence->competition ) && $licence->competition
                                     ? __( 'Compétition', 'ufsc-clubs' )
                                     : __( 'Loisir', 'ufsc-clubs' );
 
-                                $age = '';
-                                if ( ! empty( $licence->date_naissance ) ) {
-                                    $birth = strtotime( $licence->date_naissance );
-                                    if ( $birth ) {
-                                        $age = floor( ( current_time( 'timestamp' ) - $birth ) / YEAR_IN_SECONDS );
-                                    }
-                                }
                                 ?>
                                 <tr>
+                                    <td><?php echo esc_html( $licence_number ? $licence_number : ( $licence->id ?? '' ) ); ?></td>
+                                    <td><?php echo esc_html( $asptt_number ? $asptt_number : '—' ); ?></td>
                                     <td><?php echo esc_html( $nom ); ?></td>
                                     <td><?php echo esc_html( $prenom ); ?></td>
-                                    <td>
-                                        <?php
-                                        $licence_id = (int) ( $licence->id ?? 0 );
-                                        echo wp_kses_post( self::render_bureau_badges_for_front_licence( $licence_id, $bureau_data['assignments'] ) );
-                                        ?>
-                                        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-bureau-assignment-form">
-                                            <?php wp_nonce_field( 'ufsc_assign_bureau_role' ); ?>
-                                            <input type="hidden" name="action" value="ufsc_assign_bureau_role">
-                                            <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence_id ); ?>">
-                                            <input type="hidden" name="club_id" value="<?php echo esc_attr( (int) $atts['club_id'] ); ?>">
-                                            <label class="screen-reader-text" for="ufsc-bureau-role-<?php echo esc_attr( $licence_id ); ?>">
-                                                <?php esc_html_e( 'Affectation bureau', 'ufsc-clubs' ); ?>
-                                            </label>
-                                            <?php echo self::render_bureau_role_selector( $licence_id, $bureau_data['assignments'] ); ?>
-                                            <button type="submit" class="ufsc-btn ufsc-btn-small ufsc-btn-secondary">
-                                                <?php esc_html_e( 'Affecter', 'ufsc-clubs' ); ?>
-                                            </button>
-                                        </form>
-                                        <small class="ufsc-bureau-assignment-hint">
-                                            <?php esc_html_e( 'Si ce rôle est déjà attribué à une autre licence, il sera déplacé automatiquement.', 'ufsc-clubs' ); ?>
-                                        </small>
-                                    </td>
+                                    <td><?php echo esc_html( $licence->date_naissance ?? '' ); ?></td>
                                     <td><?php echo esc_html( $gender ); ?></td>
                                     <td><?php echo self::get_status_badge_front($status); ?></td>
                                     <td><?php echo esc_html( $season ); ?></td>
+                                    <td><?php echo esc_html( $category ? $category : '—' ); ?></td>
                                     <td><?php echo esc_html( $practice ); ?></td>
-                                    <td><?php echo '' !== $age ? intval($age) : ''; ?></td>
+                                    <td><?php echo esc_html( $created_at ); ?></td>
                                     <td>
                                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
-                                        <?php if ( ! $is_locked ) : ?>
+                                        <?php if ( ! $readonly && ! $is_locked ) : ?>
                                             | <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
                                             | <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline" onsubmit="return confirm('<?php echo esc_js( __( 'Confirmer la suppression de cette licence ?', 'ufsc-clubs' ) ); ?>');">
                                                 <?php wp_nonce_field( 'ufsc_delete_licence' ); ?>
@@ -644,7 +641,7 @@ class UFSC_Frontend_Shortcodes {
                                                     <?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?>
                                                 </button>
                                             </form>
-                                        <?php else : ?>
+                                        <?php elseif ( ! $readonly && $is_locked ) : ?>
                                             | <span class="ufsc-text-muted"><?php echo esc_html( '🔒 ' . sprintf( __( 'Verrouillée (%s)', 'ufsc-clubs' ), $lock_reason ) ); ?></span>
                                         <?php endif; ?>
                                     </td>
@@ -670,7 +667,9 @@ class UFSC_Frontend_Shortcodes {
         </div>
 
         <!-- Import Modal -->
-        <?php echo self::render_import_modal( $atts['club_id'] ); ?>
+        <?php if ( ! $readonly ) : ?>
+            <?php echo self::render_import_modal( $atts['club_id'] ); ?>
+        <?php endif; ?>
         <?php
         return ob_get_clean();
     }
@@ -681,7 +680,8 @@ class UFSC_Frontend_Shortcodes {
      * @param int $licence_id Licence ID
      * @return string
      */
-    public static function render_single_licence( $licence_id ) {
+    public static function render_single_licence( $licence_id, $readonly = false ) {
+        $readonly = filter_var( $readonly, FILTER_VALIDATE_BOOLEAN );
         wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
 
         $club_id = self::get_user_club_id( get_current_user_id() );
@@ -783,7 +783,7 @@ class UFSC_Frontend_Shortcodes {
                     <p class="ufsc-document-status"><?php esc_html_e( 'Non transmis', 'ufsc-clubs' ); ?></p>
                 <?php endif; ?>
 
-                <?php if ( $can_manage_doc ) : ?>
+                <?php if ( ! $readonly && $can_manage_doc ) : ?>
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-licence-doc-form">
                         <?php wp_nonce_field( 'ufsc_upload_licence_document_' . ( $licence->id ?? 0 ) ); ?>
                         <input type="hidden" name="action" value="ufsc_upload_licence_document">
@@ -809,6 +809,7 @@ class UFSC_Frontend_Shortcodes {
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
+            <?php if ( ! $readonly ) : ?>
             <div class="ufsc-row-actions">
                 <?php
                 $licence_status_raw = $licence->licence_statut ?? ( $licence->statut ?? '' );
@@ -861,6 +862,7 @@ class UFSC_Frontend_Shortcodes {
                     </form>
                 <?php endif; ?>
             </div>
+            <?php endif; ?>
             <p>
                 <a href="<?php echo esc_url( remove_query_arg( 'view_licence' ) ); ?>" class="ufsc-btn ufsc-btn-secondary">
                     <?php esc_html_e( 'Retour aux licences', 'ufsc-clubs' ); ?>
@@ -2071,6 +2073,29 @@ class UFSC_Frontend_Shortcodes {
         }
 
         return $rows;
+    }
+
+    /**
+     * Return the first non-empty display field from a licence row.
+     *
+     * @param object|array|null $licence Licence row.
+     * @param string[]          $fields  Candidate fields.
+     * @return string
+     */
+    private static function get_first_licence_field( $licence, $fields ) {
+        if ( ! is_object( $licence ) && ! is_array( $licence ) ) {
+            return '';
+        }
+
+        foreach ( (array) $fields as $field ) {
+            $value = is_array( $licence ) ? ( $licence[ $field ] ?? '' ) : ( $licence->{$field} ?? '' );
+            $value = trim( (string) $value );
+            if ( '' !== $value ) {
+                return $value;
+            }
+        }
+
+        return '';
     }
 
     /**
