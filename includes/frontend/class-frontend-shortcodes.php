@@ -432,6 +432,10 @@ class UFSC_Frontend_Shortcodes {
         $wc_settings = ufsc_get_woocommerce_settings();
 
         ob_start();
+        if ( current_user_can( 'manage_options' ) && function_exists( 'ufsc_get_table_diagnostic' ) ) {
+            $table_diagnostic = ufsc_get_table_diagnostic();
+            echo "<!-- UFSC table diagnostic: source=" . esc_html( $table_diagnostic['source'] ) . "; clubs=" . esc_html( $table_diagnostic['clubs_table'] ) . "; licences=" . esc_html( $table_diagnostic['licences_table'] ) . " -->\n";
+        }
         ?>
         <div class="ufsc-licences-section">
             <div class="ufsc-feedback" id="ufsc-feedback" aria-live="polite">
