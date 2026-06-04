@@ -1292,3 +1292,231 @@ button#upload_btn {
         justify-content: center;
     }
 }
+
+/* Front licence table UX improvements (display only). */
+.ufsc-licences-section {
+    color: #1f2937;
+}
+
+.ufsc-licences-section .ufsc-section-header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.ufsc-licences-section .ufsc-section-header h3 {
+    margin: 0;
+    color: var(--ufsc-secondary);
+    font-weight: 700;
+}
+
+.ufsc-licences-filters {
+    margin: 16px 0;
+    padding: 14px;
+    border: 1px solid #dbe5ef;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.ufsc-licences-filters .ufsc-filters-form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 12px;
+    align-items: end;
+}
+
+.ufsc-licences-filters label {
+    display: block;
+    margin-bottom: 5px;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.ufsc-licences-filters input,
+.ufsc-licences-filters select {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid #cbd5e1;
+    border-radius: 7px;
+    background: #fff;
+}
+
+.ufsc-licences-list {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #dbe5ef;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(15, 76, 129, 0.08);
+}
+
+.ufsc-licences-list .ufsc-message {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+}
+
+.ufsc-licence-table {
+    min-width: 1080px;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 0;
+}
+
+.ufsc-licence-table thead th {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-top: 0;
+    border-bottom: 1px solid #cbd5e1;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ufsc-licence-table th,
+.ufsc-licence-table td {
+    padding: 12px 14px;
+    border-top: 1px solid #eef2f7;
+    vertical-align: middle;
+    line-height: 1.35;
+}
+
+.ufsc-licence-table tbody tr:nth-child(even) {
+    background: #fbfdff;
+}
+
+.ufsc-licence-table tbody tr:hover {
+    background: #eef6ff;
+}
+
+.ufsc-licence-table td:nth-child(1),
+.ufsc-licence-table td:nth-child(2),
+.ufsc-licence-table td:nth-child(5),
+.ufsc-licence-table td:nth-child(8),
+.ufsc-licence-table td:nth-child(11) {
+    white-space: nowrap;
+}
+
+.ufsc-licence-table td:nth-child(3),
+.ufsc-licence-table td:nth-child(4) {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.ufsc-licences-section .ufsc-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    border: 1px solid #d1d5db;
+    background: #f3f4f6;
+    color: #374151;
+    white-space: nowrap;
+}
+
+.ufsc-licences-section .ufsc-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #9ca3af;
+    flex: 0 0 auto;
+}
+
+.ufsc-licences-section .ufsc-status-valid {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #166534;
+}
+
+.ufsc-licences-section .ufsc-status-valid .ufsc-status-dot {
+    background: #16a34a;
+}
+
+.ufsc-licences-section .ufsc-status-pending {
+    background: #fff7ed;
+    border-color: #fdba74;
+    color: #9a3412;
+}
+
+.ufsc-licences-section .ufsc-status-pending .ufsc-status-dot {
+    background: #f97316;
+}
+
+.ufsc-licences-section .ufsc-status-rejected {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
+
+.ufsc-licences-section .ufsc-status-rejected .ufsc-status-dot {
+    background: #dc2626;
+}
+
+.ufsc-licences-section .ufsc-status-inactive,
+.ufsc-licences-section .ufsc-status-draft {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+.ufsc-licences-section .ufsc-status-inactive .ufsc-status-dot,
+.ufsc-licences-section .ufsc-status-draft .ufsc-status-dot {
+    background: #94a3b8;
+}
+
+.ufsc-licences-section .ufsc-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 6px 12px;
+    margin: 2px 4px 2px 0;
+    border: 1px solid #bfdbfe;
+    border-radius: 7px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 700;
+    text-decoration: none;
+    line-height: 1.2;
+}
+
+.ufsc-licences-section .ufsc-action:hover,
+.ufsc-licences-section .ufsc-action:focus {
+    background: #dbeafe;
+    color: #1e40af;
+    text-decoration: none;
+}
+
+.ufsc-licences-section .ufsc-action-danger {
+    border-color: #fecaca;
+    background: #fff5f5;
+    color: #b42318;
+}
+
+.ufsc-licences-section .ufsc-pagination {
+    margin-top: 14px;
+}
+
+@media (max-width: 782px) {
+    .ufsc-licences-section .ufsc-section-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .ufsc-licences-filters .ufsc-filters-form {
+        grid-template-columns: 1fr;
+    }
+
+    .ufsc-licence-table {
+        min-width: 980px;
+    }
+}

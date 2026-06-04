@@ -2755,8 +2755,8 @@ class UFSC_SQL_Admin
         }
 
         // Results info
-        echo '<div class="ufsc-results-info" style="margin: 10px 0;">';
-        echo '<p>' . sprintf(esc_html__('%d licence(s) trouvée(s)', 'ufsc-clubs'), $total_items);
+        echo '<div class="ufsc-results-info">';
+        echo '<p><span class="ufsc-results-count">' . sprintf(esc_html__('%d licence(s) trouvée(s)', 'ufsc-clubs'), $total_items) . '</span>';
         if (! empty($search) || ! empty($filter_region) || ! empty($filter_club) || ! empty($filter_status) || ! empty( $filter_payment ) || ! empty( $filter_duplicate ) || 'active' !== $filter_visibility) {
             echo ' ' . esc_html__('(filtré)', 'ufsc-clubs');
         }
@@ -2764,7 +2764,8 @@ class UFSC_SQL_Admin
         echo '</div>';
 
         // Table
-        echo '<table class="wp-list-table widefat fixed striped ufsc-enhanced">';
+        echo '<div class="ufsc-admin-table-scroll" role="region" aria-label="' . esc_attr__( 'Tableau des licences UFSC', 'ufsc-clubs' ) . '">';
+        echo '<table class="wp-list-table widefat fixed striped ufsc-enhanced ufsc-admin-licences-table">';
         echo '<thead><tr>';
         if ( $can_manage_licences ) {
             echo '<td class="check-column"><input type="checkbox" id="select-all-licences" /></td>';
@@ -2856,9 +2857,10 @@ class UFSC_SQL_Admin
                 echo '</tr>';
             }
         } else {
-            echo '<tr><td colspan="' . ( $can_manage_licences ? '12' : '11' ) . '">' . esc_html__('Aucune licence trouvée', 'ufsc-clubs') . '</td></tr>';
+            echo '<tr><td class="ufsc-empty-row" colspan="' . ( $can_manage_licences ? '13' : '12' ) . '">' . esc_html__('Aucune licence trouvée', 'ufsc-clubs') . '</td></tr>';
         }
         echo '</tbody></table>';
+        echo '</div>';
         if ( $can_manage_licences ) {
             echo '</form>';
         }
