@@ -91,3 +91,184 @@
         gap: 8px;
     }
 }
+
+/* Licence admin table UX improvements (display only). */
+.ufsc-admin .ufsc-admin-filterbar {
+    background: #ffffff !important;
+    padding: 16px !important;
+    margin: 16px 0 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 1px 3px rgba(15, 76, 129, 0.08);
+}
+
+.ufsc-admin .ufsc-admin-filterbar .ufsc-admin-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)) !important;
+    gap: 12px !important;
+    align-items: end !important;
+}
+
+.ufsc-admin .ufsc-admin-filterbar label {
+    display: block;
+    margin: 0 0 5px;
+    color: #344054;
+    font-size: 12px;
+    letter-spacing: 0.01em;
+}
+
+.ufsc-admin .ufsc-admin-filterbar input[type="text"],
+.ufsc-admin .ufsc-admin-filterbar select {
+    width: 100%;
+    min-height: 34px;
+    border-color: #cbd5e1;
+    border-radius: 6px;
+}
+
+.ufsc-admin .ufsc-admin-filterbar .button,
+.ufsc-admin .ufsc-bulk-actions .button,
+.ufsc-admin .ufsc-button-group .button {
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.ufsc-admin .ufsc-bulk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.ufsc-admin .ufsc-results-info {
+    margin: 12px 0;
+}
+
+.ufsc-admin .ufsc-results-info p {
+    margin: 0;
+}
+
+.ufsc-admin .ufsc-results-count {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #e8f2ff;
+    border: 1px solid #bfdbfe;
+    color: #0f4c81;
+    font-weight: 700;
+}
+
+.ufsc-admin-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #d9e2ec;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 76, 129, 0.06);
+}
+
+.ufsc-admin-table-scroll .ufsc-admin-licences-table {
+    min-width: 1180px;
+    margin: 0;
+    table-layout: auto;
+    border: 0;
+}
+
+.ufsc-admin-table-scroll .ufsc-admin-licences-table thead th,
+.ufsc-admin-table-scroll .ufsc-admin-licences-table thead td {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f1f5f9;
+    color: #0f172a;
+    font-weight: 700;
+    border-bottom: 1px solid #cbd5e1;
+    white-space: nowrap;
+}
+
+.ufsc-admin-table-scroll .ufsc-admin-licences-table th,
+.ufsc-admin-table-scroll .ufsc-admin-licences-table td {
+    padding: 11px 12px;
+    vertical-align: middle;
+    line-height: 1.35;
+}
+
+.ufsc-admin-table-scroll .ufsc-admin-licences-table tbody tr:nth-child(even) {
+    background: #fbfdff;
+}
+
+.ufsc-admin-table-scroll .ufsc-admin-licences-table tbody tr:hover {
+    background: #eef6ff;
+}
+
+.ufsc-admin-table-scroll .ufsc-admin-licences-table .column-id,
+.ufsc-admin-table-scroll .ufsc-admin-licences-table .column-date,
+.ufsc-admin-table-scroll .ufsc-admin-licences-table .column-region,
+.ufsc-admin-table-scroll .ufsc-admin-licences-table .column-statut {
+    white-space: nowrap;
+}
+
+.ufsc-admin-table-scroll .ufsc-admin-licences-table .column-actions {
+    min-width: 230px;
+}
+
+.ufsc-admin .ufsc-button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.ufsc-admin .ufsc-button-group .button {
+    margin: 0;
+    min-height: 30px;
+    line-height: 28px;
+}
+
+.ufsc-admin .ufsc-button-group .button-link-delete {
+    color: #b42318;
+    border-color: #f3b4ad;
+    background: #fff7f6;
+}
+
+.ufsc-admin .ufsc-empty-row {
+    padding: 28px 12px !important;
+    text-align: center;
+    color: #64748b;
+    font-weight: 600;
+}
+
+.ufsc-admin .ufsc-status-badge {
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-weight: 700;
+}
+
+.ufsc-admin .ufsc-status-badge.ufsc-status-draft {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+.ufsc-admin .ufsc-status-badge.ufsc-status-draft .ufsc-status-dot {
+    background: #94a3b8;
+}
+
+@media (max-width: 782px) {
+    .ufsc-admin .ufsc-admin-filterbar .ufsc-admin-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .ufsc-admin .ufsc-bulk-actions,
+    .ufsc-admin .ufsc-button-group {
+        align-items: stretch;
+    }
+
+    .ufsc-admin .ufsc-button-group .button {
+        text-align: center;
+    }
+}

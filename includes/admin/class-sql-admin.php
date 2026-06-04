@@ -276,7 +276,11 @@ class UFSC_SQL_Admin
     }
 
     /**
-     * Slugs that render the historical UFSC Gestion administrative licences page.
+     * Slugs that must resolve to the canonical UFSC Gestion licences admin.
+     *
+     * UFSC_SQL_Admin::render_licences() is the only supported renderer for
+     * these pages. Legacy slugs are kept for compatibility with old links, but
+     * must not display the legacy WP_List_Table renderer in parallel.
      *
      * @return string[]
      */
@@ -768,7 +772,12 @@ class UFSC_SQL_Admin
     {
         // Enregistrer les pages cachées pour les actions directes (mentionnées dans les specs)
         add_submenu_page(null, __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
+
+        // UFSC_SQL_Admin::render_licences() is the canonical licences renderer.
+        // Historical slugs remain registered for compatibility only; they must
+        // not invoke the legacy UFSC_Gestion_Licences_List_Table renderer.
         add_submenu_page(null, __('Licences UFSC — Gestion administrative par saison', 'ufsc-clubs'), __('Licences UFSC', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc_lc_licences', [__CLASS__, 'render_licences']);
+        add_submenu_page(null, __('Licences UFSC — Gestion administrative par saison', 'ufsc-clubs'), __('Licences UFSC', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-gestion-licences', [__CLASS__, 'render_licences']);
         add_submenu_page(null, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
         // Alias pour compatibilité avec la spec (licenses vs licences)
         add_submenu_page(null, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licenses', [__CLASS__, 'render_licences']);
@@ -2393,6 +2402,13 @@ class UFSC_SQL_Admin
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
 
+        // Guard against duplicate callbacks registered by legacy licence pages.
+        static $rendered = false;
+        if ( $rendered ) {
+            return;
+        }
+        $rendered = true;
+
         $licences_page_slug = self::get_licences_admin_page_slug();
         $licences_page_url  = self::get_licences_admin_page_url();
 
@@ -2739,8 +2755,8 @@ class UFSC_SQL_Admin
         }
 
         // Results info
-        echo '<div class="ufsc-results-info" style="margin: 10px 0;">';
-        echo '<p>' . sprintf(esc_html__('%d licence(s) trouvée(s)', 'ufsc-clubs'), $total_items);
+        echo '<div class="ufsc-results-info">';
+        echo '<p><span class="ufsc-results-count">' . sprintf(esc_html__('%d licence(s) trouvée(s)', 'ufsc-clubs'), $total_items) . '</span>';
         if (! empty($search) || ! empty($filter_region) || ! empty($filter_club) || ! empty($filter_status) || ! empty( $filter_payment ) || ! empty( $filter_duplicate ) || 'active' !== $filter_visibility) {
             echo ' ' . esc_html__('(filtré)', 'ufsc-clubs');
         }
@@ -2748,7 +2764,8 @@ class UFSC_SQL_Admin
         echo '</div>';
 
         // Table
-        echo '<table class="wp-list-table widefat fixed striped ufsc-enhanced">';
+        echo '<div class="ufsc-admin-table-scroll" role="region" aria-label="' . esc_attr__( 'Tableau des licences UFSC', 'ufsc-clubs' ) . '">';
+        echo '<table class="wp-list-table widefat fixed striped ufsc-enhanced ufsc-admin-licences-table">';
         echo '<thead><tr>';
         if ( $can_manage_licences ) {
             echo '<td class="check-column"><input type="checkbox" id="select-all-licences" /></td>';
@@ -2840,9 +2857,10 @@ class UFSC_SQL_Admin
                 echo '</tr>';
             }
         } else {
-            echo '<tr><td colspan="' . ( $can_manage_licences ? '12' : '11' ) . '">' . esc_html__('Aucune licence trouvée', 'ufsc-clubs') . '</td></tr>';
+            echo '<tr><td class="ufsc-empty-row" colspan="' . ( $can_manage_licences ? '13' : '12' ) . '">' . esc_html__('Aucune licence trouvée', 'ufsc-clubs') . '</td></tr>';
         }
         echo '</tbody></table>';
+        echo '</div>';
         if ( $can_manage_licences ) {
             echo '</form>';
         }
