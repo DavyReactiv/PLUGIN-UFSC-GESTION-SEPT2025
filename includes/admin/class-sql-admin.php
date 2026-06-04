@@ -276,7 +276,11 @@ class UFSC_SQL_Admin
     }
 
     /**
-     * Slugs that render the historical UFSC Gestion administrative licences page.
+     * Slugs that must resolve to the canonical UFSC Gestion licences admin.
+     *
+     * UFSC_SQL_Admin::render_licences() is the only supported renderer for
+     * these pages. Legacy slugs are kept for compatibility with old links, but
+     * must not display the legacy WP_List_Table renderer in parallel.
      *
      * @return string[]
      */
@@ -768,7 +772,12 @@ class UFSC_SQL_Admin
     {
         // Enregistrer les pages cachées pour les actions directes (mentionnées dans les specs)
         add_submenu_page(null, __('Clubs (SQL)', 'ufsc-clubs'), __('Clubs (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_GESTION_READ, 'ufsc-sql-clubs', [__CLASS__, 'render_clubs']);
+
+        // UFSC_SQL_Admin::render_licences() is the canonical licences renderer.
+        // Historical slugs remain registered for compatibility only; they must
+        // not invoke the legacy UFSC_Gestion_Licences_List_Table renderer.
         add_submenu_page(null, __('Licences UFSC — Gestion administrative par saison', 'ufsc-clubs'), __('Licences UFSC', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc_lc_licences', [__CLASS__, 'render_licences']);
+        add_submenu_page(null, __('Licences UFSC — Gestion administrative par saison', 'ufsc-clubs'), __('Licences UFSC', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-gestion-licences', [__CLASS__, 'render_licences']);
         add_submenu_page(null, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licences', [__CLASS__, 'render_licences']);
         // Alias pour compatibilité avec la spec (licenses vs licences)
         add_submenu_page(null, __('Licences (SQL)', 'ufsc-clubs'), __('Licences (SQL)', 'ufsc-clubs'), UFSC_Permissions::CAP_LICENCES_READ, 'ufsc-sql-licenses', [__CLASS__, 'render_licences']);
@@ -2392,6 +2401,13 @@ class UFSC_SQL_Admin
         if ( ! ufsc_user_can( UFSC_Permissions::CAP_LICENCES_READ ) ) {
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
+
+        // Guard against duplicate callbacks registered by legacy licence pages.
+        static $rendered = false;
+        if ( $rendered ) {
+            return;
+        }
+        $rendered = true;
 
         $licences_page_slug = self::get_licences_admin_page_slug();
         $licences_page_url  = self::get_licences_admin_page_url();

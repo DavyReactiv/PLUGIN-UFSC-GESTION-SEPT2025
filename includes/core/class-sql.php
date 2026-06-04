@@ -128,9 +128,22 @@ class UFSC_SQL {
         );
     }
     public static function get_settings(){
+        $defaults = self::default_settings();
         $opts = get_option( 'ufsc_sql_settings', array() );
-        $opts['club_fields'] = array_merge(self::default_settings()['club_fields'], $opts['club_fields']);
-        $settings = wp_parse_args( $opts, self::default_settings() );
+        if ( ! is_array( $opts ) ) {
+            $opts = array();
+        }
+
+        $opts['club_fields'] = array_merge(
+            $defaults['club_fields'],
+            isset( $opts['club_fields'] ) && is_array( $opts['club_fields'] ) ? $opts['club_fields'] : array()
+        );
+        $opts['licence_fields'] = array_merge(
+            $defaults['licence_fields'],
+            isset( $opts['licence_fields'] ) && is_array( $opts['licence_fields'] ) ? $opts['licence_fields'] : array()
+        );
+
+        $settings = wp_parse_args( $opts, $defaults );
         return apply_filters( 'ufsc_sql_settings', $settings );
     }
     
