@@ -181,6 +181,7 @@ function ufsc_render_clubs_page() {
     $list_table->prepare_items();
     ?>
     <div class="wrap">
+        <?php if ( class_exists( 'UFSC_SQL_Admin' ) ) { UFSC_SQL_Admin::render_admin_quick_nav(); } ?>
         <h1><?php esc_html_e( 'Gestion des Clubs', 'ufsc-clubs' ); ?></h1>
         <div class="notice notice-info">
             <p><?php esc_html_e( 'Liste des clubs provenant de la base de données.', 'ufsc-clubs' ); ?></p>
