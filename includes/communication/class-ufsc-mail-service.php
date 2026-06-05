@@ -70,7 +70,9 @@ class UFSC_Mail_Service {
         if ( ! self::can_manage() ) { wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) ); }
         global $wpdb; $view = isset( $_GET['view'] ) ? sanitize_key( wp_unslash( $_GET['view'] ) ) : 'list';
         $campaigns = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}ufsc_mail_campaigns ORDER BY id DESC LIMIT 30" );
-        echo '<div class="wrap ufsc-communication-wrap"><div class="ufsc-communication-header"><h1>Communication UFSC</h1><p class="ufsc-communication-sub">Créez, testez et envoyez des messages aux clubs, licenciés, responsables et listes personnalisées via une file d’attente sécurisée.</p></div>';
+        echo '<div class="wrap ufsc-communication-wrap">';
+        if ( class_exists( 'UFSC_SQL_Admin' ) ) { UFSC_SQL_Admin::render_admin_quick_nav(); }
+        echo '<div class="ufsc-communication-header"><h1>Communication UFSC</h1><p class="ufsc-communication-sub">Créez, testez et envoyez des messages aux clubs, licenciés, responsables et listes personnalisées via une file d’attente sécurisée.</p></div>';
         self::render_notices();
         echo '<p><a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=new' ) ) . '">Nouvelle campagne</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=history' ) ) . '">Historique</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=contacts' ) ) . '">Carnet d’adresses</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=lists' ) ) . '">Listes personnalisées</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=settings' ) ) . '">Paramètres communication</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-communication-clubs&view=help' ) ) . '">Aide</a></p>';
         if ( 'new' === $view ) { self::render_new_campaign_form(); }

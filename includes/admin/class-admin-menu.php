@@ -161,6 +161,9 @@ class UFSC_CL_Admin_Menu {
 		$t_lics  = isset( $opts['table_licences'] ) ? $opts['table_licences'] : 'licences';
 
 		echo '<div class="wrap">';
+		if ( class_exists( 'UFSC_SQL_Admin' ) ) {
+			UFSC_SQL_Admin::render_admin_quick_nav();
+		}
 
 		include UFSC_CL_DIR . 'templates/partials/notice.php';
 

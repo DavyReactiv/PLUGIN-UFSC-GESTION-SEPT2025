@@ -303,3 +303,111 @@
         position: static;
     }
 }
+
+/* Navigation rapide admin UFSC Gestion */
+.ufsc-admin-quicknav {
+    margin: 10px 0 16px;
+    border: 1px solid #c7d7e6;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 58%, #ffffff 100%);
+    box-shadow: 0 8px 22px rgba(12, 74, 110, 0.08);
+}
+
+.ufsc-admin-quicknav__inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 12px;
+}
+
+.ufsc-admin-quicknav__title {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    flex: 0 0 auto;
+    color: #0b4f78;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ufsc-admin-quicknav__title .dashicons {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+    color: #0b6fa4;
+}
+
+.ufsc-admin-quicknav__links {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    overflow-x: auto;
+    padding: 1px 2px 3px;
+    scrollbar-width: thin;
+}
+
+.ufsc-admin-quicknav__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+    min-height: 28px;
+    padding: 4px 11px;
+    border: 1px solid #d6e3ef;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.86);
+    color: #1f4e6d;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ufsc-admin-quicknav__link .dashicons {
+    width: 15px;
+    height: 15px;
+    font-size: 15px;
+    line-height: 1;
+}
+
+.ufsc-admin-quicknav__link:hover,
+.ufsc-admin-quicknav__link:focus {
+    border-color: #0b6fa4;
+    color: #073b5c;
+    background: #ffffff;
+    box-shadow: 0 0 0 1px rgba(11, 111, 164, 0.12);
+}
+
+.ufsc-admin-quicknav__link.is-active {
+    border-color: #0b4f78;
+    background: linear-gradient(135deg, #0b4f78 0%, #0b6fa4 100%);
+    color: #ffffff;
+    box-shadow: 0 6px 14px rgba(11, 79, 120, 0.22);
+}
+
+.ufsc-admin-quicknav__link.is-active .dashicons {
+    color: #ffffff;
+}
+
+@media (max-width: 782px) {
+    .ufsc-admin-quicknav__inner {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ufsc-admin-quicknav__links {
+        width: 100%;
+        padding-bottom: 4px;
+    }
+
+    .ufsc-admin-quicknav__link {
+        min-height: 30px;
+    }
+}
