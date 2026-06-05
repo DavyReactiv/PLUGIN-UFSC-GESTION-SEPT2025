@@ -822,9 +822,9 @@ class UFSC_Clubs_List_Table {
     $licence_count = isset( $licence_counts[ $club_id ] ) ? (int) $licence_counts[ $club_id ] : 0;
     $licence_url = add_query_arg(
         array(
-            'page' => 'ufsc-sql-licences',
-            'filter_club' => $club_id,
-            'filter_status' => 'valide'
+            'page'          => 'ufsc_lc_licences',
+            'filter_club'   => absint( $club_id ),
+            'filter_status' => 'valide',
         ),
         admin_url( 'admin.php' )
     );

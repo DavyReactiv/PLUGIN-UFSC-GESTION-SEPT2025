@@ -5372,7 +5372,7 @@ class UFSC_SQL_Admin
         }
 
         $page = isset( $_REQUEST['page'] ) ? sanitize_key( wp_unslash( $_REQUEST['page'] ) ) : '';
-        if ( 'ufsc-sql-licences' !== $page ) {
+        if ( ! in_array( $page, self::get_licences_admin_page_slugs(), true ) ) {
             return;
         }
 
@@ -5397,16 +5397,26 @@ class UFSC_SQL_Admin
         }
         $allowed_actions = array( 'validate', 'pending', 'delete', 'archive_duplicate' );
         $has_bulk_ids    = isset( $_POST['licence_ids'] ) && is_array( $_POST['licence_ids'] );
-        $raw_bulk_action = isset( $_POST['bulk_action'] ) ? sanitize_text_field( wp_unslash( $_POST['bulk_action'] ) ) : '';
-        if ( $has_bulk_ids && isset( $_POST['bulk_action'] ) && ( '' === $raw_bulk_action || '-1' === $raw_bulk_action ) ) {
+        $has_bulk_action = isset( $_POST['bulk_action'] );
+        $raw_bulk_action = $has_bulk_action ? sanitize_text_field( wp_unslash( $_POST['bulk_action'] ) ) : '';
+
+        if ( $has_bulk_action && ( '' === $raw_bulk_action || '-1' === $raw_bulk_action ) ) {
             if ( isset( $_POST['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ufsc_bulk_actions' ) ) {
                 self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'no_action' ), $redirect_base ) );
             }
             return;
         }
+
+        if ( $has_bulk_action && in_array( $action, $allowed_actions, true ) && ! $has_bulk_ids ) {
+            if ( isset( $_POST['_wpnonce'] ) && wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'ufsc_bulk_actions' ) ) {
+                self::maybe_redirect( add_query_arg( array( 'bulk_message' => 'no_selection' ), $redirect_base ) );
+            }
+            return;
+        }
+
         $is_bulk_request = $has_bulk_ids && in_array( $action, $allowed_actions, true );
         if ( ! $is_bulk_request ) {
-            if ( isset( $_POST['licence_ids'] ) || isset( $_POST['bulk_action'] ) ) {
+            if ( isset( $_POST['licence_ids'] ) || $has_bulk_action ) {
                 self::debug_log_bulk_licences( 'Skipped non-bulk POST.' );
             }
             return;
