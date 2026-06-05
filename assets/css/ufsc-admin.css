@@ -272,3 +272,34 @@
         text-align: center;
     }
 }
+
+.ufsc-admin .ufsc-admin-form-actions {
+    background: #f8f9fa;
+    border: 1px solid #dcdcde;
+    border-radius: 4px;
+    margin: 20px 0;
+    padding: 15px;
+}
+
+.ufsc-admin .ufsc-admin-form-actions--top {
+    position: sticky;
+    top: 42px;
+    z-index: 20;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.ufsc-admin .ufsc-admin-form-actions .description {
+    margin: 10px 0 0;
+}
+
+.ufsc-admin .ufsc-admin-form-actions .ufsc-button-payment {
+    background: #00a32a;
+    border-color: #00a32a;
+    color: #fff;
+}
+
+@media (max-width: 782px) {
+    .ufsc-admin .ufsc-admin-form-actions--top {
+        position: static;
+    }
+}
