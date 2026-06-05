@@ -306,6 +306,85 @@ if ( ! function_exists( 'ufsc_get_licence_season_label' ) ) {
 	}
 }
 
+
+if ( ! function_exists( 'ufsc_get_age_category_label' ) ) {
+	/**
+	 * Compute an UFSC age category label for display only.
+	 *
+	 * The calculation uses the season start year so 2025-2026 maps births
+	 * 2019/2018 to ages 6/7, matching the UFSC reference grid.
+	 *
+	 * @param string $birth_date Birth date in a parseable format, ideally YYYY-MM-DD.
+	 * @param string $sex        Licence sex label/code.
+	 * @param string $season     Season label, e.g. 2025-2026.
+	 * @return string Category label, or empty string when it cannot be computed.
+	 */
+	function ufsc_get_age_category_label( $birth_date, $sex = '', $season = '' ) {
+		$birth_date = trim( (string) $birth_date );
+		if ( '' === $birth_date || '0000-00-00' === $birth_date || '0000-00-00 00:00:00' === $birth_date ) {
+			return '';
+		}
+
+		if ( preg_match( '/^(\d{4})-(\d{2})-(\d{2})/', $birth_date, $birth_matches ) ) {
+			$birth_year = (int) $birth_matches[1];
+			if ( ! checkdate( (int) $birth_matches[2], (int) $birth_matches[3], $birth_year ) ) {
+				return '';
+			}
+		} else {
+			$timestamp = strtotime( $birth_date );
+			if ( false === $timestamp ) {
+				return '';
+			}
+			$birth_year = (int) gmdate( 'Y', $timestamp );
+		}
+
+		$season = trim( (string) $season );
+		if ( ! preg_match( '/^(\d{4})-(\d{4})$/', $season, $season_matches ) ) {
+			$season = function_exists( 'ufsc_get_current_season' ) ? (string) ufsc_get_current_season() : '';
+		}
+		if ( ! preg_match( '/^(\d{4})-(\d{4})$/', $season, $season_matches ) ) {
+			return '';
+		}
+
+		$reference_year = (int) $season_matches[1];
+		$age            = $reference_year - $birth_year;
+		if ( $age < 0 || $age > 120 ) {
+			return '';
+		}
+
+		$sex_normalized = strtolower( remove_accents( trim( (string) $sex ) ) );
+		$is_female      = in_array( $sex_normalized, array( 'f', 'femme', 'feminin', 'fille', 'female' ), true );
+		$is_male        = in_array( $sex_normalized, array( 'm', 'h', 'homme', 'masculin', 'garcon', 'male' ), true );
+
+		if ( $age >= 6 && $age <= 7 ) {
+			return __( 'Pré-poussins', 'ufsc-clubs' );
+		}
+		if ( $age >= 8 && $age <= 9 ) {
+			return __( 'Poussins', 'ufsc-clubs' );
+		}
+		if ( $age >= 10 && $age <= 11 ) {
+			return __( 'Benjamins', 'ufsc-clubs' );
+		}
+		if ( $age >= 12 && $age <= 13 ) {
+			return $is_female ? __( 'Minimes filles', 'ufsc-clubs' ) : ( $is_male ? __( 'Minimes garçons', 'ufsc-clubs' ) : __( 'Minimes', 'ufsc-clubs' ) );
+		}
+		if ( $age >= 14 && $age <= 15 ) {
+			return $is_female ? __( 'Cadettes', 'ufsc-clubs' ) : ( $is_male ? __( 'Cadets', 'ufsc-clubs' ) : __( 'Cadets/Cadettes', 'ufsc-clubs' ) );
+		}
+		if ( $age >= 16 && $age <= 17 ) {
+			return $is_female ? __( 'Juniors filles', 'ufsc-clubs' ) : ( $is_male ? __( 'Juniors garçons', 'ufsc-clubs' ) : __( 'Juniors', 'ufsc-clubs' ) );
+		}
+		if ( $age >= 18 && $age <= 40 ) {
+			return $is_female ? __( 'Seniors femmes', 'ufsc-clubs' ) : ( $is_male ? __( 'Seniors hommes', 'ufsc-clubs' ) : __( 'Seniors', 'ufsc-clubs' ) );
+		}
+		if ( $age >= 41 && $age <= 50 ) {
+			return $is_female ? __( 'Vétérans féminines', 'ufsc-clubs' ) : ( $is_male ? __( 'Vétérans masculins', 'ufsc-clubs' ) : __( 'Vétérans', 'ufsc-clubs' ) );
+		}
+
+		return '';
+	}
+}
+
 if ( ! function_exists( 'ufsc_set_licence_season' ) ) {
 	function ufsc_set_licence_season( $licence_id, $season ) {
 		global $wpdb;
