@@ -361,21 +361,6 @@ class UFSC_SQL_Admin
     }
 
     /**
-     * Whether the temporary licence ID diagnostic is enabled for a trusted admin.
-     *
-     * @return bool
-     */
-    private static function is_licence_id_debug_enabled() {
-        if ( ! isset( $_GET['ufsc_debug_ids'] ) || '1' !== (string) wp_unslash( $_GET['ufsc_debug_ids'] ) ) {
-            return false;
-        }
-
-        return current_user_can( 'manage_options' )
-            || ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE )
-            || ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE );
-    }
-
-    /**
      * Add non-data cache-busting/debug args to dynamic admin licence action URLs.
      *
      * @param string $url URL to adjust.
