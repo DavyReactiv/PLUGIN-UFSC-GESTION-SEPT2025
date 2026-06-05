@@ -153,6 +153,7 @@ function ufsc_render_woocommerce_settings_page() {
     $woocommerce_active = ufsc_is_woocommerce_active();
     ?>
     <div class="wrap">
+        <?php if ( class_exists( 'UFSC_SQL_Admin' ) ) { UFSC_SQL_Admin::render_admin_quick_nav(); } ?>
         <h1><?php esc_html_e( 'Paramètres WooCommerce - UFSC Gestion', 'ufsc-clubs' ); ?></h1>
 
         <?php if ( ! $woocommerce_active ) : ?>
