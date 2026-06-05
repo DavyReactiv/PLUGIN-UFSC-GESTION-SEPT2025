@@ -51,6 +51,7 @@ class UFSC_User_Club_Admin {
         $tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'associations';
         ?>
         <div class="wrap">
+            <?php if ( class_exists( 'UFSC_SQL_Admin' ) ) { UFSC_SQL_Admin::render_admin_quick_nav(); } ?>
             <h1><?php echo esc_html__( 'Gestion des Associations Utilisateurs-Clubs', 'ufsc-clubs' ); ?></h1>
 
             <nav class="nav-tab-wrapper">

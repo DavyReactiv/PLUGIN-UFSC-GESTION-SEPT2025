@@ -1006,6 +1006,227 @@ class UFSC_SQL_Admin
         return "'' AS {$key}";
     }
 
+
+    /**
+     * Render compact UFSC admin quick navigation across existing plugin pages.
+     *
+     * @return void
+     */
+    public static function render_admin_quick_nav()
+    {
+        static $rendered_pages = array();
+
+        $current_page = '';
+        if ( isset( $_GET['page'] ) ) {
+            $page_value   = wp_unslash( $_GET['page'] );
+            $current_page = is_scalar( $page_value ) ? sanitize_key( (string) $page_value ) : '';
+        }
+
+        if ( '' === $current_page ) {
+            return;
+        }
+
+        if ( isset( $rendered_pages[ $current_page ] ) ) {
+            return;
+        }
+
+        $items          = self::get_admin_quick_nav_items();
+        $current_section = self::get_admin_quick_nav_section_for_slug( $current_page );
+
+        if ( empty( $items ) ) {
+            return;
+        }
+
+        $rendered_pages[ $current_page ] = true;
+
+        echo '<nav class="ufsc-admin-quicknav" aria-label="' . esc_attr__( 'Navigation rapide UFSC Gestion', 'ufsc-clubs' ) . '">';
+        echo '<div class="ufsc-admin-quicknav__inner">';
+        echo '<div class="ufsc-admin-quicknav__title"><span class="dashicons dashicons-groups" aria-hidden="true"></span><span>' . esc_html__( 'UFSC Gestion', 'ufsc-clubs' ) . '</span></div>';
+        echo '<div class="ufsc-admin-quicknav__links">';
+
+        foreach ( $items as $item ) {
+            $slug       = sanitize_key( $item['slug'] );
+            $section    = sanitize_key( $item['section'] );
+            $is_active  = $section === $current_section;
+            $url        = add_query_arg( array( 'page' => $slug ), admin_url( 'admin.php' ) );
+            $link_class = 'ufsc-admin-quicknav__link' . ( $is_active ? ' is-active' : '' );
+
+            echo '<a class="' . esc_attr( $link_class ) . '" href="' . esc_url( $url ) . '"' . ( $is_active ? ' aria-current="page"' : '' ) . '>';
+            if ( ! empty( $item['icon'] ) ) {
+                echo '<span class="dashicons ' . esc_attr( sanitize_html_class( $item['icon'] ) ) . '" aria-hidden="true"></span>';
+            }
+            echo '<span>' . esc_html( $item['label'] ) . '</span>';
+            echo '</a>';
+        }
+
+        echo '</div></div></nav>';
+    }
+
+    /**
+     * Existing UFSC Gestion sections available for the quick navigation.
+     *
+     * @return array<int,array<string,string>>
+     */
+    private static function get_admin_quick_nav_items()
+    {
+        $items = array(
+            array(
+                'section' => 'dashboard',
+                'slug'    => 'ufsc-dashboard',
+                'label'   => __( 'Tableau de bord', 'ufsc-clubs' ),
+                'cap'     => UFSC_Permissions::CAP_GESTION_READ,
+                'icon'    => 'dashicons-dashboard',
+            ),
+            array(
+                'section' => 'clubs',
+                'slug'    => 'ufsc-clubs',
+                'label'   => __( 'Clubs', 'ufsc-clubs' ),
+                'cap'     => UFSC_Permissions::CAP_GESTION_READ,
+                'icon'    => 'dashicons-groups',
+            ),
+            array(
+                'section' => 'licences',
+                'slug'    => 'ufsc_lc_licences',
+                'label'   => __( 'Licences', 'ufsc-clubs' ),
+                'cap'     => UFSC_Permissions::CAP_LICENCES_READ,
+                'icon'    => 'dashicons-id',
+            ),
+            array(
+                'section' => 'exports',
+                'slug'    => 'ufsc-exports',
+                'label'   => __( 'Exports', 'ufsc-clubs' ),
+                'cap'     => UFSC_Permissions::CAP_GESTION_MANAGE,
+                'icon'    => 'dashicons-download',
+            ),
+            array(
+                'section' => 'import',
+                'slug'    => 'ufsc-import',
+                'label'   => __( 'Import', 'ufsc-clubs' ),
+                'cap'     => UFSC_Permissions::CAP_GESTION_MANAGE,
+                'icon'    => 'dashicons-upload',
+            ),
+            array(
+                'section' => 'settings',
+                'slug'    => 'ufsc-settings',
+                'label'   => __( 'Paramètres', 'ufsc-clubs' ),
+                'cap'     => UFSC_Permissions::CAP_SETTINGS_MANAGE,
+                'icon'    => 'dashicons-admin-settings',
+            ),
+            array(
+                'section' => 'woocommerce',
+                'slug'    => 'ufsc-woocommerce',
+                'label'   => __( 'WooCommerce', 'ufsc-clubs' ),
+                'cap'     => UFSC_Permissions::CAP_SETTINGS_MANAGE,
+                'icon'    => 'dashicons-cart',
+            ),
+            array(
+                'section' => 'communication',
+                'slug'    => 'ufsc-communication-clubs',
+                'label'   => __( 'Communication UFSC', 'ufsc-clubs' ),
+                'cap'     => defined( 'UFSC_Capabilities::CAP_MANAGE_COMMUNICATION' ) ? UFSC_Capabilities::CAP_MANAGE_COMMUNICATION : 'manage_options',
+                'icon'    => 'dashicons-email-alt2',
+            ),
+            array(
+                'section' => 'access',
+                'slug'    => 'ufsc-permissions',
+                'label'   => __( 'Droits & accès', 'ufsc-clubs' ),
+                'cap'     => 'manage_options',
+                'icon'    => 'dashicons-shield',
+            ),
+        );
+
+        return array_values(
+            array_filter(
+                $items,
+                static function ( $item ) {
+                    return self::current_user_can_quick_nav_item( $item['cap'] ) && self::admin_quick_nav_slug_is_registered( $item['slug'] );
+                }
+            )
+        );
+    }
+
+    /**
+     * Whether a target admin page slug is registered in the current WordPress admin menu.
+     *
+     * @param string $slug Admin page slug.
+     * @return bool
+     */
+    private static function admin_quick_nav_slug_is_registered( $slug )
+    {
+        $slug = sanitize_key( (string) $slug );
+        if ( '' === $slug ) {
+            return false;
+        }
+
+        global $menu, $submenu;
+
+        foreach ( (array) $menu as $menu_item ) {
+            if ( isset( $menu_item[2] ) && $slug === sanitize_key( (string) $menu_item[2] ) ) {
+                return true;
+            }
+        }
+
+        foreach ( (array) $submenu as $submenu_items ) {
+            foreach ( (array) $submenu_items as $submenu_item ) {
+                if ( isset( $submenu_item[2] ) && $slug === sanitize_key( (string) $submenu_item[2] ) ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Verify current user capability for a quick navigation item.
+     *
+     * @param string $capability Capability name.
+     * @return bool
+     */
+    private static function current_user_can_quick_nav_item( $capability )
+    {
+        $capability = is_string( $capability ) ? $capability : '';
+        if ( '' === $capability ) {
+            return false;
+        }
+
+        if ( function_exists( 'ufsc_user_can' ) && ufsc_user_can( $capability ) ) {
+            return true;
+        }
+
+        return current_user_can( $capability );
+    }
+
+    /**
+     * Resolve active quick navigation section from current or historical page slug.
+     *
+     * @param string $slug Admin page slug.
+     * @return string
+     */
+    private static function get_admin_quick_nav_section_for_slug( $slug )
+    {
+        $slug    = sanitize_key( (string) $slug );
+        $aliases = array(
+            'dashboard'     => array( 'ufsc-dashboard', 'ufsc-gestion', 'ufsc_gestion', 'ufsc-sql' ),
+            'clubs'         => array( 'ufsc-clubs', 'ufsc-sql-clubs', 'ufsc_clubs', 'ufsc-gestion-clubs' ),
+            'licences'      => array( 'ufsc_lc_licences', 'ufsc-sql-licences', 'ufsc-sql-licenses', 'ufsc-gestion-licences', 'ufsc-licences', 'ufsc_licences', 'ufsc-licence', 'ufsc_licence', 'ufsc_lc', 'ufsc-lc' ),
+            'exports'       => array( 'ufsc-exports' ),
+            'import'        => array( 'ufsc-import' ),
+            'settings'      => array( 'ufsc-settings', 'ufsc-sql-settings', 'ufsc-gestion-parametres' ),
+            'woocommerce'   => array( 'ufsc-woocommerce', 'ufsc-gestion-woocommerce' ),
+            'communication' => array( 'ufsc-communication-clubs' ),
+            'access'        => array( 'ufsc-permissions', 'ufsc-user-club-mapping' ),
+        );
+
+        foreach ( $aliases as $section => $slugs ) {
+            if ( in_array( $slug, $slugs, true ) ) {
+                return $section;
+            }
+        }
+
+        return $slug;
+    }
+
     /* ---------------- Menus cachés pour accès direct ---------------- */
     public static function register_hidden_pages()
     {
@@ -1038,7 +1259,9 @@ class UFSC_SQL_Admin
         $s = UFSC_SQL::get_settings();
         $c = (int) $wpdb->get_var("SELECT COUNT(*) FROM `{$s['table_clubs']}`");
         $l = (int) $wpdb->get_var("SELECT COUNT(*) FROM `{$s['table_licences']}`");
-        echo '<div class="wrap"><h1>UFSC – SQL</h1>';
+        echo '<div class="wrap">';
+        self::render_admin_quick_nav();
+        echo '<h1>UFSC – SQL</h1>';
         echo UFSC_CL_Utils::kpi_cards([
             ['label' => __('Clubs (SQL)', 'ufsc-clubs'), 'value' => $c],
             ['label' => __('Licences (SQL)', 'ufsc-clubs'), 'value' => $l],
@@ -1063,7 +1286,9 @@ class UFSC_SQL_Admin
             echo '<div class="updated"><p>' . esc_html__('Réglages enregistrés.', 'ufsc-clubs') . '</p></div>';
         }
         $s = UFSC_SQL::get_settings();
-        echo '<div class="wrap"><h1>' . esc_html__('Réglages (SQL)', 'ufsc-clubs') . '</h1><form method="post">';
+        echo '<div class="wrap">';
+        self::render_admin_quick_nav();
+        echo '<h1>' . esc_html__('Réglages (SQL)', 'ufsc-clubs') . '</h1><form method="post">';
         wp_nonce_field('ufsc_sql_settings');
         echo '<table class="form-table">';
         echo '<tr><th>Table Clubs</th><td><input type="text" name="table_clubs" value="' . esc_attr($s['table_clubs']) . '" /></td></tr>';
@@ -1532,6 +1757,7 @@ class UFSC_SQL_Admin
             UFSC_Scope::assert_in_scope( $row->region );
         }
         echo '<div class="wrap ufsc-admin ufsc-admin-page">';
+        self::render_admin_quick_nav();
 
         echo '<h2 class="ufsc-admin-title">' . esc_html__( 'Fiche club — Suivi administratif et affiliation', 'ufsc-clubs' ) . '</h2>';
 
@@ -2840,7 +3066,9 @@ class UFSC_SQL_Admin
         );
 
         $current_season_label = self::get_admin_current_season_label();
-        echo '<div class="wrap ufsc-admin ufsc-admin-page"><h1 class="ufsc-admin-title">' . esc_html__( 'Licences UFSC — Gestion administrative par saison', 'ufsc-clubs' ) . '</h1>';
+        echo '<div class="wrap ufsc-admin ufsc-admin-page">';
+        self::render_admin_quick_nav();
+        echo '<h1 class="ufsc-admin-title">' . esc_html__( 'Licences UFSC — Gestion administrative par saison', 'ufsc-clubs' ) . '</h1>';
         echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Consultez, filtrez et mettez à jour les licences rattachées aux clubs pour la saison en cours. Les filtres permettent de contrôler rapidement les statuts, les paiements, les brouillons et les éventuels doublons d’identité.', 'ufsc-clubs' ) . '</p>';
         echo '<p class="ufsc-admin-help">' . esc_html__( 'Saison affichée :', 'ufsc-clubs' ) . ' ' . esc_html( $current_season_label ? $current_season_label : __( 'saison en cours', 'ufsc-clubs' ) ) . '</p>';
         echo '<div class="notice notice-info inline"><p>' . esc_html__( 'Renouvellement des licences : les licences sont suivies par saison. Lors du passage à la nouvelle saison, les licences pourront être renouvelées individuellement selon les règles définies par l’UFSC.', 'ufsc-clubs' ) . '</p></div>';
@@ -4783,6 +5011,7 @@ class UFSC_SQL_Admin
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
         echo '<div class="wrap">';
+        self::render_admin_quick_nav();
         echo '<h1>' . esc_html__('Exports', 'ufsc-clubs') . '</h1>';
         echo '<p>' . esc_html__('Exportez vos données de clubs et licences avec des filtres personnalisés.', 'ufsc-clubs') . '</p>';
         if (! empty($_GET['error'])) {
@@ -4937,6 +5166,7 @@ class UFSC_SQL_Admin
             wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
         }
         echo '<div class="wrap">';
+        self::render_admin_quick_nav();
         echo '<h1>' . esc_html__('Import', 'ufsc-clubs') . '</h1>';
         // Afficher les résultats de l'importation
         if (isset($_GET['imported'])) {
