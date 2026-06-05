@@ -106,6 +106,7 @@ final class UFSC_CL_Bootstrap {
 
         // SQL Admin CRUD actions (pages cachées mais enregistrées pour les actions directes)
         add_action( 'admin_menu', array( 'UFSC_SQL_Admin', 'register_hidden_pages' ) );
+        add_action( 'admin_init', array( 'UFSC_SQL_Admin', 'maybe_send_admin_nocache_headers' ), 0 );
         add_action( 'admin_enqueue_scripts', array( 'UFSC_SQL_Admin', 'enqueue_admin_assets' ) );
         add_action( 'admin_post_ufsc_sql_save_club', array( 'UFSC_SQL_Admin', 'handle_save_club' ) );
         add_action( 'admin_post_ufsc_sql_delete_club', array( 'UFSC_SQL_Admin', 'handle_delete_club' ) );
