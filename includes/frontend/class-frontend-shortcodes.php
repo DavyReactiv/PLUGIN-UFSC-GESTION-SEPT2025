@@ -610,6 +610,9 @@ class UFSC_Frontend_Shortcodes {
                                 $licence_number = self::get_first_licence_field( $licence, array( 'numero_licence', 'num_licence', 'licence_number', 'numero' ) );
                                 $asptt_number   = self::get_first_licence_field( $licence, array( 'numero_asptt', 'num_asptt', 'asptt_number', 'numero_licence_delegataire' ) );
                                 $category       = self::get_first_licence_field( $licence, array( 'categorie', 'category', 'type_licence', 'cat' ) );
+                                if ( '' === $category && function_exists( 'ufsc_get_age_category_label' ) ) {
+                                    $category = ufsc_get_age_category_label( $licence->date_naissance ?? '', $licence->sexe ?? '', $season );
+                                }
                                 $created_at     = self::get_first_licence_field( $licence, array( 'date_creation', 'created_at', 'date_inscription' ) );
 
                                 $practice = isset( $licence->competition ) && $licence->competition
