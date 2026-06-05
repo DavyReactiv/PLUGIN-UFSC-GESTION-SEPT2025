@@ -15,7 +15,7 @@ Cette note accompagne le ZIP `PLUGIN-UFSC-GESTION-SEPT2025-main-release.zip` des
    `PLUGIN-UFSC-GESTION-SEPT2025-main-release.zip`.
 4. Vérifier après extraction que le fichier serveur :
    `wp-content/plugins/PLUGIN-UFSC-GESTION-SEPT2025-main/includes/admin/class-sql-admin.php`
-   ne contient plus le diagnostic temporaire d'IDs licences retiré pour la version de secours.
+   contient une seule déclaration de la méthode `is_licence_id_debug_enabled`.
 5. Vérifier que le fichier serveur :
    `wp-content/plugins/PLUGIN-UFSC-GESTION-SEPT2025-main/class-sql-admin.php`
    reste uniquement un loader et charge la classe réelle avec `require_once`.
@@ -29,10 +29,11 @@ Cette note accompagne le ZIP `PLUGIN-UFSC-GESTION-SEPT2025-main-release.zip` des
 Depuis le dossier du plugin extrait, les commandes suivantes doivent confirmer l'absence de doublon :
 
 ```bash
+rg -n "is_licence_id_debug_enabled" includes/admin/class-sql-admin.php
 rg -n "class UFSC_SQL_Admin" . --glob "*.php" --glob "!vendor/**"
 php -l includes/admin/class-sql-admin.php
 php -l class-sql-admin.php
 php -l ufsc-clubs-licences-sql.php
 ```
 
-Résultat attendu : une seule déclaration réelle de `class UFSC_SQL_Admin` dans `includes/admin/class-sql-admin.php` et aucune trace du diagnostic temporaire d'IDs licences retiré pour la version de secours.
+Résultat attendu : une seule déclaration réelle de `class UFSC_SQL_Admin` dans `includes/admin/class-sql-admin.php` et une seule déclaration de la méthode `is_licence_id_debug_enabled` dans `includes/admin/class-sql-admin.php`.
