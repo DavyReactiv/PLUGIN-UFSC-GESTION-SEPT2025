@@ -47,7 +47,11 @@ class UFSC_Settings_Page {
             echo '<div class="updated"><p>' . esc_html__( 'Paramètres enregistrés.', 'ufsc-clubs' ) . '</p></div>';
         }
         $s = self::get_settings();
-        echo '<div class="wrap"><h1>' . esc_html__( 'Paramètres UFSC', 'ufsc-clubs' ) . '</h1>';
+        echo '<div class="wrap">';
+        if ( class_exists( 'UFSC_SQL_Admin' ) ) {
+            UFSC_SQL_Admin::render_admin_quick_nav();
+        }
+        echo '<h1>' . esc_html__( 'Paramètres UFSC', 'ufsc-clubs' ) . '</h1>';
         echo '<form method="post">';
         wp_nonce_field( 'ufsc_settings' );
         echo '<table class="form-table">';
