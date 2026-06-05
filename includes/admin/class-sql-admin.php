@@ -2432,10 +2432,34 @@ class UFSC_SQL_Admin
     }
 
     /**
+     * Resolve the strict admin primary key used to open a licence fiche.
+     *
+     * Admin view/edit URLs carry the database row ID. Prefer the physical `id`
+     * column whenever it exists; the configurable pk is only a fallback for
+     * non-standard tables without an `id` column.
+     *
+     * @param string[] $columns       Existing licence table columns.
+     * @param string   $configured_pk Configured primary key fallback.
+     * @return string
+     */
+    private static function get_admin_licence_primary_key( array $columns, $configured_pk = 'id' ) {
+        if ( in_array( 'id', $columns, true ) ) {
+            return 'id';
+        }
+
+        $configured_pk = preg_replace( '/[^a-zA-Z0-9_]/', '', (string) $configured_pk );
+        if ( '' !== $configured_pk && in_array( $configured_pk, $columns, true ) ) {
+            return $configured_pk;
+        }
+
+        return '';
+    }
+
+    /**
      * Resolve the canonical licence ID for an admin list row.
      *
      * @param object $row Licence row returned by the admin list query.
-     * @param string $pk  Canonical primary key column name.
+     * @param string $pk  Strict admin primary key column name.
      * @return int
      */
     private static function get_admin_licence_row_id( $row, $pk ) {
@@ -2451,22 +2475,22 @@ class UFSC_SQL_Admin
     }
 
     /**
-     * Check whether a requested licence ID exists in the canonical licences table.
+     * Load exactly one requested licence row for admin view/edit.
      *
      * @param string $table Licences table name.
-     * @param string $pk    Primary key column name.
-     * @param int    $id    Requested licence ID.
-     * @return bool
+     * @param string $pk    Strict admin primary key column name.
+     * @param int    $id    Requested licence ID from the URL.
+     * @return object|null
      */
-    private static function admin_licence_exists( $table, $pk, $id ) {
+    private static function get_admin_licence_by_id( $table, $pk, $id ) {
         global $wpdb;
 
         $id = absint( $id );
         if ( $id <= 0 || '' === (string) $table || '' === (string) $pk ) {
-            return false;
+            return null;
         }
 
-        return (bool) $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM `{$table}` WHERE `{$pk}` = %d LIMIT 1", $id ) );
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE `{$pk}` = %d LIMIT 1", $id ) );
     }
 
     /**
@@ -2531,6 +2555,7 @@ class UFSC_SQL_Admin
         $club_columns    = self::get_table_columns($clubs_table);
         $has_club_id     = in_array('club_id', $licence_columns, true);
         $pk             = $s['pk_licence'];
+        $admin_pk       = self::get_admin_licence_primary_key( $licence_columns, $pk );
 
         // Handle search and filters
         $filters       = self::get_licence_filters_from_request( 'get' );
@@ -2569,7 +2594,7 @@ class UFSC_SQL_Admin
 
         // Get data with JOIN to show club names
         $select_fields = array(
-            ( in_array( $pk, $licence_columns, true ) ? "l.{$pk} AS licence_id" : "0 AS licence_id" ),
+            ( '' !== $admin_pk ? "l.{$admin_pk} AS licence_id" : "0 AS licence_id" ),
             ( in_array( $pk, $licence_columns, true ) ? "l.{$pk} AS {$pk}" : "0 AS {$pk}" ),
             self::build_select_column('l', 'prenom', $licence_columns),
             self::build_select_column('l', 'nom', $licence_columns),
@@ -2733,22 +2758,24 @@ class UFSC_SQL_Admin
                 wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
             }
             $id = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
-            if ( ! self::admin_licence_exists( $licences_table, $pk, $id ) ) {
+            $licence_row = self::get_admin_licence_by_id( $licences_table, $admin_pk, $id );
+            if ( ! $licence_row ) {
                 self::render_invalid_licence_admin_notice( self::get_admin_return_url( $licences_page_slug ) );
                 echo '</div>';
                 return;
             }
-            self::render_licence_form($id);
+            self::render_licence_form( $id, false, $licence_row, $admin_pk );
             echo '</div>';
             return;
         } elseif (isset($_GET['action']) && $_GET['action'] === 'view') {
             $id = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
-            if ( ! self::admin_licence_exists( $licences_table, $pk, $id ) ) {
+            $licence_row = self::get_admin_licence_by_id( $licences_table, $admin_pk, $id );
+            if ( ! $licence_row ) {
                 self::render_invalid_licence_admin_notice( self::get_admin_return_url( $licences_page_slug ) );
                 echo '</div>';
                 return;
             }
-            self::render_licence_form($id, true); // true = readonly mode
+            self::render_licence_form( $id, true, $licence_row, $admin_pk ); // true = readonly mode
             echo '</div>';
             return;
         } elseif (isset($_GET['action']) && $_GET['action'] === 'new') {
@@ -2916,7 +2943,8 @@ class UFSC_SQL_Admin
                     $normalized_status = 'en_attente';
                 }
 
-                $licence_id   = self::get_admin_licence_row_id( $r, $pk );
+                $licence_id   = self::get_admin_licence_row_id( $r, $admin_pk );
+                // return_to is only used for navigation back to the list; the licence record is loaded exclusively from the id query argument.
                 $return_to    = self::build_licences_redirect_url();
                 $view_url     = self::get_licences_admin_page_url( array( 'action' => 'view', 'id' => $licence_id, 'return_to' => $return_to ) );
                 $edit_url     = self::get_licences_admin_page_url( array( 'action' => 'edit', 'id' => $licence_id, 'return_to' => $return_to ) );
@@ -3139,14 +3167,19 @@ class UFSC_SQL_Admin
         echo '</section>';
     }
 
-    private static function render_licence_form($id, $readonly = false)
+    private static function render_licence_form( $id, $readonly = false, $row = null, $admin_pk = '' )
     {
         global $wpdb;
-        $s      = UFSC_SQL::get_settings();
-        $t      = $s['table_licences'];
-        $pk     = $s['pk_licence'];
-        $fields = UFSC_SQL::get_licence_fields();
-        $row    = $id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM `$t` WHERE `$pk`=%d", $id)) : null;
+        $s       = UFSC_SQL::get_settings();
+        $t       = $s['table_licences'];
+        $pk      = $s['pk_licence'];
+        $columns = self::get_table_columns( $t );
+        $admin_pk = $admin_pk ? $admin_pk : self::get_admin_licence_primary_key( $columns, $pk );
+        $fields  = UFSC_SQL::get_licence_fields();
+        $id      = absint( $id );
+        if ( $id && ! is_object( $row ) ) {
+            $row = self::get_admin_licence_by_id( $t, $admin_pk, $id );
+        }
         $licences_page_slug = self::get_licences_admin_page_slug();
         $return_url = self::get_admin_return_url( $licences_page_slug );
         if ( $row ) {
