@@ -71,6 +71,9 @@ class UFSC_Clubs_List_Table {
 
         // Render the page
         echo '<div class="wrap ufsc-clubs-admin-page">';
+        if ( class_exists( 'UFSC_SQL_Admin' ) ) {
+            UFSC_SQL_Admin::render_admin_quick_nav();
+        }
         echo '<div class="ufsc-clubs-shell">';
         echo '<div class="ufsc-clubs-hero">';
         echo '<div>';

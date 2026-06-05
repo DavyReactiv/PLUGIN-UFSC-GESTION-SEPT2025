@@ -479,11 +479,42 @@ class UFSC_SQL_Admin
     }
 
     /**
+     * Whether temporary licence ID diagnostics are enabled for this request.
+     *
+     * @return bool
+     */
+    private static function is_licence_id_debug_enabled() {
+        return isset( $_GET['ufsc_debug_ids'] ) && '1' === (string) wp_unslash( $_GET['ufsc_debug_ids'] );
+    }
+
+    /**
+     * Add cache-busting and optional diagnostics arguments to dynamic licence admin links.
+     *
+     * @param array $args URL query arguments.
+     * @return array
+     */
+    private static function add_dynamic_licence_link_args( $args ) {
+        $args = (array) $args;
+
+        if ( isset( $args['action'] ) && in_array( sanitize_key( (string) $args['action'] ), array( 'view', 'edit', 'new' ), true ) ) {
+            $args['_ufsc_ts'] = time();
+        }
+
+        if ( self::is_licence_id_debug_enabled() ) {
+            $args['ufsc_debug_ids'] = '1';
+        }
+
+        return $args;
+    }
+
+    /**
      * URL for the historical administrative licences page, preserving the active slug.
      */
     private static function get_licences_admin_page_url( $args = array() ) {
+        $args = self::add_dynamic_licence_link_args( $args );
+
         return add_query_arg(
-            array_merge( array( 'page' => self::get_licences_admin_page_slug() ), (array) $args ),
+            array_merge( array( 'page' => self::get_licences_admin_page_slug() ), $args ),
             admin_url( 'admin.php' )
         );
     }
@@ -1338,7 +1369,7 @@ class UFSC_SQL_Admin
             return;
         }
 
-        // Use enhanced list table
+        // Use enhanced list table.
         UFSC_Clubs_List_Table::render();
     }
 
@@ -2871,6 +2902,10 @@ class UFSC_SQL_Admin
      * @return int
      */
     private static function get_admin_licence_row_id( $row, $pk ) {
+        if ( isset( $row->ufsc_admin_id ) ) {
+            return absint( $row->ufsc_admin_id );
+        }
+
         if ( isset( $row->licence_id ) ) {
             return absint( $row->licence_id );
         }
@@ -3002,8 +3037,8 @@ class UFSC_SQL_Admin
 
         // Get data with JOIN to show club names
         $select_fields = array(
-            ( '' !== $admin_pk ? "l.{$admin_pk} AS licence_id" : "0 AS licence_id" ),
-            ( in_array( $pk, $licence_columns, true ) ? "l.{$pk} AS {$pk}" : "0 AS {$pk}" ),
+            ( '' !== $admin_pk ? "l.{$admin_pk} AS ufsc_admin_id" : "0 AS ufsc_admin_id" ),
+            ( in_array( $pk, $licence_columns, true ) ? "l.{$pk} AS {$pk}" : '' ),
             self::build_select_column('l', 'prenom', $licence_columns),
             self::build_select_column('l', 'nom', $licence_columns),
             self::build_select_column('l', 'date_naissance', $licence_columns),
@@ -3068,6 +3103,9 @@ class UFSC_SQL_Admin
         $current_season_label = self::get_admin_current_season_label();
         echo '<div class="wrap ufsc-admin ufsc-admin-page">';
         self::render_admin_quick_nav();
+        if ( self::is_licence_id_debug_enabled() ) {
+            echo '<div class="notice notice-info inline"><p><strong>' . esc_html__( 'Diagnostic IDs licences', 'ufsc-clubs' ) . '</strong> — ' . esc_html__( 'Les liens Consulter/Éditer utilisent ufsc_admin_id (clé admin réelle), conservent ufsc_debug_ids=1 et ajoutent _ufsc_ts.', 'ufsc-clubs' ) . ' ' . esc_html__( 'Clé admin:', 'ufsc-clubs' ) . ' <code>' . esc_html( $admin_pk ) . '</code></p></div>';
+        }
         echo '<h1 class="ufsc-admin-title">' . esc_html__( 'Licences UFSC — Gestion administrative par saison', 'ufsc-clubs' ) . '</h1>';
         echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Consultez, filtrez et mettez à jour les licences rattachées aux clubs pour la saison en cours. Les filtres permettent de contrôler rapidement les statuts, les paiements, les brouillons et les éventuels doublons d’identité.', 'ufsc-clubs' ) . '</p>';
         echo '<p class="ufsc-admin-help">' . esc_html__( 'Saison affichée :', 'ufsc-clubs' ) . ' ' . esc_html( $current_season_label ? $current_season_label : __( 'saison en cours', 'ufsc-clubs' ) ) . '</p>';
@@ -3396,9 +3434,9 @@ class UFSC_SQL_Admin
                 echo '<td>' . esc_html($r->date_creation ?: '') . '</td>';
                 echo '<td class="column-actions">';
                 echo '<div class="ufsc-button-group">';
-                echo '<a class="button button-small" href="' . esc_url($view_url) . '" title="' . esc_attr__('Consulter la licence', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Consulter la licence', 'ufsc-clubs') . '">' . esc_html__('Consulter', 'ufsc-clubs') . '</a>';
+                echo '<a class="button button-small" href="' . esc_url($view_url) . '" data-ufsc-licence-id="' . esc_attr( $licence_id ) . '" data-ufsc-direct-link="1" title="' . esc_attr__('Consulter la licence', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Consulter la licence', 'ufsc-clubs') . '">' . esc_html__('Consulter', 'ufsc-clubs') . '</a>';
                 if ( $can_manage_licences ) {
-                    echo '<a class="button button-small" href="' . esc_url($edit_url) . '" title="' . esc_attr__('Éditer la licence', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Éditer la licence', 'ufsc-clubs') . '">' . esc_html__('Éditer', 'ufsc-clubs') . '</a>';
+                    echo '<a class="button button-small" href="' . esc_url($edit_url) . '" data-ufsc-licence-id="' . esc_attr( $licence_id ) . '" data-ufsc-direct-link="1" title="' . esc_attr__('Éditer la licence', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Éditer la licence', 'ufsc-clubs') . '">' . esc_html__('Éditer', 'ufsc-clubs') . '</a>';
                 }
                 self::render_licence_row_id_debug( $r, $licence_id, $pk, $admin_pk, $view_url, $edit_url );
                 $is_paid = self::is_licence_paid( $r );
@@ -3603,6 +3641,11 @@ class UFSC_SQL_Admin
             } elseif ( isset( $row->region ) ) {
                 UFSC_Scope::assert_in_scope( $row->region );
             }
+        }
+
+        if ( self::is_licence_id_debug_enabled() ) {
+            $loaded_id = ( $row && isset( $row->{$admin_pk} ) ) ? absint( $row->{$admin_pk} ) : 0;
+            echo '<div class="notice notice-info inline"><p><strong>' . esc_html__( 'Diagnostic fiche licence', 'ufsc-clubs' ) . '</strong> — ' . esc_html__( 'GET id reçu:', 'ufsc-clubs' ) . ' <code>' . esc_html( $id ) . '</code> · ' . esc_html__( 'ID chargé en base:', 'ufsc-clubs' ) . ' <code>' . esc_html( $loaded_id ) . '</code> · ' . esc_html__( 'Clé admin:', 'ufsc-clubs' ) . ' <code>' . esc_html( $admin_pk ) . '</code></p></div>';
         }
 
         if ($readonly) {
