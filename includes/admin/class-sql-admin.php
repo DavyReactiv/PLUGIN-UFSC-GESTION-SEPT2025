@@ -484,7 +484,15 @@ class UFSC_SQL_Admin
      * @return bool
      */
     private static function is_licence_id_debug_enabled() {
-        return isset( $_GET['ufsc_debug_ids'] ) && '1' === (string) wp_unslash( $_GET['ufsc_debug_ids'] );
+        if ( ! is_admin() ) {
+            return false;
+        }
+
+        if ( ! isset( $_GET['ufsc_debug_ids'] ) || '1' !== (string) wp_unslash( $_GET['ufsc_debug_ids'] ) ) {
+            return false;
+        }
+
+        return ufsc_user_can( UFSC_Permissions::CAP_LICENCES_READ );
     }
 
     /**
