@@ -3124,9 +3124,6 @@ class UFSC_SQL_Admin
         $current_season_label = self::get_admin_current_season_label();
         echo '<div class="wrap ufsc-admin ufsc-admin-page">';
         self::render_admin_quick_nav();
-        if ( self::is_licence_id_debug_enabled() ) {
-            echo '<div class="notice notice-info inline"><p><strong>' . esc_html__( 'Diagnostic IDs licences', 'ufsc-clubs' ) . '</strong> — ' . esc_html__( 'Les liens Consulter/Éditer utilisent ufsc_admin_id (clé admin réelle), conservent ufsc_debug_ids=1 et ajoutent _ufsc_ts.', 'ufsc-clubs' ) . ' ' . esc_html__( 'Clé admin:', 'ufsc-clubs' ) . ' <code>' . esc_html( $admin_pk ) . '</code></p></div>';
-        }
         echo '<h1 class="ufsc-admin-title">' . esc_html__( 'Licences UFSC — Gestion administrative par saison', 'ufsc-clubs' ) . '</h1>';
         echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Consultez, filtrez et mettez à jour les licences rattachées aux clubs pour la saison en cours. Les filtres permettent de contrôler rapidement les statuts, les paiements, les brouillons et les éventuels doublons d’identité.', 'ufsc-clubs' ) . '</p>';
         echo '<p class="ufsc-admin-help">' . esc_html__( 'Saison affichée :', 'ufsc-clubs' ) . ' ' . esc_html( $current_season_label ? $current_season_label : __( 'saison en cours', 'ufsc-clubs' ) ) . '</p>';

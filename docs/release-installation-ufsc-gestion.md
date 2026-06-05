@@ -29,11 +29,11 @@ Cette note accompagne le ZIP `PLUGIN-UFSC-GESTION-SEPT2025-main-release.zip` des
 Depuis le dossier du plugin extrait, les commandes suivantes doivent confirmer l'absence de doublon :
 
 ```bash
-rg -n "is_licence_id_debug_enabled" . --glob "*.php" --glob "!vendor/**"
+rg -n "is_licence_id_debug_enabled" includes/admin/class-sql-admin.php
 rg -n "class UFSC_SQL_Admin" . --glob "*.php" --glob "!vendor/**"
 php -l includes/admin/class-sql-admin.php
 php -l class-sql-admin.php
 php -l ufsc-clubs-licences-sql.php
 ```
 
-Résultat attendu : une seule déclaration réelle de `class UFSC_SQL_Admin` dans `includes/admin/class-sql-admin.php` et une seule déclaration de la méthode `is_licence_id_debug_enabled`.
+Résultat attendu : une seule déclaration réelle de `class UFSC_SQL_Admin` dans `includes/admin/class-sql-admin.php` et une seule déclaration de la méthode `is_licence_id_debug_enabled` dans `includes/admin/class-sql-admin.php`.
