@@ -289,6 +289,78 @@ class UFSC_SQL_Admin
     }
 
     /**
+     * Admin UFSC Gestion pages that must never be served from a stale cache.
+     *
+     * These screens display sensitive, dynamic SQL data and row-specific action
+     * links. In particular, licence Consulter/Éditer URLs must always be freshly
+     * rendered with the current row ID; return_to is only navigation metadata.
+     *
+     * @return string[]
+     */
+    private static function get_admin_nocache_page_slugs() {
+        return array_values( array_unique( array_merge(
+            array(
+                'ufsc-dashboard',
+                'ufsc-gestion',
+                'ufsc_gestion',
+                'ufsc-clubs',
+                'ufsc_clubs',
+                'ufsc-sql-clubs',
+                'ufsc-sql',
+                'ufsc-sql-settings',
+                'ufsc-exports',
+                'ufsc-import',
+                'ufsc-settings',
+                'ufsc-woocommerce',
+                'ufsc-communication-clubs',
+                'ufsc-permissions',
+                'ufsc-user-club-mapping',
+                'ufsc-limited-dashboard',
+                'ufsc-home',
+            ),
+            self::get_licences_admin_page_slugs(),
+            array(
+                'ufsc_licences',
+                'ufsc-licence',
+                'ufsc_licence',
+                'ufsc-licence-documents',
+                'ufsc-licences-dashboard',
+            )
+        ) ) );
+    }
+
+    /**
+     * Send no-cache headers only for UFSC Gestion admin pages.
+     *
+     * Some production caches may keep admin HTML and replay stale licence action
+     * links. Restricting nocache_headers() to UFSC Gestion pages prevents stale
+     * Consulter/Éditer links without disabling cache globally for WordPress.
+     *
+     * @return void
+     */
+    public static function maybe_send_admin_nocache_headers() {
+        if ( ! is_admin() ) {
+            return;
+        }
+
+        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+        if ( '' === $page || ! in_array( $page, self::get_admin_nocache_page_slugs(), true ) ) {
+            return;
+        }
+
+        if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+            define( 'DONOTCACHEPAGE', true );
+        }
+
+        if ( headers_sent() ) {
+            return;
+        }
+
+        nocache_headers();
+        header( 'X-UFSC-Admin-No-Cache: 1' );
+    }
+
+    /**
      * Current slug for the historical administrative licences page.
      */
     private static function get_licences_admin_page_slug() {
