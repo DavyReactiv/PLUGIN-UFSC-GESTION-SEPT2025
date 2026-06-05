@@ -488,11 +488,24 @@ class UFSC_SQL_Admin
             return false;
         }
 
-        if ( ! isset( $_GET['ufsc_debug_ids'] ) || '1' !== (string) wp_unslash( $_GET['ufsc_debug_ids'] ) ) {
+        if ( empty( $_GET['ufsc_debug_ids'] ) ) {
             return false;
         }
 
-        return ufsc_user_can( UFSC_Permissions::CAP_LICENCES_READ );
+        $enabled = sanitize_text_field( wp_unslash( $_GET['ufsc_debug_ids'] ) );
+        if ( '1' !== $enabled ) {
+            return false;
+        }
+
+        if (
+            class_exists( 'UFSC_Permissions' )
+            && defined( 'UFSC_Permissions::CAP_LICENCES_READ' )
+            && function_exists( 'ufsc_user_can' )
+        ) {
+            return ufsc_user_can( UFSC_Permissions::CAP_LICENCES_READ );
+        }
+
+        return current_user_can( 'manage_options' );
     }
 
     /**
