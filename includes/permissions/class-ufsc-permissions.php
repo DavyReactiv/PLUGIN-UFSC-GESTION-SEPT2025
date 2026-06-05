@@ -207,6 +207,9 @@ class UFSC_Permissions {
         }
 
         echo '<div class="wrap ufsc-permissions-page">';
+        if ( class_exists( 'UFSC_SQL_Admin' ) ) {
+            UFSC_SQL_Admin::render_admin_quick_nav();
+        }
         echo '<h1>' . esc_html__( 'Droits & accès UFSC', 'ufsc-clubs' ) . '</h1>';
         echo '<p class="description">' . esc_html__( 'Les restrictions UFSC sont vérifiées côté serveur. Le masquage des boutons n’est qu’un confort visuel.', 'ufsc-clubs' ) . '</p>';
 
