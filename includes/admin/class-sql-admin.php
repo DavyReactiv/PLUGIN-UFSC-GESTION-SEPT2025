@@ -361,6 +361,116 @@ class UFSC_SQL_Admin
     }
 
     /**
+     * Whether the temporary licence ID diagnostic is enabled for a trusted admin.
+     *
+     * @return bool
+     */
+    private static function is_licence_id_debug_enabled() {
+        if ( ! isset( $_GET['ufsc_debug_ids'] ) || '1' !== (string) wp_unslash( $_GET['ufsc_debug_ids'] ) ) {
+            return false;
+        }
+
+        return current_user_can( 'manage_options' )
+            || ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE )
+            || ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE );
+    }
+
+    /**
+     * Add non-data cache-busting/debug args to dynamic admin licence action URLs.
+     *
+     * @param string $url URL to adjust.
+     * @return string
+     */
+    private static function add_admin_licence_action_url_args( $url ) {
+        $args = array( '_ufsc_ts' => time() );
+        if ( self::is_licence_id_debug_enabled() ) {
+            $args['ufsc_debug_ids'] = '1';
+        }
+
+        return add_query_arg( $args, $url );
+    }
+
+    /**
+     * Current admin URL for diagnostics only.
+     *
+     * @return string
+     */
+    private static function get_current_admin_url_for_debug() {
+        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+        if ( '' === $request_uri ) {
+            return '';
+        }
+
+        $scheme = is_ssl() ? 'https://' : 'http://';
+        $host   = isset( $_SERVER['HTTP_HOST'] ) ? wp_unslash( $_SERVER['HTTP_HOST'] ) : '';
+
+        return $host ? esc_url_raw( $scheme . $host . $request_uri ) : esc_url_raw( $request_uri );
+    }
+
+    /**
+     * Render one row of the temporary licence ID diagnostic in the actions column.
+     *
+     * @param object $row        Current list row.
+     * @param int    $licence_id Resolved row ID.
+     * @param string $pk         Configured primary key.
+     * @param string $admin_pk   Admin primary key used by view/edit.
+     * @param string $view_url   Generated view URL.
+     * @param string $edit_url   Generated edit URL.
+     * @return void
+     */
+    private static function render_licence_row_id_debug( $row, $licence_id, $pk, $admin_pk, $view_url, $edit_url ) {
+        if ( ! self::is_licence_id_debug_enabled() ) {
+            return;
+        }
+
+        $row_id = isset( $row->id ) ? absint( $row->id ) : 0;
+        echo '<div class="ufsc-id-debug" style="margin-top:6px;padding:6px;border-left:3px solid #d63638;background:#fff8e5;font-size:11px;line-height:1.45;word-break:break-all;">';
+        echo '<strong>' . esc_html__( 'Debug IDs', 'ufsc-clubs' ) . '</strong><br />';
+        echo 'row_id=' . esc_html( (string) $row_id ) . ' / licence_id=' . esc_html( (string) absint( $licence_id ) ) . '<br />';
+        echo 'pk=' . esc_html( (string) $pk ) . ' / admin_pk=' . esc_html( (string) $admin_pk ) . '<br />';
+        echo 'view_id=' . esc_html( (string) absint( $licence_id ) ) . ' / edit_id=' . esc_html( (string) absint( $licence_id ) ) . '<br />';
+        echo 'view_url=' . esc_html( $view_url ) . '<br />';
+        echo 'edit_url=' . esc_html( $edit_url );
+        echo '</div>';
+    }
+
+    /**
+     * Render the temporary licence fiche ID diagnostic.
+     *
+     * @param int         $requested_id Requested URL ID.
+     * @param object|null $row          Loaded licence row.
+     * @param string      $admin_pk     Primary key used to load the row.
+     * @param string      $source       Whether the row was preloaded or reloaded.
+     * @return void
+     */
+    private static function render_licence_form_id_debug( $requested_id, $row, $admin_pk, $source ) {
+        if ( ! self::is_licence_id_debug_enabled() ) {
+            return;
+        }
+
+        $loaded_id = ( is_object( $row ) && '' !== $admin_pk && isset( $row->{$admin_pk} ) ) ? absint( $row->{$admin_pk} ) : 0;
+        $numero = '';
+        foreach ( array( 'numero_licence', 'num_licence', 'licence_number', 'numero' ) as $field ) {
+            if ( is_object( $row ) && isset( $row->{$field} ) && '' !== trim( (string) $row->{$field} ) ) {
+                $numero = (string) $row->{$field};
+                break;
+            }
+        }
+
+        echo '<div class="notice notice-warning inline ufsc-id-debug"><p><strong>' . esc_html__( 'Diagnostic temporaire IDs licence', 'ufsc-clubs' ) . '</strong><br />';
+        echo 'GET id reçu=' . esc_html( (string) absint( $requested_id ) ) . '<br />';
+        echo 'primary key utilisée=' . esc_html( (string) $admin_pk ) . '<br />';
+        echo 'ID chargé en base=' . esc_html( (string) $loaded_id ) . '<br />';
+        echo 'nom chargé=' . esc_html( is_object( $row ) ? (string) ( $row->nom ?? '' ) : '' ) . '<br />';
+        echo 'prénom chargé=' . esc_html( is_object( $row ) ? (string) ( $row->prenom ?? '' ) : '' ) . '<br />';
+        echo 'numero_licence=' . esc_html( $numero ) . '<br />';
+        echo 'return_to=' . esc_html( isset( $_GET['return_to'] ) ? 'présent' : 'absent' ) . '<br />';
+        echo 'source=' . esc_html( $source ) . '<br />';
+        echo 'url=' . esc_html( self::get_current_admin_url_for_debug() );
+        echo '</p></div>';
+    }
+
+    /**
      * Current slug for the historical administrative licences page.
      */
     private static function get_licences_admin_page_slug() {
@@ -2836,7 +2946,7 @@ class UFSC_SQL_Admin
                 echo '</div>';
                 return;
             }
-            self::render_licence_form( $id, false, $licence_row, $admin_pk );
+            self::render_licence_form( $id, false, $licence_row, $admin_pk, 'preloaded' );
             echo '</div>';
             return;
         } elseif (isset($_GET['action']) && $_GET['action'] === 'view') {
@@ -2847,7 +2957,7 @@ class UFSC_SQL_Admin
                 echo '</div>';
                 return;
             }
-            self::render_licence_form( $id, true, $licence_row, $admin_pk ); // true = readonly mode
+            self::render_licence_form( $id, true, $licence_row, $admin_pk, 'preloaded' ); // true = readonly mode
             echo '</div>';
             return;
         } elseif (isset($_GET['action']) && $_GET['action'] === 'new') {
@@ -2863,6 +2973,9 @@ class UFSC_SQL_Admin
         echo '<div class="ufsc-list-filters ufsc-admin-filterbar" style="background: #f9f9f9; padding: 15px; margin: 15px 0; border-radius: 5px;">';
         echo '<form method="get" class="ufsc-filters-form">';
         echo '<input type="hidden" name="page" value="' . esc_attr( $licences_page_slug ) . '" />';
+        if ( self::is_licence_id_debug_enabled() ) {
+            echo '<input type="hidden" name="ufsc_debug_ids" value="1" />';
+        }
 
         echo '<div class="ufsc-admin-grid" style="display: grid; grid-template-columns: 1fr 200px 200px 180px 170px 170px 160px auto; gap: 10px; align-items: end;">';
 
@@ -3018,8 +3131,8 @@ class UFSC_SQL_Admin
                 $licence_id   = self::get_admin_licence_row_id( $r, $admin_pk );
                 // return_to is only used for navigation back to the list; the licence record is loaded exclusively from the id query argument.
                 $return_to    = self::build_licences_redirect_url();
-                $view_url     = self::get_licences_admin_page_url( array( 'action' => 'view', 'id' => $licence_id, 'return_to' => $return_to ) );
-                $edit_url     = self::get_licences_admin_page_url( array( 'action' => 'edit', 'id' => $licence_id, 'return_to' => $return_to ) );
+                $view_url     = self::add_admin_licence_action_url_args( self::get_licences_admin_page_url( array( 'action' => 'view', 'id' => $licence_id, 'return_to' => $return_to ) ) );
+                $edit_url     = self::add_admin_licence_action_url_args( self::get_licences_admin_page_url( array( 'action' => 'edit', 'id' => $licence_id, 'return_to' => $return_to ) ) );
                 $trash_url    = wp_nonce_url( add_query_arg( array( 'action' => 'ufsc_sql_trash_licence', 'id' => $licence_id ), admin_url( 'admin-post.php' ) ), 'ufsc_sql_trash_licence' );
                 $restore_url  = wp_nonce_url( add_query_arg( array( 'action' => 'ufsc_sql_restore_licence', 'id' => $licence_id ), admin_url( 'admin-post.php' ) ), 'ufsc_sql_restore_licence' );
                 $force_delete_url = wp_nonce_url( add_query_arg( array( 'action' => 'ufsc_sql_force_delete_licence', 'id' => $licence_id ), admin_url( 'admin-post.php' ) ), 'ufsc_sql_force_delete_licence' );
@@ -3059,6 +3172,7 @@ class UFSC_SQL_Admin
                 if ( $can_manage_licences ) {
                     echo '<a class="button button-small" href="' . esc_url($edit_url) . '" title="' . esc_attr__('Éditer la licence', 'ufsc-clubs') . '" aria-label="' . esc_attr__('Éditer la licence', 'ufsc-clubs') . '">' . esc_html__('Éditer', 'ufsc-clubs') . '</a>';
                 }
+                self::render_licence_row_id_debug( $r, $licence_id, $pk, $admin_pk, $view_url, $edit_url );
                 $is_paid = self::is_licence_paid( $r );
                 if ( $can_manage_licences && ! $is_paid ) {
                     $payment_url = wp_nonce_url(add_query_arg( array( 'action' => 'ufsc_send_license_payment', 'license_id' => $licence_id ), admin_url( 'admin-post.php' ) ), 'ufsc_send_license_payment_' . $licence_id);
@@ -3239,7 +3353,7 @@ class UFSC_SQL_Admin
         echo '</section>';
     }
 
-    private static function render_licence_form( $id, $readonly = false, $row = null, $admin_pk = '' )
+    private static function render_licence_form( $id, $readonly = false, $row = null, $admin_pk = '', $row_source = 'auto' )
     {
         global $wpdb;
         $s       = UFSC_SQL::get_settings();
@@ -3251,6 +3365,7 @@ class UFSC_SQL_Admin
         $id      = absint( $id );
         if ( $id && ! is_object( $row ) ) {
             $row = self::get_admin_licence_by_id( $t, $admin_pk, $id );
+            $row_source = 'reloaded';
         }
         $licences_page_slug = self::get_licences_admin_page_slug();
         $return_url = self::get_admin_return_url( $licences_page_slug );
@@ -3299,6 +3414,8 @@ class UFSC_SQL_Admin
         if (isset($_GET['error'])) {
             echo UFSC_CL_Utils::show_error( self::request_string( $_GET, 'error' ) );
         }
+
+        self::render_licence_form_id_debug( $id, $row, $admin_pk, $row_source );
 
         if (! $readonly) {
             echo '<form method="post" enctype="multipart/form-data">';
@@ -3369,7 +3486,7 @@ class UFSC_SQL_Admin
         } else {
             echo '<p><a class="button" href="' . esc_url( $return_url ) . '">' . esc_html__('Retour à la liste', 'ufsc-clubs') . '</a>';
             if (ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE )) {
-                echo ' <a class="button button-primary" href="' . esc_url(self::get_licences_admin_page_url( array( 'action' => 'edit', 'id' => $id, 'return_to' => $return_url ) )) . '">' . esc_html__('Modifier', 'ufsc-clubs') . '</a>';
+                echo ' <a class="button button-primary" href="' . esc_url( self::add_admin_licence_action_url_args( self::get_licences_admin_page_url( array( 'action' => 'edit', 'id' => $id, 'return_to' => $return_url ) ) ) ) . '">' . esc_html__('Modifier', 'ufsc-clubs') . '</a>';
             }
             echo '</p>';
         }
