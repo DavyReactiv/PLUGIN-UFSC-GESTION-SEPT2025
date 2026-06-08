@@ -20,6 +20,8 @@ class UFSC_Unified_Handlers {
         add_action( 'admin_post_nopriv_ufsc_update_licence', array( __CLASS__, 'handle_update_licence' ) );
         add_action( 'admin_post_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
         add_action( 'admin_post_nopriv_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
+        add_action( 'admin_post_ufsc_update_licence_weight', array( __CLASS__, 'handle_update_licence_weight' ) );
+        add_action( 'admin_post_nopriv_ufsc_update_licence_weight', array( __CLASS__, 'handle_update_licence_weight' ) );
 
         add_action( 'admin_post_ufsc_delete_licence', array( __CLASS__, 'handle_delete_licence' ) );
         add_action( 'admin_post_nopriv_ufsc_delete_licence', array( __CLASS__, 'handle_delete_licence' ) );
@@ -210,6 +212,98 @@ class UFSC_Unified_Handlers {
         );
         self::maybe_redirect( $redirect_url );
         return;
+    }
+
+    /**
+     * Handle a club front-office update limited to athlete weight and detected categories.
+     */
+    public static function handle_update_licence_weight() {
+        if ( ! current_user_can( 'read' ) ) {
+            wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        $licence_id = isset( $_POST['licence_id'] ) ? absint( wp_unslash( $_POST['licence_id'] ) ) : 0;
+        check_admin_referer( 'ufsc_update_licence_weight_' . $licence_id );
+
+        if ( ! is_user_logged_in() || ! $licence_id ) {
+            self::redirect_with_error( 'Paramètres invalides' );
+            return;
+        }
+
+        $user_id        = get_current_user_id();
+        $club_id        = function_exists( 'ufsc_get_user_club_id' ) ? (int) ufsc_get_user_club_id( $user_id ) : 0;
+        $can_manage_all = self::can_manage_all_clubs();
+        if ( $can_manage_all && $club_id <= 0 ) {
+            $club_id = self::resolve_licence_club_id( $licence_id );
+        }
+
+        if ( ! $club_id ) {
+            self::redirect_with_error( 'Aucun club associé à votre compte' );
+            return;
+        }
+
+        $licence = self::get_licence_row( $licence_id, $club_id );
+        if ( ! $licence ) {
+            self::redirect_with_error( 'Licence non trouvée' );
+            return;
+        }
+
+        if ( function_exists( 'ufsc_is_licence_locked_for_club' ) && ufsc_is_licence_locked_for_club( $licence ) ) {
+            self::redirect_with_error( 'Licence verrouillée' );
+            return;
+        }
+
+        global $wpdb;
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+        $columns        = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $licences_table ) : (array) $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
+
+        if ( ! in_array( 'poids', $columns, true ) || ! class_exists( 'UFSC_Category_Repository' ) ) {
+            self::redirect_with_error( 'La mise à jour du poids n’est pas disponible.' );
+            return;
+        }
+
+        $raw_weight = isset( $_POST['poids'] ) ? sanitize_text_field( wp_unslash( (string) $_POST['poids'] ) ) : '';
+        $weight     = UFSC_Category_Repository::normalize_weight( $raw_weight );
+        if ( null === $weight && '' !== trim( $raw_weight ) ) {
+            self::redirect_with_error( 'Poids invalide' );
+            return;
+        }
+
+        $update = array( 'poids' => $weight );
+        if ( null === $weight ) {
+            $update['poids'] = null;
+        }
+
+        $season  = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $licence ) : UFSC_Category_Repository::DEFAULT_SEASON;
+        $summary = UFSC_Category_Repository::detect_for_athlete(
+            array(
+                'date_naissance' => $licence->date_naissance ?? '',
+                'sexe'           => $licence->sexe ?? '',
+                'poids'          => $weight,
+            ),
+            UFSC_Category_Repository::DEFAULT_DISCIPLINE,
+            $season
+        );
+
+        if ( in_array( 'categorie_age_detectee', $columns, true ) ) {
+            $update['categorie_age_detectee'] = $summary['age_category_label'];
+        }
+        if ( in_array( 'categorie_poids_detectee', $columns, true ) ) {
+            $update['categorie_poids_detectee'] = $summary['weight_category_label'];
+        }
+        if ( in_array( 'categorie_updated_at', $columns, true ) ) {
+            $update['categorie_updated_at'] = current_time( 'mysql' );
+        }
+
+        $result = $wpdb->update( $licences_table, $update, array( 'id' => $licence_id, 'club_id' => $club_id ) );
+        if ( false === $result ) {
+            self::redirect_with_error( 'Mise à jour du poids impossible' );
+            return;
+        }
+
+        do_action( 'ufsc_licence_updated', (int) $club_id );
+        self::redirect_with_success( 'Poids mis à jour.' );
     }
 
     /**
@@ -1205,6 +1299,7 @@ class UFSC_Unified_Handlers {
             'ville' => 'sanitize_text_field',
             'code_postal' => 'sanitize_text_field',
             'sexe' => 'sanitize_text_field',
+            'poids' => 'sanitize_text_field',
             'role' => 'sanitize_text_field',
             'competition' => 'absint',
             'statut' => 'sanitize_text_field',
@@ -1266,6 +1361,17 @@ class UFSC_Unified_Handlers {
             $data['numero_licence'] = sanitize_text_field( $post_data['numero_licence'] );
         }
         
+        if ( array_key_exists( 'poids', $data ) && class_exists( 'UFSC_Category_Repository' ) ) {
+            $normalized_weight = UFSC_Category_Repository::normalize_weight( $data['poids'] );
+            if ( null === $normalized_weight && '' !== trim( (string) $data['poids'] ) ) {
+                $errors[] = __( 'Poids invalide', 'ufsc-clubs' );
+            } elseif ( null === $normalized_weight ) {
+                $data['poids'] = '';
+            } else {
+                $data['poids'] = $normalized_weight;
+            }
+        }
+
         if ( ! empty( $errors ) ) {
             return new WP_Error( 'validation_failed', implode( ', ', $errors ) );
         }
@@ -1365,6 +1471,8 @@ class UFSC_Unified_Handlers {
             }
             return true;
         };
+
+        $data = self::add_detected_category_fields( $data, $column_exists );
 
         if ( $licence_id > 0 ) {
             $data = self::enforce_server_managed_licence_fields( $data, $column_exists );
@@ -1565,6 +1673,38 @@ class UFSC_Unified_Handlers {
             if ( '0000-00-00' === $val || '0000-00-00 00:00:00' === $val ) {
                 $data[ $key ] = '';
             }
+        }
+
+        return $data;
+    }
+
+    private static function add_detected_category_fields( $data, $column_exists ) {
+        if ( ! class_exists( 'UFSC_Category_Repository' ) ) {
+            return $data;
+        }
+
+        $birthdate = $data['date_naissance'] ?? '';
+        $gender    = $data['sexe'] ?? '';
+        $weight    = $data['poids'] ?? '';
+        $season    = function_exists( 'ufsc_get_current_season_label' ) ? ufsc_get_current_season_label() : UFSC_Category_Repository::DEFAULT_SEASON;
+        $summary   = UFSC_Category_Repository::detect_for_athlete(
+            array(
+                'date_naissance' => $birthdate,
+                'sexe'           => $gender,
+                'poids'          => $weight,
+            ),
+            UFSC_Category_Repository::DEFAULT_DISCIPLINE,
+            $season
+        );
+
+        if ( $column_exists( 'categorie_age_detectee' ) ) {
+            $data['categorie_age_detectee'] = $summary['age_category_label'];
+        }
+        if ( $column_exists( 'categorie_poids_detectee' ) ) {
+            $data['categorie_poids_detectee'] = $summary['weight_category_label'];
+        }
+        if ( $column_exists( 'categorie_updated_at' ) ) {
+            $data['categorie_updated_at'] = current_time( 'mysql' );
         }
 
         return $data;

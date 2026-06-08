@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.2.0';
+    const MIGRATION_VERSION = '1.3.0';
 
     /**
      * Option key for tracking migration version
@@ -28,6 +28,7 @@ class UFSC_DB_Migrations {
             self::create_indexes();
             self::create_unique_constraints();
             self::ensure_licences_soft_delete_columns();
+            self::ensure_licences_category_columns();
             self::create_events_table();
             
             update_option( self::VERSION_OPTION, self::MIGRATION_VERSION );
@@ -60,6 +61,45 @@ class UFSC_DB_Migrations {
 
         if ( ! in_array( 'deleted_by', $columns, true ) ) {
             $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `deleted_by` bigint(20) unsigned NULL DEFAULT NULL" );
+        }
+    }
+
+    /**
+     * Ensure licences table can store optional athlete category data.
+     */
+    public static function ensure_licences_category_columns() {
+        global $wpdb;
+
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        if ( ! self::table_exists( $licences_table ) ) {
+            return;
+        }
+
+        $columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$licences_table}`", 0 );
+        if ( ! is_array( $columns ) ) {
+            return;
+        }
+
+        if ( ! in_array( 'poids', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `poids` decimal(5,2) NULL DEFAULT NULL" );
+        }
+
+        if ( ! in_array( 'categorie_age_detectee', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `categorie_age_detectee` varchar(100) NULL DEFAULT NULL" );
+        }
+
+        if ( ! in_array( 'categorie_poids_detectee', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `categorie_poids_detectee` varchar(50) NULL DEFAULT NULL" );
+        }
+
+        if ( ! in_array( 'categorie_updated_at', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `categorie_updated_at` datetime NULL DEFAULT NULL" );
+        }
+
+        if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) {
+            ufsc_flush_table_columns_cache();
         }
     }
 
