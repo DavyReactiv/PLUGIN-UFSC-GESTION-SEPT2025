@@ -5029,11 +5029,66 @@ class UFSC_SQL_Admin
 
         // Data rows
         foreach ($data as $row) {
+            if (is_array($row) && array_key_exists('date_naissance', $row)) {
+                $row['date_naissance'] = self::ufsc_format_birthdate_for_asptt_csv($row['date_naissance']);
+            }
+
             fputcsv($output, $row, ';');
         }
 
         fclose($output);
         exit;
+    }
+
+    /**
+     * Format a licence birthdate for the ASPTT CSV import.
+     *
+     * @param mixed $value Raw birthdate value from the export row.
+     * @return string Birthdate formatted as d/m/Y, or an empty string for empty/invalid values.
+     */
+    private static function ufsc_format_birthdate_for_asptt_csv($value)
+    {
+        if ($value === null || is_array($value) || is_object($value)) {
+            return '';
+        }
+
+        $value = trim((string) $value);
+        if ($value === '') {
+            return '';
+        }
+
+        $zero_dates = [
+            '0000-00-00',
+            '0000-00-00 00:00:00',
+            '0000/00/00',
+            '00/00/0000',
+        ];
+        if (in_array($value, $zero_dates, true)) {
+            return '';
+        }
+
+        $formats = [
+            'Y-m-d H:i:s' => '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/',
+            'Y-m-d'       => '/^\d{4}-\d{2}-\d{2}$/',
+            'Y/m/d'       => '/^\d{4}\/\d{2}\/\d{2}$/',
+            'd/m/Y'       => '/^\d{2}\/\d{2}\/\d{4}$/',
+        ];
+
+        foreach ($formats as $format => $pattern) {
+            if (! preg_match($pattern, $value)) {
+                continue;
+            }
+
+            $date = DateTimeImmutable::createFromFormat('!' . $format, $value);
+            $errors = DateTimeImmutable::getLastErrors();
+            $has_errors = is_array($errors) && ($errors['warning_count'] > 0 || $errors['error_count'] > 0);
+
+            if ($date instanceof DateTimeImmutable && ! $has_errors && (int) $date->format('Y') > 0) {
+                return $date->format('d/m/Y');
+            }
+        }
+
+        return '';
     }
 
     /**
