@@ -160,7 +160,7 @@ class UFSC_CL_Admin_Menu {
 		$t_clubs = isset( $opts['table_clubs'] ) ? $opts['table_clubs'] : 'clubs';
 		$t_lics  = isset( $opts['table_licences'] ) ? $opts['table_licences'] : 'licences';
 
-		echo '<div class="wrap">';
+		echo '<div class="wrap ufsc-admin-dashboard">';
 		if ( class_exists( 'UFSC_SQL_Admin' ) ) {
 			UFSC_SQL_Admin::render_admin_quick_nav();
 		}
@@ -258,7 +258,6 @@ class UFSC_CL_Admin_Menu {
 			echo '</div>';
 		}
 
-		echo '</div>';
 
 		// Licence creation KPIs
 		echo '<div class="ufsc-dashboard-card">';
@@ -307,6 +306,8 @@ class UFSC_CL_Admin_Menu {
 			echo '<div class="card-description">' . sprintf( esc_html__( 'Payées non validées: %d', 'ufsc-clubs' ), (int) $dashboard_data['alerts_paid_not_valid'] ) . '</div>';
 			echo '</div>';
 		}
+
+		echo '</div>';
 
 		// Regional breakdown chart
 		if ( ! empty( $dashboard_data['regions_data'] ) ) {
