@@ -587,11 +587,28 @@ function ufsc_handle_add_to_cart_secure() {
 		$can_manage_all = current_user_can( 'manage_options' );
 	}
 
-	// Woo required.
+	// Woo required. In admin-post contexts Woo front helpers may not always be loaded yet.
+	if ( class_exists( 'WooCommerce' ) && defined( 'WC_ABSPATH' ) ) {
+		if ( ! function_exists( 'wc_add_notice' ) && file_exists( WC_ABSPATH . 'includes/wc-notice-functions.php' ) ) {
+			include_once WC_ABSPATH . 'includes/wc-notice-functions.php';
+		}
+		if ( ! function_exists( 'wc_get_product' ) && file_exists( WC_ABSPATH . 'includes/wc-product-functions.php' ) ) {
+			include_once WC_ABSPATH . 'includes/wc-product-functions.php';
+		}
+	}
+
 	if ( ! function_exists( 'wc_add_notice' ) || ! function_exists( 'wc_get_product' ) ) {
-		$log_warning( 'ufsc_add_to_cart_woo_missing' );
+		$log_warning( 'ufsc_add_to_cart_woo_missing', array(
+			'woocommerce_class'        => class_exists( 'WooCommerce' ) ? 1 : 0,
+			'wc_abspath'               => defined( 'WC_ABSPATH' ) ? WC_ABSPATH : '',
+			'wc_add_notice_available'  => function_exists( 'wc_add_notice' ) ? 1 : 0,
+			'wc_get_product_available' => function_exists( 'wc_get_product' ) ? 1 : 0,
+			'posted_product_id'        => isset( $_POST['product_id'] ) ? absint( $_POST['product_id'] ) : 0,
+			'posted_ufsc_action'       => isset( $_POST['ufsc_action'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_action'] ) ) : '',
+			'posted_target_season'     => isset( $_POST['ufsc_target_season'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_target_season'] ) ) : '',
+		) );
 		$redirect = wp_get_referer() ? wp_get_referer() : home_url();
-		wp_safe_redirect( add_query_arg( 'ufsc_error', __( 'Le renouvellement en ligne est temporairement indisponible.', 'ufsc-clubs' ), $redirect ) );
+		wp_safe_redirect( add_query_arg( 'ufsc_error', __( 'Le renouvellement en ligne est temporairement indisponible. Merci de contacter l’UFSC.', 'ufsc-clubs' ), $redirect ) );
 		exit;
 	}
 
@@ -625,8 +642,27 @@ function ufsc_handle_add_to_cart_secure() {
 
 	$product = wc_get_product( $product_id );
 	if ( ! $product || ! $product->exists() ) {
-		$log_warning( 'ufsc_add_to_cart_product_invalid', array( 'product_id' => $product_id ) );
-		wc_add_notice( __( 'Produit non trouvé', 'ufsc-clubs' ), 'error' );
+		$posted_ufsc_action = isset( $_POST['ufsc_action'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_action'] ) ) : '';
+		$expected_product_id = 0;
+		if ( 'renew_licence' === $posted_ufsc_action ) {
+			$expected_product_id = function_exists( 'ufsc_get_licence_product_id' ) ? ufsc_get_licence_product_id() : 0;
+		} elseif ( 'renew_affiliation' === $posted_ufsc_action ) {
+			$expected_product_id = function_exists( 'ufsc_get_affiliation_product_id' ) ? ufsc_get_affiliation_product_id() : 0;
+		}
+		$product_diagnostic = function_exists( 'ufsc_get_woocommerce_product_diagnostic' ) ? ufsc_get_woocommerce_product_diagnostic( $expected_product_id ) : array();
+		$log_warning( 'ufsc_add_to_cart_product_invalid', array(
+			'product_id'          => $product_id,
+			'ufsc_action'         => $posted_ufsc_action,
+			'expected_product_id' => absint( $expected_product_id ),
+			'woocommerce_active'  => ! empty( $product_diagnostic['woocommerce_active'] ) ? 1 : 0,
+			'product_found'       => ! empty( $product_diagnostic['product_found'] ) ? 1 : 0,
+			'product_purchasable' => ! empty( $product_diagnostic['product_purchasable'] ) ? 1 : 0,
+		) );
+		if ( in_array( $posted_ufsc_action, array( 'renew_licence', 'renew_affiliation' ), true ) ) {
+			wc_add_notice( current_user_can( 'manage_options' ) ? __( 'Produit WooCommerce d’affiliation non configuré ou indisponible. Merci de renseigner le produit dans les paramètres UFSC WooCommerce.', 'ufsc-clubs' ) : __( 'Le renouvellement en ligne est temporairement indisponible. Merci de contacter l’UFSC.', 'ufsc-clubs' ), 'error' );
+		} else {
+			wc_add_notice( __( 'Produit non trouvé', 'ufsc-clubs' ), 'error' );
+		}
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;
 	}
@@ -725,8 +761,24 @@ function ufsc_handle_add_to_cart_secure() {
 		$expected_product_id = ( 'renew_licence' === $ufsc_action )
 			? ( function_exists( 'ufsc_get_licence_product_id' ) ? ufsc_get_licence_product_id() : 0 )
 			: ( function_exists( 'ufsc_get_affiliation_product_id' ) ? ufsc_get_affiliation_product_id() : 0 );
-		if ( $expected_product_id <= 0 || absint( $product_id ) !== absint( $expected_product_id ) ) {
-			wc_add_notice( __( 'Produit WooCommerce de renouvellement non configuré.', 'ufsc-clubs' ), 'error' );
+		$product_diagnostic = function_exists( 'ufsc_get_woocommerce_product_diagnostic' ) ? ufsc_get_woocommerce_product_diagnostic( $expected_product_id ) : array();
+		if ( $expected_product_id <= 0 || absint( $product_id ) !== absint( $expected_product_id ) || ( function_exists( 'ufsc_is_woocommerce_product_available' ) && ! ufsc_is_woocommerce_product_available( $expected_product_id ) ) ) {
+			$log_warning( 'ufsc_add_to_cart_renewal_product_unavailable', array(
+				'ufsc_action'            => $ufsc_action,
+				'club_id'                => $club_id,
+				'target_season'          => $target_season,
+				'received_product_id'    => absint( $product_id ),
+				'expected_product_id'    => absint( $expected_product_id ),
+				'woocommerce_active'     => ! empty( $product_diagnostic['woocommerce_active'] ) ? 1 : 0,
+				'product_found'          => ! empty( $product_diagnostic['product_found'] ) ? 1 : 0,
+				'product_status'         => isset( $product_diagnostic['product_status'] ) ? (string) $product_diagnostic['product_status'] : '',
+				'product_purchasable'    => ! empty( $product_diagnostic['product_purchasable'] ) ? 1 : 0,
+			) );
+			if ( current_user_can( 'manage_options' ) ) {
+				wc_add_notice( __( 'Produit WooCommerce d’affiliation non configuré ou indisponible. Merci de renseigner le produit dans les paramètres UFSC WooCommerce.', 'ufsc-clubs' ), 'error' );
+			} else {
+				wc_add_notice( __( 'Le renouvellement en ligne est temporairement indisponible. Merci de contacter l’UFSC.', 'ufsc-clubs' ), 'error' );
+			}
 			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 			exit;
 		}

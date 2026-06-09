@@ -108,6 +108,9 @@ class UFSC_CL_Club_Metaboxes {
         $renewed = function_exists( 'ufsc_is_club_affiliated_for_season' ) ? ufsc_is_club_affiliated_for_season( $club_id, $renewal_affiliation_season ) : false;
 
         $wc_settings = function_exists( 'ufsc_get_woocommerce_settings' ) ? ufsc_get_woocommerce_settings() : array();
+        $affiliation_product_id = function_exists( 'ufsc_get_affiliation_product_id' ) ? ufsc_get_affiliation_product_id() : (int) ( $wc_settings['product_affiliation_id'] ?? 0 );
+        $affiliation_product_diagnostic = function_exists( 'ufsc_get_woocommerce_product_diagnostic' ) ? ufsc_get_woocommerce_product_diagnostic( $affiliation_product_id ) : array();
+        $affiliation_product_available = function_exists( 'ufsc_is_woocommerce_product_available' ) ? ufsc_is_woocommerce_product_available( $affiliation_product_id ) : ( $affiliation_product_id > 0 );
 
         // Pretty label for renewal opening date (dynamic if helper exists)
         $renew_start_ts   = function_exists( 'ufsc_get_renewal_window_start_ts' ) ? (int) ufsc_get_renewal_window_start_ts() : 0;
@@ -117,11 +120,11 @@ class UFSC_CL_Club_Metaboxes {
         echo '<p><strong>' . esc_html__( 'Affiliation :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $aff_season ? $aff_season : __( 'Non définie', 'ufsc-clubs' ) ) . '</p>';
 
         // Button: renew affiliation (only if window open, not renewed, and club not already on next season)
-        if ( ! $renewed && $aff_season !== $renewal_affiliation_season && ! empty( $wc_settings['product_affiliation_id'] ) ) {
+        if ( ! $renewed && $aff_season !== $renewal_affiliation_season && $affiliation_product_available ) {
             echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
             wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' );
             echo '<input type="hidden" name="action" value="ufsc_add_to_cart">';
-            echo '<input type="hidden" name="product_id" value="' . esc_attr( (int) $wc_settings['product_affiliation_id'] ) . '">';
+            echo '<input type="hidden" name="product_id" value="' . esc_attr( $affiliation_product_id ) . '">';
             echo '<input type="hidden" name="ufsc_club_id" value="' . esc_attr( $club_id ) . '">';
             echo '<input type="hidden" name="ufsc_action" value="renew_affiliation">';
             echo '<input type="hidden" name="ufsc_target_season" value="' . esc_attr( $renewal_affiliation_season ) . '">';
@@ -130,6 +133,9 @@ class UFSC_CL_Club_Metaboxes {
         } elseif ( ! $renew_open ) {
             // Info message: renewal not open yet (show real date if calculated)
             echo '<p>' . esc_html( sprintf( __( 'Renouvellement %1$s ouvert à partir du %2$s', 'ufsc-clubs' ), $renewal_affiliation_season, $renew_open_label ) ) . '</p>';
+        } elseif ( ! $renewed && $aff_season !== $renewal_affiliation_season ) {
+            echo '<p>' . esc_html__( 'Produit WooCommerce d’affiliation non configuré ou indisponible. Merci de renseigner le produit dans les paramètres UFSC WooCommerce.', 'ufsc-clubs' ) . '</p>';
+            echo '<p><small>' . esc_html( sprintf( __( 'Diagnostic : WooCommerce actif : %1$s. Produit attendu : %2$d. Produit trouvé : %3$s. Produit achetable : %4$s. Saison cible : %5$s.', 'ufsc-clubs' ), ! empty( $affiliation_product_diagnostic['woocommerce_active'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ), absint( $affiliation_product_id ), ! empty( $affiliation_product_diagnostic['product_found'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ), ! empty( $affiliation_product_diagnostic['product_purchasable'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ), $renewal_affiliation_season ) ) . '</small></p>';
         }
     }
 

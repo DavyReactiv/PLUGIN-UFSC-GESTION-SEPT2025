@@ -147,6 +147,8 @@ class UFSC_Frontend_Shortcodes {
         $current_affiliation_done = function_exists( 'ufsc_is_club_affiliated_for_season' ) ? ufsc_is_club_affiliated_for_season( $club_id, $current_season ) : ( $affiliation_season === $current_season );
         $renewal_affiliation_done = ( $renewal_affiliation_season && function_exists( 'ufsc_is_club_affiliated_for_season' ) ) ? ufsc_is_club_affiliated_for_season( $club_id, $renewal_affiliation_season ) : false;
         $affiliation_product_id = function_exists( 'ufsc_get_affiliation_product_id' ) ? ufsc_get_affiliation_product_id() : (int) ( $wc_settings['product_affiliation_id'] ?? 0 );
+        $affiliation_product_diagnostic = function_exists( 'ufsc_get_woocommerce_product_diagnostic' ) ? ufsc_get_woocommerce_product_diagnostic( $affiliation_product_id ) : array();
+        $affiliation_product_available = function_exists( 'ufsc_is_woocommerce_product_available' ) ? ufsc_is_woocommerce_product_available( $affiliation_product_id ) : ( $affiliation_product_id > 0 );
 
         ob_start();
         ?>
@@ -261,7 +263,7 @@ class UFSC_Frontend_Shortcodes {
                         <?php endif; ?>
                         <?php if ( $renewal_affiliation_done ) : ?>
                             <span class="ufsc-badge ufsc-badge-success"><?php echo esc_html( sprintf( __( 'Affiliation %s déjà renouvelée', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></span>
-                        <?php elseif ( $affiliation_product_id && $renewal_affiliation_season ) : ?>
+                        <?php elseif ( $affiliation_product_available && $renewal_affiliation_season ) : ?>
                             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-season-renew-form">
                                 <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
                                 <input type="hidden" name="action" value="ufsc_add_to_cart">
@@ -272,7 +274,12 @@ class UFSC_Frontend_Shortcodes {
                                 <button type="submit" class="ufsc-btn ufsc-btn-primary"><?php echo esc_html( sprintf( __( 'Renouveler mon affiliation pour la saison %s', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></button>
                             </form>
                         <?php else : ?>
-                            <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Produit WooCommerce affiliation non configuré.', 'ufsc-clubs' ); ?></span>
+                            <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Le renouvellement en ligne est temporairement indisponible. Merci de contacter l’UFSC.', 'ufsc-clubs' ); ?></span>
+                            <?php if ( current_user_can( 'manage_options' ) ) : ?>
+                                <small class="ufsc-admin-help">
+                                    <?php echo esc_html( sprintf( __( 'Produit WooCommerce d’affiliation non configuré ou indisponible. WooCommerce actif : %1$s. Produit attendu : %2$d. Produit trouvé : %3$s. Produit achetable : %4$s. Saison cible : %5$s. Merci de renseigner le produit dans les paramètres UFSC WooCommerce.', 'ufsc-clubs' ), ! empty( $affiliation_product_diagnostic['woocommerce_active'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ), absint( $affiliation_product_id ), ! empty( $affiliation_product_diagnostic['product_found'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ), ! empty( $affiliation_product_diagnostic['product_purchasable'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?>
+                                </small>
+                            <?php endif; ?>
                         <?php endif; ?>
                     </div>
                     <div class="ufsc-dashboard-nav">
