@@ -672,6 +672,12 @@ class UFSC_SQL_Admin
      * @return string
      */
     private static function get_admin_current_season_label() {
+        if ( class_exists( 'UFSC_Season_Service' ) ) {
+            return (string) UFSC_Season_Service::get_current_season();
+        }
+        if ( function_exists( 'ufsc_get_current_season' ) ) {
+            return (string) ufsc_get_current_season();
+        }
         if ( function_exists( 'ufsc_get_admin_current_season_label' ) ) {
             return (string) ufsc_get_admin_current_season_label();
         }
@@ -693,6 +699,197 @@ class UFSC_SQL_Admin
         }
 
         return array_intersect_key($data, array_flip($columns));
+    }
+
+    /**
+     * Add system-detected category fields during admin licence saves.
+     *
+     * @param string $table Licence table.
+     * @param string $pk Primary key column.
+     * @param array  $data Sanitized pending data.
+     * @param int    $id Existing licence ID, or 0 for creation.
+     * @return array
+     */
+    private static function add_detected_category_fields_for_admin_save( $table, $pk, $data, $id ) {
+        if ( ! class_exists( 'UFSC_Category_Repository' ) || ! is_array( $data ) ) {
+            return $data;
+        }
+
+        $trigger_fields = array( 'poids', 'date_naissance', 'sexe' );
+        if ( $id && empty( array_intersect( $trigger_fields, array_keys( $data ) ) ) ) {
+            return $data;
+        }
+
+        $columns = self::get_table_columns( $table );
+        if ( empty( $columns ) ) {
+            return $data;
+        }
+
+        global $wpdb;
+        $existing = null;
+        if ( $id ) {
+            $existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE `{$pk}` = %d", (int) $id ) );
+        }
+
+        $birthdate = array_key_exists( 'date_naissance', $data ) ? $data['date_naissance'] : self::get_row_field_value( $existing, 'date_naissance' );
+        $gender    = array_key_exists( 'sexe', $data ) ? $data['sexe'] : self::get_row_field_value( $existing, 'sexe' );
+        $weight    = array_key_exists( 'poids', $data ) ? $data['poids'] : self::get_row_field_value( $existing, 'poids' );
+        $season    = class_exists( 'UFSC_Category_Repository' ) ? UFSC_Category_Repository::DEFAULT_SEASON : '';
+        if ( function_exists( 'ufsc_get_licence_season_label' ) && $existing ) {
+            $existing_season = ufsc_get_licence_season_label( $existing );
+            if ( is_string( $existing_season ) && '' !== trim( $existing_season ) ) {
+                $season = $existing_season;
+            }
+        } elseif ( function_exists( 'ufsc_get_current_season_label' ) ) {
+            $current_season = ufsc_get_current_season_label();
+            if ( is_string( $current_season ) && '' !== trim( $current_season ) ) {
+                $season = $current_season;
+            }
+        }
+
+        $summary = UFSC_Category_Repository::detect_for_athlete(
+            array(
+                'date_naissance' => $birthdate,
+                'sexe'           => $gender,
+                'poids'          => $weight,
+            ),
+            UFSC_Category_Repository::DEFAULT_DISCIPLINE,
+            $season
+        );
+
+        if ( in_array( 'categorie_age_detectee', $columns, true ) ) {
+            $data['categorie_age_detectee'] = $summary['age_category_label'];
+        }
+        if ( in_array( 'categorie_poids_detectee', $columns, true ) ) {
+            $data['categorie_poids_detectee'] = $summary['weight_category_label'];
+        }
+        if ( in_array( 'categorie_updated_at', $columns, true ) ) {
+            $data['categorie_updated_at'] = current_time( 'mysql' );
+        }
+
+        return $data;
+    }
+
+
+    /**
+     * Build a display-ready category detection summary for admin screens.
+     *
+     * @param object|array|null $licence Licence row.
+     * @param string            $season  Season label.
+     * @return array<string,string>
+     */
+    private static function get_admin_category_detection_summary( $licence, $season = '' ) {
+        $stored_age    = trim( (string) self::get_row_field_value( $licence, 'categorie_age_detectee' ) );
+        $stored_weight = trim( (string) self::get_row_field_value( $licence, 'categorie_poids_detectee' ) );
+        $birthdate     = trim( (string) self::get_row_field_value( $licence, 'date_naissance' ) );
+        $gender        = trim( (string) self::get_row_field_value( $licence, 'sexe' ) );
+        $weight        = trim( (string) self::get_row_field_value( $licence, 'poids' ) );
+        $season        = trim( (string) $season );
+
+        $summary = array(
+            'age_label'     => $stored_age,
+            'weight_label'  => $stored_weight,
+            'status'        => 'service_unavailable',
+            'status_label'  => __( 'Catégorie non détectée', 'ufsc-clubs' ),
+            'row_label'     => __( 'Catégorie non détectée', 'ufsc-clubs' ),
+            'birthdate'     => $birthdate,
+            'gender'        => $gender,
+            'weight'        => $weight,
+            'season'        => $season ?: '2025-2026',
+            'discipline'    => 'Kickboxing / Tatami / Assaut',
+            'updated_at'    => trim( (string) self::get_row_field_value( $licence, 'categorie_updated_at' ) ),
+        );
+
+        if ( class_exists( 'UFSC_Category_Repository' ) ) {
+            $detected = UFSC_Category_Repository::detect_for_athlete(
+                $licence,
+                UFSC_Category_Repository::DEFAULT_DISCIPLINE,
+                $season ?: UFSC_Category_Repository::DEFAULT_SEASON
+            );
+
+            $summary['age_label']    = $detected['age_category_label'] ?: $stored_age;
+            $summary['weight_label'] = $detected['weight_category_label'] ?: $stored_weight;
+            $summary['status']       = (string) $detected['status'];
+            $summary['birthdate']    = (string) $detected['birthdate'];
+            $summary['gender']       = (string) $detected['normalized_gender'];
+            $summary['weight']       = '' !== (string) $detected['weight'] ? (string) $detected['weight'] : $weight;
+            $summary['season']       = str_replace( '/', '-', (string) $detected['season'] );
+        }
+
+        switch ( $summary['status'] ) {
+            case 'ok':
+                $summary['status_label'] = __( 'Catégorie détectée automatiquement', 'ufsc-clubs' );
+                break;
+            case 'missing_weight':
+                $summary['status_label'] = __( 'Renseigner le poids pour détecter la catégorie de poids', 'ufsc-clubs' );
+                break;
+            case 'invalid_birthdate':
+                $summary['status_label'] = __( 'Date de naissance invalide', 'ufsc-clubs' );
+                break;
+            case 'invalid_gender':
+                $summary['status_label'] = __( 'Sexe non renseigné ou invalide', 'ufsc-clubs' );
+                break;
+            default:
+                $summary['status_label'] = __( 'Catégorie non détectée', 'ufsc-clubs' );
+                break;
+        }
+
+        $age_label = '' !== $summary['age_label'] ? $summary['age_label'] : __( 'Catégorie non détectée', 'ufsc-clubs' );
+        if ( 'invalid_birthdate' === $summary['status'] ) {
+            $summary['row_label'] = '' === trim( (string) $summary['birthdate'] ) ? __( 'Catégorie non détectée', 'ufsc-clubs' ) : __( 'Date de naissance invalide', 'ufsc-clubs' );
+        } elseif ( 'invalid_gender' === $summary['status'] ) {
+            $summary['row_label'] = '' === trim( (string) $summary['gender'] ) ? __( 'Sexe non renseigné', 'ufsc-clubs' ) : __( 'Catégorie non détectée', 'ufsc-clubs' );
+        } elseif ( 'missing_weight' === $summary['status'] ) {
+            $summary['row_label'] = $age_label . ' — ' . __( 'Poids manquant', 'ufsc-clubs' );
+        } elseif ( '' !== $summary['weight_label'] ) {
+            $summary['row_label'] = $age_label . ' — ' . $summary['weight_label'];
+        } else {
+            $summary['row_label'] = $age_label . ' — ' . __( 'Catégorie de poids non détectée', 'ufsc-clubs' );
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Render read-only detected sport categories on the admin licence detail page.
+     *
+     * @param object|null $row Licence row.
+     * @return void
+     */
+    private static function render_detected_categories_admin_panel( $row ) {
+        $season  = self::get_licence_row_season_label( $row );
+        $summary = self::get_admin_category_detection_summary( $row, $season );
+        $weight_display = '' !== trim( (string) $summary['weight'] ) ? $summary['weight'] . ' kg' : __( 'Non renseigné', 'ufsc-clubs' );
+        $age_display    = '' !== trim( (string) $summary['age_label'] ) ? $summary['age_label'] : __( 'Non détectée', 'ufsc-clubs' );
+        $weight_cat     = '' !== trim( (string) $summary['weight_label'] ) ? $summary['weight_label'] : ( 'missing_weight' === $summary['status'] ? __( 'Poids manquant', 'ufsc-clubs' ) : __( 'Non détectée', 'ufsc-clubs' ) );
+
+        echo '<section class="ufsc-card ufsc-admin-section ufsc-detected-categories">';
+        echo '<h2>' . esc_html__( 'Catégories sportives détectées', 'ufsc-clubs' ) . '</h2>';
+        echo '<p class="description">' . esc_html__( 'Lecture seule : ces catégories sont calculées automatiquement à partir de la date de naissance, du sexe et du poids.', 'ufsc-clubs' ) . '</p>';
+        echo '<table class="form-table" role="presentation"><tbody>';
+        $rows = array(
+            __( 'Saison', 'ufsc-clubs' )                      => $summary['season'],
+            __( 'Discipline', 'ufsc-clubs' )                  => $summary['discipline'],
+            __( 'Date de naissance utilisée', 'ufsc-clubs' )  => $summary['birthdate'] ?: __( 'Non renseignée', 'ufsc-clubs' ),
+            __( 'Sexe utilisé', 'ufsc-clubs' )                => $summary['gender'] ?: __( 'Non renseigné', 'ufsc-clubs' ),
+            __( 'Poids actuel', 'ufsc-clubs' )                => $weight_display,
+            __( 'Catégorie d’âge détectée', 'ufsc-clubs' )    => $age_display,
+            __( 'Catégorie de poids détectée', 'ufsc-clubs' ) => $weight_cat,
+            __( 'Statut de détection', 'ufsc-clubs' )         => $summary['status_label'],
+        );
+        foreach ( $rows as $label => $value ) {
+            echo '<tr><th scope="row">' . esc_html( $label ) . '</th><td>' . esc_html( $value ) . '</td></tr>';
+        }
+        echo '</tbody></table>';
+
+        $settings = UFSC_SQL::get_settings();
+        $columns  = self::get_table_columns( $settings['table_licences'] );
+        $missing  = array_diff( array( 'poids', 'categorie_age_detectee', 'categorie_poids_detectee', 'categorie_updated_at' ), $columns );
+        if ( ! empty( $missing ) && current_user_can( 'manage_options' ) ) {
+            echo '<p class="description"><strong>' . esc_html__( 'Diagnostic admin :', 'ufsc-clubs' ) . '</strong> ' . esc_html( sprintf( __( 'Colonnes optionnelles absentes : %s', 'ufsc-clubs' ), implode( ', ', $missing ) ) ) . '</p>';
+        }
+
+        echo '</section>';
     }
     /**
      * Generate status badge with colored dot
@@ -2727,6 +2924,7 @@ class UFSC_SQL_Admin
             'filter_status'     => isset( $input['filter_status'] ) ? sanitize_text_field( wp_unslash( $input['filter_status'] ) ) : '',
             'filter_payment'    => isset( $input['filter_payment'] ) ? sanitize_key( wp_unslash( $input['filter_payment'] ) ) : '',
             'filter_duplicate'  => isset( $input['filter_duplicate'] ) ? sanitize_key( wp_unslash( $input['filter_duplicate'] ) ) : '',
+            'filter_season'     => ( isset( $input['filter_season'] ) && ! is_array( $input['filter_season'] ) ) ? sanitize_text_field( wp_unslash( $input['filter_season'] ) ) : 'all',
             'filter_visibility' => isset( $input['filter_visibility'] ) ? sanitize_key( wp_unslash( $input['filter_visibility'] ) ) : 'active',
         );
     }
@@ -2740,6 +2938,7 @@ class UFSC_SQL_Admin
         $filter_status = $filters['filter_status'];
         $filter_payment = $filters['filter_payment'];
         $filter_duplicate = $filters['filter_duplicate'];
+        $filter_season = isset( $filters['filter_season'] ) ? sanitize_text_field( (string) $filters['filter_season'] ) : '__current';
 
         if (! empty($search)) {
             $search_like   = '%' . $wpdb->esc_like($search) . '%';
@@ -2779,6 +2978,42 @@ class UFSC_SQL_Admin
         }
         if ( $scope_condition ) {
             $where_conditions[] = $scope_condition;
+        }
+
+
+        if ( 'all' !== $filter_season ) {
+            $season_column = self::get_first_existing_column( $licence_columns, array( 'paid_season', 'season', 'saison', 'season_end_year' ) );
+            if ( '' !== $season_column ) {
+                $current_season = self::get_admin_current_season_label();
+                $target_season  = '';
+                if ( '__current' === $filter_season || '' === $filter_season ) {
+                    $target_season = $current_season;
+                } elseif ( '__archives' !== $filter_season ) {
+                    $target_season = $filter_season;
+                }
+
+                if ( 'season_end_year' === $season_column ) {
+                    $current_end_year = self::get_season_end_year_from_label( $current_season );
+                    $target_end_year  = self::get_season_end_year_from_label( $target_season );
+                    if ( '__archives' === $filter_season && $current_end_year > 0 ) {
+                        $where_conditions[] = $wpdb->prepare( "COALESCE(l.season_end_year, 0) > 0 AND l.season_end_year <> %d", $current_end_year );
+                    } elseif ( $target_end_year > 0 ) {
+                        if ( '__current' === $filter_season || '' === $filter_season ) {
+                            $where_conditions[] = $wpdb->prepare( "(COALESCE(l.season_end_year, 0) = 0 OR l.season_end_year = %d)", $target_end_year );
+                        } else {
+                            $where_conditions[] = $wpdb->prepare( "l.season_end_year = %d", $target_end_year );
+                        }
+                    }
+                } elseif ( '__archives' === $filter_season && '' !== $current_season ) {
+                    $where_conditions[] = $wpdb->prepare( "COALESCE(NULLIF(l.{$season_column}, ''), '') <> '' AND l.{$season_column} <> %s", $current_season );
+                } elseif ( '' !== $target_season ) {
+                    if ( '__current' === $filter_season || '' === $filter_season ) {
+                        $where_conditions[] = $wpdb->prepare( "(COALESCE(NULLIF(l.{$season_column}, ''), '') = '' OR l.{$season_column} = %s)", $target_season );
+                    } else {
+                        $where_conditions[] = $wpdb->prepare( "l.{$season_column} = %s", $target_season );
+                    }
+                }
+            }
         }
 
         if (! empty($filter_club) && $has_club_id) {
@@ -2856,6 +3091,38 @@ class UFSC_SQL_Admin
         }
 
         return $where_conditions;
+    }
+
+    /**
+     * Return the first existing column from a preferred list.
+     *
+     * @param string[] $columns Existing table columns.
+     * @param string[] $candidates Candidate column names.
+     * @return string
+     */
+    private static function get_first_existing_column( array $columns, array $candidates ) {
+        foreach ( $candidates as $candidate ) {
+            if ( in_array( $candidate, $columns, true ) ) {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Extract the end year from a season label such as 2026-2027.
+     *
+     * @param string $season Season label.
+     * @return int
+     */
+    private static function get_season_end_year_from_label( $season ) {
+        $season = trim( str_replace( '/', '-', (string) $season ) );
+        if ( ! preg_match( '/^\d{4}-(\d{4})$/', $season, $matches ) ) {
+            return 0;
+        }
+
+        return absint( $matches[1] );
     }
 
     /**
@@ -3008,12 +3275,16 @@ class UFSC_SQL_Admin
 
         // Handle search and filters
         $filters       = self::get_licence_filters_from_request( 'get' );
+        if ( ! isset( $_GET['filter_season'] ) ) {
+            $filters['filter_season'] = '__current';
+        }
         $search        = $filters['search'];
         $filter_region = $filters['filter_region'];
         $filter_club   = $filters['filter_club'];
         $filter_status = $filters['filter_status'];
         $filter_payment = $filters['filter_payment'];
         $filter_duplicate = $filters['filter_duplicate'];
+        $filter_season = isset( $filters['filter_season'] ) ? sanitize_text_field( (string) $filters['filter_season'] ) : '__current';
         $filter_visibility = in_array( $filters['filter_visibility'], array( 'active', 'trash', 'all' ), true ) ? $filters['filter_visibility'] : 'active';
         $scope_slug    = UFSC_Scope::get_user_scope_region();
         $scope_label   = $scope_slug ? UFSC_Scope::get_region_label( $scope_slug ) : '';
@@ -3048,6 +3319,11 @@ class UFSC_SQL_Admin
             self::build_select_column('l', 'prenom', $licence_columns),
             self::build_select_column('l', 'nom', $licence_columns),
             self::build_select_column('l', 'date_naissance', $licence_columns),
+            self::build_select_column('l', 'sexe', $licence_columns),
+            self::build_select_column('l', 'poids', $licence_columns),
+            self::build_select_column('l', 'categorie_age_detectee', $licence_columns),
+            self::build_select_column('l', 'categorie_poids_detectee', $licence_columns),
+            self::build_select_column('l', 'categorie_updated_at', $licence_columns),
             self::build_select_column('l', 'club_id', $licence_columns),
             ( $join_sql && in_array( 'region', $club_columns, true ) )
 	? (
@@ -3246,7 +3522,7 @@ class UFSC_SQL_Admin
             echo '<input type="hidden" name="ufsc_debug_ids" value="1" />';
         }
 
-        echo '<div class="ufsc-admin-grid" style="display: grid; grid-template-columns: 1fr 200px 200px 180px 170px 170px 160px auto; gap: 10px; align-items: end;">';
+        echo '<div class="ufsc-admin-grid" style="display: grid; grid-template-columns: 1fr 200px 200px 180px 170px 170px 170px 160px auto; gap: 10px; align-items: end;">';
 
         // Search
         echo '<div>';
@@ -3292,6 +3568,21 @@ class UFSC_SQL_Admin
         echo '</select>';
         echo '</div>';
 
+
+        // Season filter.
+        echo '<div>';
+        echo '<label for="filter_season"><strong>' . esc_html__('Saison', 'ufsc-clubs') . '</strong></label>';
+        echo '<select name="filter_season" id="filter_season">';
+        echo '<option value="__current"' . selected( $filter_season, '__current', false ) . '>' . esc_html__( 'Saison active', 'ufsc-clubs' ) . '</option>';
+        echo '<option value="all"' . selected( $filter_season, 'all', false ) . '>' . esc_html__( 'Toutes les saisons', 'ufsc-clubs' ) . '</option>';
+        echo '<option value="__archives"' . selected( $filter_season, '__archives', false ) . '>' . esc_html__( 'Archives uniquement', 'ufsc-clubs' ) . '</option>';
+        $available_seasons = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_available_seasons() : array( self::get_admin_current_season_label() );
+        foreach ( array_unique( array_filter( array_map( 'sanitize_text_field', (array) $available_seasons ) ) ) as $season_option ) {
+            echo '<option value="' . esc_attr( $season_option ) . '" ' . selected( $filter_season, $season_option, false ) . '>' . esc_html( $season_option ) . '</option>';
+        }
+        echo '</select>';
+        echo '</div>';
+
         // Payment filter
         echo '<div>';
         echo '<label for="filter_payment"><strong>' . esc_html__('Paiement', 'ufsc-clubs') . '</strong></label>';
@@ -3324,7 +3615,7 @@ class UFSC_SQL_Admin
         // Filter button
         echo '<div>';
         echo '<button type="submit" class="button">' . esc_html__('Filtrer', 'ufsc-clubs') . '</button>';
-        if (! empty($search) || ! empty($filter_region) || ! empty($filter_club) || ! empty($filter_status) || ! empty( $filter_payment ) || ! empty( $filter_duplicate ) || 'active' !== $filter_visibility) {
+        if (! empty($search) || ! empty($filter_region) || ! empty($filter_club) || ! empty($filter_status) || ! empty( $filter_payment ) || ! empty( $filter_duplicate ) || '__current' !== $filter_season || 'active' !== $filter_visibility) {
             echo ' <a href="' . $licences_page_url . '" class="button">' . esc_html__('Effacer', 'ufsc-clubs') . '</a>';
         }
         echo '</div>';
@@ -3337,6 +3628,7 @@ class UFSC_SQL_Admin
             echo '<form method="post" id="bulk-actions-form">';
             echo '<input type="hidden" name="page" value="' . esc_attr( $licences_page_slug ) . '" />';
             echo '<input type="hidden" name="filter_visibility" value="' . esc_attr( $filter_visibility ) . '" />';
+            echo '<input type="hidden" name="filter_season" value="' . esc_attr( $filter_season ) . '" />';
             echo '<input type="hidden" name="return_to" value="' . esc_url( self::build_licences_redirect_url() ) . '" />';
             // Bulk actions
             echo '<div class="ufsc-bulk-actions" style="margin: 15px 0;">';
@@ -3433,7 +3725,8 @@ class UFSC_SQL_Admin
 
                 echo '</td>';
                 echo '<td>' . esc_html( $season_label ? $season_label : '—' ) . '</td>';
-                echo '<td>' . esc_html( isset( $r->categorie_resolved ) && '' !== trim( (string) $r->categorie_resolved ) ? (string) $r->categorie_resolved : '—' ) . '</td>';
+                $category_summary = self::get_admin_category_detection_summary( $r, $season_label );
+                echo '<td><span class="ufsc-badge ufsc-badge-neutral">' . esc_html( $category_summary['row_label'] ) . '</span></td>';
                 echo '<td>' . esc_html($r->date_creation ?: '') . '</td>';
                 echo '<td class="column-actions">';
                 echo '<div class="ufsc-button-group">';
@@ -3726,7 +4019,7 @@ class UFSC_SQL_Admin
             array( 'Identité', '', array( 'nom', 'prenom', 'sexe', 'date_naissance', 'profession' ) ),
             array( 'Coordonnées', '', array( 'adresse', 'suite_adresse', 'code_postal', 'ville', 'email', 'tel_fixe', 'tel_mobile' ) ),
             array( 'Rattachement club', '', array( 'club_id', 'region', 'responsable_id', 'note' ) ),
-            array( 'Informations fédérales et sportives', '', array( 'competition', 'licence_delegataire', 'numero_licence_delegataire', 'infos_fsasptt', 'infos_asptt', 'infos_cr', 'infos_partenaires' ) ),
+            array( 'Informations fédérales et sportives', '', array( 'competition', 'poids', 'licence_delegataire', 'numero_licence_delegataire', 'infos_fsasptt', 'infos_asptt', 'infos_cr', 'infos_partenaires' ) ),
             array( 'Assurances, autorisations et réductions', '', array( 'assurance_dommage_corporel', 'assurance_assistance', 'honorabilite', 'diffusion_image', 'reduction_benevole', 'reduction_benevole_num', 'reduction_postier', 'reduction_postier_num', 'identifiant_laposte_flag', 'identifiant_laposte' ) ),
             array( 'Paiement et statut', '', array( 'statut', 'date_inscription' ) ),
             array( 'Documents', '', array( 'certificat_date', 'certificat_url' ) ),
@@ -3741,9 +4034,11 @@ class UFSC_SQL_Admin
             $rendered_keys = array_merge( $rendered_keys, $keys );
         }
 
+        self::render_detected_categories_admin_panel( $row );
+
         $remaining_keys = array();
         foreach ( array_keys( $fields ) as $k ) {
-            if ( 'is_included' === $k || in_array( $k, $rendered_keys, true ) ) {
+            if ( 'is_included' === $k || in_array( $k, $rendered_keys, true ) || in_array( $k, array( 'categorie_age_detectee', 'categorie_poids_detectee', 'categorie_updated_at' ), true ) ) {
                 continue;
             }
             $remaining_keys[] = $k;
@@ -3917,7 +4212,12 @@ class UFSC_SQL_Admin
         } elseif ($type === 'textarea') {
             echo '<textarea name="' . esc_attr($k) . '" rows="3" ' . $readonly_attr . '>' . esc_textarea($val) . '</textarea>';
         } elseif ($type === 'number') {
-            echo '<input type="number" step="1" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
+            if ( 'poids' === $k ) {
+                echo '<input type="number" min="10" max="250" step="0.1" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
+                echo '<p class="description">' . esc_html__( 'Poids en kilogrammes, utilisé pour la détection automatique de la catégorie.', 'ufsc-clubs' ) . '</p>';
+            } else {
+                echo '<input type="number" step="1" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
+            }
         } elseif ($type === 'region') {
             echo '<select name="' . esc_attr($k) . '" ' . $disabled_attr . '>';
             $scope_slug  = UFSC_Scope::get_user_scope_region();
@@ -4023,6 +4323,7 @@ class UFSC_SQL_Admin
         $t      = $s['table_licences'];
         $pk     = $s['pk_licence'];
         $fields = UFSC_SQL::get_licence_fields();
+        $system_detected_category_fields = array( 'categorie_age_detectee', 'categorie_poids_detectee', 'categorie_updated_at' );
         $id     = isset($_POST['id']) ? (int) $_POST['id'] : 0;
         $return_to = self::get_admin_return_url( self::get_licences_admin_page_slug() );
         if ( $id ) {
@@ -4055,6 +4356,10 @@ class UFSC_SQL_Admin
             }
         }
 
+        foreach ( $system_detected_category_fields as $field ) {
+            unset( $data[ $field ] );
+        }
+
         foreach ( $fields as $k => $conf ) {
             if ( ! isset( $data[ $k ] ) ) {
                 continue;
@@ -4069,6 +4374,20 @@ class UFSC_SQL_Admin
                 continue;
             }
             $data[ $k ] = $normalized;
+        }
+
+        if ( array_key_exists( 'poids', $data ) ) {
+            $raw_weight = trim( (string) $data['poids'] );
+            if ( class_exists( 'UFSC_Category_Repository' ) ) {
+                $normalized_weight = UFSC_Category_Repository::normalize_weight( $raw_weight );
+                if ( null === $normalized_weight && '' !== $raw_weight ) {
+                    self::maybe_redirect(self::get_licences_admin_page_url( array_merge( $id ? array( 'action' => 'edit', 'id' => $id ) : array( 'action' => 'new' ), array( 'return_to' => $return_to, 'error' => __( 'Poids invalide', 'ufsc-clubs' ) ) ) ));
+                    return;
+                }
+                $data['poids'] = $normalized_weight;
+            } elseif ( '' === $raw_weight ) {
+                $data['poids'] = null;
+            }
         }
 
         $is_paid_submission = false;
@@ -4114,6 +4433,8 @@ class UFSC_SQL_Admin
             self::maybe_redirect(self::get_licences_admin_page_url( array_merge( $id ? array( 'action' => 'edit', 'id' => $id ) : array( 'action' => 'new' ), array( 'return_to' => $return_to, 'error' => $error_message ) ) ));
             return;
         }
+
+        $data = self::add_detected_category_fields_for_admin_save( $t, $pk, $data, $id );
 
         // Upload certificat
         if (! empty($_FILES['certificat_upload']['name'])) {
@@ -5029,11 +5350,66 @@ class UFSC_SQL_Admin
 
         // Data rows
         foreach ($data as $row) {
+            if (is_array($row) && array_key_exists('date_naissance', $row)) {
+                $row['date_naissance'] = self::ufsc_format_birthdate_for_asptt_csv($row['date_naissance']);
+            }
+
             fputcsv($output, $row, ';');
         }
 
         fclose($output);
         exit;
+    }
+
+    /**
+     * Format a licence birthdate for the ASPTT CSV import.
+     *
+     * @param mixed $value Raw birthdate value from the export row.
+     * @return string Birthdate formatted as d/m/Y, or an empty string for empty/invalid values.
+     */
+    private static function ufsc_format_birthdate_for_asptt_csv($value)
+    {
+        if ($value === null || is_array($value) || is_object($value)) {
+            return '';
+        }
+
+        $value = trim((string) $value);
+        if ($value === '') {
+            return '';
+        }
+
+        $zero_dates = [
+            '0000-00-00',
+            '0000-00-00 00:00:00',
+            '0000/00/00',
+            '00/00/0000',
+        ];
+        if (in_array($value, $zero_dates, true)) {
+            return '';
+        }
+
+        $formats = [
+            'Y-m-d H:i:s' => '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/',
+            'Y-m-d'       => '/^\d{4}-\d{2}-\d{2}$/',
+            'Y/m/d'       => '/^\d{4}\/\d{2}\/\d{2}$/',
+            'd/m/Y'       => '/^\d{2}\/\d{2}\/\d{4}$/',
+        ];
+
+        foreach ($formats as $format => $pattern) {
+            if (! preg_match($pattern, $value)) {
+                continue;
+            }
+
+            $date = DateTimeImmutable::createFromFormat('!' . $format, $value);
+            $errors = DateTimeImmutable::getLastErrors();
+            $has_errors = is_array($errors) && ($errors['warning_count'] > 0 || $errors['error_count'] > 0);
+
+            if ($date instanceof DateTimeImmutable && ! $has_errors && (int) $date->format('Y') > 0) {
+                return $date->format('d/m/Y');
+            }
+        }
+
+        return '';
     }
 
     /**

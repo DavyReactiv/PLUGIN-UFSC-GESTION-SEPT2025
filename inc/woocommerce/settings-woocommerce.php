@@ -83,6 +83,26 @@ function ufsc_save_woocommerce_settings( $settings ) {
 }
 
 /**
+ * Get configured affiliation renewal product ID.
+ *
+ * @return int
+ */
+function ufsc_get_affiliation_product_id() {
+    $settings = ufsc_get_woocommerce_settings();
+    return isset( $settings['product_affiliation_id'] ) ? absint( $settings['product_affiliation_id'] ) : 0;
+}
+
+/**
+ * Get configured licence renewal product ID.
+ *
+ * @return int
+ */
+function ufsc_get_licence_product_id() {
+    $settings = ufsc_get_woocommerce_settings();
+    return isset( $settings['product_license_id'] ) ? absint( $settings['product_license_id'] ) : 0;
+}
+
+/**
  * Check if WooCommerce is active
  *
  * @return bool True if WooCommerce is active
