@@ -160,7 +160,7 @@ class UFSC_CL_Admin_Menu {
 		$t_clubs = isset( $opts['table_clubs'] ) ? $opts['table_clubs'] : 'clubs';
 		$t_lics  = isset( $opts['table_licences'] ) ? $opts['table_licences'] : 'licences';
 
-		echo '<div class="wrap">';
+		echo '<div class="wrap ufsc-admin-dashboard">';
 		if ( class_exists( 'UFSC_SQL_Admin' ) ) {
 			UFSC_SQL_Admin::render_admin_quick_nav();
 		}
@@ -220,8 +220,22 @@ class UFSC_CL_Admin_Menu {
 		// Get dashboard data with caching
 		$dashboard_data = self::get_dashboard_data_cached( $t_clubs, $t_lics );
 
+		$current_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+		$season_start   = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_season_start_date( $current_season ) : '';
+		$season_end     = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_season_end_date( $current_season ) : '';
+
 		// Enhanced KPI cards
 		echo '<div class="ufsc-dashboard-cards">';
+
+		if ( $current_season ) {
+			echo '<div class="ufsc-dashboard-card">';
+			echo '<div class="card-label">' . esc_html__( 'Saison courante', 'ufsc-clubs' ) . '</div>';
+			echo '<div class="card-value">' . esc_html( $current_season ) . '</div>';
+			if ( $season_start && $season_end ) {
+				echo '<div class="card-description">' . esc_html( sprintf( __( '%s au %s', 'ufsc-clubs' ), mysql2date( 'd/m/Y', $season_start ), mysql2date( 'd/m/Y', $season_end ) ) ) . '</div>';
+			}
+			echo '</div>';
+		}
 
 		// Clubs KPIs
 		echo '<div class="ufsc-dashboard-card">';
@@ -258,7 +272,6 @@ class UFSC_CL_Admin_Menu {
 			echo '</div>';
 		}
 
-		echo '</div>';
 
 		// Licence creation KPIs
 		echo '<div class="ufsc-dashboard-card">';
@@ -307,6 +320,8 @@ class UFSC_CL_Admin_Menu {
 			echo '<div class="card-description">' . sprintf( esc_html__( 'Payées non validées: %d', 'ufsc-clubs' ), (int) $dashboard_data['alerts_paid_not_valid'] ) . '</div>';
 			echo '</div>';
 		}
+
+		echo '</div>';
 
 		// Regional breakdown chart
 		if ( ! empty( $dashboard_data['regions_data'] ) ) {
