@@ -135,6 +135,27 @@ class UFSC_Season_Service {
     }
 
     /**
+     * Compare two season labels chronologically.
+     *
+     * @param string $a First season label.
+     * @param string $b Second season label.
+     * @return int|null -1 if $a is before $b, 0 if equal, 1 if after, null if invalid.
+     */
+    public static function compare_seasons( $a, $b ) {
+        $a_parts = self::parse_season( $a );
+        $b_parts = self::parse_season( $b );
+        if ( ! $a_parts || ! $b_parts ) {
+            return null;
+        }
+
+        if ( $a_parts[0] === $b_parts[0] ) {
+            return 0;
+        }
+
+        return ( $a_parts[0] < $b_parts[0] ) ? -1 : 1;
+    }
+
+    /**
      * @param string $season Season label.
      * @return string
      */

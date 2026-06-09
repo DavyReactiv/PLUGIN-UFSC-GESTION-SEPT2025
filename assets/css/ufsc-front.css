@@ -1887,3 +1887,17 @@ button#upload_btn {
         grid-template-columns: 1fr;
     }
 }
+
+.ufsc-licences-future {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px dashed rgba(15, 23, 42, 0.18);
+    overflow-x: hidden;
+}
+
+.ufsc-licence-table--future {
+    min-width: 760px;
+}

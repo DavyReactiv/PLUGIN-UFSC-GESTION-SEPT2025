@@ -305,7 +305,7 @@ class UFSC_Unified_Handlers {
 
 
     /**
-     * Prepare a non-destructive club affiliation renewal request for the next season.
+     * Fail closed for legacy direct affiliation renewal; WooCommerce cart is authoritative.
      */
     public static function handle_renew_affiliation() {
         if ( ! current_user_can( 'read' ) || ! is_user_logged_in() ) {
@@ -320,11 +320,14 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_next_season() : ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '' );
+        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
         if ( '' === $target_season ) {
             self::redirect_with_error( 'Saison de renouvellement indisponible' );
             return;
         }
+
+        self::redirect_with_error( 'Veuillez utiliser le renouvellement via panier WooCommerce.' );
+        return;
 
         $existing_affiliation_season = function_exists( 'ufsc_get_affiliation_season' ) ? ufsc_get_affiliation_season( $club_id, $target_season ) : '';
         if ( $existing_affiliation_season === $target_season ) {
@@ -349,7 +352,7 @@ class UFSC_Unified_Handlers {
     }
 
     /**
-     * Renew one licence into the next season without overwriting the source licence.
+     * Fail closed for legacy direct licence renewal; WooCommerce cart is authoritative.
      */
     public static function handle_renew_licence() {
         if ( ! current_user_can( 'read' ) || ! is_user_logged_in() ) {
@@ -376,11 +379,19 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_next_season() : ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '' );
+        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
         if ( '' === $target_season ) {
             self::redirect_with_error( 'Saison de renouvellement indisponible' );
             return;
         }
+
+        if ( function_exists( 'ufsc_is_club_affiliated_for_season' ) && ! ufsc_is_club_affiliated_for_season( $club_id, $target_season ) ) {
+            self::redirect_with_error( 'Vous devez renouveler votre affiliation avant de renouveler vos licences.' );
+            return;
+        }
+
+        self::redirect_with_error( 'Veuillez utiliser le renouvellement via panier WooCommerce.' );
+        return;
 
         if ( function_exists( 'ufsc_get_renewed_licence_marker' ) ) {
             $existing_id = ufsc_get_renewed_licence_marker( $licence_id, $target_season );
