@@ -83,6 +83,76 @@ function ufsc_save_woocommerce_settings( $settings ) {
 }
 
 /**
+ * Get configured affiliation renewal product ID.
+ *
+ * @return int
+ */
+function ufsc_get_affiliation_product_id() {
+    $settings = ufsc_get_woocommerce_settings();
+    return isset( $settings['product_affiliation_id'] ) ? absint( $settings['product_affiliation_id'] ) : 0;
+}
+
+/**
+ * Get configured licence renewal product ID.
+ *
+ * @return int
+ */
+function ufsc_get_licence_product_id() {
+    $settings = ufsc_get_woocommerce_settings();
+    return isset( $settings['product_license_id'] ) ? absint( $settings['product_license_id'] ) : 0;
+}
+
+
+/**
+ * Build a safe diagnostic for a configured WooCommerce product.
+ *
+ * @param int $product_id Product ID to inspect.
+ * @return array<string,mixed>
+ */
+function ufsc_get_woocommerce_product_diagnostic( $product_id ) {
+    $product_id = absint( $product_id );
+    $diagnostic = array(
+        'woocommerce_active'       => function_exists( 'ufsc_is_woocommerce_active' ) ? ufsc_is_woocommerce_active() : class_exists( 'WooCommerce' ),
+        'wc_get_product_available' => function_exists( 'wc_get_product' ),
+        'product_id'               => $product_id,
+        'product_found'            => false,
+        'product_status'           => '',
+        'product_purchasable'      => false,
+    );
+
+    if ( ! $diagnostic['woocommerce_active'] || ! $diagnostic['wc_get_product_available'] || $product_id <= 0 ) {
+        return $diagnostic;
+    }
+
+    $product = wc_get_product( $product_id );
+    if ( ! $product || ! $product->exists() ) {
+        return $diagnostic;
+    }
+
+    $diagnostic['product_found']       = true;
+    $diagnostic['product_status']      = is_callable( array( $product, 'get_status' ) ) ? (string) $product->get_status() : '';
+    $diagnostic['product_purchasable'] = is_callable( array( $product, 'is_purchasable' ) ) ? (bool) $product->is_purchasable() : false;
+
+    return $diagnostic;
+}
+
+/**
+ * Check whether a configured WooCommerce product can be offered for renewal.
+ *
+ * @param int $product_id Product ID to inspect.
+ * @return bool
+ */
+function ufsc_is_woocommerce_product_available( $product_id ) {
+    $diagnostic = ufsc_get_woocommerce_product_diagnostic( $product_id );
+
+    return ! empty( $diagnostic['woocommerce_active'] )
+        && ! empty( $diagnostic['wc_get_product_available'] )
+        && ! empty( $diagnostic['product_id'] )
+        && ! empty( $diagnostic['product_found'] )
+        && ! empty( $diagnostic['product_purchasable'] );
+}
+
+/**
  * Check if WooCommerce is active
  *
  * @return bool True if WooCommerce is active
