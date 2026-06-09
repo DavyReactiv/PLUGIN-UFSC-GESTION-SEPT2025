@@ -1462,6 +1462,7 @@ class UFSC_Unified_Handlers {
             'ville' => 'sanitize_text_field',
             'code_postal' => 'sanitize_text_field',
             'sexe' => 'sanitize_text_field',
+            'poids' => 'sanitize_text_field',
             'role' => 'sanitize_text_field',
             'competition' => 'absint',
             'statut' => 'sanitize_text_field',
