@@ -40,6 +40,7 @@ require_once UFSC_CL_DIR.'includes/common/functions.php';
 require_once UFSC_CL_DIR.'includes/common/class-ufsc-cron.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-transaction.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-db-migrations.php';
+require_once UFSC_CL_DIR.'includes/core/class-ufsc-category-repository.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-licence-payments.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-affiliation-form.php';
 require_once UFSC_CL_DIR.'includes/admin/list-tables/class-ufsc-licences-list-table.php';
