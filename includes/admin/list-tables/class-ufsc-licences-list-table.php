@@ -423,6 +423,9 @@ class UFSC_Licences_List_Table {
         echo '<th>' . self::get_sortable_header( 'numero_licence_delegataire', __( 'N° Licence', 'ufsc-clubs' ), $sorting ) . '</th>';
         echo '<th>' . esc_html__( 'Statut', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Saison', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'Naissance / sexe', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'Poids', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'Catégories détectées', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Paiement', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . esc_html__( 'Médical', 'ufsc-clubs' ) . '</th>';
         echo '<th>' . self::get_sortable_header( 'date_creation', __( 'Créé le', 'ufsc-clubs' ), $sorting ) . '</th>';
@@ -436,7 +439,7 @@ class UFSC_Licences_List_Table {
                 self::render_licence_row( $licence );
             }
         } else {
-            echo '<tr><td colspan="10">' . esc_html__( 'Aucune licence trouvée.', 'ufsc-clubs' ) . '</td></tr>';
+            echo '<tr><td colspan="13">' . esc_html__( 'Aucune licence trouvée.', 'ufsc-clubs' ) . '</td></tr>';
         }
 
         echo '</tbody>';
@@ -478,6 +481,28 @@ class UFSC_Licences_List_Table {
         // Season
         $season = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $licence ) : ( function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '' );
         echo '<td>' . esc_html( $season ? $season : '—' ) . '</td>';
+
+        // Birthdate and gender
+        echo '<td>' . esc_html( $licence->date_naissance ?? '—' ) . '<br><small>' . esc_html( $licence->sexe ?? '—' ) . '</small></td>';
+
+        // Weight
+        $weight = isset( $licence->poids ) && '' !== trim( (string) $licence->poids ) ? $licence->poids . ' kg' : __( 'Poids manquant', 'ufsc-clubs' );
+        echo '<td>' . esc_html( $weight ) . '</td>';
+
+        // Detected categories
+        $summary = class_exists( 'UFSC_Category_Repository' )
+            ? UFSC_Category_Repository::detect_for_athlete( $licence, UFSC_Category_Repository::DEFAULT_DISCIPLINE, $season )
+            : array( 'age_category_label' => '', 'weight_category_label' => '', 'status' => 'age_not_found' );
+        echo '<td>';
+        echo self::render_category_badge( $summary['age_category_label'], $summary['age_category_label'] ? 'ok' : $summary['status'] );
+        echo '<br>';
+        echo self::render_category_badge( $summary['weight_category_label'], $summary['status'] );
+        if ( current_user_can( 'manage_options' ) && class_exists( 'UFSC_Category_Repository' ) ) {
+            echo '<details style="margin-top:4px"><summary>' . esc_html__( 'Diagnostic', 'ufsc-clubs' ) . '</summary>';
+            echo '<small>' . esc_html( sprintf( 'date=%s; année=%s; sexe=%s; poids=%s; statut=%s', $summary['birthdate'], $summary['birth_year'], $summary['normalized_gender'], $summary['normalized_weight'], $summary['status'] ) ) . '</small>';
+            echo '</details>';
+        }
+        echo '</td>';
 
         // Payment status
         echo '<td>' . self::render_payment_status_badge( $licence->payment_status ) . '</td>';
@@ -691,6 +716,25 @@ class UFSC_Licences_List_Table {
     private static function render_status_badge( $status ) {
         $status = function_exists( 'ufsc_normalize_license_status' ) ? ufsc_normalize_license_status( $status ) : $status;
         return UFSC_Badges::render_licence_badge( $status );
+    }
+
+    private static function render_category_badge( $label, $status ) {
+        $label = trim( (string) $label );
+        if ( '' === $label ) {
+            if ( 'missing_weight' === $status ) {
+                $label = __( 'Poids manquant', 'ufsc-clubs' );
+            } elseif ( 'invalid_birthdate' === $status ) {
+                $label = __( 'Date de naissance invalide', 'ufsc-clubs' );
+            } else {
+                $label = __( 'À compléter', 'ufsc-clubs' );
+            }
+        }
+
+        $style = 'ok' === $status
+            ? 'background:#d4edda;color:#155724;padding:2px 8px;border-radius:999px;font-size:12px;'
+            : 'background:#f0f0f1;color:#50575e;padding:2px 8px;border-radius:999px;font-size:12px;';
+
+        return '<span style="' . esc_attr( $style ) . '">' . esc_html( $label ) . '</span>';
     }
 
     private static function render_payment_status_badge( $status ) {
