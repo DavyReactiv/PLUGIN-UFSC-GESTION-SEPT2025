@@ -82,6 +82,15 @@ class UFSC_Gestion_Licences_List_Table extends WP_List_Table {
     protected function column_default( $item, $column_name ) {
         switch ( $column_name ) {
             case 'club_nom':
+                if ( empty( $item['club_nom'] ) ) {
+                    return '<em>' . esc_html__( 'Aucun club', 'ufsc-clubs' ) . '</em>';
+                }
+                $club_id = isset( $item['club_id'] ) ? absint( $item['club_id'] ) : 0;
+                if ( $club_id <= 0 ) {
+                    return esc_html( $item['club_nom'] );
+                }
+                $club_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=view&id=' . $club_id );
+                return '<a href="' . esc_url( $club_url ) . '">' . esc_html( $item['club_nom'] ) . '</a>';
             case 'statut':
             case 'payment_status':
                 return esc_html( $item[ $column_name ] );
@@ -130,7 +139,7 @@ class UFSC_Gestion_Licences_List_Table extends WP_List_Table {
         $total_items = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$licences_table}`" );
 
         $query = $wpdb->prepare(
-            "SELECT l.id, CONCAT(l.prenom, ' ', l.nom_licence) AS full_name, c.nom AS club_nom, l.statut, l.payment_status, l.date_creation
+            "SELECT l.id, l.club_id, CONCAT(l.prenom, ' ', l.nom_licence) AS full_name, c.nom AS club_nom, l.statut, l.payment_status, l.date_creation
              FROM `{$licences_table}` l
              LEFT JOIN `{$clubs_table}` c ON l.club_id = c.id
              ORDER BY {$orderby} {$order}

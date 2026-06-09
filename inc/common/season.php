@@ -478,6 +478,35 @@ if ( ! function_exists( 'ufsc_get_affiliation_season' ) ) {
 	}
 }
 
+if ( ! function_exists( 'ufsc_is_club_affiliated_for_season' ) ) {
+    /**
+     * Check whether a club is already affiliated for a target season.
+     *
+     * This is read-only and accepts either an explicit stored affiliation season
+     * or the paid/validated renewal marker created after WooCommerce payment.
+     *
+     * @param int    $club_id Club ID.
+     * @param string $season  Season label.
+     * @return bool
+     */
+    function ufsc_is_club_affiliated_for_season( $club_id, $season ) {
+        $club_id = absint( $club_id );
+        $season  = sanitize_text_field( (string) $season );
+        if ( $club_id <= 0 || '' === $season ) {
+            return false;
+        }
+
+        if ( function_exists( 'ufsc_get_affiliation_season' ) ) {
+            $stored = ufsc_get_affiliation_season( $club_id, $season );
+            if ( is_string( $stored ) && str_replace( '/', '-', $stored ) === str_replace( '/', '-', $season ) ) {
+                return true;
+            }
+        }
+
+        return function_exists( 'ufsc_is_affiliation_renewed' ) && ufsc_is_affiliation_renewed( $club_id, $season );
+    }
+}
+
 if ( ! function_exists( 'ufsc_set_affiliation_season' ) ) {
 	function ufsc_set_affiliation_season( $club_id, $season ) {
 		global $wpdb;

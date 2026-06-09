@@ -278,8 +278,8 @@ function ufsc_wc_process_renewal_items( $order ) {
 		if ( '' === $target_season ) {
 			$target_season = (string) $item->get_meta( '_ufsc_target_season', true );
 		}
-		if ( '' === $target_season && function_exists( 'ufsc_get_next_season' ) ) {
-			$target_season = ufsc_get_next_season();
+		if ( '' === $target_season && function_exists( 'ufsc_get_current_season' ) ) {
+			$target_season = ufsc_get_current_season();
 		}
 
 		/**
@@ -319,6 +319,15 @@ function ufsc_wc_process_renewal_items( $order ) {
 			if ( ! $source || absint( $source->club_id ?? 0 ) !== $club_id ) {
 				continue;
 			}
+			if ( function_exists( 'ufsc_wc_find_equivalent_renewed_licence_id' ) ) {
+				$equivalent_id = ufsc_wc_find_equivalent_renewed_licence_id( $source, $club_id, $target_season );
+				if ( $equivalent_id > 0 ) {
+					if ( function_exists( 'ufsc_mark_renewed_licence_marker' ) ) {
+						ufsc_mark_renewed_licence_marker( $source_id, $target_season, $equivalent_id );
+					}
+					continue;
+				}
+			}
 
 			$data = array();
 
@@ -341,6 +350,16 @@ function ufsc_wc_process_renewal_items( $order ) {
 			if ( in_array( 'club_id', $columns, true ) ) { $data['club_id'] = $club_id; }
 			if ( in_array( 'statut', $columns, true ) )  { $data['statut'] = 'en_attente'; }
 			if ( in_array( 'status', $columns, true ) )  { $data['status'] = 'en_attente'; }
+
+			// Season + renewal traceability.
+			foreach ( array( 'season', 'saison', 'paid_season' ) as $season_col ) {
+				if ( in_array( $season_col, $columns, true ) ) { $data[ $season_col ] = $target_season; }
+			}
+			if ( in_array( 'season_end_year', $columns, true ) && function_exists( 'ufsc_get_season_end_year_from_label' ) ) { $data['season_end_year'] = ufsc_get_season_end_year_from_label( $target_season ); }
+			if ( in_array( 'renewed_from_licence_id', $columns, true ) ) { $data['renewed_from_licence_id'] = $source_id; }
+			if ( in_array( 'renewal_status', $columns, true ) ) { $data['renewal_status'] = 'renouvellement_en_attente'; }
+			if ( in_array( 'order_id', $columns, true ) ) { $data['order_id'] = (int) $order->get_id(); }
+			if ( in_array( 'order_item_id', $columns, true ) ) { $data['order_item_id'] = (int) $item->get_id(); }
 
 			// Dates
 			if ( in_array( 'date_creation', $columns, true ) )      { $data['date_creation'] = current_time( 'mysql' ); }
@@ -369,8 +388,13 @@ function ufsc_wc_process_renewal_items( $order ) {
 
 			$new_id = (int) $wpdb->insert_id;
 
-			// Meta debug on order item
+			// Meta debug and order-linking on the renewal item. This also prevents the generic
+			// paid-order licence generator from treating renewal products as missing rows.
 			$item->update_meta_data( '_ufsc_renew_new_licence_id', $new_id );
+			$item->update_meta_data( '_ufsc_licence_id', $new_id );
+			$item->update_meta_data( 'ufsc_licence_id', $new_id );
+			$item->update_meta_data( '_ufsc_licence_ids', array( $new_id ) );
+			$item->update_meta_data( 'ufsc_licence_ids', array( $new_id ) );
 			$item->save();
 
 			// Persist season + marker
@@ -452,6 +476,14 @@ function ufsc_wc_maybe_generate_order_licences( $order ) {
 
 	foreach ( $order->get_items() as $item_id => $item ) {
 		if ( absint( $item->get_product_id() ) !== $product_id ) {
+			continue;
+		}
+
+		$item_action = (string) $item->get_meta( 'ufsc_action', true );
+		if ( '' === $item_action ) {
+			$item_action = (string) $item->get_meta( '_ufsc_action', true );
+		}
+		if ( in_array( $item_action, array( 'renew_licence', 'renew_affiliation' ), true ) ) {
 			continue;
 		}
 
@@ -1099,6 +1131,13 @@ function ufsc_wc_count_order_missing_licence_ids( $order ) {
 	$missing_total = 0;
 	foreach ( $order->get_items() as $item ) {
 		if ( absint( $item->get_product_id() ) !== $product_id ) {
+			continue;
+		}
+		$item_action = (string) $item->get_meta( 'ufsc_action', true );
+		if ( '' === $item_action ) {
+			$item_action = (string) $item->get_meta( '_ufsc_action', true );
+		}
+		if ( in_array( $item_action, array( 'renew_licence', 'renew_affiliation' ), true ) ) {
 			continue;
 		}
 		$qty           = max( 1, absint( $item->get_quantity() ) );
