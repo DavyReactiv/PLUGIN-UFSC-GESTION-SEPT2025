@@ -1774,3 +1774,28 @@ button#upload_btn {
         justify-content: center;
     }
 }
+
+/* Final containment guard: the card container must not become a second horizontal scroller. */
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-licences-list {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-x: visible;
+}
+
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-section-header,
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-section-actions,
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-filters-form {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-section-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-kpi-band {
+    grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+}
