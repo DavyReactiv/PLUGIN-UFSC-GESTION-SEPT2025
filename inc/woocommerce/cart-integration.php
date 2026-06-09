@@ -710,7 +710,9 @@ function ufsc_handle_add_to_cart_secure() {
 
 	if ( in_array( $ufsc_action, array( 'renew_licence', 'renew_affiliation' ), true ) ) {
 		if ( '' === $target_season ) {
-			$target_season = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
+			$target_season = class_exists( 'UFSC_Season_Service' )
+				? UFSC_Season_Service::get_next_season()
+				: ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ) );
 		}
 
 		$current_season_for_renewal = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';

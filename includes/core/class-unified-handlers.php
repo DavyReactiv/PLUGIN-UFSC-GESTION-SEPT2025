@@ -320,7 +320,7 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_next_season() : ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '' );
         if ( '' === $target_season ) {
             self::redirect_with_error( 'Saison de renouvellement indisponible' );
             return;
@@ -358,7 +358,7 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_next_season() : ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '' );
         if ( '' === $target_season ) {
             self::redirect_with_error( 'Saison de renouvellement indisponible' );
             return;
