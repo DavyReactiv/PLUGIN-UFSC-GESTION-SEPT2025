@@ -21,7 +21,6 @@ class UFSC_Unified_Handlers {
         add_action( 'admin_post_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
         add_action( 'admin_post_nopriv_ufsc_save_licence', array( __CLASS__, 'handle_save_licence' ) );
         add_action( 'admin_post_ufsc_update_licence_weight', array( __CLASS__, 'handle_update_licence_weight' ) );
-        add_action( 'admin_post_nopriv_ufsc_update_licence_weight', array( __CLASS__, 'handle_update_licence_weight' ) );
 
         add_action( 'admin_post_ufsc_delete_licence', array( __CLASS__, 'handle_delete_licence' ) );
         add_action( 'admin_post_nopriv_ufsc_delete_licence', array( __CLASS__, 'handle_delete_licence' ) );
@@ -1361,12 +1360,11 @@ class UFSC_Unified_Handlers {
             $data['numero_licence'] = sanitize_text_field( $post_data['numero_licence'] );
         }
         
-        if ( array_key_exists( 'poids', $data ) && class_exists( 'UFSC_Category_Repository' ) ) {
-            $normalized_weight = UFSC_Category_Repository::normalize_weight( $data['poids'] );
-            if ( null === $normalized_weight && '' !== trim( (string) $data['poids'] ) ) {
+        if ( array_key_exists( 'poids', $post_data ) && class_exists( 'UFSC_Category_Repository' ) ) {
+            $raw_weight = sanitize_text_field( wp_unslash( (string) $post_data['poids'] ) );
+            $normalized_weight = UFSC_Category_Repository::normalize_weight( $raw_weight );
+            if ( null === $normalized_weight && '' !== trim( $raw_weight ) ) {
                 $errors[] = __( 'Poids invalide', 'ufsc-clubs' );
-            } elseif ( null === $normalized_weight ) {
-                $data['poids'] = '';
             } else {
                 $data['poids'] = $normalized_weight;
             }

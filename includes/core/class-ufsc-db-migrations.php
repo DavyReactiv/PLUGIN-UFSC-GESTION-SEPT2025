@@ -22,16 +22,32 @@ class UFSC_DB_Migrations {
      */
     public static function run_migrations() {
         $current_version = get_option( self::VERSION_OPTION, '0.0.0' );
+        $category_columns_option = 'ufsc_licence_category_columns_ready';
+
+        if ( version_compare( $current_version, self::MIGRATION_VERSION, '>=' ) && '1' !== get_option( $category_columns_option, '' ) ) {
+            $category_columns_ready = self::ensure_licences_category_columns();
+            if ( $category_columns_ready ) {
+                update_option( $category_columns_option, '1' );
+            } else {
+                self::log_migration_error( 'Licence category columns migration incomplete; readiness flag not advanced.' );
+            }
+        }
 
         if ( version_compare( $current_version, self::MIGRATION_VERSION, '<' ) ) {
             self::migrate_to_innodb();
             self::create_indexes();
             self::create_unique_constraints();
             self::ensure_licences_soft_delete_columns();
-            self::ensure_licences_category_columns();
+            $category_columns_ready = self::ensure_licences_category_columns();
             self::create_events_table();
+
+            if ( ! $category_columns_ready ) {
+                self::log_migration_error( 'Licence category columns migration incomplete; migration version not advanced.' );
+                return;
+            }
             
             update_option( self::VERSION_OPTION, self::MIGRATION_VERSION );
+            update_option( $category_columns_option, '1' );
             
             add_action( 'admin_notices', array( __CLASS__, 'migration_success_notice' ) );
         }
@@ -74,33 +90,70 @@ class UFSC_DB_Migrations {
         $licences_table = $settings['table_licences'];
 
         if ( ! self::table_exists( $licences_table ) ) {
-            return;
+            return true;
         }
 
         $columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$licences_table}`", 0 );
         if ( ! is_array( $columns ) ) {
-            return;
+            self::log_migration_error( "Unable to inspect columns for {$licences_table}." );
+            return false;
         }
 
-        if ( ! in_array( 'poids', $columns, true ) ) {
-            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `poids` decimal(5,2) NULL DEFAULT NULL" );
-        }
+        $expected_columns = array(
+            'poids'                    => 'decimal(5,2) NULL DEFAULT NULL',
+            'categorie_age_detectee'   => 'varchar(100) NULL DEFAULT NULL',
+            'categorie_poids_detectee' => 'varchar(50) NULL DEFAULT NULL',
+            'categorie_updated_at'     => 'datetime NULL DEFAULT NULL',
+        );
 
-        if ( ! in_array( 'categorie_age_detectee', $columns, true ) ) {
-            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `categorie_age_detectee` varchar(100) NULL DEFAULT NULL" );
-        }
+        foreach ( $expected_columns as $column => $definition ) {
+            if ( in_array( $column, $columns, true ) ) {
+                continue;
+            }
 
-        if ( ! in_array( 'categorie_poids_detectee', $columns, true ) ) {
-            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `categorie_poids_detectee` varchar(50) NULL DEFAULT NULL" );
-        }
-
-        if ( ! in_array( 'categorie_updated_at', $columns, true ) ) {
-            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `categorie_updated_at` datetime NULL DEFAULT NULL" );
+            $result = $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `{$column}` {$definition}" );
+            if ( false === $result ) {
+                self::log_migration_error( "Unable to add {$column} to {$licences_table}: {$wpdb->last_error}" );
+            }
         }
 
         if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) {
             ufsc_flush_table_columns_cache();
         }
+
+        $columns_after = $wpdb->get_col( "SHOW COLUMNS FROM `{$licences_table}`", 0 );
+        if ( ! is_array( $columns_after ) ) {
+            self::log_migration_error( "Unable to re-inspect columns for {$licences_table}." );
+            return false;
+        }
+
+        foreach ( array_keys( $expected_columns ) as $column ) {
+            if ( ! in_array( $column, $columns_after, true ) ) {
+                self::log_migration_error( "Expected column {$column} is still missing from {$licences_table}." );
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Log migration errors through the plugin logger when available.
+     *
+     * @param string $message Message to log.
+     * @return void
+     */
+    private static function log_migration_error( $message ) {
+        if ( class_exists( 'UFSC_Audit_Logger' ) && method_exists( 'UFSC_Audit_Logger', 'log' ) ) {
+            UFSC_Audit_Logger::log( $message );
+            return;
+        }
+        if ( class_exists( 'UFSC_CL_Utils' ) && method_exists( 'UFSC_CL_Utils', 'log' ) ) {
+            UFSC_CL_Utils::log( $message, 'error' );
+            return;
+        }
+
+        error_log( $message );
     }
 
     /**

@@ -694,6 +694,75 @@ class UFSC_SQL_Admin
 
         return array_intersect_key($data, array_flip($columns));
     }
+
+    /**
+     * Add system-detected category fields during admin licence saves.
+     *
+     * @param string $table Licence table.
+     * @param string $pk Primary key column.
+     * @param array  $data Sanitized pending data.
+     * @param int    $id Existing licence ID, or 0 for creation.
+     * @return array
+     */
+    private static function add_detected_category_fields_for_admin_save( $table, $pk, $data, $id ) {
+        if ( ! class_exists( 'UFSC_Category_Repository' ) || ! is_array( $data ) ) {
+            return $data;
+        }
+
+        $trigger_fields = array( 'poids', 'date_naissance', 'sexe' );
+        if ( $id && empty( array_intersect( $trigger_fields, array_keys( $data ) ) ) ) {
+            return $data;
+        }
+
+        $columns = self::get_table_columns( $table );
+        if ( empty( $columns ) ) {
+            return $data;
+        }
+
+        global $wpdb;
+        $existing = null;
+        if ( $id ) {
+            $existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE `{$pk}` = %d", (int) $id ) );
+        }
+
+        $birthdate = array_key_exists( 'date_naissance', $data ) ? $data['date_naissance'] : self::get_row_field_value( $existing, 'date_naissance' );
+        $gender    = array_key_exists( 'sexe', $data ) ? $data['sexe'] : self::get_row_field_value( $existing, 'sexe' );
+        $weight    = array_key_exists( 'poids', $data ) ? $data['poids'] : self::get_row_field_value( $existing, 'poids' );
+        $season    = class_exists( 'UFSC_Category_Repository' ) ? UFSC_Category_Repository::DEFAULT_SEASON : '';
+        if ( function_exists( 'ufsc_get_licence_season_label' ) && $existing ) {
+            $existing_season = ufsc_get_licence_season_label( $existing );
+            if ( is_string( $existing_season ) && '' !== trim( $existing_season ) ) {
+                $season = $existing_season;
+            }
+        } elseif ( function_exists( 'ufsc_get_current_season_label' ) ) {
+            $current_season = ufsc_get_current_season_label();
+            if ( is_string( $current_season ) && '' !== trim( $current_season ) ) {
+                $season = $current_season;
+            }
+        }
+
+        $summary = UFSC_Category_Repository::detect_for_athlete(
+            array(
+                'date_naissance' => $birthdate,
+                'sexe'           => $gender,
+                'poids'          => $weight,
+            ),
+            UFSC_Category_Repository::DEFAULT_DISCIPLINE,
+            $season
+        );
+
+        if ( in_array( 'categorie_age_detectee', $columns, true ) ) {
+            $data['categorie_age_detectee'] = $summary['age_category_label'];
+        }
+        if ( in_array( 'categorie_poids_detectee', $columns, true ) ) {
+            $data['categorie_poids_detectee'] = $summary['weight_category_label'];
+        }
+        if ( in_array( 'categorie_updated_at', $columns, true ) ) {
+            $data['categorie_updated_at'] = current_time( 'mysql' );
+        }
+
+        return $data;
+    }
     /**
      * Generate status badge with colored dot
      */
@@ -3743,7 +3812,7 @@ class UFSC_SQL_Admin
 
         $remaining_keys = array();
         foreach ( array_keys( $fields ) as $k ) {
-            if ( 'is_included' === $k || in_array( $k, $rendered_keys, true ) ) {
+            if ( 'is_included' === $k || in_array( $k, $rendered_keys, true ) || in_array( $k, array( 'categorie_age_detectee', 'categorie_poids_detectee', 'categorie_updated_at' ), true ) ) {
                 continue;
             }
             $remaining_keys[] = $k;
@@ -4023,6 +4092,7 @@ class UFSC_SQL_Admin
         $t      = $s['table_licences'];
         $pk     = $s['pk_licence'];
         $fields = UFSC_SQL::get_licence_fields();
+        $system_detected_category_fields = array( 'categorie_age_detectee', 'categorie_poids_detectee', 'categorie_updated_at' );
         $id     = isset($_POST['id']) ? (int) $_POST['id'] : 0;
         $return_to = self::get_admin_return_url( self::get_licences_admin_page_slug() );
         if ( $id ) {
@@ -4055,6 +4125,10 @@ class UFSC_SQL_Admin
             }
         }
 
+        foreach ( $system_detected_category_fields as $field ) {
+            unset( $data[ $field ] );
+        }
+
         foreach ( $fields as $k => $conf ) {
             if ( ! isset( $data[ $k ] ) ) {
                 continue;
@@ -4069,6 +4143,20 @@ class UFSC_SQL_Admin
                 continue;
             }
             $data[ $k ] = $normalized;
+        }
+
+        if ( array_key_exists( 'poids', $data ) ) {
+            $raw_weight = trim( (string) $data['poids'] );
+            if ( class_exists( 'UFSC_Category_Repository' ) ) {
+                $normalized_weight = UFSC_Category_Repository::normalize_weight( $raw_weight );
+                if ( null === $normalized_weight && '' !== $raw_weight ) {
+                    self::maybe_redirect(self::get_licences_admin_page_url( array_merge( $id ? array( 'action' => 'edit', 'id' => $id ) : array( 'action' => 'new' ), array( 'return_to' => $return_to, 'error' => __( 'Poids invalide', 'ufsc-clubs' ) ) ) ));
+                    return;
+                }
+                $data['poids'] = $normalized_weight;
+            } elseif ( '' === $raw_weight ) {
+                $data['poids'] = null;
+            }
         }
 
         $is_paid_submission = false;
@@ -4114,6 +4202,8 @@ class UFSC_SQL_Admin
             self::maybe_redirect(self::get_licences_admin_page_url( array_merge( $id ? array( 'action' => 'edit', 'id' => $id ) : array( 'action' => 'new' ), array( 'return_to' => $return_to, 'error' => $error_message ) ) ));
             return;
         }
+
+        $data = self::add_detected_category_fields_for_admin_save( $t, $pk, $data, $id );
 
         // Upload certificat
         if (! empty($_FILES['certificat_upload']['name'])) {
