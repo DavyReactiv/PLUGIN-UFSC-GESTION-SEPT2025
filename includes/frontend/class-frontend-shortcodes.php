@@ -138,6 +138,13 @@ class UFSC_Frontend_Shortcodes {
             }
         }
 
+        $current_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : $season );
+        $next_season    = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_next_season() : ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '' );
+        $season_start   = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_season_start_date( $current_season ) : '';
+        $season_end     = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_season_end_date( $current_season ) : '';
+        $affiliation_season = function_exists( 'ufsc_get_affiliation_season' ) ? ufsc_get_affiliation_season( $club_id, $current_season ) : '';
+        $next_affiliation_requested = ( $next_season && function_exists( 'ufsc_is_affiliation_renewed' ) ) ? ufsc_is_affiliation_renewed( $club_id, $next_season ) : false;
+
         ob_start();
         ?>
         <div class="ufsc-club-dashboard ufsc-premium-v3" id="ufsc-dashboard">
@@ -237,6 +244,27 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <div class="ufsc-dashboard-mainpane">
+                    <div class="ufsc-season-card ufsc-card">
+                        <div>
+                            <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Saison UFSC', 'ufsc-clubs' ); ?></span>
+                            <strong><?php echo esc_html( $current_season ); ?></strong>
+                            <?php if ( $season_start && $season_end ) : ?>
+                                <p><?php echo esc_html( sprintf( __( 'Validité : %s au %s', 'ufsc-clubs' ), mysql2date( 'd/m/Y', $season_start ), mysql2date( 'd/m/Y', $season_end ) ) ); ?></p>
+                            <?php endif; ?>
+                            <p><?php echo esc_html( sprintf( __( 'Affiliation : %s', 'ufsc-clubs' ), $affiliation_season ? $affiliation_season : __( 'non renseignée', 'ufsc-clubs' ) ) ); ?></p>
+                        </div>
+                        <?php if ( $next_season ) : ?>
+                            <?php if ( $next_affiliation_requested ) : ?>
+                                <span class="ufsc-badge ufsc-badge-info"><?php echo esc_html( sprintf( __( 'Renouvellement %s en attente', 'ufsc-clubs' ), $next_season ) ); ?></span>
+                            <?php else : ?>
+                                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-season-renew-form">
+                                    <?php wp_nonce_field( 'ufsc_renew_affiliation' ); ?>
+                                    <input type="hidden" name="action" value="ufsc_renew_affiliation">
+                                    <button type="submit" class="ufsc-btn ufsc-btn-primary"><?php echo esc_html( sprintf( __( 'Renouveler mon affiliation %s', 'ufsc-clubs' ), $next_season ) ); ?></button>
+                                </form>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </div>
                     <div class="ufsc-dashboard-nav">
                         <?php if ( in_array( 'stats', $sections ) ): ?>
                             <button class="ufsc-nav-btn" data-section="stats"><?php esc_html_e( 'Statistiques', 'ufsc-clubs' ); ?></button>
@@ -624,6 +652,9 @@ class UFSC_Frontend_Shortcodes {
                                 $practice = isset( $licence->competition ) && $licence->competition
                                     ? __( 'Compétition', 'ufsc-clubs' )
                                     : __( 'Loisir', 'ufsc-clubs' );
+                                $can_update_weight = is_user_logged_in() && (int) ( $licence->club_id ?? $atts['club_id'] ) === (int) $atts['club_id'];
+                                $target_renewal_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_next_season() : ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '' );
+                                $renewed_licence_id = ( $target_renewal_season && function_exists( 'ufsc_get_renewed_licence_marker' ) ) ? ufsc_get_renewed_licence_marker( (int) ( $licence->id ?? 0 ), $target_renewal_season ) : 0;
 
                                 ?>
                                 <tr>
@@ -636,13 +667,13 @@ class UFSC_Frontend_Shortcodes {
                                     <td><?php echo self::get_status_badge_front($status); ?></td>
                                     <td><?php echo esc_html( $season ); ?></td>
                                     <td>
-                                        <?php if ( ! $readonly && ! $is_locked ) : ?>
+                                        <?php if ( $can_update_weight ) : ?>
                                             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-weight-form">
                                                 <?php wp_nonce_field( 'ufsc_update_licence_weight_' . ( $licence->id ?? 0 ) ); ?>
                                                 <input type="hidden" name="action" value="ufsc_update_licence_weight">
                                                 <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
-                                                <input type="number" name="poids" min="10" max="250" step="0.1" value="<?php echo esc_attr( $weight_value ); ?>" aria-label="<?php esc_attr_e( 'Poids en kilogrammes', 'ufsc-clubs' ); ?>" style="width:80px">
-                                                <button type="submit" class="ufsc-action"><?php esc_html_e( 'OK', 'ufsc-clubs' ); ?></button>
+                                                <input type="text" name="poids" inputmode="decimal" pattern="[0-9]+([,.][0-9]+)?" value="<?php echo esc_attr( $weight_value ); ?>" aria-label="<?php esc_attr_e( 'Poids en kilogrammes', 'ufsc-clubs' ); ?>" placeholder="kg" style="width:80px">
+                                                <button type="submit" class="ufsc-action"><?php esc_html_e( 'Enregistrer', 'ufsc-clubs' ); ?></button>
                                             </form>
                                         <?php else : ?>
                                             <?php echo esc_html( '' !== $weight_value ? $weight_value . ' kg' : '—' ); ?>
@@ -654,6 +685,18 @@ class UFSC_Frontend_Shortcodes {
                                     <td><?php echo esc_html( $created_at ); ?></td>
                                     <td>
                                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
+                                        <?php if ( $target_renewal_season ) : ?>
+                                            <?php if ( $renewed_licence_id ) : ?>
+                                                <span class="ufsc-badge ufsc-badge-info"><?php echo esc_html( sprintf( __( 'Renouvelée %s', 'ufsc-clubs' ), $target_renewal_season ) ); ?></span>
+                                            <?php else : ?>
+                                                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-inline-renew-form" style="display:inline">
+                                                    <?php wp_nonce_field( 'ufsc_renew_licence_' . ( $licence->id ?? 0 ) ); ?>
+                                                    <input type="hidden" name="action" value="ufsc_renew_licence">
+                                                    <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
+                                                    <button type="submit" class="ufsc-action"><?php esc_html_e( 'Renouveler', 'ufsc-clubs' ); ?></button>
+                                                </form>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
                                         <?php if ( ! $readonly && ! $is_locked ) : ?>
                                             | <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'edit_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Modifier', 'ufsc-clubs' ); ?></a>
                                             | <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:inline" onsubmit="return confirm('<?php echo esc_js( __( 'Confirmer la suppression de cette licence ?', 'ufsc-clubs' ) ); ?>');">
