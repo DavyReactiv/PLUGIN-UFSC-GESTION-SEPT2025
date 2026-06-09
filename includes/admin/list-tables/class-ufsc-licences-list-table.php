@@ -458,7 +458,13 @@ class UFSC_Licences_List_Table {
         // Club
         echo '<td>';
         if ( $licence->club_nom ) {
-            echo esc_html( $licence->club_nom );
+            $club_id = isset( $licence->club_id ) ? absint( $licence->club_id ) : 0;
+            if ( $club_id > 0 ) {
+                $club_url = admin_url( 'admin.php?page=ufsc-sql-clubs&action=view&id=' . $club_id );
+                echo '<a href="' . esc_url( $club_url ) . '">' . esc_html( $licence->club_nom ) . '</a>';
+            } else {
+                echo esc_html( $licence->club_nom );
+            }
             if ( $licence->club_region ) {
                 echo '<br><small>' . esc_html( $licence->club_region ) . '</small>';
             }

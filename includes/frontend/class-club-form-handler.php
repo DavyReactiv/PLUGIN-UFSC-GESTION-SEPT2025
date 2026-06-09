@@ -24,16 +24,22 @@ class UFSC_CL_Club_Form_Handler {
 
         check_admin_referer( 'ufsc_save_club', 'ufsc_club_nonce' );
         
-        $club_id = (int) ( $_POST['club_id'] ?? 0 );
+        $club_id = isset( $_POST['club_id'] ) ? absint( wp_unslash( $_POST['club_id'] ) ) : 0;
         $affiliation = (bool) ( $_POST['affiliation'] ?? false );
         $is_edit = $club_id > 0;
-        if ( $is_edit ) {
+        $is_front_own_club_update = $is_edit && ! current_user_can( 'manage_options' ) && self::current_user_owns_club( $club_id );
+        if ( $is_edit && ! $is_front_own_club_update ) {
             UFSC_Scope::assert_club_in_scope( $club_id );
         }
 
         // Permission checks
         if ( $is_edit && ! UFSC_CL_Permissions::ufsc_user_can_edit_club( $club_id ) ) {
-            self::redirect_with_error( __( 'Vous n\'avez pas les permissions pour éditer ce club.', 'ufsc-clubs' ), $club_id, $affiliation );
+            self::redirect_with_error( __( 'Vous ne pouvez modifier que les informations de votre propre club.', 'ufsc-clubs' ), $club_id, $affiliation );
+            return;
+        }
+
+        if ( $is_front_own_club_update ) {
+            self::handle_front_own_club_update( $club_id, $affiliation );
             return;
         }
         
@@ -170,6 +176,57 @@ class UFSC_CL_Club_Form_Handler {
             wp_safe_redirect( ufsc_redirect_with_notice( $redirect_url, 'affiliation_added' ) );
             exit;
         }
+    }
+
+    /**
+     * Check whether the current user owns the submitted club.
+     *
+     * @param int $club_id Club ID.
+     * @return bool
+     */
+    private static function current_user_owns_club( $club_id ) {
+        $club_id = absint( $club_id );
+        if ( $club_id <= 0 || ! is_user_logged_in() ) {
+            return false;
+        }
+
+        if ( function_exists( 'ufsc_get_user_club_id' ) ) {
+            return absint( ufsc_get_user_club_id( get_current_user_id() ) ) === $club_id;
+        }
+
+        return UFSC_CL_Permissions::ufsc_user_can_edit_club( $club_id );
+    }
+
+    /**
+     * Handle front-office own-club updates with a strict field whitelist.
+     *
+     * @param int  $club_id     Club ID.
+     * @param bool $affiliation Whether affiliation mode is active.
+     */
+    private static function handle_front_own_club_update( $club_id, $affiliation ) {
+        $allowed_data = array();
+
+        if ( isset( $_POST['email'] ) ) {
+            $allowed_data['email'] = sanitize_email( wp_unslash( $_POST['email'] ) );
+        }
+
+        if ( isset( $_POST['telephone'] ) ) {
+            $allowed_data['telephone'] = sanitize_text_field( wp_unslash( $_POST['telephone'] ) );
+        }
+
+        if ( empty( $allowed_data ) ) {
+            self::redirect_with_error( __( 'Aucune information autorisée à mettre à jour.', 'ufsc-clubs' ), $club_id, $affiliation );
+            return;
+        }
+
+        $result_club_id = self::save_club_data( $allowed_data, $club_id );
+        if ( is_wp_error( $result_club_id ) ) {
+            self::redirect_with_error( __( 'Impossible de mettre à jour le club pour le moment.', 'ufsc-clubs' ), $club_id, $affiliation );
+            return;
+        }
+
+        do_action( 'ufsc_club_updated', $club_id );
+        self::redirect_with_success( __( 'Les informations autorisées du club ont été mises à jour.', 'ufsc-clubs' ), $club_id, $affiliation );
     }
 
     /**

@@ -1901,3 +1901,25 @@ button#upload_btn {
 .ufsc-licence-table--future {
     min-width: 760px;
 }
+
+/* Compte Club: improve contrast on the blue account panel without affecting theme globals. */
+.ufsc-club-profile.ufsc-premium-v3 .ufsc-profile-header h3,
+.ufsc-club-profile .ufsc-profile-header h3 {
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(15, 23, 42, 0.22);
+}
+
+.ufsc-club-profile.ufsc-premium-v3 .ufsc-profile-header .ufsc-dashboard-subtitle,
+.ufsc-club-profile .ufsc-profile-header .ufsc-dashboard-subtitle {
+    color: rgba(255, 255, 255, 0.96);
+}
+
+.ufsc-club-profile.ufsc-premium-v3 .ufsc-profile-header .ufsc-permission-notice,
+.ufsc-club-profile .ufsc-profile-header .ufsc-permission-notice {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    border-radius: 999px;
+    padding: 8px 12px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
