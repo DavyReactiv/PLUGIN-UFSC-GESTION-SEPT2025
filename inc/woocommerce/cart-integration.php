@@ -578,6 +578,11 @@ function ufsc_handle_add_to_cart_secure() {
 			ufsc_wc_log( $event, $context, 'warning' );
 		}
 	};
+	$log_info = static function( $event, $context = array() ) {
+		if ( function_exists( 'ufsc_wc_log' ) ) {
+			ufsc_wc_log( $event, $context, 'info' );
+		}
+	};
 
 	$can_manage_all = false;
 	if ( class_exists( 'UFSC_Capabilities' ) && method_exists( 'UFSC_Capabilities', 'user_can' ) ) {
@@ -674,6 +679,20 @@ function ufsc_handle_add_to_cart_secure() {
 	$target_season  = isset( $_POST['ufsc_target_season'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_target_season'] ) ) : '';
 	$renew_from_id  = isset( $_POST['ufsc_renew_from_licence_id'] ) ? absint( $_POST['ufsc_renew_from_licence_id'] ) : 0;
 
+	$log_info( 'ufsc_add_to_cart_request_received', array(
+		'user_id'             => get_current_user_id(),
+		'ufsc_action'         => $ufsc_action,
+		'product_id'          => $product_id,
+		'affiliation_product' => function_exists( 'ufsc_get_affiliation_product_id' ) ? ufsc_get_affiliation_product_id() : 0,
+		'licence_product'     => function_exists( 'ufsc_get_licence_product_id' ) ? ufsc_get_licence_product_id() : 0,
+		'club_id'             => isset( $_POST['ufsc_club_id'] ) ? absint( wp_unslash( $_POST['ufsc_club_id'] ) ) : 0,
+		'target_season'       => $target_season,
+		'nonce_ok'            => 1,
+		'woocommerce_active'  => class_exists( 'WooCommerce' ) ? 1 : 0,
+		'cart_available'      => ( function_exists( 'WC' ) && WC() && WC()->cart ) ? 1 : 0,
+		'renewal_open'        => function_exists( 'ufsc_is_renewal_window_open' ) && ufsc_is_renewal_window_open() ? 1 : 0,
+	) );
+
 	// Parse licence ids once (avoid double parsing / regression)
 	if ( isset( $_POST['ufsc_license_ids'] ) ) {
 		$license_ids_string = sanitize_text_field( wp_unslash( $_POST['ufsc_license_ids'] ) );
@@ -753,8 +772,21 @@ function ufsc_handle_add_to_cart_secure() {
 
 		$current_season_for_renewal = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
 		if ( $target_season && $current_season_for_renewal && $target_season !== $current_season_for_renewal && ( ! function_exists( 'ufsc_is_renewal_window_open' ) || ! ufsc_is_renewal_window_open() ) ) {
-			wc_add_notice( __( 'Renouvellement indisponible pour le moment.', 'ufsc-clubs' ), 'error' );
-			wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+			$renew_start_ts = function_exists( 'ufsc_get_renewal_window_start_ts' ) ? (int) ufsc_get_renewal_window_start_ts() : 0;
+			$renew_open_label = $renew_start_ts > 0 ? wp_date( 'd/m/Y', $renew_start_ts ) : __( '30/07', 'ufsc-clubs' );
+			$message = sprintf( __( 'Le renouvellement pour la saison %1$s sera disponible à partir du %2$s.', 'ufsc-clubs' ), $target_season, $renew_open_label );
+			$log_warning( 'ufsc_add_to_cart_renewal_window_closed', array(
+				'ufsc_action'       => $ufsc_action,
+				'club_id'           => isset( $_POST['ufsc_club_id'] ) ? absint( wp_unslash( $_POST['ufsc_club_id'] ) ) : 0,
+				'product_id'        => $product_id,
+				'target_season'    => $target_season,
+				'current_season'   => $current_season_for_renewal,
+				'renewal_open_ts'  => $renew_start_ts,
+				'renewal_open_label' => $renew_open_label,
+			) );
+			wc_add_notice( $message, 'error' );
+			$redirect = wp_get_referer() ? wp_get_referer() : home_url();
+			wp_safe_redirect( add_query_arg( 'ufsc_error', rawurlencode( $message ), $redirect ) );
 			exit;
 		}
 
@@ -952,6 +984,14 @@ function ufsc_handle_add_to_cart_secure() {
 	$redirect_url = in_array( $ufsc_action, array( 'renew_licence', 'renew_affiliation' ), true ) && function_exists( 'wc_get_cart_url' )
 		? wc_get_cart_url()
 		: ( wp_get_referer() ? wp_get_referer() : ( function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : home_url() ) );
+	$log_info( 'ufsc_add_to_cart_redirect', array(
+		'ufsc_action'    => $ufsc_action,
+		'product_id'     => $product_id,
+		'club_id'        => $club_id,
+		'target_season'  => $target_season,
+		'cart_item_key'  => $cart_item_key ? 1 : 0,
+		'redirect_url'   => $redirect_url,
+	) );
 	wp_safe_redirect( $redirect_url );
 	exit;
 }
