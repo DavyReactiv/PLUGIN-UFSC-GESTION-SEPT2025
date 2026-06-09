@@ -80,6 +80,122 @@ function ufsc_cart_has_renewal_item( $action, $club_id, $season, $source_licence
     return false;
 }
 
+
+/**
+ * Check whether a pending WooCommerce order already contains the same renewal.
+ *
+ * @param string $action Renewal action (renew_affiliation|renew_licence).
+ * @param int    $club_id Club ID.
+ * @param string $season Target season.
+ * @param int    $source_licence_id Source licence for licence renewals.
+ * @return bool
+ */
+function ufsc_wc_has_pending_renewal_order( $action, $club_id, $season, $source_licence_id = 0 ) {
+    if ( ! function_exists( 'wc_get_orders' ) ) {
+        return false;
+    }
+
+    $action            = sanitize_key( (string) $action );
+    $club_id           = absint( $club_id );
+    $season            = sanitize_text_field( (string) $season );
+    $source_licence_id = absint( $source_licence_id );
+    if ( ! in_array( $action, array( 'renew_affiliation', 'renew_licence' ), true ) || $club_id <= 0 || '' === $season ) {
+        return false;
+    }
+
+    $statuses = (array) apply_filters(
+        'ufsc_pending_renewal_order_statuses',
+        array( 'pending', 'on-hold', 'processing' ),
+        $action,
+        $club_id,
+        $season,
+        $source_licence_id
+    );
+    $statuses = array_values( array_unique( array_filter( array_map( 'sanitize_key', $statuses ) ) ) );
+    if ( empty( $statuses ) ) {
+        return false;
+    }
+
+    $limit = absint( apply_filters( 'ufsc_pending_renewal_order_lookup_limit', 200, $action, $club_id, $season ) );
+    $limit = max( 10, min( $limit, 1000 ) );
+
+    $orders = wc_get_orders(
+        array(
+            'status'  => $statuses,
+            'limit'   => $limit,
+            'orderby' => 'date',
+            'order'   => 'DESC',
+            'return'  => 'objects',
+        )
+    );
+
+    $expected_item_type = ( 'renew_licence' === $action ) ? 'licence_renewal' : 'affiliation_renewal';
+
+    foreach ( (array) $orders as $order ) {
+        if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+            continue;
+        }
+
+        foreach ( $order->get_items() as $item ) {
+            $item_action = sanitize_key( (string) $item->get_meta( 'ufsc_action', true ) );
+            if ( '' === $item_action ) {
+                $item_action = sanitize_key( (string) $item->get_meta( '_ufsc_action', true ) );
+            }
+
+            $item_type = sanitize_key( (string) $item->get_meta( 'ufsc_item_type', true ) );
+            if ( '' === $item_type ) {
+                $item_type = sanitize_key( (string) $item->get_meta( '_ufsc_item_type', true ) );
+            }
+
+            if ( $item_action !== $action && $item_type !== $expected_item_type ) {
+                continue;
+            }
+
+            $item_club_id = absint( $item->get_meta( 'ufsc_club_id', true ) );
+            if ( ! $item_club_id ) {
+                $item_club_id = absint( $item->get_meta( '_ufsc_club_id', true ) );
+            }
+            if ( $item_club_id !== $club_id ) {
+                continue;
+            }
+
+            $item_season = sanitize_text_field( (string) $item->get_meta( 'ufsc_target_season', true ) );
+            if ( '' === $item_season ) {
+                $item_season = sanitize_text_field( (string) $item->get_meta( '_ufsc_target_season', true ) );
+            }
+            if ( '' === $item_season ) {
+                $item_season = sanitize_text_field( (string) $item->get_meta( 'ufsc_season', true ) );
+            }
+            if ( '' === $item_season ) {
+                $item_season = sanitize_text_field( (string) $item->get_meta( '_ufsc_season', true ) );
+            }
+            if ( $item_season !== $season ) {
+                continue;
+            }
+
+            if ( 'renew_licence' === $action ) {
+                $item_source = absint( $item->get_meta( 'ufsc_source_licence_id', true ) );
+                if ( ! $item_source ) {
+                    $item_source = absint( $item->get_meta( '_ufsc_source_licence_id', true ) );
+                }
+                if ( ! $item_source ) {
+                    $item_source = absint( $item->get_meta( 'ufsc_renew_from_licence_id', true ) );
+                }
+                if ( ! $item_source ) {
+                    $item_source = absint( $item->get_meta( '_ufsc_renew_from_licence_id', true ) );
+                }
+                if ( $item_source !== $source_licence_id ) {
+                    continue;
+                }
+            }
+
+            return true;
+        }
+    }
+
+    return false;
+}
+
 /**
  * Find an equivalent renewed licence for cart/renewal guards.
  *
@@ -648,6 +764,11 @@ function ufsc_handle_add_to_cart_secure() {
 				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 				exit;
 			}
+			if ( function_exists( 'ufsc_wc_has_pending_renewal_order' ) && ufsc_wc_has_pending_renewal_order( 'renew_licence', $club_id, $target_season, $renew_from_id ) ) {
+				wc_add_notice( __( 'Une commande de renouvellement est déjà en attente pour cet élément. Merci de finaliser ou vérifier votre commande.', 'ufsc-clubs' ), 'error' );
+				wp_safe_redirect( function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : ( wp_get_referer() ? wp_get_referer() : home_url() ) );
+				exit;
+			}
 			if ( function_exists( 'ufsc_cart_has_renewal_item' ) && ufsc_cart_has_renewal_item( 'renew_licence', $club_id, $target_season, $renew_from_id ) ) {
 				wc_add_notice( __( 'Cette licence est déjà dans le panier de renouvellement.', 'ufsc-clubs' ), 'notice' );
 				wp_safe_redirect( function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : ( wp_get_referer() ? wp_get_referer() : home_url() ) );
@@ -666,6 +787,11 @@ function ufsc_handle_add_to_cart_secure() {
 			if ( function_exists( 'ufsc_is_club_affiliated_for_season' ) && ufsc_is_club_affiliated_for_season( $club_id, $target_season ) ) {
 				wc_add_notice( __( 'Affiliation déjà renouvelée pour cette saison.', 'ufsc-clubs' ), 'error' );
 				wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
+				exit;
+			}
+			if ( function_exists( 'ufsc_wc_has_pending_renewal_order' ) && ufsc_wc_has_pending_renewal_order( 'renew_affiliation', $club_id, $target_season ) ) {
+				wc_add_notice( __( 'Une commande de renouvellement est déjà en attente pour cet élément. Merci de finaliser ou vérifier votre commande.', 'ufsc-clubs' ), 'error' );
+				wp_safe_redirect( function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : ( wp_get_referer() ? wp_get_referer() : home_url() ) );
 				exit;
 			}
 			if ( function_exists( 'ufsc_cart_has_renewal_item' ) && ufsc_cart_has_renewal_item( 'renew_affiliation', $club_id, $target_season ) ) {

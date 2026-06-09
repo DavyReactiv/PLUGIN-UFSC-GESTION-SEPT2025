@@ -467,9 +467,12 @@ class UFSC_Frontend_Shortcodes {
             $archive_filter = sanitize_text_field( wp_unslash( $_GET['ufsc_archive_season'] ) );
         }
 
+        $split_limit = absint( apply_filters( 'ufsc_front_licences_split_limit', 2000, $atts ) );
+        $split_limit = max( 100, min( $split_limit, 5000 ) );
+
         $all_licence_args             = $atts;
         $all_licence_args['page']     = 1;
-        $all_licence_args['per_page'] = 500;
+        $all_licence_args['per_page'] = $split_limit;
         unset( $all_licence_args['season'] );
 
         $all_licences     = self::get_club_licences( $atts['club_id'], $all_licence_args );

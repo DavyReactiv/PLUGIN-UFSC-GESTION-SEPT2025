@@ -2996,7 +2996,7 @@ class UFSC_SQL_Admin
                     $current_end_year = self::get_season_end_year_from_label( $current_season );
                     $target_end_year  = self::get_season_end_year_from_label( $target_season );
                     if ( '__archives' === $filter_season && $current_end_year > 0 ) {
-                        $where_conditions[] = $wpdb->prepare( "COALESCE(l.season_end_year, 0) > 0 AND l.season_end_year <> %d", $current_end_year );
+                        $where_conditions[] = $wpdb->prepare( "COALESCE(l.season_end_year, 0) > 0 AND l.season_end_year < %d", $current_end_year );
                     } elseif ( $target_end_year > 0 ) {
                         if ( '__current' === $filter_season || '' === $filter_season ) {
                             $where_conditions[] = $wpdb->prepare( "(COALESCE(l.season_end_year, 0) = 0 OR l.season_end_year = %d)", $target_end_year );
@@ -3005,7 +3005,14 @@ class UFSC_SQL_Admin
                         }
                     }
                 } elseif ( '__archives' === $filter_season && '' !== $current_season ) {
-                    $where_conditions[] = $wpdb->prepare( "COALESCE(NULLIF(l.{$season_column}, ''), '') <> '' AND l.{$season_column} <> %s", $current_season );
+                    $current_start_year = self::get_season_start_year_from_label( $current_season );
+                    if ( $current_start_year > 0 ) {
+                        $where_conditions[] = $wpdb->prepare(
+                            "COALESCE(NULLIF(l.{$season_column}, ''), '') REGEXP %s AND CAST(SUBSTRING(REPLACE(l.{$season_column}, '/', '-'), 1, 4) AS UNSIGNED) < %d",
+                            '^[0-9]{4}[-/][0-9]{4}$',
+                            $current_start_year
+                        );
+                    }
                 } elseif ( '' !== $target_season ) {
                     if ( '__current' === $filter_season || '' === $filter_season ) {
                         $where_conditions[] = $wpdb->prepare( "(COALESCE(NULLIF(l.{$season_column}, ''), '') = '' OR l.{$season_column} = %s)", $target_season );
@@ -3119,6 +3126,21 @@ class UFSC_SQL_Admin
     private static function get_season_end_year_from_label( $season ) {
         $season = trim( str_replace( '/', '-', (string) $season ) );
         if ( ! preg_match( '/^\d{4}-(\d{4})$/', $season, $matches ) ) {
+            return 0;
+        }
+
+        return absint( $matches[1] );
+    }
+
+    /**
+     * Extract the start year from a season label such as 2026-2027.
+     *
+     * @param string $season Season label.
+     * @return int
+     */
+    private static function get_season_start_year_from_label( $season ) {
+        $season = trim( str_replace( '/', '-', (string) $season ) );
+        if ( ! preg_match( '/^(\d{4})-\d{4}$/', $season, $matches ) ) {
             return 0;
         }
 

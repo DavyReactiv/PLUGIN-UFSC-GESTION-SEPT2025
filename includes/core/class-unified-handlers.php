@@ -328,27 +328,6 @@ class UFSC_Unified_Handlers {
 
         self::redirect_with_error( 'Veuillez utiliser le renouvellement via panier WooCommerce.' );
         return;
-
-        $existing_affiliation_season = function_exists( 'ufsc_get_affiliation_season' ) ? ufsc_get_affiliation_season( $club_id, $target_season ) : '';
-        if ( $existing_affiliation_season === $target_season ) {
-            self::redirect_with_success( sprintf( __( 'Affiliation déjà renouvelée pour %s.', 'ufsc-clubs' ), $target_season ) );
-            return;
-        }
-
-        if ( function_exists( 'ufsc_is_affiliation_renewed' ) && ufsc_is_affiliation_renewed( $club_id, $target_season ) ) {
-            self::redirect_with_success( sprintf( __( 'Renouvellement affiliation déjà demandé pour %s.', 'ufsc-clubs' ), $target_season ) );
-            return;
-        }
-
-        if ( function_exists( 'ufsc_mark_affiliation_renewed' ) ) {
-            ufsc_mark_affiliation_renewed( $club_id, $target_season );
-        }
-        if ( function_exists( 'ufsc_set_option_noautoload' ) ) {
-            ufsc_set_option_noautoload( 'ufsc_affiliation_renewal_status_' . $club_id . '_' . sanitize_key( $target_season ), 'renouvellement_en_attente' );
-            ufsc_set_option_noautoload( 'ufsc_affiliation_renewal_requested_at_' . $club_id . '_' . sanitize_key( $target_season ), current_time( 'mysql' ) );
-        }
-
-        self::redirect_with_success( sprintf( __( 'Demande de renouvellement d’affiliation enregistrée pour %s.', 'ufsc-clubs' ), $target_season ) );
     }
 
     /**
@@ -392,92 +371,6 @@ class UFSC_Unified_Handlers {
 
         self::redirect_with_error( 'Veuillez utiliser le renouvellement via panier WooCommerce.' );
         return;
-
-        if ( function_exists( 'ufsc_get_renewed_licence_marker' ) ) {
-            $existing_id = ufsc_get_renewed_licence_marker( $licence_id, $target_season );
-            if ( $existing_id > 0 ) {
-                self::redirect_with_success( sprintf( __( 'Licence déjà renouvelée pour %s.', 'ufsc-clubs' ), $target_season ) );
-                return;
-            }
-        }
-
-        global $wpdb;
-        $settings       = UFSC_SQL::get_settings();
-        $licences_table = $settings['table_licences'];
-        $columns        = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $licences_table ) : (array) $wpdb->get_col( "DESCRIBE `{$licences_table}`" );
-        $column_exists  = function( $column ) use ( $columns ) {
-            return in_array( $column, $columns, true );
-        };
-
-        $equivalent_id = self::find_equivalent_renewed_licence_id( $licence, $club_id, $target_season, $columns, $licences_table );
-        if ( $equivalent_id > 0 ) {
-            if ( function_exists( 'ufsc_mark_renewed_licence_marker' ) ) {
-                ufsc_mark_renewed_licence_marker( $licence_id, $target_season, $equivalent_id );
-            }
-            self::redirect_with_success( sprintf( __( 'Licence déjà renouvelée pour %s.', 'ufsc-clubs' ), $target_season ) );
-            return;
-        }
-
-        $copy_fields = function_exists( 'ufsc_get_renewal_copy_fields' ) ? ufsc_get_renewal_copy_fields() : array( 'nom', 'prenom', 'email', 'adresse', 'code_postal', 'ville', 'date_naissance', 'sexe', 'competition' );
-        $data        = array();
-        foreach ( $copy_fields as $field ) {
-            if ( $column_exists( $field ) && isset( $licence->{$field} ) ) {
-                $data[ $field ] = $licence->{$field};
-            }
-        }
-
-        if ( $column_exists( 'club_id' ) ) {
-            $data['club_id'] = $club_id;
-        }
-        if ( $column_exists( 'statut' ) ) {
-            $data['statut'] = 'brouillon';
-        }
-        if ( $column_exists( 'date_creation' ) ) {
-            $data['date_creation'] = current_time( 'mysql' );
-        }
-        if ( $column_exists( 'renewed_from_licence_id' ) ) {
-            $data['renewed_from_licence_id'] = $licence_id;
-        }
-        if ( $column_exists( 'renewal_status' ) ) {
-            $data['renewal_status'] = 'renouvellement_en_attente';
-        }
-        if ( $column_exists( 'renewed_at' ) ) {
-            $data['renewed_at'] = current_time( 'mysql' );
-        }
-
-        foreach ( array( 'season', 'saison', 'paid_season' ) as $season_col ) {
-            if ( $column_exists( $season_col ) ) {
-                $data[ $season_col ] = $target_season;
-            }
-        }
-        if ( $column_exists( 'season_end_year' ) && function_exists( 'ufsc_get_season_end_year_from_label' ) ) {
-            $data['season_end_year'] = ufsc_get_season_end_year_from_label( $target_season );
-        }
-
-        $data = self::add_detected_category_fields( $data, $column_exists );
-        $data = array_intersect_key( $data, array_flip( $columns ) );
-
-        if ( empty( $data ) || ! $column_exists( 'club_id' ) ) {
-            self::redirect_with_error( 'Renouvellement impossible avec le schéma actuel' );
-            return;
-        }
-
-        $result = $wpdb->insert( $licences_table, $data );
-        if ( false === $result ) {
-            self::redirect_with_error( 'Création de la licence renouvelée impossible' );
-            return;
-        }
-
-        $new_id = (int) $wpdb->insert_id;
-        if ( function_exists( 'ufsc_set_licence_season' ) ) {
-            ufsc_set_licence_season( $new_id, $target_season );
-        }
-        if ( function_exists( 'ufsc_mark_renewed_licence_marker' ) ) {
-            ufsc_mark_renewed_licence_marker( $licence_id, $target_season, $new_id );
-        }
-
-        do_action( 'ufsc_licence_updated', (int) $club_id );
-        self::redirect_with_success( sprintf( __( 'Licence renouvelée en brouillon pour %s.', 'ufsc-clubs' ), $target_season ) );
     }
 
     /**
