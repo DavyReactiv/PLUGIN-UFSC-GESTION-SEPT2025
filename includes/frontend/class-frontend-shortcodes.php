@@ -561,6 +561,8 @@ class UFSC_Frontend_Shortcodes {
                         <?php esc_html_e( 'Aucune licence trouvée.', 'ufsc-clubs' ); ?>
                     </div>
                 <?php else : ?>
+                    <p class="ufsc-front-table-hint"><?php esc_html_e( 'Faites glisser le tableau horizontalement pour voir toutes les colonnes.', 'ufsc-clubs' ); ?></p>
+                    <div class="ufsc-front-table-scroll" tabindex="0" role="region" aria-label="<?php esc_attr_e( 'Tableau des licences UFSC du club', 'ufsc-clubs' ); ?>">
                     <table class="ufsc-licence-table">
                         <thead>
                             <tr>
@@ -643,7 +645,7 @@ class UFSC_Frontend_Shortcodes {
                                                 <button type="submit" class="ufsc-action"><?php esc_html_e( 'OK', 'ufsc-clubs' ); ?></button>
                                             </form>
                                         <?php else : ?>
-                                            <?php echo esc_html( '' !== $weight_value ? $weight_value . ' kg' : __( 'Poids non renseigné', 'ufsc-clubs' ) ); ?>
+                                            <?php echo esc_html( '' !== $weight_value ? $weight_value . ' kg' : '—' ); ?>
                                         <?php endif; ?>
                                     </td>
                                     <td><?php echo self::render_category_badge( $age_category_label, $age_category_label ? 'ok' : $category_summary['status'] ); ?></td>
@@ -670,6 +672,7 @@ class UFSC_Frontend_Shortcodes {
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    </div>
                 <?php endif; ?>
             </div>
 
