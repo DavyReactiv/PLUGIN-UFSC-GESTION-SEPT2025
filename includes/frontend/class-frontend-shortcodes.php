@@ -454,9 +454,37 @@ class UFSC_Frontend_Shortcodes {
             ) );
         }
 
-        $licences = self::get_club_licences( $atts['club_id'], $atts );
-        $total_count = self::get_club_licences_count( $atts['club_id'], $atts );
-        $total_pages = ceil( $total_count / $atts['per_page'] );
+        $active_season = class_exists( 'UFSC_Season_Service' )
+            ? UFSC_Season_Service::get_current_season()
+            : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+        $archive_filter = '';
+        if ( isset( $_GET['ufsc_archive_season'] ) && ! is_array( $_GET['ufsc_archive_season'] ) ) {
+            $archive_filter = sanitize_text_field( wp_unslash( $_GET['ufsc_archive_season'] ) );
+        }
+
+        $all_licence_args             = $atts;
+        $all_licence_args['page']     = 1;
+        $all_licence_args['per_page'] = 500;
+        unset( $all_licence_args['season'] );
+
+        $all_licences     = self::get_club_licences( $atts['club_id'], $all_licence_args );
+        $seasoned_lists   = self::split_licences_by_active_season( $all_licences, $active_season );
+        $active_licences  = $seasoned_lists['active'];
+        $archive_licences = $seasoned_lists['archives'];
+        $archive_seasons  = $seasoned_lists['archive_seasons'];
+
+        if ( '' !== $archive_filter && in_array( $archive_filter, $archive_seasons, true ) ) {
+            $archive_licences = array_values( array_filter( $archive_licences, static function ( $licence ) use ( $archive_filter ) {
+                return isset( $licence->season_label ) && (string) $licence->season_label === $archive_filter;
+            } ) );
+        } else {
+            $archive_filter = '';
+        }
+
+        $total_count = count( $active_licences );
+        $total_pages = max( 1, (int) ceil( $total_count / max( 1, (int) $atts['per_page'] ) ) );
+        $atts['page'] = min( max( 1, (int) $atts['page'] ), $total_pages );
+        $licences = array_slice( $active_licences, ( $atts['page'] - 1 ) * (int) $atts['per_page'], (int) $atts['per_page'] );
         $bureau_data = self::get_bureau_coverage_data( (int) $atts['club_id'] );
 
         $club_name  = self::get_club_name( $atts['club_id'] );
@@ -483,7 +511,7 @@ class UFSC_Frontend_Shortcodes {
                 <?php endif; ?>
             </div>
             <div class="ufsc-section-header">
-                <h3><?php printf( 'Mes licences UFSC – %s', esc_html( $club_name ) ); ?></h3>
+                <h3><?php echo esc_html( sprintf( __( 'Licences saison active — %s', 'ufsc-clubs' ), $active_season ? $active_season : __( 'saison en cours', 'ufsc-clubs' ) ) ); ?> <span class="ufsc-section-subtitle"><?php echo esc_html( sprintf( __( 'Club : %s', 'ufsc-clubs' ), $club_name ) ); ?></span></h3>
                 <?php if ( ! $readonly ) : ?>
                     <div class="ufsc-section-actions">
                         <a href="<?php echo esc_url( add_query_arg( 'edit_licence', 0 ) ); ?>"
@@ -586,7 +614,10 @@ class UFSC_Frontend_Shortcodes {
             <div class="ufsc-licences-list">
                 <?php if ( empty( $licences ) ) : ?>
                     <div class="ufsc-message ufsc-info">
-                        <?php esc_html_e( 'Aucune licence trouvée.', 'ufsc-clubs' ); ?>
+                        <?php esc_html_e( 'Aucune licence active pour la saison en cours.', 'ufsc-clubs' ); ?>
+                        <?php if ( ! empty( $archive_licences ) ) : ?>
+                            <br><a class="ufsc-action" href="#ufsc-licences-archives"><?php esc_html_e( 'Voir les archives des licences', 'ufsc-clubs' ); ?></a>
+                        <?php endif; ?>
                     </div>
                 <?php else : ?>
                     <p class="ufsc-front-table-hint"><?php esc_html_e( 'Faites glisser le tableau horizontalement pour voir toutes les colonnes.', 'ufsc-clubs' ); ?></p>
@@ -731,12 +762,186 @@ class UFSC_Frontend_Shortcodes {
                     ?>
                 </div>
             <?php endif; ?>
+
+            <?php echo self::render_archived_licences_section( $archive_licences, $archive_seasons, $archive_filter, $atts, $readonly ); ?>
         </div>
 
         <!-- Import Modal -->
         <?php if ( ! $readonly ) : ?>
             <?php echo self::render_import_modal( $atts['club_id'] ); ?>
         <?php endif; ?>
+        <?php
+        return ob_get_clean();
+    }
+
+    /**
+     * Split club licences between the active season table and read-only archives.
+     *
+     * Archives are display-only: no licence row is edited or deleted here.
+     *
+     * @param array  $licences      Licence rows.
+     * @param string $active_season Current active season label.
+     * @return array{active:array,archives:array,archive_seasons:array}
+     */
+    private static function split_licences_by_active_season( $licences, $active_season ) {
+        $active_season   = trim( (string) $active_season );
+        $active          = array();
+        $archives        = array();
+        $archive_seasons = array();
+
+        foreach ( (array) $licences as $licence ) {
+            if ( ! is_object( $licence ) ) {
+                continue;
+            }
+
+            $season = self::get_licence_display_season( $licence );
+            $licence->season_label = $season;
+
+            if ( '' !== $active_season && $season === $active_season ) {
+                $active[] = $licence;
+                continue;
+            }
+
+            $archives[] = $licence;
+            if ( '' !== $season ) {
+                $archive_seasons[] = $season;
+            }
+        }
+
+        $archive_seasons = array_values( array_unique( $archive_seasons ) );
+        rsort( $archive_seasons, SORT_NATURAL );
+
+        return array(
+            'active'          => $active,
+            'archives'        => $archives,
+            'archive_seasons' => $archive_seasons,
+        );
+    }
+
+    /**
+     * Resolve the season label used by licence tables.
+     *
+     * @param object $licence Licence row.
+     * @return string
+     */
+    private static function get_licence_display_season( $licence ) {
+        $season = '';
+        if ( isset( $licence->season_label ) && '' !== trim( (string) $licence->season_label ) ) {
+            $season = (string) $licence->season_label;
+        } elseif ( function_exists( 'ufsc_get_licence_season_label' ) ) {
+            $season = (string) ufsc_get_licence_season_label( $licence );
+        } elseif ( function_exists( 'ufsc_get_licence_season' ) ) {
+            $season = (string) ufsc_get_licence_season( $licence );
+        }
+
+        return trim( str_replace( '/', '-', sanitize_text_field( $season ) ) );
+    }
+
+    /**
+     * Render the previous-season licences archive block for club users.
+     *
+     * @param array  $archive_licences Previous-season licence rows.
+     * @param array  $archive_seasons  Available archive season labels.
+     * @param string $archive_filter   Selected archive season label.
+     * @param array  $atts             Current shortcode attributes.
+     * @param bool   $readonly         Whether the parent shortcode is read-only.
+     * @return string
+     */
+    private static function render_archived_licences_section( $archive_licences, $archive_seasons, $archive_filter, $atts, $readonly ) {
+        ob_start();
+        ?>
+        <section id="ufsc-licences-archives" class="ufsc-licences-archives" aria-labelledby="ufsc-licences-archives-title">
+            <div class="ufsc-section-header ufsc-section-header--compact">
+                <h4 id="ufsc-licences-archives-title"><?php esc_html_e( 'Archives des licences', 'ufsc-clubs' ); ?></h4>
+            </div>
+            <p class="ufsc-admin-help"><?php esc_html_e( 'Les licences des saisons précédentes restent consultables ici. Elles ne sont pas modifiées par l’affichage des archives.', 'ufsc-clubs' ); ?></p>
+
+            <?php if ( ! empty( $archive_seasons ) ) : ?>
+                <form method="get" class="ufsc-archive-filter-form">
+                    <?php foreach ( array( 'ufsc_status', 'ufsc_search', 'ufsc_sort' ) as $param ) : ?>
+                        <?php if ( isset( $_GET[ $param ] ) && ! is_array( $_GET[ $param ] ) ) : ?>
+                            <input type="hidden" name="<?php echo esc_attr( $param ); ?>" value="<?php echo esc_attr( sanitize_text_field( wp_unslash( $_GET[ $param ] ) ) ); ?>">
+                        <?php endif; ?>
+                    <?php endforeach; ?>
+                    <label for="ufsc_archive_season"><?php esc_html_e( 'Filtrer les archives par saison', 'ufsc-clubs' ); ?></label>
+                    <select id="ufsc_archive_season" name="ufsc_archive_season">
+                        <option value=""><?php esc_html_e( 'Toutes les saisons archivées', 'ufsc-clubs' ); ?></option>
+                        <?php foreach ( $archive_seasons as $season ) : ?>
+                            <option value="<?php echo esc_attr( $season ); ?>" <?php selected( $archive_filter, $season ); ?>><?php echo esc_html( $season ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <button type="submit" class="ufsc-btn ufsc-btn-secondary"><?php esc_html_e( 'Filtrer', 'ufsc-clubs' ); ?></button>
+                </form>
+            <?php endif; ?>
+
+            <?php if ( empty( $archive_licences ) ) : ?>
+                <div class="ufsc-message ufsc-info"><?php esc_html_e( 'Aucune licence archivée pour le filtre sélectionné.', 'ufsc-clubs' ); ?></div>
+            <?php else : ?>
+                <p class="ufsc-front-table-hint"><?php esc_html_e( 'Faites glisser le tableau horizontalement pour consulter les archives.', 'ufsc-clubs' ); ?></p>
+                <div class="ufsc-front-table-scroll" tabindex="0" role="region" aria-label="<?php esc_attr_e( 'Tableau des archives des licences UFSC du club', 'ufsc-clubs' ); ?>">
+                    <table class="ufsc-licence-table ufsc-licence-table--archives">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e( 'Saison', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Date de naissance', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Sexe', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Ancien statut', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Ancien poids', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Ancienne catégorie d’âge', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Ancienne catégorie de poids', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Date de création', 'ufsc-clubs' ); ?></th>
+                                <th><?php esc_html_e( 'Actions', 'ufsc-clubs' ); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ( $archive_licences as $licence ) :
+                                $season = self::get_licence_display_season( $licence );
+                                $status_raw = $licence->licence_statut ?? ( $licence->statut ?? '' );
+                                $status = class_exists( 'UFSC_Licence_Status' ) ? UFSC_Licence_Status::display_status( $status_raw ) : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw );
+                                $category_summary = class_exists( 'UFSC_Category_Repository' )
+                                    ? UFSC_Category_Repository::detect_for_athlete( $licence, UFSC_Category_Repository::DEFAULT_DISCIPLINE, $season )
+                                    : array( 'age_category_label' => '', 'weight_category_label' => '', 'status' => 'age_not_found' );
+                                $age_category_label = $category_summary['age_category_label'] ?: self::get_first_licence_field( $licence, array( 'categorie_age_detectee', 'categorie', 'category', 'type_licence', 'cat' ) );
+                                $weight_category_label = $category_summary['weight_category_label'] ?: self::get_first_licence_field( $licence, array( 'categorie_poids_detectee' ) );
+                                $weight_value = self::get_first_licence_field( $licence, array( 'poids', 'weight' ) );
+                                $target_renewal_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_next_season() : ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '' );
+                                $renewed_licence_id = ( $target_renewal_season && function_exists( 'ufsc_get_renewed_licence_marker' ) ) ? ufsc_get_renewed_licence_marker( (int) ( $licence->id ?? 0 ), $target_renewal_season ) : 0;
+                            ?>
+                                <tr>
+                                    <td><?php echo esc_html( $season ? $season : '—' ); ?></td>
+                                    <td><?php echo esc_html( $licence->nom ?? '' ); ?></td>
+                                    <td><?php echo esc_html( $licence->prenom ?? '' ); ?></td>
+                                    <td><?php echo esc_html( $licence->date_naissance ?? '' ); ?></td>
+                                    <td><?php echo esc_html( $licence->sexe ?? '' ); ?></td>
+                                    <td><?php echo self::get_status_badge_front( $status ); ?></td>
+                                    <td><?php echo esc_html( '' !== $weight_value ? $weight_value . ' kg' : '—' ); ?></td>
+                                    <td><?php echo self::render_category_badge( $age_category_label, $age_category_label ? 'ok' : $category_summary['status'] ); ?></td>
+                                    <td><?php echo self::render_category_badge( $weight_category_label, $category_summary['status'] ); ?></td>
+                                    <td><?php echo esc_html( self::get_first_licence_field( $licence, array( 'date_creation', 'created_at', 'date_inscription' ) ) ); ?></td>
+                                    <td>
+                                        <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
+                                        <?php if ( $target_renewal_season ) : ?>
+                                            <?php if ( $renewed_licence_id ) : ?>
+                                                <span class="ufsc-badge ufsc-badge-info"><?php echo esc_html( sprintf( __( 'Déjà renouvelée %s', 'ufsc-clubs' ), $target_renewal_season ) ); ?></span>
+                                            <?php elseif ( ! $readonly ) : ?>
+                                                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-inline-renew-form" style="display:inline">
+                                                    <?php wp_nonce_field( 'ufsc_renew_licence_' . ( $licence->id ?? 0 ) ); ?>
+                                                    <input type="hidden" name="action" value="ufsc_renew_licence">
+                                                    <input type="hidden" name="licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
+                                                    <button type="submit" class="ufsc-action"><?php esc_html_e( 'Renouveler cette licence', 'ufsc-clubs' ); ?></button>
+                                                </form>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </section>
         <?php
         return ob_get_clean();
     }

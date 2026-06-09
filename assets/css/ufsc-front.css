@@ -1838,3 +1838,52 @@ button#upload_btn {
         justify-content: center;
     }
 }
+
+.ufsc-licences-archives {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(15, 23, 42, 0.12);
+    overflow-x: hidden;
+}
+
+.ufsc-section-header--compact {
+    margin-bottom: 0.5rem;
+}
+
+.ufsc-section-subtitle {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    opacity: 0.75;
+}
+
+.ufsc-archive-filter-form {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) minmax(180px, 220px) auto;
+    gap: 0.75rem;
+    align-items: end;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 1rem 0;
+}
+
+.ufsc-archive-filter-form label,
+.ufsc-archive-filter-form select,
+.ufsc-archive-filter-form button {
+    min-width: 0;
+}
+
+.ufsc-licence-table--archives {
+    min-width: 1080px;
+}
+
+@media (max-width: 768px) {
+    .ufsc-archive-filter-form {
+        grid-template-columns: 1fr;
+    }
+}

@@ -398,6 +398,15 @@ class UFSC_Unified_Handlers {
             return in_array( $column, $columns, true );
         };
 
+        $equivalent_id = self::find_equivalent_renewed_licence_id( $licence, $club_id, $target_season, $columns, $licences_table );
+        if ( $equivalent_id > 0 ) {
+            if ( function_exists( 'ufsc_mark_renewed_licence_marker' ) ) {
+                ufsc_mark_renewed_licence_marker( $licence_id, $target_season, $equivalent_id );
+            }
+            self::redirect_with_success( sprintf( __( 'Licence déjà renouvelée pour %s.', 'ufsc-clubs' ), $target_season ) );
+            return;
+        }
+
         $copy_fields = function_exists( 'ufsc_get_renewal_copy_fields' ) ? ufsc_get_renewal_copy_fields() : array( 'nom', 'prenom', 'email', 'adresse', 'code_postal', 'ville', 'date_naissance', 'sexe', 'competition' );
         $data        = array();
         foreach ( $copy_fields as $field ) {
@@ -1829,6 +1838,76 @@ class UFSC_Unified_Handlers {
         }
 
         return $data;
+    }
+
+    /**
+     * Find an already-created renewal for the same club/person/season.
+     *
+     * This is a read-only safety net in addition to renewal markers: it prevents
+     * duplicates when an older marker is missing but a target-season licence
+     * already exists.
+     *
+     * @param object $licence Source licence.
+     * @param int    $club_id Club ID.
+     * @param string $target_season Target season label.
+     * @param array  $columns Existing licence table columns.
+     * @param string $licences_table Licence table name.
+     * @return int Existing renewed licence ID, or 0.
+     */
+    private static function find_equivalent_renewed_licence_id( $licence, $club_id, $target_season, $columns, $licences_table ) {
+        global $wpdb;
+
+        if ( empty( $columns ) || ! in_array( 'club_id', $columns, true ) || ! in_array( 'id', $columns, true ) ) {
+            return 0;
+        }
+
+        $clauses = array( 'club_id = %d' );
+        $values  = array( absint( $club_id ) );
+
+        foreach ( array( 'nom', 'prenom', 'date_naissance' ) as $field ) {
+            $value = isset( $licence->{$field} ) ? trim( (string) $licence->{$field} ) : '';
+            if ( '' !== $value && in_array( $field, $columns, true ) ) {
+                $clauses[] = "{$field} = %s";
+                $values[]  = $value;
+            }
+        }
+
+        if ( count( $clauses ) < 4 ) {
+            return 0;
+        }
+
+        $season_column = '';
+        foreach ( array( 'paid_season', 'season', 'saison', 'season_end_year' ) as $candidate ) {
+            if ( in_array( $candidate, $columns, true ) ) {
+                $season_column = $candidate;
+                break;
+            }
+        }
+
+        if ( '' === $season_column ) {
+            return 0;
+        }
+
+        if ( 'season_end_year' === $season_column ) {
+            $target_end_year = function_exists( 'ufsc_get_season_end_year_from_label' ) ? ufsc_get_season_end_year_from_label( $target_season ) : 0;
+            if ( $target_end_year <= 0 ) {
+                return 0;
+            }
+            $clauses[] = 'season_end_year = %d';
+            $values[]  = $target_end_year;
+        } else {
+            $clauses[] = "{$season_column} = %s";
+            $values[]  = $target_season;
+        }
+
+        $source_id = absint( $licence->id ?? 0 );
+        if ( $source_id > 0 ) {
+            $clauses[] = 'id <> %d';
+            $values[]  = $source_id;
+        }
+
+        $sql = "SELECT id FROM `{$licences_table}` WHERE " . implode( ' AND ', $clauses ) . ' LIMIT 1';
+        return absint( $wpdb->get_var( $wpdb->prepare( $sql, ...$values ) ) );
     }
 
     private static function add_detected_category_fields( $data, $column_exists ) {

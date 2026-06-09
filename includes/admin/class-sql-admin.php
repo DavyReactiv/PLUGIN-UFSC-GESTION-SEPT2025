@@ -672,6 +672,12 @@ class UFSC_SQL_Admin
      * @return string
      */
     private static function get_admin_current_season_label() {
+        if ( class_exists( 'UFSC_Season_Service' ) ) {
+            return (string) UFSC_Season_Service::get_current_season();
+        }
+        if ( function_exists( 'ufsc_get_current_season' ) ) {
+            return (string) ufsc_get_current_season();
+        }
         if ( function_exists( 'ufsc_get_admin_current_season_label' ) ) {
             return (string) ufsc_get_admin_current_season_label();
         }
@@ -2918,6 +2924,7 @@ class UFSC_SQL_Admin
             'filter_status'     => isset( $input['filter_status'] ) ? sanitize_text_field( wp_unslash( $input['filter_status'] ) ) : '',
             'filter_payment'    => isset( $input['filter_payment'] ) ? sanitize_key( wp_unslash( $input['filter_payment'] ) ) : '',
             'filter_duplicate'  => isset( $input['filter_duplicate'] ) ? sanitize_key( wp_unslash( $input['filter_duplicate'] ) ) : '',
+            'filter_season'     => ( isset( $input['filter_season'] ) && ! is_array( $input['filter_season'] ) ) ? sanitize_text_field( wp_unslash( $input['filter_season'] ) ) : 'all',
             'filter_visibility' => isset( $input['filter_visibility'] ) ? sanitize_key( wp_unslash( $input['filter_visibility'] ) ) : 'active',
         );
     }
@@ -2931,6 +2938,7 @@ class UFSC_SQL_Admin
         $filter_status = $filters['filter_status'];
         $filter_payment = $filters['filter_payment'];
         $filter_duplicate = $filters['filter_duplicate'];
+        $filter_season = isset( $filters['filter_season'] ) ? sanitize_text_field( (string) $filters['filter_season'] ) : '__current';
 
         if (! empty($search)) {
             $search_like   = '%' . $wpdb->esc_like($search) . '%';
@@ -2970,6 +2978,42 @@ class UFSC_SQL_Admin
         }
         if ( $scope_condition ) {
             $where_conditions[] = $scope_condition;
+        }
+
+
+        if ( 'all' !== $filter_season ) {
+            $season_column = self::get_first_existing_column( $licence_columns, array( 'paid_season', 'season', 'saison', 'season_end_year' ) );
+            if ( '' !== $season_column ) {
+                $current_season = self::get_admin_current_season_label();
+                $target_season  = '';
+                if ( '__current' === $filter_season || '' === $filter_season ) {
+                    $target_season = $current_season;
+                } elseif ( '__archives' !== $filter_season ) {
+                    $target_season = $filter_season;
+                }
+
+                if ( 'season_end_year' === $season_column ) {
+                    $current_end_year = self::get_season_end_year_from_label( $current_season );
+                    $target_end_year  = self::get_season_end_year_from_label( $target_season );
+                    if ( '__archives' === $filter_season && $current_end_year > 0 ) {
+                        $where_conditions[] = $wpdb->prepare( "COALESCE(l.season_end_year, 0) > 0 AND l.season_end_year <> %d", $current_end_year );
+                    } elseif ( $target_end_year > 0 ) {
+                        if ( '__current' === $filter_season || '' === $filter_season ) {
+                            $where_conditions[] = $wpdb->prepare( "(COALESCE(l.season_end_year, 0) = 0 OR l.season_end_year = %d)", $target_end_year );
+                        } else {
+                            $where_conditions[] = $wpdb->prepare( "l.season_end_year = %d", $target_end_year );
+                        }
+                    }
+                } elseif ( '__archives' === $filter_season && '' !== $current_season ) {
+                    $where_conditions[] = $wpdb->prepare( "COALESCE(NULLIF(l.{$season_column}, ''), '') <> '' AND l.{$season_column} <> %s", $current_season );
+                } elseif ( '' !== $target_season ) {
+                    if ( '__current' === $filter_season || '' === $filter_season ) {
+                        $where_conditions[] = $wpdb->prepare( "(COALESCE(NULLIF(l.{$season_column}, ''), '') = '' OR l.{$season_column} = %s)", $target_season );
+                    } else {
+                        $where_conditions[] = $wpdb->prepare( "l.{$season_column} = %s", $target_season );
+                    }
+                }
+            }
         }
 
         if (! empty($filter_club) && $has_club_id) {
@@ -3047,6 +3091,38 @@ class UFSC_SQL_Admin
         }
 
         return $where_conditions;
+    }
+
+    /**
+     * Return the first existing column from a preferred list.
+     *
+     * @param string[] $columns Existing table columns.
+     * @param string[] $candidates Candidate column names.
+     * @return string
+     */
+    private static function get_first_existing_column( array $columns, array $candidates ) {
+        foreach ( $candidates as $candidate ) {
+            if ( in_array( $candidate, $columns, true ) ) {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Extract the end year from a season label such as 2026-2027.
+     *
+     * @param string $season Season label.
+     * @return int
+     */
+    private static function get_season_end_year_from_label( $season ) {
+        $season = trim( str_replace( '/', '-', (string) $season ) );
+        if ( ! preg_match( '/^\d{4}-(\d{4})$/', $season, $matches ) ) {
+            return 0;
+        }
+
+        return absint( $matches[1] );
     }
 
     /**
@@ -3199,12 +3275,16 @@ class UFSC_SQL_Admin
 
         // Handle search and filters
         $filters       = self::get_licence_filters_from_request( 'get' );
+        if ( ! isset( $_GET['filter_season'] ) ) {
+            $filters['filter_season'] = '__current';
+        }
         $search        = $filters['search'];
         $filter_region = $filters['filter_region'];
         $filter_club   = $filters['filter_club'];
         $filter_status = $filters['filter_status'];
         $filter_payment = $filters['filter_payment'];
         $filter_duplicate = $filters['filter_duplicate'];
+        $filter_season = isset( $filters['filter_season'] ) ? sanitize_text_field( (string) $filters['filter_season'] ) : '__current';
         $filter_visibility = in_array( $filters['filter_visibility'], array( 'active', 'trash', 'all' ), true ) ? $filters['filter_visibility'] : 'active';
         $scope_slug    = UFSC_Scope::get_user_scope_region();
         $scope_label   = $scope_slug ? UFSC_Scope::get_region_label( $scope_slug ) : '';
@@ -3442,7 +3522,7 @@ class UFSC_SQL_Admin
             echo '<input type="hidden" name="ufsc_debug_ids" value="1" />';
         }
 
-        echo '<div class="ufsc-admin-grid" style="display: grid; grid-template-columns: 1fr 200px 200px 180px 170px 170px 160px auto; gap: 10px; align-items: end;">';
+        echo '<div class="ufsc-admin-grid" style="display: grid; grid-template-columns: 1fr 200px 200px 180px 170px 170px 170px 160px auto; gap: 10px; align-items: end;">';
 
         // Search
         echo '<div>';
@@ -3488,6 +3568,21 @@ class UFSC_SQL_Admin
         echo '</select>';
         echo '</div>';
 
+
+        // Season filter.
+        echo '<div>';
+        echo '<label for="filter_season"><strong>' . esc_html__('Saison', 'ufsc-clubs') . '</strong></label>';
+        echo '<select name="filter_season" id="filter_season">';
+        echo '<option value="__current"' . selected( $filter_season, '__current', false ) . '>' . esc_html__( 'Saison active', 'ufsc-clubs' ) . '</option>';
+        echo '<option value="all"' . selected( $filter_season, 'all', false ) . '>' . esc_html__( 'Toutes les saisons', 'ufsc-clubs' ) . '</option>';
+        echo '<option value="__archives"' . selected( $filter_season, '__archives', false ) . '>' . esc_html__( 'Archives uniquement', 'ufsc-clubs' ) . '</option>';
+        $available_seasons = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_available_seasons() : array( self::get_admin_current_season_label() );
+        foreach ( array_unique( array_filter( array_map( 'sanitize_text_field', (array) $available_seasons ) ) ) as $season_option ) {
+            echo '<option value="' . esc_attr( $season_option ) . '" ' . selected( $filter_season, $season_option, false ) . '>' . esc_html( $season_option ) . '</option>';
+        }
+        echo '</select>';
+        echo '</div>';
+
         // Payment filter
         echo '<div>';
         echo '<label for="filter_payment"><strong>' . esc_html__('Paiement', 'ufsc-clubs') . '</strong></label>';
@@ -3520,7 +3615,7 @@ class UFSC_SQL_Admin
         // Filter button
         echo '<div>';
         echo '<button type="submit" class="button">' . esc_html__('Filtrer', 'ufsc-clubs') . '</button>';
-        if (! empty($search) || ! empty($filter_region) || ! empty($filter_club) || ! empty($filter_status) || ! empty( $filter_payment ) || ! empty( $filter_duplicate ) || 'active' !== $filter_visibility) {
+        if (! empty($search) || ! empty($filter_region) || ! empty($filter_club) || ! empty($filter_status) || ! empty( $filter_payment ) || ! empty( $filter_duplicate ) || '__current' !== $filter_season || 'active' !== $filter_visibility) {
             echo ' <a href="' . $licences_page_url . '" class="button">' . esc_html__('Effacer', 'ufsc-clubs') . '</a>';
         }
         echo '</div>';
@@ -3533,6 +3628,7 @@ class UFSC_SQL_Admin
             echo '<form method="post" id="bulk-actions-form">';
             echo '<input type="hidden" name="page" value="' . esc_attr( $licences_page_slug ) . '" />';
             echo '<input type="hidden" name="filter_visibility" value="' . esc_attr( $filter_visibility ) . '" />';
+            echo '<input type="hidden" name="filter_season" value="' . esc_attr( $filter_season ) . '" />';
             echo '<input type="hidden" name="return_to" value="' . esc_url( self::build_licences_redirect_url() ) . '" />';
             // Bulk actions
             echo '<div class="ufsc-bulk-actions" style="margin: 15px 0;">';
