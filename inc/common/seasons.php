@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 
 require_once __DIR__ . '/season.php';
+require_once UFSC_CL_DIR . 'includes/core/class-ufsc-season-archive-manager.php';
 
 if ( ! function_exists( 'ufsc_get_current_season_label_legacy' ) ) {
 	/**
