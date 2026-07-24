@@ -37,4 +37,4 @@ $assert( strpos( $archive, 'CAP_GESTION_MANAGE' ) !== false, 'ASPTT affiliation 
 $assert( strpos( $archive, 'check_admin_referer' ) !== false, 'ASPTT affiliation number editing must verify a nonce.' );
 $assert( strpos( $archive, "array( 'id' => \$row_id )" ) !== false, 'ASPTT affiliation number editing must target one annual row only.' );
 
- echo "Renewal/season static safeguards OK\n";
+echo "Renewal/season static safeguards OK\n";
