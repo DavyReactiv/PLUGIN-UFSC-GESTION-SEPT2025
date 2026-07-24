@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.3.0';
+    const MIGRATION_VERSION = '1.3.1';
 
     /**
      * Option key for tracking migration version
@@ -35,9 +35,10 @@ class UFSC_DB_Migrations {
 
         if ( version_compare( $current_version, self::MIGRATION_VERSION, '<' ) ) {
             self::migrate_to_innodb();
+            self::ensure_licences_soft_delete_columns();
+            self::ensure_licences_renewal_columns();
             self::create_indexes();
             self::create_unique_constraints();
-            self::ensure_licences_soft_delete_columns();
             $category_columns_ready = self::ensure_licences_category_columns();
             self::create_events_table();
 
@@ -77,6 +78,37 @@ class UFSC_DB_Migrations {
 
         if ( ! in_array( 'deleted_by', $columns, true ) ) {
             $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `deleted_by` bigint(20) unsigned NULL DEFAULT NULL" );
+        }
+    }
+
+    /**
+     * Ensure licences table can store non-destructive renewal lineage.
+     */
+    public static function ensure_licences_renewal_columns() {
+        global $wpdb;
+
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        if ( ! self::table_exists( $licences_table ) ) {
+            return;
+        }
+
+        $columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$licences_table}`", 0 );
+        if ( ! is_array( $columns ) ) {
+            return;
+        }
+
+        if ( ! in_array( 'previous_licence_id', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `previous_licence_id` bigint(20) unsigned NULL DEFAULT NULL" );
+        }
+
+        if ( ! self::index_exists( $licences_table, 'idx_licences_previous_licence_id' ) ) {
+            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD INDEX `idx_licences_previous_licence_id` (`previous_licence_id`)" );
+        }
+
+        if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) {
+            ufsc_flush_table_columns_cache();
         }
     }
 
@@ -208,6 +240,7 @@ class UFSC_DB_Migrations {
             'idx_licences_gender'                  => 'gender',
             'idx_licences_practice'                => 'practice',
             'idx_licences_birthdate'               => 'birthdate',
+            'idx_licences_previous_licence_id'     => 'previous_licence_id',
         );
 
         self::create_table_indexes( $settings['table_licences'], $licences_indexes );
