@@ -254,6 +254,17 @@ function ufsc_wc_find_equivalent_renewed_licence_id( $source, $club_id, $target_
     }
 
     $source_id = absint( $source->id ?? 0 );
+    if ( $source_id > 0 && in_array( 'previous_licence_id', $columns, true ) ) {
+        $trace_clauses = $clauses;
+        $trace_values  = $values;
+        $trace_clauses[] = 'previous_licence_id = %d';
+        $trace_values[]  = $source_id;
+        $trace_sql = "SELECT id FROM `{$table}` WHERE " . implode( ' AND ', $trace_clauses ) . ' LIMIT 1';
+        $trace_id  = absint( $wpdb->get_var( $wpdb->prepare( $trace_sql, ...$trace_values ) ) );
+        if ( $trace_id > 0 ) {
+            return $trace_id;
+        }
+    }
     if ( $source_id > 0 ) {
         $clauses[] = 'id <> %d';
         $values[]  = $source_id;

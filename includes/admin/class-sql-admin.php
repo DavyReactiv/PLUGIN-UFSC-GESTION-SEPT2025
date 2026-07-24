@@ -672,14 +672,14 @@ class UFSC_SQL_Admin
      * @return string
      */
     private static function get_admin_current_season_label() {
+        if ( function_exists( 'ufsc_get_admin_current_season_label' ) ) {
+            return (string) ufsc_get_admin_current_season_label();
+        }
         if ( class_exists( 'UFSC_Season_Service' ) ) {
             return (string) UFSC_Season_Service::get_current_season();
         }
         if ( function_exists( 'ufsc_get_current_season' ) ) {
             return (string) ufsc_get_current_season();
-        }
-        if ( function_exists( 'ufsc_get_admin_current_season_label' ) ) {
-            return (string) ufsc_get_admin_current_season_label();
         }
         return __( 'saison en cours', 'ufsc-clubs' );
     }
@@ -2929,6 +2929,59 @@ class UFSC_SQL_Admin
         );
     }
 
+
+    /**
+     * Build a season SQL predicate without mutating legacy rows.
+     *
+     * Empty season values are considered current-season rows only for the
+     * current-season filter so historical data remains visible until a safe
+     * idempotent migration stores an explicit season.
+     */
+    private static function build_licence_season_condition( $season_column, $filter_season ) {
+        global $wpdb;
+
+        $season_column  = sanitize_key( (string) $season_column );
+        $filter_season  = sanitize_text_field( (string) $filter_season );
+        $current_season = self::get_admin_current_season_label();
+
+        if ( '' === $season_column || 'all' === $filter_season ) {
+            return '';
+        }
+
+        if ( 'season_end_year' === $season_column ) {
+            $current_end_year = self::get_season_end_year_from_label( $current_season );
+            if ( '__archives' === $filter_season ) {
+                return $current_end_year > 0 ? $wpdb->prepare( "COALESCE(l.season_end_year, 0) > 0 AND l.season_end_year < %d", $current_end_year ) : '';
+            }
+
+            $target_season   = ( '__current' === $filter_season || '' === $filter_season ) ? $current_season : $filter_season;
+            $target_end_year = self::get_season_end_year_from_label( $target_season );
+            if ( $target_end_year <= 0 ) {
+                return '';
+            }
+
+            return ( '__current' === $filter_season || '' === $filter_season )
+                ? $wpdb->prepare( "(COALESCE(l.season_end_year, 0) = 0 OR l.season_end_year = %d)", $target_end_year )
+                : $wpdb->prepare( "l.season_end_year = %d", $target_end_year );
+        }
+
+        if ( '__archives' === $filter_season ) {
+            $current_start_year = self::get_season_start_year_from_label( $current_season );
+            return $current_start_year > 0
+                ? $wpdb->prepare( "COALESCE(NULLIF(l.{$season_column}, ''), '') REGEXP %s AND CAST(SUBSTRING(REPLACE(l.{$season_column}, '/', '-'), 1, 4) AS UNSIGNED) < %d", '^[0-9]{4}[-/][0-9]{4}$', $current_start_year )
+                : '';
+        }
+
+        $target_season = ( '__current' === $filter_season || '' === $filter_season ) ? $current_season : $filter_season;
+        if ( '' === $target_season ) {
+            return '';
+        }
+
+        return ( '__current' === $filter_season || '' === $filter_season )
+            ? $wpdb->prepare( "(COALESCE(NULLIF(REPLACE(l.{$season_column}, '/', '-'), ''), '') = '' OR REPLACE(l.{$season_column}, '/', '-') = %s)", $target_season )
+            : $wpdb->prepare( "REPLACE(l.{$season_column}, '/', '-') = %s", str_replace( '/', '-', $target_season ) );
+    }
+
     private static function build_licence_where_conditions( $filters, $licence_columns, $club_columns, $has_club_id ) {
         global $wpdb;
         $where_conditions = array();
@@ -2983,43 +3036,9 @@ class UFSC_SQL_Admin
 
         if ( 'all' !== $filter_season ) {
             $season_column = self::get_first_existing_column( $licence_columns, array( 'paid_season', 'season', 'saison', 'season_end_year' ) );
-            if ( '' !== $season_column ) {
-                $current_season = self::get_admin_current_season_label();
-                $target_season  = '';
-                if ( '__current' === $filter_season || '' === $filter_season ) {
-                    $target_season = $current_season;
-                } elseif ( '__archives' !== $filter_season ) {
-                    $target_season = $filter_season;
-                }
-
-                if ( 'season_end_year' === $season_column ) {
-                    $current_end_year = self::get_season_end_year_from_label( $current_season );
-                    $target_end_year  = self::get_season_end_year_from_label( $target_season );
-                    if ( '__archives' === $filter_season && $current_end_year > 0 ) {
-                        $where_conditions[] = $wpdb->prepare( "COALESCE(l.season_end_year, 0) > 0 AND l.season_end_year < %d", $current_end_year );
-                    } elseif ( $target_end_year > 0 ) {
-                        if ( '__current' === $filter_season || '' === $filter_season ) {
-                            $where_conditions[] = $wpdb->prepare( "(COALESCE(l.season_end_year, 0) = 0 OR l.season_end_year = %d)", $target_end_year );
-                        } else {
-                            $where_conditions[] = $wpdb->prepare( "l.season_end_year = %d", $target_end_year );
-                        }
-                    }
-                } elseif ( '__archives' === $filter_season && '' !== $current_season ) {
-                    $current_start_year = self::get_season_start_year_from_label( $current_season );
-                    if ( $current_start_year > 0 ) {
-                        $where_conditions[] = $wpdb->prepare(
-                            "COALESCE(NULLIF(l.{$season_column}, ''), '') REGEXP %s AND CAST(SUBSTRING(REPLACE(l.{$season_column}, '/', '-'), 1, 4) AS UNSIGNED) < %d",
-                            '^[0-9]{4}[-/][0-9]{4}$',
-                            $current_start_year
-                        );
-                    }
-                } elseif ( '' !== $target_season ) {
-                    if ( '__current' === $filter_season || '' === $filter_season ) {
-                        $where_conditions[] = $wpdb->prepare( "(COALESCE(NULLIF(l.{$season_column}, ''), '') = '' OR l.{$season_column} = %s)", $target_season );
-                    } else {
-                        $where_conditions[] = $wpdb->prepare( "l.{$season_column} = %s", $target_season );
-                    }
-                }
+            $season_condition = self::build_licence_season_condition( $season_column, $filter_season );
+            if ( '' !== $season_condition ) {
+                $where_conditions[] = $season_condition;
             }
         }
 

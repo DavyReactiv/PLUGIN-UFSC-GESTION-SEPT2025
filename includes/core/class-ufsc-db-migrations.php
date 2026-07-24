@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.3.0';
+    const MIGRATION_VERSION = '1.3.2';
 
     /**
      * Option key for tracking migration version
@@ -35,9 +35,11 @@ class UFSC_DB_Migrations {
 
         if ( version_compare( $current_version, self::MIGRATION_VERSION, '<' ) ) {
             self::migrate_to_innodb();
+            self::ensure_licences_soft_delete_columns();
+            self::ensure_licences_renewal_columns();
+            self::ensure_season_archive_tables();
             self::create_indexes();
             self::create_unique_constraints();
-            self::ensure_licences_soft_delete_columns();
             $category_columns_ready = self::ensure_licences_category_columns();
             self::create_events_table();
 
@@ -77,6 +79,37 @@ class UFSC_DB_Migrations {
 
         if ( ! in_array( 'deleted_by', $columns, true ) ) {
             $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `deleted_by` bigint(20) unsigned NULL DEFAULT NULL" );
+        }
+    }
+
+    /**
+     * Ensure licences table can store non-destructive renewal lineage.
+     */
+    public static function ensure_licences_renewal_columns() {
+        global $wpdb;
+
+        $settings       = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'];
+
+        if ( ! self::table_exists( $licences_table ) ) {
+            return;
+        }
+
+        $columns = $wpdb->get_col( "SHOW COLUMNS FROM `{$licences_table}`", 0 );
+        if ( ! is_array( $columns ) ) {
+            return;
+        }
+
+        if ( ! in_array( 'previous_licence_id', $columns, true ) ) {
+            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD COLUMN `previous_licence_id` bigint(20) unsigned NULL DEFAULT NULL" );
+        }
+
+        if ( ! self::index_exists( $licences_table, 'idx_licences_previous_licence_id' ) ) {
+            $wpdb->query( "ALTER TABLE `{$licences_table}` ADD INDEX `idx_licences_previous_licence_id` (`previous_licence_id`)" );
+        }
+
+        if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) {
+            ufsc_flush_table_columns_cache();
         }
     }
 
@@ -157,6 +190,42 @@ class UFSC_DB_Migrations {
     }
 
     /**
+     * Ensure the annual club affiliation seasons table exists.
+     *
+     * This table is additive and idempotent; it preserves club IDs and keeps
+     * optional ASPTT affiliation numbers empty unless explicitly supplied.
+     */
+    public static function ensure_season_archive_tables() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'ufsc_affiliations_seasons';
+        $charset_collate = method_exists( $wpdb, 'get_charset_collate' ) ? $wpdb->get_charset_collate() : 'DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+
+        $sql = "CREATE TABLE {$table_name} (
+            `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            `club_id` bigint(20) unsigned NOT NULL,
+            `season` varchar(9) NOT NULL,
+            `status` varchar(50) NOT NULL DEFAULT '',
+            `payment_status` varchar(50) NOT NULL DEFAULT '',
+            `wc_order_id` bigint(20) unsigned NULL DEFAULT NULL,
+            `num_affiliation` varchar(191) NULL DEFAULT NULL,
+            `created_at` datetime NULL DEFAULT NULL,
+            `updated_at` datetime NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uniq_club_season` (`club_id`, `season`),
+            KEY `idx_season` (`season`),
+            KEY `idx_club_id` (`club_id`)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta( $sql );
+
+        if ( $wpdb->last_error ) {
+            self::log_migration_error( "UFSC_DB_Migrations: Failed to create affiliation seasons table: {$wpdb->last_error}" );
+        }
+    }
+
+    /**
      * Force tables to use InnoDB engine
      */
     public static function migrate_to_innodb() {
@@ -208,6 +277,7 @@ class UFSC_DB_Migrations {
             'idx_licences_gender'                  => 'gender',
             'idx_licences_practice'                => 'practice',
             'idx_licences_birthdate'               => 'birthdate',
+            'idx_licences_previous_licence_id'     => 'previous_licence_id',
         );
 
         self::create_table_indexes( $settings['table_licences'], $licences_indexes );
