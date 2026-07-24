@@ -28,5 +28,9 @@ $assert( strpos( $migration, 'ensure_licences_renewal_columns' ) !== false, 'Ren
 $assert( substr_count( $migration, 'ADD COLUMN `previous_licence_id`' ) === 1, 'Only UFSC_DB_Migrations may add previous_licence_id once.' );
 $assert( strpos( $migration, 'ufsc_affiliations_seasons' ) !== false && strpos( $migration, 'UNIQUE KEY `uniq_club_season`' ) !== false, 'Annual affiliation season table must be idempotent.' );
 $assert( strpos( $archive, 'ensure_licences_renewal_columns' ) === false && strpos( $archive, 'ADD COLUMN `previous_licence_id`' ) === false, 'Archive manager must not recreate licence lineage columns.' );
+$assert( strpos( $archive, "'renew_affiliation' !== \$action" ) !== false, 'Only affiliation renewal order items may create annual affiliation rows.' );
+$assert( strpos( $archive, 'ON DUPLICATE KEY UPDATE' ) !== false, 'Annual affiliation persistence must be idempotent.' );
+$assert( strpos( $archive, 'num_affiliation = VALUES' ) === false, 'Paid renewals must not overwrite or copy ASPTT affiliation numbers.' );
+$assert( strpos( $archive, "add_submenu_page(" ) !== false && strpos( $archive, 'ufsc-seasons-archives' ) !== false, 'Annual affiliation archives must be available in admin.' );
 
-echo "Renewal/season static safeguards OK\n";
+ echo "Renewal/season static safeguards OK\n";
