@@ -356,6 +356,7 @@ function ufsc_wc_process_renewal_items( $order ) {
 				if ( in_array( $season_col, $columns, true ) ) { $data[ $season_col ] = $target_season; }
 			}
 			if ( in_array( 'season_end_year', $columns, true ) && function_exists( 'ufsc_get_season_end_year_from_label' ) ) { $data['season_end_year'] = ufsc_get_season_end_year_from_label( $target_season ); }
+			if ( in_array( 'previous_licence_id', $columns, true ) ) { $data['previous_licence_id'] = $source_id; }
 			if ( in_array( 'renewed_from_licence_id', $columns, true ) ) { $data['renewed_from_licence_id'] = $source_id; }
 			if ( in_array( 'renewal_status', $columns, true ) ) { $data['renewal_status'] = 'renouvellement_en_attente'; }
 			if ( in_array( 'order_id', $columns, true ) ) { $data['order_id'] = (int) $order->get_id(); }
