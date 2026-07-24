@@ -31,6 +31,10 @@ $assert( strpos( $archive, 'ensure_licences_renewal_columns' ) === false && strp
 $assert( strpos( $archive, "'renew_affiliation' !== \$action" ) !== false, 'Only affiliation renewal order items may create annual affiliation rows.' );
 $assert( strpos( $archive, 'ON DUPLICATE KEY UPDATE' ) !== false, 'Annual affiliation persistence must be idempotent.' );
 $assert( strpos( $archive, 'num_affiliation = VALUES' ) === false, 'Paid renewals must not overwrite or copy ASPTT affiliation numbers.' );
-$assert( strpos( $archive, "add_submenu_page(" ) !== false && strpos( $archive, 'ufsc-seasons-archives' ) !== false, 'Annual affiliation archives must be available in admin.' );
+$assert( strpos( $archive, 'ufsc-seasons-archives' ) !== false, 'Annual affiliation archives must be available in admin.' );
+$assert( strpos( $archive, 'admin_post_ufsc_update_affiliation_number' ) !== false, 'ASPTT affiliation number editing must use a dedicated admin-post action.' );
+$assert( strpos( $archive, 'CAP_GESTION_MANAGE' ) !== false, 'ASPTT affiliation number editing must require management capability.' );
+$assert( strpos( $archive, 'check_admin_referer' ) !== false, 'ASPTT affiliation number editing must verify a nonce.' );
+$assert( strpos( $archive, "array( 'id' => \$row_id )" ) !== false, 'ASPTT affiliation number editing must target one annual row only.' );
 
  echo "Renewal/season static safeguards OK\n";
