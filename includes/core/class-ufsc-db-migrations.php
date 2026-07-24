@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.3.1';
+    const MIGRATION_VERSION = '1.3.2';
 
     /**
      * Option key for tracking migration version
@@ -37,6 +37,7 @@ class UFSC_DB_Migrations {
             self::migrate_to_innodb();
             self::ensure_licences_soft_delete_columns();
             self::ensure_licences_renewal_columns();
+            self::ensure_season_archive_tables();
             self::create_indexes();
             self::create_unique_constraints();
             $category_columns_ready = self::ensure_licences_category_columns();
@@ -186,6 +187,42 @@ class UFSC_DB_Migrations {
         }
 
         error_log( $message );
+    }
+
+    /**
+     * Ensure the annual club affiliation seasons table exists.
+     *
+     * This table is additive and idempotent; it preserves club IDs and keeps
+     * optional ASPTT affiliation numbers empty unless explicitly supplied.
+     */
+    public static function ensure_season_archive_tables() {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'ufsc_affiliations_seasons';
+        $charset_collate = method_exists( $wpdb, 'get_charset_collate' ) ? $wpdb->get_charset_collate() : 'DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+
+        $sql = "CREATE TABLE {$table_name} (
+            `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+            `club_id` bigint(20) unsigned NOT NULL,
+            `season` varchar(9) NOT NULL,
+            `status` varchar(50) NOT NULL DEFAULT '',
+            `payment_status` varchar(50) NOT NULL DEFAULT '',
+            `wc_order_id` bigint(20) unsigned NULL DEFAULT NULL,
+            `num_affiliation` varchar(191) NULL DEFAULT NULL,
+            `created_at` datetime NULL DEFAULT NULL,
+            `updated_at` datetime NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uniq_club_season` (`club_id`, `season`),
+            KEY `idx_season` (`season`),
+            KEY `idx_club_id` (`club_id`)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta( $sql );
+
+        if ( $wpdb->last_error ) {
+            self::log_migration_error( "UFSC_DB_Migrations: Failed to create affiliation seasons table: {$wpdb->last_error}" );
+        }
     }
 
     /**
