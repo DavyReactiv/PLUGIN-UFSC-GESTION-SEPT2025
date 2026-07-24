@@ -277,6 +277,7 @@ class UFSC_DB_Migrations {
             'idx_licences_gender'                  => 'gender',
             'idx_licences_practice'                => 'practice',
             'idx_licences_birthdate'               => 'birthdate',
+            'idx_licences_previous_licence_id'     => 'previous_licence_id',
         );
 
         self::create_table_indexes( $settings['table_licences'], $licences_indexes );
