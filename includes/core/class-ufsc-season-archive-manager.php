@@ -13,34 +13,18 @@ class UFSC_Season_Archive_Manager {
     /** @var bool */
     private static $hooks_registered = false;
 
-    /**
-     * Return the annual affiliations table name.
-     *
-     * @return string
-     */
     public static function get_affiliations_table() {
         global $wpdb;
         return $wpdb->prefix . 'ufsc_affiliations_seasons';
     }
 
-    /**
-     * Ensure archive storage exists and register runtime hooks once.
-     *
-     * @return void
-     */
     public static function maybe_migrate() {
         if ( class_exists( 'UFSC_DB_Migrations' ) && method_exists( 'UFSC_DB_Migrations', 'ensure_season_archive_tables' ) ) {
             UFSC_DB_Migrations::ensure_season_archive_tables();
         }
-
         self::register_hooks();
     }
 
-    /**
-     * Register WooCommerce persistence and admin actions.
-     *
-     * @return void
-     */
     private static function register_hooks() {
         if ( self::$hooks_registered ) {
             return;
@@ -54,15 +38,6 @@ class UFSC_Season_Archive_Manager {
         add_action( 'admin_post_ufsc_update_affiliation_number', array( __CLASS__, 'handle_update_affiliation_number' ) );
     }
 
-    /**
-     * Persist paid affiliation renewals in the annual table.
-     *
-     * The unique (club_id, season) key makes this idempotent across the three
-     * WooCommerce payment/status hooks. Existing ASPTT numbers are preserved.
-     *
-     * @param int $order_id WooCommerce order ID.
-     * @return void
-     */
     public static function process_paid_order( $order_id ) {
         if ( ! function_exists( 'wc_get_order' ) ) {
             return;
@@ -110,14 +85,6 @@ class UFSC_Season_Archive_Manager {
         }
     }
 
-    /**
-     * Insert or update one annual affiliation without overwriting its ASPTT number.
-     *
-     * @param int    $club_id Club ID.
-     * @param string $season Season YYYY-YYYY.
-     * @param array  $data Optional status/payment/order data.
-     * @return bool
-     */
     public static function upsert_affiliation( $club_id, $season, $data = array() ) {
         global $wpdb;
 
@@ -161,11 +128,6 @@ class UFSC_Season_Archive_Manager {
         return true;
     }
 
-    /**
-     * Securely update only the ASPTT affiliation number of one annual row.
-     *
-     * @return void
-     */
     public static function handle_update_affiliation_number() {
         if ( ! class_exists( 'UFSC_Permissions' ) || ! current_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
             wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
@@ -176,7 +138,9 @@ class UFSC_Season_Archive_Manager {
 
         $number = isset( $_POST['num_affiliation'] ) ? sanitize_text_field( wp_unslash( $_POST['num_affiliation'] ) ) : '';
         $number = trim( $number );
-        if ( strlen( $number ) > 191 ) {
+        if ( function_exists( 'mb_substr' ) ) {
+            $number = mb_substr( $number, 0, 191 );
+        } else {
             $number = substr( $number, 0, 191 );
         }
 
@@ -215,11 +179,6 @@ class UFSC_Season_Archive_Manager {
         exit;
     }
 
-    /**
-     * Register the archives page under UFSC Gestion.
-     *
-     * @return void
-     */
     public static function register_admin_page() {
         if ( ! class_exists( 'UFSC_Permissions' ) ) {
             return;
@@ -235,11 +194,6 @@ class UFSC_Season_Archive_Manager {
         );
     }
 
-    /**
-     * Render annual affiliations without changing historical data.
-     *
-     * @return void
-     */
     public static function render_admin_page() {
         if ( ! class_exists( 'UFSC_Permissions' ) || ! current_user_can( UFSC_Permissions::CAP_GESTION_READ ) ) {
             wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
@@ -275,7 +229,7 @@ class UFSC_Season_Archive_Manager {
              ORDER BY a.season DESC, club_name ASC, a.club_id ASC",
             ARRAY_A
         );
-        $seasons = $wpdb->get_col( "SELECT DISTINCT season FROM `{$table}` ORDER BY season DESC" );
+        $seasons   = $wpdb->get_col( "SELECT DISTINCT season FROM `{$table}` ORDER BY season DESC" );
         $can_manage = current_user_can( UFSC_Permissions::CAP_GESTION_MANAGE );
 
         echo '<div class="wrap">';
@@ -345,11 +299,6 @@ class UFSC_Season_Archive_Manager {
         echo '</div>';
     }
 
-    /**
-     * Licence lineage columns are owned by UFSC_DB_Migrations.
-     *
-     * @return string[] Existing lineage columns for compatibility reads.
-     */
     public static function get_existing_licence_lineage_columns() {
         if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
             return array();
@@ -360,12 +309,6 @@ class UFSC_Season_Archive_Manager {
         return array_values( array_intersect( array( 'previous_licence_id', 'renewed_from_licence_id' ), $columns ) );
     }
 
-    /**
-     * Normalize and validate a season label.
-     *
-     * @param string $season Raw season.
-     * @return string
-     */
     private static function normalize_season( $season ) {
         $season = trim( str_replace( '/', '-', sanitize_text_field( (string) $season ) ) );
         if ( ! preg_match( '/^(\d{4})-(\d{4})$/', $season, $matches ) ) {
@@ -374,12 +317,6 @@ class UFSC_Season_Archive_Manager {
         return ( (int) $matches[2] === (int) $matches[1] + 1 ) ? $season : '';
     }
 
-    /**
-     * Log without interrupting the paid order flow.
-     *
-     * @param string $message Error message.
-     * @return void
-     */
     private static function log_error( $message ) {
         if ( class_exists( 'UFSC_Audit_Logger' ) && method_exists( 'UFSC_Audit_Logger', 'log' ) ) {
             UFSC_Audit_Logger::log( $message );
