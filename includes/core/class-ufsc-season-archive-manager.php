@@ -37,7 +37,7 @@ class UFSC_Season_Archive_Manager {
     }
 
     /**
-     * Register WooCommerce persistence and the read-only admin page.
+     * Register WooCommerce persistence and admin actions.
      *
      * @return void
      */
@@ -51,6 +51,7 @@ class UFSC_Season_Archive_Manager {
         add_action( 'woocommerce_order_status_processing', array( __CLASS__, 'process_paid_order' ), 30 );
         add_action( 'woocommerce_order_status_completed', array( __CLASS__, 'process_paid_order' ), 30 );
         add_action( 'admin_menu', array( __CLASS__, 'register_admin_page' ), 30 );
+        add_action( 'admin_post_ufsc_update_affiliation_number', array( __CLASS__, 'handle_update_affiliation_number' ) );
     }
 
     /**
@@ -161,6 +162,60 @@ class UFSC_Season_Archive_Manager {
     }
 
     /**
+     * Securely update only the ASPTT affiliation number of one annual row.
+     *
+     * @return void
+     */
+    public static function handle_update_affiliation_number() {
+        if ( ! class_exists( 'UFSC_Permissions' ) || ! current_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
+            wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
+        }
+
+        $row_id = isset( $_POST['affiliation_row_id'] ) ? absint( wp_unslash( $_POST['affiliation_row_id'] ) ) : 0;
+        check_admin_referer( 'ufsc_update_affiliation_number_' . $row_id );
+
+        $number = isset( $_POST['num_affiliation'] ) ? sanitize_text_field( wp_unslash( $_POST['num_affiliation'] ) ) : '';
+        $number = trim( $number );
+        if ( strlen( $number ) > 191 ) {
+            $number = substr( $number, 0, 191 );
+        }
+
+        $redirect = add_query_arg( 'page', 'ufsc-seasons-archives', admin_url( 'admin.php' ) );
+        $season   = isset( $_POST['season_filter'] ) ? self::normalize_season( wp_unslash( $_POST['season_filter'] ) ) : '';
+        if ( $season ) {
+            $redirect = add_query_arg( 'season', $season, $redirect );
+        }
+
+        if ( $row_id <= 0 ) {
+            wp_safe_redirect( add_query_arg( 'ufsc_affiliation_updated', 'invalid', $redirect ) );
+            exit;
+        }
+
+        global $wpdb;
+        $table  = self::get_affiliations_table();
+        $result = $wpdb->update(
+            $table,
+            array(
+                'num_affiliation' => '' === $number ? null : $number,
+                'updated_at'      => current_time( 'mysql' ),
+            ),
+            array( 'id' => $row_id ),
+            array( '%s', '%s' ),
+            array( '%d' )
+        );
+
+        if ( false === $result ) {
+            self::log_error( sprintf( 'Échec mise à jour numéro affiliation ligne %d : %s', $row_id, $wpdb->last_error ) );
+            wp_safe_redirect( add_query_arg( 'ufsc_affiliation_updated', 'error', $redirect ) );
+            exit;
+        }
+
+        do_action( 'ufsc_affiliation_number_updated', $row_id, $number, get_current_user_id() );
+        wp_safe_redirect( add_query_arg( 'ufsc_affiliation_updated', 'success', $redirect ) );
+        exit;
+    }
+
+    /**
      * Register the archives page under UFSC Gestion.
      *
      * @return void
@@ -205,8 +260,8 @@ class UFSC_Season_Archive_Manager {
             $clubs_table = isset( $settings['table_clubs'] ) ? (string) $settings['table_clubs'] : '';
         }
 
-        $join       = '';
-        $club_name  = "'' AS club_name";
+        $join      = '';
+        $club_name = "'' AS club_name";
         if ( $clubs_table ) {
             $join      = "LEFT JOIN `{$clubs_table}` c ON c.id = a.club_id";
             $club_name = 'c.nom AS club_name';
@@ -221,10 +276,22 @@ class UFSC_Season_Archive_Manager {
             ARRAY_A
         );
         $seasons = $wpdb->get_col( "SELECT DISTINCT season FROM `{$table}` ORDER BY season DESC" );
+        $can_manage = current_user_can( UFSC_Permissions::CAP_GESTION_MANAGE );
 
         echo '<div class="wrap">';
         echo '<h1>' . esc_html__( 'Saisons et archives UFSC', 'ufsc-clubs' ) . '</h1>';
         echo '<p>' . esc_html__( 'Affiliations annuelles enregistrées après paiement. Les clubs et leurs identifiants historiques restent inchangés.', 'ufsc-clubs' ) . '</p>';
+
+        if ( isset( $_GET['ufsc_affiliation_updated'] ) ) {
+            $notice = sanitize_key( wp_unslash( $_GET['ufsc_affiliation_updated'] ) );
+            if ( 'success' === $notice ) {
+                echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Numéro d’affiliation ASPTT mis à jour.', 'ufsc-clubs' ) . '</p></div>';
+            } elseif ( 'error' === $notice ) {
+                echo '<div class="notice notice-error"><p>' . esc_html__( 'La mise à jour du numéro d’affiliation a échoué.', 'ufsc-clubs' ) . '</p></div>';
+            } elseif ( 'invalid' === $notice ) {
+                echo '<div class="notice notice-warning"><p>' . esc_html__( 'Affiliation annuelle invalide.', 'ufsc-clubs' ) . '</p></div>';
+            }
+        }
 
         echo '<form method="get" style="margin:16px 0">';
         echo '<input type="hidden" name="page" value="ufsc-seasons-archives">';
@@ -254,7 +321,20 @@ class UFSC_Season_Archive_Manager {
                 echo '<td><a href="' . esc_url( $club_url ) . '">' . esc_html( $club_label ) . '</a></td>';
                 echo '<td>' . esc_html( $row['status'] ?: '—' ) . '</td>';
                 echo '<td>' . esc_html( $row['payment_status'] ?: '—' ) . '</td>';
-                echo '<td>' . esc_html( $row['num_affiliation'] ?: __( 'À renseigner', 'ufsc-clubs' ) ) . '</td>';
+                echo '<td>';
+                if ( $can_manage ) {
+                    echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" style="display:flex;gap:6px;align-items:center">';
+                    wp_nonce_field( 'ufsc_update_affiliation_number_' . absint( $row['id'] ) );
+                    echo '<input type="hidden" name="action" value="ufsc_update_affiliation_number">';
+                    echo '<input type="hidden" name="affiliation_row_id" value="' . esc_attr( absint( $row['id'] ) ) . '">';
+                    echo '<input type="hidden" name="season_filter" value="' . esc_attr( $season ) . '">';
+                    echo '<input type="text" name="num_affiliation" value="' . esc_attr( (string) $row['num_affiliation'] ) . '" maxlength="191" placeholder="' . esc_attr__( 'À renseigner', 'ufsc-clubs' ) . '">';
+                    submit_button( __( 'Enregistrer', 'ufsc-clubs' ), 'small', '', false );
+                    echo '</form>';
+                } else {
+                    echo esc_html( $row['num_affiliation'] ?: __( 'À renseigner', 'ufsc-clubs' ) );
+                }
+                echo '</td>';
                 echo '<td>' . ( $order_url ? '<a href="' . esc_url( $order_url ) . '">#' . esc_html( $row['wc_order_id'] ) . '</a>' : '—' ) . '</td>';
                 echo '<td>' . esc_html( $row['updated_at'] ? mysql2date( 'd/m/Y H:i', $row['updated_at'] ) : '—' ) . '</td>';
                 echo '</tr>';
