@@ -8,6 +8,7 @@ $season = file_get_contents( $root . '/inc/common/season.php' );
 $seasons_shim = file_get_contents( $root . '/inc/common/seasons.php' );
 $hooks  = file_get_contents( $root . '/inc/woocommerce/hooks.php' );
 $cart   = file_get_contents( $root . '/inc/woocommerce/cart-integration.php' );
+$nominative = file_get_contents( $root . '/inc/woocommerce/nominative-licence-cart.php' );
 $admin  = file_get_contents( $root . '/includes/admin/class-sql-admin.php' );
 $migration = file_get_contents( $root . '/includes/core/class-ufsc-db-migrations.php' );
 $archive = file_get_contents( $root . '/includes/core/class-ufsc-season-archive-manager.php' );
@@ -43,5 +44,11 @@ $assert( strpos( $manual, 'admin_post_ufsc_add_manual_affiliation' ) !== false, 
 $assert( strpos( $manual, 'CAP_GESTION_MANAGE' ) !== false && strpos( $manual, 'check_admin_referer' ) !== false, 'Manual affiliations must require management capability and nonce validation.' );
 $assert( strpos( $manual, 'UFSC_Season_Archive_Manager::upsert_affiliation' ) !== false, 'Manual affiliations must use the same idempotent archive upsert.' );
 $assert( strpos( $manual, "'wc_order_id'    => 0" ) !== false, 'Manual affiliations must remain distinguishable from WooCommerce orders.' );
+$assert( strpos( $seasons_shim, 'nominative-licence-cart.php' ) !== false, 'Nominative licence cart safeguards must be loaded.' );
+$assert( strpos( $nominative, 'woocommerce_check_cart_items' ) !== false, 'Anonymous licence lines must be blocked before checkout.' );
+$assert( strpos( $nominative, '1 !== $quantity' ) !== false, 'Every licence must remain a separate quantity-one cart line.' );
+$assert( strpos( $nominative, 'woocommerce_get_item_data' ) !== false, 'Licence identity must be visible in cart and checkout.' );
+$assert( strpos( $nominative, '_ufsc_nominative_licence_id' ) !== false, 'Each Woo order line must keep a nominative licence snapshot.' );
+$assert( strpos( $nominative, '_ufsc_nominative_request_type' ) !== false, 'Order trace must distinguish new licences from renewals.' );
 
  echo "Renewal/season static safeguards OK\n";
