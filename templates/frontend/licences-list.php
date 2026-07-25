@@ -6,6 +6,24 @@ $current_season_global = function_exists( 'ufsc_get_current_season' ) ? ufsc_get
 $next_season_global    = function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '';
 $renew_open_global     = function_exists( 'ufsc_is_renewal_window_open' ) ? ufsc_is_renewal_window_open() : false;
 $licence_product_id    = ! empty( $wc_settings['product_license_id'] ) ? absint( $wc_settings['product_license_id'] ) : 0;
+$bulk_new_available    = false;
+
+if ( $licence_product_id > 0 && ! empty( $licences ) ) {
+    foreach ( $licences as $bulk_candidate ) {
+        $candidate_status_raw  = $bulk_candidate->licence_statut ?? ( $bulk_candidate->statut ?? '' );
+        $candidate_status_norm = function_exists( 'UFSC_Licence_Status' )
+            ? UFSC_Licence_Status::display_status( $candidate_status_raw )
+            : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $candidate_status_raw ) : $candidate_status_raw );
+        $candidate_locked = function_exists( 'ufsc_is_licence_locked_for_club' )
+            ? ufsc_is_licence_locked_for_club( $bulk_candidate )
+            : ! ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $candidate_status_norm ) : false );
+
+        if ( ! $candidate_locked ) {
+            $bulk_new_available = true;
+            break;
+        }
+    }
+}
 ?>
 
 <?php if ( $renew_open_global && $licence_product_id > 0 && ! empty( $licences ) ) : ?>
@@ -22,6 +40,23 @@ $licence_product_id    = ! empty( $wc_settings['product_license_id'] ) ? absint(
         </button>
         <small style="flex-basis:100%">
             <?php esc_html_e( 'Chaque personne sera ajoutée sur une ligne distincte du panier avec son identité et sa saison.', 'ufsc-clubs' ); ?>
+        </small>
+    </form>
+<?php endif; ?>
+
+<?php if ( $bulk_new_available ) : ?>
+    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" id="ufsc-bulk-new-licence-form" class="ufsc-bulk-new-licence-form" style="margin:0 0 18px;padding:14px;border:1px solid #dcdcde;background:#fff;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
+        <input type="hidden" name="action" value="ufsc_add_to_cart">
+        <input type="hidden" name="product_id" value="<?php echo esc_attr( $licence_product_id ); ?>">
+        <input type="hidden" name="ufsc_license_ids" id="ufsc-new-licence-ids" value="">
+        <strong><?php esc_html_e( 'Paiement groupé des nouvelles licences', 'ufsc-clubs' ); ?></strong>
+        <span id="ufsc-new-selection-count" aria-live="polite"><?php esc_html_e( '0 licence sélectionnée', 'ufsc-clubs' ); ?></span>
+        <button type="submit" id="ufsc-bulk-new-submit" class="button button-primary" disabled>
+            <?php esc_html_e( 'Ajouter les dossiers sélectionnés au panier', 'ufsc-clubs' ); ?>
+        </button>
+        <small style="flex-basis:100%">
+            <?php esc_html_e( 'Chaque nouvelle licence conservera sa propre ligne nominative dans le panier et la commande WooCommerce.', 'ufsc-clubs' ); ?>
         </small>
     </form>
 <?php endif; ?>
@@ -56,16 +91,16 @@ $licence_product_id    = ! empty( $wc_settings['product_license_id'] ) ? absint(
                 }
             }
 
-            $status_raw   = $licence->licence_statut ?? ( $licence->statut ?? '' );
-            $status_norm  = function_exists( 'UFSC_Licence_Status' )
+            $status_raw  = $licence->licence_statut ?? ( $licence->statut ?? '' );
+            $status_norm = function_exists( 'UFSC_Licence_Status' )
                 ? UFSC_Licence_Status::display_status( $status_raw )
                 : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw );
 
-            $is_locked    = function_exists( 'ufsc_is_licence_locked_for_club' )
+            $is_locked = function_exists( 'ufsc_is_licence_locked_for_club' )
                 ? ufsc_is_licence_locked_for_club( $licence )
                 : ! ( function_exists( 'ufsc_is_editable_licence_status' ) ? ufsc_is_editable_licence_status( $status_norm ) : false );
 
-            $lock_reason  = '';
+            $lock_reason = '';
             if ( 'valide' === $status_norm ) {
                 $lock_reason = __( 'Validée', 'ufsc-clubs' );
             } elseif ( function_exists( 'ufsc_is_licence_paid' ) && ufsc_is_licence_paid( $licence ) ) {
@@ -103,6 +138,7 @@ $licence_product_id    = ! empty( $wc_settings['product_license_id'] ) ? absint(
                     }
                 }
             }
+            $can_bulk_new = ! $is_locked && ! $is_in_cart && $licence_product_id > 0;
             ?>
             <div class="ufsc-card ufsc-licence-card">
                 <div class="ufsc-licence-card-header">
@@ -114,6 +150,13 @@ $licence_product_id    = ! empty( $wc_settings['product_license_id'] ) ? absint(
                     <label style="display:flex;gap:8px;align-items:center;margin:8px 0;font-weight:600">
                         <input type="checkbox" class="ufsc-renew-licence-checkbox" value="<?php echo esc_attr( absint( $licence->id ?? 0 ) ); ?>" data-name="<?php echo esc_attr( $full_name ); ?>">
                         <?php esc_html_e( 'Sélectionner pour le renouvellement groupé', 'ufsc-clubs' ); ?>
+                    </label>
+                <?php endif; ?>
+
+                <?php if ( $can_bulk_new ) : ?>
+                    <label style="display:flex;gap:8px;align-items:center;margin:8px 0;font-weight:600">
+                        <input type="checkbox" class="ufsc-new-licence-checkbox" value="<?php echo esc_attr( absint( $licence->id ?? 0 ) ); ?>" data-name="<?php echo esc_attr( $full_name ); ?>">
+                        <?php esc_html_e( 'Sélectionner pour le paiement groupé', 'ufsc-clubs' ); ?>
                     </label>
                 <?php endif; ?>
 
@@ -187,34 +230,40 @@ $licence_product_id    = ! empty( $wc_settings['product_license_id'] ) ? absint(
     <?php endif; ?>
 </div>
 
-<?php if ( $renew_open_global && $licence_product_id > 0 && ! empty( $licences ) ) : ?>
+<?php if ( ( $renew_open_global || $bulk_new_available ) && $licence_product_id > 0 && ! empty( $licences ) ) : ?>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('ufsc-bulk-renewal-form');
-    if (!form) return;
+    function bindBulkForm(formId, checkboxSelector, idsFieldId, countId, submitId) {
+        const form = document.getElementById(formId);
+        if (!form) return;
 
-    const checkboxes = Array.from(document.querySelectorAll('.ufsc-renew-licence-checkbox'));
-    const idsField = document.getElementById('ufsc-renew-licence-ids');
-    const countLabel = document.getElementById('ufsc-renew-selection-count');
-    const submitButton = document.getElementById('ufsc-bulk-renew-submit');
+        const checkboxes = Array.from(document.querySelectorAll(checkboxSelector));
+        const idsField = document.getElementById(idsFieldId);
+        const countLabel = document.getElementById(countId);
+        const submitButton = document.getElementById(submitId);
+        if (!idsField || !countLabel || !submitButton) return;
 
-    function refreshSelection() {
-        const selected = checkboxes.filter(function (checkbox) { return checkbox.checked; });
-        idsField.value = selected.map(function (checkbox) { return checkbox.value; }).join(',');
-        countLabel.textContent = selected.length + (selected.length > 1 ? ' licences sélectionnées' : ' licence sélectionnée');
-        submitButton.disabled = selected.length === 0;
+        function refreshSelection() {
+            const selected = checkboxes.filter(function (checkbox) { return checkbox.checked; });
+            idsField.value = selected.map(function (checkbox) { return checkbox.value; }).join(',');
+            countLabel.textContent = selected.length + (selected.length > 1 ? ' licences sélectionnées' : ' licence sélectionnée');
+            submitButton.disabled = selected.length === 0;
+        }
+
+        checkboxes.forEach(function (checkbox) {
+            checkbox.addEventListener('change', refreshSelection);
+        });
+
+        form.addEventListener('submit', function (event) {
+            refreshSelection();
+            if (!idsField.value) {
+                event.preventDefault();
+            }
+        });
     }
 
-    checkboxes.forEach(function (checkbox) {
-        checkbox.addEventListener('change', refreshSelection);
-    });
-
-    form.addEventListener('submit', function (event) {
-        refreshSelection();
-        if (!idsField.value) {
-            event.preventDefault();
-        }
-    });
+    bindBulkForm('ufsc-bulk-renewal-form', '.ufsc-renew-licence-checkbox', 'ufsc-renew-licence-ids', 'ufsc-renew-selection-count', 'ufsc-bulk-renew-submit');
+    bindBulkForm('ufsc-bulk-new-licence-form', '.ufsc-new-licence-checkbox', 'ufsc-new-licence-ids', 'ufsc-new-selection-count', 'ufsc-bulk-new-submit');
 });
 </script>
 <?php endif; ?>
