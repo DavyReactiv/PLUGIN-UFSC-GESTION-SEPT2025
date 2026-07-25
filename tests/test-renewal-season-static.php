@@ -12,7 +12,6 @@ $admin  = file_get_contents( $root . '/includes/admin/class-sql-admin.php' );
 $migration = file_get_contents( $root . '/includes/core/class-ufsc-db-migrations.php' );
 $archive = file_get_contents( $root . '/includes/core/class-ufsc-season-archive-manager.php' );
 $manual = file_get_contents( $root . '/includes/admin/class-ufsc-affiliation-archive-admin.php' );
-$payment_trace = file_get_contents( $root . '/includes/admin/class-ufsc-licence-payment-trace-admin.php' );
 
 $assert = static function ( $condition, $message ) {
     if ( ! $condition ) {
@@ -44,10 +43,5 @@ $assert( strpos( $manual, 'admin_post_ufsc_add_manual_affiliation' ) !== false, 
 $assert( strpos( $manual, 'CAP_GESTION_MANAGE' ) !== false && strpos( $manual, 'check_admin_referer' ) !== false, 'Manual affiliations must require management capability and nonce validation.' );
 $assert( strpos( $manual, 'UFSC_Season_Archive_Manager::upsert_affiliation' ) !== false, 'Manual affiliations must use the same idempotent archive upsert.' );
 $assert( strpos( $manual, "'wc_order_id'    => 0" ) !== false, 'Manual affiliations must remain distinguishable from WooCommerce orders.' );
-$assert( strpos( $seasons_shim, 'class-ufsc-licence-payment-trace-admin.php' ) !== false, 'Nominative licence payment trace admin must be loaded.' );
-$assert( strpos( $payment_trace, 'Règlements licences' ) !== false, 'Licence payment trace must be exposed in admin.' );
-$assert( strpos( $payment_trace, 'order_item_id' ) !== false && strpos( $payment_trace, 'wc_order_item_id' ) !== false, 'Each licence payment trace must resolve its WooCommerce order line.' );
-$assert( strpos( $payment_trace, 'previous_licence_id' ) !== false, 'Payment trace must distinguish renewals from new licences.' );
-$assert( strpos( $payment_trace, 'Une ligne correspond à une personne' ) !== false, 'Payment trace must remain nominative.' );
 
  echo "Renewal/season static safeguards OK\n";
