@@ -46,6 +46,7 @@ $assert( strpos( $manual, 'CAP_GESTION_MANAGE' ) !== false && strpos( $manual, '
 $assert( strpos( $manual, 'UFSC_Season_Archive_Manager::upsert_affiliation' ) !== false, 'Manual affiliations must use the same idempotent archive upsert.' );
 $assert( strpos( $manual, "'wc_order_id'    => 0" ) !== false, 'Manual affiliations must remain distinguishable from WooCommerce orders.' );
 $assert( strpos( $seasons_shim, 'nominative-licence-cart.php' ) !== false, 'Nominative licence cart safeguards must be loaded.' );
+$assert( strpos( $seasons_shim, 'bulk-new-licence-cart.php' ) === false, 'Fragile wp_footer bulk new licence injection must stay removed.' );
 $assert( strpos( $nominative, 'woocommerce_check_cart_items' ) !== false, 'Anonymous licence lines must be blocked before checkout.' );
 $assert( strpos( $nominative, '1 !== $quantity' ) !== false, 'Every licence must remain a separate quantity-one cart line.' );
 $assert( strpos( $nominative, 'woocommerce_get_item_data' ) !== false, 'Licence identity must be visible in cart and checkout.' );
@@ -56,5 +57,9 @@ $assert( strpos( $nominative, "WC()->cart->add_to_cart( \$product_id, 1" ) !== f
 $assert( strpos( $nominative, 'ufsc_cart_has_renewal_item' ) !== false && strpos( $nominative, 'ufsc_wc_has_pending_renewal_order' ) !== false, 'Bulk renewal must keep duplicate cart and pending-order guards.' );
 $assert( strpos( $licence_template, 'ufsc-renew-licence-checkbox' ) !== false, 'Eligible licences must be individually selectable for bulk renewal.' );
 $assert( strpos( $licence_template, 'ufsc_renew_licence_ids' ) !== false, 'Bulk renewal form must submit explicit licence IDs rather than a quantity.' );
+$assert( strpos( $licence_template, 'id="ufsc-bulk-new-licence-form"' ) !== false, 'Bulk new licence payment must be rendered as a real template form.' );
+$assert( strpos( $licence_template, "wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' )" ) !== false, 'Bulk new licence payment must use the authoritative add-to-cart nonce.' );
+$assert( strpos( $licence_template, 'class="ufsc-new-licence-checkbox"' ) !== false, 'Each payable new licence dossier must be selected explicitly.' );
+$assert( strpos( $licence_template, 'name="ufsc_license_ids" id="ufsc-new-licence-ids"' ) !== false, 'Bulk new licence payment must submit explicit dossier IDs.' );
 
  echo "Renewal/season static safeguards OK\n";
