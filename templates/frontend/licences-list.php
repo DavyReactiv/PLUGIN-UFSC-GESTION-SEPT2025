@@ -11,7 +11,7 @@ $bulk_new_available    = false;
 if ( $licence_product_id > 0 && ! empty( $licences ) ) {
     foreach ( $licences as $bulk_candidate ) {
         $candidate_status_raw  = $bulk_candidate->licence_statut ?? ( $bulk_candidate->statut ?? '' );
-        $candidate_status_norm = function_exists( 'UFSC_Licence_Status' )
+        $candidate_status_norm = class_exists( 'UFSC_Licence_Status' )
             ? UFSC_Licence_Status::display_status( $candidate_status_raw )
             : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $candidate_status_raw ) : $candidate_status_raw );
         $candidate_locked = function_exists( 'ufsc_is_licence_locked_for_club' )
@@ -92,7 +92,7 @@ if ( $licence_product_id > 0 && ! empty( $licences ) ) {
             }
 
             $status_raw  = $licence->licence_statut ?? ( $licence->statut ?? '' );
-            $status_norm = function_exists( 'UFSC_Licence_Status' )
+            $status_norm = class_exists( 'UFSC_Licence_Status' )
                 ? UFSC_Licence_Status::display_status( $status_raw )
                 : ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $status_raw ) : $status_raw );
 
