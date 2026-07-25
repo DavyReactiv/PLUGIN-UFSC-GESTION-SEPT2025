@@ -5,11 +5,13 @@
 
 $root = dirname( __DIR__ );
 $season = file_get_contents( $root . '/inc/common/season.php' );
+$seasons_shim = file_get_contents( $root . '/inc/common/seasons.php' );
 $hooks  = file_get_contents( $root . '/inc/woocommerce/hooks.php' );
 $cart   = file_get_contents( $root . '/inc/woocommerce/cart-integration.php' );
 $admin  = file_get_contents( $root . '/includes/admin/class-sql-admin.php' );
 $migration = file_get_contents( $root . '/includes/core/class-ufsc-db-migrations.php' );
 $archive = file_get_contents( $root . '/includes/core/class-ufsc-season-archive-manager.php' );
+$manual = file_get_contents( $root . '/includes/admin/class-ufsc-affiliation-archive-admin.php' );
 
 $assert = static function ( $condition, $message ) {
     if ( ! $condition ) {
@@ -36,5 +38,10 @@ $assert( strpos( $archive, 'admin_post_ufsc_update_affiliation_number' ) !== fal
 $assert( strpos( $archive, 'CAP_GESTION_MANAGE' ) !== false, 'ASPTT affiliation number editing must require management capability.' );
 $assert( strpos( $archive, 'check_admin_referer' ) !== false, 'ASPTT affiliation number editing must verify a nonce.' );
 $assert( strpos( $archive, "array( 'id' => \$row_id )" ) !== false, 'ASPTT affiliation number editing must target one annual row only.' );
+$assert( strpos( $seasons_shim, 'class-ufsc-affiliation-archive-admin.php' ) !== false, 'Manual annual affiliation admin flow must be loaded.' );
+$assert( strpos( $manual, 'admin_post_ufsc_add_manual_affiliation' ) !== false, 'Manual affiliations must use a dedicated admin-post action.' );
+$assert( strpos( $manual, 'CAP_GESTION_MANAGE' ) !== false && strpos( $manual, 'check_admin_referer' ) !== false, 'Manual affiliations must require management capability and nonce validation.' );
+$assert( strpos( $manual, 'UFSC_Season_Archive_Manager::upsert_affiliation' ) !== false, 'Manual affiliations must use the same idempotent archive upsert.' );
+$assert( strpos( $manual, "'wc_order_id'    => 0" ) !== false, 'Manual affiliations must remain distinguishable from WooCommerce orders.' );
 
-echo "Renewal/season static safeguards OK\n";
+ echo "Renewal/season static safeguards OK\n";
