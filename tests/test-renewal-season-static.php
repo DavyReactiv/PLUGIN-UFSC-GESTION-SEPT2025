@@ -9,6 +9,7 @@ $seasons_shim = file_get_contents( $root . '/inc/common/seasons.php' );
 $hooks  = file_get_contents( $root . '/inc/woocommerce/hooks.php' );
 $cart   = file_get_contents( $root . '/inc/woocommerce/cart-integration.php' );
 $nominative = file_get_contents( $root . '/inc/woocommerce/nominative-licence-cart.php' );
+$licence_template = file_get_contents( $root . '/templates/frontend/licences-list.php' );
 $admin  = file_get_contents( $root . '/includes/admin/class-sql-admin.php' );
 $migration = file_get_contents( $root . '/includes/core/class-ufsc-db-migrations.php' );
 $archive = file_get_contents( $root . '/includes/core/class-ufsc-season-archive-manager.php' );
@@ -50,5 +51,10 @@ $assert( strpos( $nominative, '1 !== $quantity' ) !== false, 'Every licence must
 $assert( strpos( $nominative, 'woocommerce_get_item_data' ) !== false, 'Licence identity must be visible in cart and checkout.' );
 $assert( strpos( $nominative, '_ufsc_nominative_licence_id' ) !== false, 'Each Woo order line must keep a nominative licence snapshot.' );
 $assert( strpos( $nominative, '_ufsc_nominative_request_type' ) !== false, 'Order trace must distinguish new licences from renewals.' );
+$assert( strpos( $nominative, 'admin_post_ufsc_add_bulk_licence_renewals' ) !== false, 'Bulk renewal must use a dedicated authenticated handler.' );
+$assert( strpos( $nominative, "WC()->cart->add_to_cart( \$product_id, 1" ) !== false, 'Bulk renewal must add one quantity-one cart line per person.' );
+$assert( strpos( $nominative, 'ufsc_cart_has_renewal_item' ) !== false && strpos( $nominative, 'ufsc_wc_has_pending_renewal_order' ) !== false, 'Bulk renewal must keep duplicate cart and pending-order guards.' );
+$assert( strpos( $licence_template, 'ufsc-renew-licence-checkbox' ) !== false, 'Eligible licences must be individually selectable for bulk renewal.' );
+$assert( strpos( $licence_template, 'ufsc_renew_licence_ids' ) !== false, 'Bulk renewal form must submit explicit licence IDs rather than a quantity.' );
 
  echo "Renewal/season static safeguards OK\n";
