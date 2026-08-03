@@ -2960,9 +2960,7 @@ class UFSC_SQL_Admin
                 return '';
             }
 
-            return ( '__current' === $filter_season || '' === $filter_season )
-                ? $wpdb->prepare( "(COALESCE(l.season_end_year, 0) = 0 OR l.season_end_year = %d)", $target_end_year )
-                : $wpdb->prepare( "l.season_end_year = %d", $target_end_year );
+            return $wpdb->prepare( "l.season_end_year = %d", $target_end_year );
         }
 
         if ( '__archives' === $filter_season ) {
@@ -2977,9 +2975,7 @@ class UFSC_SQL_Admin
             return '';
         }
 
-        return ( '__current' === $filter_season || '' === $filter_season )
-            ? $wpdb->prepare( "(COALESCE(NULLIF(REPLACE(l.{$season_column}, '/', '-'), ''), '') = '' OR REPLACE(l.{$season_column}, '/', '-') = %s)", $target_season )
-            : $wpdb->prepare( "REPLACE(l.{$season_column}, '/', '-') = %s", str_replace( '/', '-', $target_season ) );
+        return $wpdb->prepare( "REPLACE(l.{$season_column}, '/', '-') = %s", str_replace( '/', '-', $target_season ) );
     }
 
     private static function build_licence_where_conditions( $filters, $licence_columns, $club_columns, $has_club_id ) {
@@ -3614,11 +3610,18 @@ class UFSC_SQL_Admin
         echo '<div>';
         echo '<label for="filter_season"><strong>' . esc_html__('Saison', 'ufsc-clubs') . '</strong></label>';
         echo '<select name="filter_season" id="filter_season">';
-        echo '<option value="__current"' . selected( $filter_season, '__current', false ) . '>' . esc_html__( 'Saison active', 'ufsc-clubs' ) . '</option>';
+        echo '<option value="__current"' . selected( $filter_season, '__current', false ) . '>' . esc_html( sprintf( __( 'Saison actuelle : %s', 'ufsc-clubs' ), $current_season_label ) ) . '</option>';
+        $previous_season_label = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_previous_season() : '';
+        if ( $previous_season_label ) {
+            echo '<option value="' . esc_attr( $previous_season_label ) . '"' . selected( $filter_season, $previous_season_label, false ) . '>' . esc_html( sprintf( __( 'Saison précédente : %s', 'ufsc-clubs' ), $previous_season_label ) ) . '</option>';
+        }
         echo '<option value="all"' . selected( $filter_season, 'all', false ) . '>' . esc_html__( 'Toutes les saisons', 'ufsc-clubs' ) . '</option>';
         echo '<option value="__archives"' . selected( $filter_season, '__archives', false ) . '>' . esc_html__( 'Archives uniquement', 'ufsc-clubs' ) . '</option>';
         $available_seasons = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_available_seasons() : array( self::get_admin_current_season_label() );
         foreach ( array_unique( array_filter( array_map( 'sanitize_text_field', (array) $available_seasons ) ) ) as $season_option ) {
+            if ( $season_option === $current_season_label || $season_option === $previous_season_label ) {
+                continue;
+            }
             echo '<option value="' . esc_attr( $season_option ) . '" ' . selected( $filter_season, $season_option, false ) . '>' . esc_html( $season_option ) . '</option>';
         }
         echo '</select>';
