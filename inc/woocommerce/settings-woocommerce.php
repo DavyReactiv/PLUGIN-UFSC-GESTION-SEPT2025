@@ -149,7 +149,36 @@ function ufsc_is_woocommerce_product_available( $product_id ) {
         && ! empty( $diagnostic['wc_get_product_available'] )
         && ! empty( $diagnostic['product_id'] )
         && ! empty( $diagnostic['product_found'] )
+        && 'publish' === $diagnostic['product_status']
         && ! empty( $diagnostic['product_purchasable'] );
+}
+
+/** Build the configured affiliation product-page URL with renewal context. */
+function ufsc_get_affiliation_renewal_url( $club_id, $season, $previous_affiliation_id = 0 ) {
+    $product_id = ufsc_get_affiliation_product_id();
+    if ( ! ufsc_is_woocommerce_product_available( $product_id ) ) {
+        return '';
+    }
+
+    $url = get_permalink( $product_id );
+    if ( ! is_string( $url ) || '' === $url ) {
+        return '';
+    }
+
+    if ( ! $previous_affiliation_id && class_exists( 'UFSC_Season_Service' ) && class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+        $previous = UFSC_Season_Archive_Manager::get_affiliation( $club_id, UFSC_Season_Service::shift_season( $season, -1 ) );
+        $previous_affiliation_id = $previous ? absint( $previous->id ) : 0;
+    }
+
+    return add_query_arg(
+        array(
+            'ufsc_action'                  => 'renew_affiliation',
+            'ufsc_club_id'                 => absint( $club_id ),
+            'ufsc_target_season'           => sanitize_text_field( (string) $season ),
+            'ufsc_previous_affiliation_id' => absint( $previous_affiliation_id ),
+        ),
+        $url
+    );
 }
 
 /**
