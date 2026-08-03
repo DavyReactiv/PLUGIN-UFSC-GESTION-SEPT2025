@@ -23,6 +23,7 @@ class UFSC_DB_Migrations {
     public static function run_migrations() {
         $current_version = get_option( self::VERSION_OPTION, '0.0.0' );
         $category_columns_option = 'ufsc_licence_category_columns_ready';
+        $season_archive_option   = 'ufsc_season_archive_table_ready';
 
         if ( version_compare( $current_version, self::MIGRATION_VERSION, '>=' ) && '1' !== get_option( $category_columns_option, '' ) ) {
             $category_columns_ready = self::ensure_licences_category_columns();
@@ -33,23 +34,33 @@ class UFSC_DB_Migrations {
             }
         }
 
+        // Retry a previously incomplete table creation without mutating archive data.
+        if ( version_compare( $current_version, self::MIGRATION_VERSION, '>=' ) && '1' !== get_option( $season_archive_option, '' ) ) {
+            if ( self::ensure_season_archive_tables() ) {
+                update_option( $season_archive_option, '1' );
+            } else {
+                self::log_migration_error( 'Affiliation season archive table migration incomplete; readiness flag not advanced.' );
+            }
+        }
+
         if ( version_compare( $current_version, self::MIGRATION_VERSION, '<' ) ) {
             self::migrate_to_innodb();
             self::ensure_licences_soft_delete_columns();
             self::ensure_licences_renewal_columns();
-            self::ensure_season_archive_tables();
+            $season_archive_ready = self::ensure_season_archive_tables();
             self::create_indexes();
             self::create_unique_constraints();
             $category_columns_ready = self::ensure_licences_category_columns();
             self::create_events_table();
 
-            if ( ! $category_columns_ready ) {
-                self::log_migration_error( 'Licence category columns migration incomplete; migration version not advanced.' );
+            if ( ! $category_columns_ready || ! $season_archive_ready ) {
+                self::log_migration_error( 'Database migration incomplete; migration version not advanced.' );
                 return;
             }
             
             update_option( self::VERSION_OPTION, self::MIGRATION_VERSION );
             update_option( $category_columns_option, '1' );
+            update_option( $season_archive_option, '1' );
             
             add_action( 'admin_notices', array( __CLASS__, 'migration_success_notice' ) );
         }
@@ -198,7 +209,7 @@ class UFSC_DB_Migrations {
     public static function ensure_season_archive_tables() {
         global $wpdb;
 
-        $table_name = $wpdb->prefix . 'ufsc_affiliations_seasons';
+        $table_name = self::get_affiliation_seasons_table_name();
         $charset_collate = method_exists( $wpdb, 'get_charset_collate' ) ? $wpdb->get_charset_collate() : 'DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
 
         $sql = "CREATE TABLE {$table_name} (
@@ -222,7 +233,20 @@ class UFSC_DB_Migrations {
 
         if ( $wpdb->last_error ) {
             self::log_migration_error( "UFSC_DB_Migrations: Failed to create affiliation seasons table: {$wpdb->last_error}" );
+            return false;
         }
+
+        return self::table_exists( $table_name );
+    }
+
+    /**
+     * Return the canonical annual affiliations table name.
+     *
+     * @return string
+     */
+    public static function get_affiliation_seasons_table_name() {
+        global $wpdb;
+        return $wpdb->prefix . 'ufsc_affiliations_seasons';
     }
 
     /**

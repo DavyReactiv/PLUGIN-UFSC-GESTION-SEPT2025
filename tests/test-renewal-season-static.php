@@ -10,6 +10,7 @@ $cart   = file_get_contents( $root . '/inc/woocommerce/cart-integration.php' );
 $admin  = file_get_contents( $root . '/includes/admin/class-sql-admin.php' );
 $migration = file_get_contents( $root . '/includes/core/class-ufsc-db-migrations.php' );
 $archive = file_get_contents( $root . '/includes/core/class-ufsc-season-archive-manager.php' );
+$bootstrap = file_get_contents( $root . '/ufsc-clubs-licences-sql.php' );
 
 $assert = static function ( $condition, $message ) {
     if ( ! $condition ) {
@@ -27,6 +28,9 @@ $assert( strpos( $admin, "REPLACE(l.{\$season_column}, '/', '-')" ) !== false, '
 $assert( strpos( $migration, 'ensure_licences_renewal_columns' ) !== false, 'Renewal columns migration must be idempotent.' );
 $assert( substr_count( $migration, 'ADD COLUMN `previous_licence_id`' ) === 1, 'Only UFSC_DB_Migrations may add previous_licence_id once.' );
 $assert( strpos( $migration, 'ufsc_affiliations_seasons' ) !== false && strpos( $migration, 'UNIQUE KEY `uniq_club_season`' ) !== false, 'Annual affiliation season table must be idempotent.' );
-$assert( strpos( $archive, 'ensure_licences_renewal_columns' ) === false && strpos( $archive, 'ADD COLUMN `previous_licence_id`' ) === false, 'Archive manager must not recreate licence lineage columns.' );
+$assert( strpos( $migration, 'ufsc_affiliation_seasons' ) === false && strpos( $archive, 'ufsc_affiliation_seasons' ) === false, 'Only the canonical plural affiliations table name may be used.' );
+$assert( strpos( $archive, 'ALTER TABLE' ) === false && strpos( $archive, 'ensure_licences_renewal_columns' ) === false, 'Archive manager must not alter the licences table.' );
+$assert( strpos( $archive, "class_exists( 'UFSC_DB_Migrations' )" ) !== false, 'Archive manager must tolerate migration class load order.' );
+$assert( strpos( $bootstrap, "array( 'UFSC_Season_Archive_Manager', 'maybe_migrate' )" ) === false, 'Archive migration must not run twice during bootstrap.' );
 
 echo "Renewal/season static safeguards OK\n";

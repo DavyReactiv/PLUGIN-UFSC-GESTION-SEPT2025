@@ -17,6 +17,12 @@ class UFSC_Season_Archive_Manager {
      */
     public static function get_affiliations_table() {
         global $wpdb;
+
+        if ( class_exists( 'UFSC_DB_Migrations' ) && method_exists( 'UFSC_DB_Migrations', 'get_affiliation_seasons_table_name' ) ) {
+            return UFSC_DB_Migrations::get_affiliation_seasons_table_name();
+        }
+
+        // Safe bootstrap fallback; the migration class remains the schema owner.
         return $wpdb->prefix . 'ufsc_affiliations_seasons';
     }
 
