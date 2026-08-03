@@ -47,7 +47,9 @@ function ufsc_capture_affiliation_product_context( $cart_item_data, $product_id 
 	$club_id = isset( $_REQUEST['ufsc_club_id'] ) ? absint( $_REQUEST['ufsc_club_id'] ) : 0;
 	$season  = isset( $_REQUEST['ufsc_target_season'] ) && ! is_array( $_REQUEST['ufsc_target_season'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['ufsc_target_season'] ) ) : '';
 	$user_club_id = is_user_logged_in() && function_exists( 'ufsc_get_user_club_id' ) ? absint( ufsc_get_user_club_id( get_current_user_id() ) ) : 0;
-	$current_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ufsc_get_current_season();
+	$current_season = class_exists( 'UFSC_Season_Service' )
+		? UFSC_Season_Service::get_current_season()
+		: ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
 
 	if ( $club_id <= 0 || $club_id !== $user_club_id || $season !== $current_season || ufsc_is_club_affiliated_for_season( $club_id, $season ) || ufsc_wc_has_pending_renewal_order( 'renew_affiliation', $club_id, $season ) ) {
 		return $cart_item_data;

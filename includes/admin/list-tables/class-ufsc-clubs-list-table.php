@@ -16,6 +16,9 @@ class UFSC_Clubs_List_Table {
     }
 
     private static function get_admin_season_label() {
+		if ( class_exists( 'UFSC_Season_Service' ) ) {
+			return (string) UFSC_Season_Service::get_current_season();
+		}
         if ( function_exists( 'ufsc_get_admin_current_season_label' ) ) {
             return (string) ufsc_get_admin_current_season_label();
         }
@@ -491,21 +494,20 @@ class UFSC_Clubs_List_Table {
             'total' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$clubs_table}` {$where_scope}" ),
             'active' => 0,
             'pending' => 0,
+			'to_renew' => 0,
             'documents_complete' => null,
             'documents_incomplete' => null,
             'licences' => self::sum_licence_counts_for_scope( $columns, $clubs_table, $licence_counts, $where_scope ),
             'missing_affiliation' => null,
         );
 
-        if ( self::has_verified_column( $columns, $clubs_table, 'statut' ) ) {
-            $scope_prefix = '' === $where_scope ? 'WHERE' : $where_scope . ' AND';
-            $active_statuses = array( 'actif', 'active', 'valide', 'validated' );
-            $pending_statuses = array( 'en_attente', 'pending', 'a_regler', 'creating', 'en_cours_de_creation' );
-            $active_placeholders = implode( ',', array_fill( 0, count( $active_statuses ), '%s' ) );
-            $pending_placeholders = implode( ',', array_fill( 0, count( $pending_statuses ), '%s' ) );
-            $stats['active'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM `{$clubs_table}` {$scope_prefix} statut IN ({$active_placeholders})", $active_statuses ) );
-            $stats['pending'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM `{$clubs_table}` {$scope_prefix} statut IN ({$pending_placeholders})", $pending_statuses ) );
-        }
+		$current_season = self::get_admin_season_label();
+		$affiliations_table = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliations_table() : $wpdb->prefix . 'ufsc_affiliations_seasons';
+		$scope_join = self::has_verified_column( $columns, $clubs_table, 'region' ) ? UFSC_Scope::build_scope_condition( 'c.region' ) : '';
+		$scope_join = $scope_join ? ' AND ' . $scope_join : '';
+		$stats['active'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT a.club_id) FROM `{$affiliations_table}` a INNER JOIN `{$clubs_table}` c ON c.id = a.club_id WHERE a.season = %s AND LOWER(a.status) IN ('validated','valide','active','actif'){$scope_join}", $current_season ) );
+		$stats['pending'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT a.club_id) FROM `{$affiliations_table}` a INNER JOIN `{$clubs_table}` c ON c.id = a.club_id WHERE a.season = %s AND LOWER(a.status) IN ('pending','pending_payment','pending_validation','en_attente'){$scope_join}", $current_season ) );
+		$stats['to_renew'] = max( 0, $stats['total'] - $stats['active'] - $stats['pending'] );
 
         $doc_fields = self::get_available_document_fields( $columns, $clubs_table );
         if ( ! empty( $doc_fields ) ) {
@@ -526,8 +528,9 @@ class UFSC_Clubs_List_Table {
 
         $cards = array(
             array( 'label' => __( 'Clubs enregistrés', 'ufsc-clubs' ), 'value' => $stats['total'], 'tone' => 'primary' ),
-            array( 'label' => __( 'Clubs actifs', 'ufsc-clubs' ), 'value' => $stats['active'], 'tone' => 'success' ),
-            array( 'label' => __( 'Clubs en attente', 'ufsc-clubs' ), 'value' => $stats['pending'], 'tone' => 'warning' ),
+			array( 'label' => sprintf( __( 'Affiliés validés %s', 'ufsc-clubs' ), $current_season ), 'value' => $stats['active'], 'tone' => 'success' ),
+			array( 'label' => __( 'À renouveler', 'ufsc-clubs' ), 'value' => $stats['to_renew'], 'tone' => 'danger' ),
+            array( 'label' => __( 'Affiliations en attente', 'ufsc-clubs' ), 'value' => $stats['pending'], 'tone' => 'warning' ),
         );
         if ( null !== $stats['documents_complete'] ) {
             $cards[] = array( 'label' => __( 'Documents complets', 'ufsc-clubs' ), 'value' => $stats['documents_complete'], 'tone' => 'success' );
@@ -811,13 +814,16 @@ class UFSC_Clubs_List_Table {
     // Région
     echo '<td class="column-region">' . esc_html( isset( $club->region ) ? $club->region : '' ) . '</td>';
 
-    // Numéro d’affiliation
+	$current_season = self::get_admin_season_label();
+	$annual_affiliation = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( (int) ( $club->id ?? 0 ), $current_season ) : null;
+
+    // Numéro d’affiliation annuel uniquement; no historical ASPTT carry-over.
     echo '<td class="column-affiliation">';
-    echo self::render_affiliation_number( isset( $club->num_affiliation ) ? $club->num_affiliation : '' );
+    echo self::render_affiliation_number( $annual_affiliation && isset( $annual_affiliation->num_affiliation ) ? $annual_affiliation->num_affiliation : '' );
     echo '</td>';
 
     // Statut
-    $status_value = isset( $club->statut ) ? $club->statut : '';
+    $status_value = $annual_affiliation && isset( $annual_affiliation->status ) ? $annual_affiliation->status : 'a_renouveler';
     echo '<td class="column-status">' . self::render_status_badge( $status_value ) . '</td>';
 
     // Licences validées
@@ -828,6 +834,7 @@ class UFSC_Clubs_List_Table {
             'page'          => 'ufsc_lc_licences',
             'filter_club'   => absint( $club_id ),
             'filter_status' => 'valide',
+			'filter_season' => $current_season,
         ),
         admin_url( 'admin.php' )
     );
