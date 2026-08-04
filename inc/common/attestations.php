@@ -39,3 +39,17 @@ function ufsc_get_affiliation_attestation_data( $club_id, $club = null ) {
 	);
 
 }
+
+/** Return seasonal archives plus labelled legacy references for migration UI. */
+function ufsc_get_affiliation_attestation_archives( $club_id ) {
+	$club_id = absint( $club_id );
+	$archives = class_exists( 'UFSC_PDF_Attestations' ) ? UFSC_PDF_Attestations::get_attestations_for_club( $club_id, 'affiliation' ) : array();
+	foreach ( array( 'ufsc_club_doc_attestation_affiliation_', 'ufsc_club_doc_attestation_ufsc_', 'ufsc_attestation_' ) as $prefix ) {
+		$value = get_option( $prefix . $club_id );
+		$url = is_numeric( $value ) ? wp_get_attachment_url( absint( $value ) ) : ( is_string( $value ) ? esc_url_raw( $value ) : '' );
+		if ( $url ) {
+			$archives[] = (object) array( 'id' => 0, 'saison' => '', 'status' => 'legacy_unassigned', 'created_at' => '', 'download_url' => $url );
+		}
+	}
+	return $archives;
+}

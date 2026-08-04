@@ -249,18 +249,31 @@ class UFSC_Auth_Shortcodes {
      */
     private static function render_already_logged_in() {
         $user = wp_get_current_user();
-        $dashboard_url = add_query_arg( 'user_id', $user->ID, home_url( '/tableau-de-bord-club/' ) );
-
-        return sprintf(
-            '<div class="ufsc-already-logged-in">
-                <p>%s <strong>%s</strong></p>
-                <p><a href="%s" class="ufsc-btn ufsc-btn-primary">%s</a></p>
-            </div>',
-            esc_html__( 'Vous êtes déjà connecté en tant que', 'ufsc-clubs' ),
-            esc_html( $user->display_name ),
-            esc_url( $dashboard_url ),
-            esc_html__( 'Accéder au tableau de bord', 'ufsc-clubs' )
-        );
+		$club_id = function_exists( 'ufsc_get_user_club_id' ) ? absint( ufsc_get_user_club_id( $user->ID ) ) : 0;
+		$club = $club_id && function_exists( 'ufsc_get_user_club' ) ? ufsc_get_user_club( $user->ID ) : null;
+		if ( ! $club_id || ! $club ) {
+			return '<div class="ufsc-already-logged-in ufsc-card"><h3>' . esc_html__( 'Vous êtes déjà connecté', 'ufsc-clubs' ) . '</h3><p>' . esc_html__( 'Votre compte n’est actuellement rattaché à aucun club. Veuillez contacter l’UFSC.', 'ufsc-clubs' ) . '</p>' . self::render_logout_button() . '</div>';
+		}
+		$season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+		$annual = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season ) : null;
+		$status = $annual ? sanitize_key( (string) $annual->status ) : 'a_renouveler';
+		$licence_count = 0;
+		if ( class_exists( 'UFSC_Stats' ) ) {
+			$stats = UFSC_Stats::get_club_stats( $club_id, $season );
+			$licence_count = absint( $stats['total_licences'] ?? 0 );
+		}
+		$dashboard_url = home_url( '/tableau-de-bord-club/' );
+		ob_start();
+		?>
+		<div class="ufsc-already-logged-in ufsc-card">
+			<h3><?php esc_html_e( 'Vous êtes déjà connecté', 'ufsc-clubs' ); ?></h3>
+			<p><?php echo esc_html( sprintf( __( 'Vous êtes connecté en tant que %1$s pour le club %2$s.', 'ufsc-clubs' ), $user->display_name, $club->nom ) ); ?></p>
+			<dl><dt><?php esc_html_e( 'Saison courante', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $season ); ?></dd><dt><?php esc_html_e( 'Statut annuel', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( 'a_renouveler' === $status ? __( 'À renouveler', 'ufsc-clubs' ) : $status ); ?></dd><dt><?php esc_html_e( 'Licences courantes', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $licence_count ); ?></dd></dl>
+			<?php if ( 'a_renouveler' === $status ) : ?><div class="ufsc-alert ufsc-alert-warning"><?php echo esc_html( sprintf( __( 'Affiliation %s à renouveler', 'ufsc-clubs' ), $season ) ); ?></div><?php endif; ?>
+			<div class="ufsc-login-actions"><a href="<?php echo esc_url( $dashboard_url ); ?>" class="ufsc-btn ufsc-btn-primary"><?php esc_html_e( 'Accéder au tableau de bord du club', 'ufsc-clubs' ); ?></a><?php echo self::render_logout_button(); ?></div>
+		</div>
+		<?php
+		return ob_get_clean();
     }
 
     /**
@@ -325,4 +338,3 @@ function ufsc_handle_registration_form( $redirect_to ) {
     return home_url( '/creation-du-club/' );
 }
 add_filter( 'registration_redirect', 'ufsc_handle_registration_form' );
-

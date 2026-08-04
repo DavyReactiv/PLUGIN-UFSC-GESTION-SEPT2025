@@ -284,6 +284,7 @@ class UFSC_Frontend_Shortcodes {
                                 <?php else : ?>
                                     <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Le renouvellement en ligne est temporairement indisponible. Veuillez contacter l’UFSC.', 'ufsc-clubs' ); ?></span>
                                     <?php if ( current_user_can( 'manage_options' ) ) : ?>
+										<p class="ufsc-admin-help"><?php echo esc_html( function_exists( 'ufsc_get_woocommerce_product_diagnostic_message' ) ? ufsc_get_woocommerce_product_diagnostic_message( $affiliation_product_id ) : '' ); ?></p>
                                         <a href="<?php echo esc_url( admin_url( 'admin.php?page=ufsc-woocommerce-settings' ) ); ?>"><?php esc_html_e( 'Configurer le produit d’affiliation.', 'ufsc-clubs' ); ?></a>
                                     <?php endif; ?>
                                 <?php endif; ?>
@@ -1310,8 +1311,16 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
             </div>
+			<?php if ( empty( $stats['total_licences'] ) ) : ?>
+				<div class="ufsc-message ufsc-info"><?php esc_html_e( 'Aucune licence enregistrée pour cette saison.', 'ufsc-clubs' ); ?></div>
+			<?php endif; ?>
+			<?php $previous_stats_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_previous_season() : ''; ?>
+			<?php if ( $previous_stats_season ) : ?>
+				<p><a href="<?php echo esc_url( add_query_arg( 'ufsc_archive_season', $previous_stats_season ) ); ?>"><?php echo esc_html( sprintf( __( 'Consulter les statistiques %s', 'ufsc-clubs' ), $previous_stats_season ) ); ?></a></p>
+			<?php endif; ?>
 
-            <div class="ufsc-stats-chart">
+			<?php if ( ! empty( $stats['total_licences'] ) ) : ?>
+			<div class="ufsc-stats-chart">
                 <h4><?php esc_html_e( 'Évolution des licences', 'ufsc-clubs' ); ?></h4>
                 <canvas id="ufsc-licence-chart" height="200"></canvas>
             </div>
@@ -1320,6 +1329,7 @@ class UFSC_Frontend_Shortcodes {
                 <h4><?php esc_html_e( 'Évolution des licences selon les année de naissance', 'ufsc-clubs' ); ?></h4>
                 <canvas id="ufsc-licence-year-chart" height="200"></canvas>
             </div>
+			<?php endif; ?>
 
         </div>
         <?php

@@ -603,6 +603,27 @@ class UFSC_PDF_Attestations {
 		return false;
 	}
 
+	/** Return seasonal club attestation archives without deleting legacy files. */
+	public static function get_attestations_for_club( $club_id, $type = 'affiliation' ) {
+		global $wpdb;
+		$club_id = absint( $club_id );
+		if ( $club_id <= 0 ) {
+			return array();
+		}
+		$table_name = $wpdb->prefix . 'ufsc_attestations';
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$table_name} WHERE type = %s AND target_type = 'club' AND target_id = %s ORDER BY saison DESC, created_at DESC",
+				$type,
+				(string) $club_id
+			)
+		);
+		foreach ( (array) $rows as $row ) {
+			$row->download_url = self::get_download_url( $row->id );
+		}
+		return (array) $rows;
+	}
+
 	/**
 	 * Get club region
 	 */

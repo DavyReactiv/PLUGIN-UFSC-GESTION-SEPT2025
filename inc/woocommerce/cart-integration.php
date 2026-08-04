@@ -40,7 +40,7 @@ function ufsc_init_cart_integration() {
 /** Preserve a validated product-page renewal context in the cart. */
 function ufsc_capture_affiliation_product_context( $cart_item_data, $product_id ) {
 	$action = isset( $_REQUEST['ufsc_action'] ) && ! is_array( $_REQUEST['ufsc_action'] ) ? sanitize_key( wp_unslash( $_REQUEST['ufsc_action'] ) ) : '';
-	if ( 'renew_affiliation' !== $action || absint( $product_id ) !== absint( ufsc_get_affiliation_product_id() ) ) {
+	if ( ! in_array( $action, array( 'renewal', 'renew_affiliation' ), true ) || absint( $product_id ) !== absint( ufsc_get_affiliation_product_id() ) ) {
 		return $cart_item_data;
 	}
 
@@ -56,12 +56,14 @@ function ufsc_capture_affiliation_product_context( $cart_item_data, $product_id 
 	}
 
 	$cart_item_data['ufsc_action'] = 'renew_affiliation';
+	$cart_item_data['ufsc_request_type'] = 'renewal';
 	$cart_item_data['ufsc_item_type'] = 'affiliation_renewal';
 	$cart_item_data['ufsc_club_id'] = $club_id;
 	$cart_item_data['ufsc_target_season'] = $season;
 	$cart_item_data['ufsc_previous_affiliation_id'] = isset( $_REQUEST['ufsc_previous_affiliation_id'] ) ? absint( $_REQUEST['ufsc_previous_affiliation_id'] ) : 0;
 	$cart_item_data['ufsc_request_date'] = current_time( 'mysql' );
 	$cart_item_data['ufsc_product_id'] = absint( $product_id );
+	$cart_item_data['ufsc_user_id'] = get_current_user_id();
 
 	return $cart_item_data;
 }
@@ -1324,6 +1326,18 @@ function ufsc_display_cart_item_data( $item_data, $cart_item ) {
 				'value' => $club_name,
 			);
 		}
+		$item_data[] = array(
+			'key'   => __( 'ID interne du club', 'ufsc-clubs' ),
+			'value' => (string) $club_id,
+		);
+	}
+
+	$season = isset( $cart_item['ufsc_target_season'] ) ? sanitize_text_field( (string) $cart_item['ufsc_target_season'] ) : ( isset( $cart_item['ufsc_season'] ) ? sanitize_text_field( (string) $cart_item['ufsc_season'] ) : '' );
+	if ( $season ) {
+		$item_data[] = array( 'key' => __( 'Saison', 'ufsc-clubs' ), 'value' => $season );
+	}
+	if ( ! empty( $cart_item['ufsc_request_type'] ) || 'renew_affiliation' === ( $cart_item['ufsc_action'] ?? '' ) ) {
+		$item_data[] = array( 'key' => __( 'Demande', 'ufsc-clubs' ), 'value' => __( 'Renouvellement d’affiliation', 'ufsc-clubs' ) );
 	}
 
 	// Display license IDs (lot)

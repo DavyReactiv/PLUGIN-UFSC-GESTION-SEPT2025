@@ -302,7 +302,7 @@ if ( ! function_exists( 'ufsc_get_licence_season_label' ) ) {
 			}
 		}
 
-		return ufsc_get_current_season();
+		return null;
 	}
 }
 
@@ -642,6 +642,8 @@ if ( ! function_exists( 'ufsc_backfill_licences_season' ) ) {
 			if ( is_string( $season ) && '' !== trim( $season ) ) {
 				ufsc_set_licence_season( $licence_id, $season );
 				$updated++;
+			} elseif ( function_exists( 'ufsc_admin_debug_log' ) ) {
+				ufsc_admin_debug_log( 'ufsc_licence_season_ambiguous', array( 'licence_id' => $licence_id ) );
 			}
 		}
 

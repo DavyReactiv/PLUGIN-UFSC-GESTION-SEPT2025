@@ -1608,17 +1608,21 @@ class UFSC_Unified_Handlers {
 				$season_sql = 'season_end_year' === $season_column && preg_match( '/^\d{4}-(\d{4})$/', $current_season, $season_matches )
 					? $wpdb->prepare( 'season_end_year = %d', (int) $season_matches[1] )
 					: $wpdb->prepare( "REPLACE(`{$season_column}`, '/', '-') = %s", $current_season );
-				$duplicate_id = $wpdb->get_var(
+				$candidate_rows = $wpdb->get_results(
 					$wpdb->prepare(
-						"SELECT id FROM `{$licences_table}` WHERE club_id = %d AND LOWER(TRIM(nom)) = LOWER(TRIM(%s)) AND LOWER(TRIM(prenom)) = LOWER(TRIM(%s)) AND date_naissance = %s AND {$season_sql} LIMIT 1",
+						"SELECT id, nom, prenom FROM `{$licences_table}` WHERE club_id = %d AND date_naissance = %s AND {$season_sql}",
 						$club_id,
-						$data['nom'],
-						$data['prenom'],
 						$data['date_naissance']
 					)
 				);
-				if ( $duplicate_id ) {
-					return new WP_Error( 'duplicate_licence', __( 'Une licence existe déjà pour cette personne, ce club et cette saison.', 'ufsc-clubs' ) );
+				$normalize_identity = static function ( $value ) {
+					$value = function_exists( 'remove_accents' ) ? remove_accents( (string) $value ) : (string) $value;
+					return strtolower( trim( (string) preg_replace( '/\s+/u', ' ', $value ) ) );
+				};
+				foreach ( (array) $candidate_rows as $candidate ) {
+					if ( $normalize_identity( $candidate->nom ?? '' ) === $normalize_identity( $data['nom'] ) && $normalize_identity( $candidate->prenom ?? '' ) === $normalize_identity( $data['prenom'] ) ) {
+						return new WP_Error( 'duplicate_licence', __( 'Une licence existe déjà pour cette personne, ce club et cette saison.', 'ufsc-clubs' ) );
+					}
 				}
 			}
             // Create

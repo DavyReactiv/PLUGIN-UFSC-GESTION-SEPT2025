@@ -44,7 +44,7 @@ require dirname( __DIR__ ) . '/includes/core/class-ufsc-season-service.php';
 require dirname( __DIR__ ) . '/inc/woocommerce/settings-woocommerce.php';
 $url = ufsc_get_affiliation_renewal_url( 56, '2030-2031' );
 if ( 'available' === $mode ) {
-    if ( false === strpos( $url, 'ufsc_target_season=2026-2027' ) || false === strpos( $url, 'ufsc_club_id=56' ) ) {
+    if ( false === strpos( $url, 'ufsc_target_season=2026-2027' ) || false === strpos( $url, 'ufsc_club_id=56' ) || false === strpos( $url, 'ufsc_action=renewal' ) ) {
         fwrite( STDERR, "FAIL: URL must execute with configured current season context: {$url}\n" );
         exit( 1 );
     }

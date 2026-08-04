@@ -66,6 +66,6 @@ $assert( strpos( $handlers, 'health_questionnaire_confirmed' ) !== false && strp
 $assert( strpos( $handlers, 'medical_answer' ) === false && strpos( $handlers, 'questionnaire_response' ) === false, 'Medical questionnaire answers must not be stored.' );
 $assert( strpos( $licence_js, 'initCompliancePanels' ) !== false, 'Birth date and role changes must update compliance panels.' );
 $assert( strpos( $licence_css, 'max-width: 1200px' ) !== false && strpos( $licence_css, '@media (max-width: 782px)' ) !== false, 'Licence form must have desktop and mobile layouts.' );
-$assert( strpos( $attestations, "get_attestation_for_club( \$club_id, 'affiliation', \$current_season )" ) !== false && strpos( $attestations, 'ufsc_club_doc_attestation_affiliation_' ) === false, 'Legacy permanent attestations must not be exposed as current-season documents.' );
+$assert( strpos( $attestations, "get_attestation_for_club( \$club_id, 'affiliation', \$current_season )" ) !== false && strpos( $attestations, 'ufsc_get_affiliation_attestation_archives' ) !== false, 'Current attestations must be seasonal while legacy references remain archive-accessible.' );
 
 echo "Renewal/season static safeguards OK\n";

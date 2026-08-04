@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.3.3';
+    const MIGRATION_VERSION = '1.3.4';
 
     /**
      * Option key for tracking migration version
@@ -226,6 +226,7 @@ class UFSC_DB_Migrations {
             `requested_at` datetime NULL DEFAULT NULL,
             `paid_at` datetime NULL DEFAULT NULL,
             `validated_at` datetime NULL DEFAULT NULL,
+			`validated_by` bigint(20) unsigned NULL DEFAULT NULL,
             `created_at` datetime NULL DEFAULT NULL,
             `updated_at` datetime NULL DEFAULT NULL,
             PRIMARY KEY (`id`),

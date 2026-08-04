@@ -170,6 +170,22 @@ function ufsc_is_woocommerce_product_available( $product_id ) {
         && ! empty( $diagnostic['product_purchasable'] );
 }
 
+/** Human-readable diagnostic reserved for administrators. */
+function ufsc_get_woocommerce_product_diagnostic_message( $product_id ) {
+	$d = ufsc_get_woocommerce_product_diagnostic( $product_id );
+	return sprintf(
+		__( 'ID : %1$d · trouvé : %2$s · statut : %3$s · visibilité : %4$s · type : %5$s · achetable : %6$s · permalink : %7$s · cause : %8$s', 'ufsc-clubs' ),
+		absint( $product_id ),
+		! empty( $d['product_found'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ),
+		$d['product_status'] ?: '—',
+		$d['product_visibility'] ?: '—',
+		$d['product_type'] ?: '—',
+		! empty( $d['product_purchasable'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ),
+		$d['product_permalink'] ?: '—',
+		$d['unavailable_reason'] ?: '—'
+	);
+}
+
 /** Build the configured affiliation product-page URL with renewal context. */
 function ufsc_get_affiliation_renewal_url( $club_id, $season, $previous_affiliation_id = 0 ) {
     // Keep the public signature for compatibility, but the configured current
@@ -194,10 +210,11 @@ function ufsc_get_affiliation_renewal_url( $club_id, $season, $previous_affiliat
 
     return add_query_arg(
         array(
-            'ufsc_action'                  => 'renew_affiliation',
+			'ufsc_action'                  => 'renewal',
             'ufsc_club_id'                 => absint( $club_id ),
             'ufsc_target_season'           => sanitize_text_field( (string) $season ),
-            'ufsc_previous_affiliation_id' => absint( $previous_affiliation_id ),
+			'ufsc_previous_affiliation_id' => absint( $previous_affiliation_id ),
+			'ufsc_product_id'              => absint( $product_id ),
         ),
         $url
     );

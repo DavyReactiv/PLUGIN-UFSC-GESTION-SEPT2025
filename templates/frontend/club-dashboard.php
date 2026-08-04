@@ -270,6 +270,7 @@ $can_renew_affiliation = ! $affiliation_done && ! $affiliation_pending && ! $pen
                     <?php else : ?>
                         <span class="ufsc-text-muted"><?php esc_html_e( 'Le renouvellement en ligne est temporairement indisponible. Veuillez contacter l’UFSC.', 'ufsc-clubs' ); ?></span>
                         <?php if ( current_user_can( 'manage_options' ) ) : ?>
+							<p class="ufsc-admin-help"><?php echo esc_html( function_exists( 'ufsc_get_woocommerce_product_diagnostic_message' ) ? ufsc_get_woocommerce_product_diagnostic_message( $affiliation_product_id ) : '' ); ?></p>
                             <p><a href="<?php echo esc_url( admin_url( 'admin.php?page=ufsc-woocommerce-settings' ) ); ?>"><?php esc_html_e( 'Configurer le produit d’affiliation dans les paramètres UFSC WooCommerce.', 'ufsc-clubs' ); ?></a></p>
                         <?php endif; ?>
                     <?php endif; ?>
