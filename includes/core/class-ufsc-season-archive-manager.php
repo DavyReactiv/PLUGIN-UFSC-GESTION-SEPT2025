@@ -9,6 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * separate Licence & Compétition plugin.
  */
 class UFSC_Season_Archive_Manager {
+	const ADMIN_STATUSES = array( 'a_renouveler', 'pending_payment', 'pending_validation', 'correction_required', 'active', 'rejected', 'suspended' );
 
     /**
      * Return the annual affiliations table name.
@@ -90,4 +91,45 @@ class UFSC_Season_Archive_Manager {
 
         return false !== $wpdb->query( $wpdb->prepare( $sql, $club_id, $season, $order_id, $previous_affiliation_id, $product_id, $now, $now, $now, $now ) );
     }
+
+	/** Create or update one annual row from the club administration screen. */
+	public static function save_admin_affiliation( $club_id, $season, $values, $user_id ) {
+		global $wpdb;
+		$club_id = absint( $club_id );
+		$user_id = absint( $user_id );
+		$season  = sanitize_text_field( (string) $season );
+		$status  = sanitize_key( (string) ( $values['status'] ?? 'a_renouveler' ) );
+		$reason  = sanitize_textarea_field( (string) ( $values['decision_reason'] ?? '' ) );
+		if ( $club_id < 1 || $user_id < 1 || ! preg_match( '/^\d{4}-\d{4}$/', $season ) || ! in_array( $status, self::ADMIN_STATUSES, true ) ) {
+			return new WP_Error( 'invalid_annual_affiliation', __( 'Données d’affiliation annuelle invalides.', 'ufsc-clubs' ) );
+		}
+		if ( in_array( $status, array( 'correction_required', 'rejected', 'suspended' ), true ) && '' === trim( $reason ) ) {
+			return new WP_Error( 'annual_reason_required', __( 'Un motif est obligatoire pour cette décision.', 'ufsc-clubs' ) );
+		}
+		$existing = self::get_affiliation( $club_id, $season );
+		$now      = current_time( 'mysql' );
+		$history  = $existing && ! empty( $existing->review_history ) ? json_decode( $existing->review_history, true ) : array();
+		$history  = is_array( $history ) ? $history : array();
+		$history[] = array( 'status' => $status, 'reason' => $reason, 'user_id' => $user_id, 'date' => $now );
+		$data = array(
+			'club_id' => $club_id, 'season' => $season, 'status' => $status,
+			'payment_status' => sanitize_key( (string) ( $values['payment_status'] ?? '' ) ),
+			'wc_order_id' => absint( $values['wc_order_id'] ?? 0 ) ?: null,
+			'previous_affiliation_id' => absint( $values['previous_affiliation_id'] ?? 0 ) ?: null,
+			'request_type' => sanitize_key( (string) ( $values['request_type'] ?? 'offline' ) ),
+			'num_affiliation' => sanitize_text_field( (string) ( $values['num_affiliation'] ?? '' ) ) ?: null,
+			'requested_at' => sanitize_text_field( (string) ( $values['requested_at'] ?? '' ) ) ?: $now,
+			'paid_at' => sanitize_text_field( (string) ( $values['paid_at'] ?? '' ) ) ?: null,
+			'validated_at' => 'active' === $status ? $now : ( $existing->validated_at ?? null ),
+			'validated_by' => 'active' === $status ? $user_id : ( $existing->validated_by ?? null ),
+			'decision_reason' => $reason ?: null, 'review_history' => wp_json_encode( $history ), 'updated_at' => $now,
+		);
+		if ( $existing ) {
+			$result = $wpdb->update( self::get_affiliations_table(), $data, array( 'id' => absint( $existing->id ) ) );
+		} else {
+			$data['created_at'] = $now;
+			$result = $wpdb->insert( self::get_affiliations_table(), $data );
+		}
+		return false === $result ? new WP_Error( 'annual_affiliation_write_failed', __( 'Échec de l’enregistrement annuel.', 'ufsc-clubs' ) ) : true;
+	}
 }

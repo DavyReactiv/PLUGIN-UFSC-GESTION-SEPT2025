@@ -1782,7 +1782,9 @@ class UFSC_Frontend_Shortcodes {
      */
     public static function render_add_licence( $atts = array() ) {
 		wp_enqueue_style( 'ufsc-licence-form', UFSC_CL_URL . 'assets/css/ufsc-frontend.css', array(), UFSC_CL_VERSION );
-		wp_enqueue_style( 'ufsc-licence-form-layout', UFSC_CL_URL . 'assets/css/ufsc-licence-form.css', array( 'ufsc-licence-form' ), UFSC_CL_VERSION );
+		$layout_path    = UFSC_CL_DIR . 'assets/css/ufsc-licence-form.css';
+		$layout_version = file_exists( $layout_path ) ? (string) filemtime( $layout_path ) : UFSC_CL_VERSION;
+		wp_enqueue_style( 'ufsc-licence-form-layout', UFSC_CL_URL . 'assets/css/ufsc-licence-form.css', array( 'ufsc-licence-form' ), $layout_version );
 		wp_enqueue_script( 'ufsc-license-form', UFSC_CL_URL . 'assets/js/ufsc-license-form.js', array( 'jquery' ), UFSC_CL_VERSION, true );
 
         $atts = shortcode_atts( array(
@@ -3005,6 +3007,13 @@ class UFSC_Frontend_Shortcodes {
                     $has_documents = true;
                     echo '<div class="ufsc-document-item">';
                     echo '<span class="ufsc-document-label">' . esc_html( $label ) . ':</span>';
+					$status = sanitize_key( (string) get_option( 'ufsc_club_doc_' . $slug . '_status_' . $club_id, 'pending' ) );
+					$reason = (string) get_option( 'ufsc_club_doc_' . $slug . '_reason_' . $club_id, '' );
+					echo '<span class="ufsc-document-status">' . esc_html( $status ) . '</span>';
+					if ( in_array( $status, array( 'rejected', 'correction_required' ), true ) && '' !== $reason ) {
+						echo '<p class="ufsc-document-reason"><strong>' . esc_html__( 'Motif :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $reason ) . '</p>';
+						echo '<a class="ufsc-btn ufsc-btn-small" href="' . esc_url( add_query_arg( 'upload_documents', '1' ) ) . '">' . esc_html__( 'Remplacer le document', 'ufsc-clubs' ) . '</a>';
+					}
                     echo '<div class="ufsc-document-actions">';
                     echo '<a href="' . esc_url( $attachment_url ) . '" target="_blank" rel="noopener" class="ufsc-btn ufsc-btn-small">' . esc_html__( 'Voir', 'ufsc-clubs' ) . '</a> ';
                     echo '<a href="' . esc_url( $attachment_url ) . '" download class="ufsc-btn ufsc-btn-small">' . esc_html__( 'Télécharger', 'ufsc-clubs' ) . '</a>';

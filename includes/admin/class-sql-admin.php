@@ -212,6 +212,24 @@ class UFSC_SQL_Admin
         return true;
     }
 
+	/** Persist one review decision, including mandatory reason and audit history. */
+	public static function save_club_document_decision( $club_id, $doc_key, $status, $reason, $user_id = 0 ) {
+		$status = sanitize_key( (string) $status );
+		$reason = sanitize_textarea_field( (string) $reason );
+		if ( in_array( $status, array( 'rejected', 'correction_required' ), true ) && '' === trim( $reason ) ) {
+			return new WP_Error( 'document_reason_required', __( 'Un motif est obligatoire pour ce statut.', 'ufsc-clubs' ) );
+		}
+		$result = self::ufsc_docs_set_status( $club_id, $doc_key, $status );
+		if ( is_wp_error( $result ) ) { return $result; }
+		$user_id = $user_id ? absint( $user_id ) : get_current_user_id();
+		update_option( 'ufsc_club_' . $doc_key . '_reason_' . $club_id, $reason );
+		$events   = get_option( 'ufsc_club_' . $doc_key . '_review_history_' . $club_id, array() );
+		$events   = is_array( $events ) ? $events : array();
+		$events[] = array( 'status' => $status, 'reason' => $reason, 'date' => current_time( 'mysql' ), 'user_id' => $user_id );
+		update_option( 'ufsc_club_' . $doc_key . '_review_history_' . $club_id, $events );
+		return true;
+	}
+
     /**
      * Determine if running under WP-CLI.
      *
@@ -2065,7 +2083,7 @@ class UFSC_SQL_Admin
             array( 'Coordonnées', '', array( 'adresse', 'complement_adresse', 'precision_distribution', 'code_postal', 'ville', 'telephone', 'email', 'url_site', 'url_facebook', 'url_instagram' ) ),
             array( 'Dirigeants', '', array( 'president_prenom', 'president_nom', 'president_poste', 'president_tel', 'president_email', 'president_date_naissance', 'president_adresse', 'secretaire_prenom', 'secretaire_nom', 'secretaire_poste', 'secretaire_tel', 'secretaire_email', 'secretaire_date_naissance', 'secretaire_adresse', 'tresorier_prenom', 'tresorier_nom', 'tresorier_poste', 'tresorier_tel', 'tresorier_email', 'tresorier_date_naissance', 'tresorier_adresse', 'entraineur_prenom', 'entraineur_nom', 'entraineur_tel', 'entraineur_email' ) ),
             array( 'Documents administratifs', '', array( 'statuts', 'recepisse', 'jo', 'pv_ag', 'cer', 'attestation_cer', 'doc_attestation_affiliation', 'doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer' ) ),
-            array( 'Affiliation et statut', '', array( 'statut', 'date_affiliation', 'num_affiliation' ) ),
+            array( 'Statut permanent historique', 'Compatibilité uniquement : ces champs ne pilotent pas l’affiliation annuelle.', array( 'statut', 'date_affiliation', 'num_affiliation' ) ),
             array( 'Traçabilité', '', array( 'date_creation', 'responsable_id', 'contact' ) ),
         );
 
@@ -2136,6 +2154,7 @@ class UFSC_SQL_Admin
 
         // Add Documents panel for club editing
         if ($id && ! $readonly) {
+            self::render_annual_affiliation_panel( $id );
             self::render_club_documents_panel($id);
 
         }
@@ -2152,6 +2171,31 @@ class UFSC_SQL_Admin
         }
         echo '</div>';
     }
+
+	/** Render the current-season record separately from permanent club fields. */
+	private static function render_annual_affiliation_panel( $club_id ) {
+		$season = UFSC_Season_Service::get_current_season();
+		$row    = UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season );
+		$get    = static function( $key, $default = '' ) use ( $row ) { return $row && isset( $row->{$key} ) ? (string) $row->{$key} : $default; };
+		$statuses = array( 'a_renouveler' => 'À renouveler', 'pending_payment' => 'Paiement en attente', 'pending_validation' => 'Validation en attente', 'correction_required' => 'À corriger', 'active' => 'Active', 'rejected' => 'Refusée', 'suspended' => 'Suspendue' );
+		wp_nonce_field( 'ufsc_save_annual_affiliation_' . $club_id, 'ufsc_annual_nonce' );
+		echo '<section class="ufsc-admin-section ufsc-annual-affiliation"><h3>' . esc_html( sprintf( __( 'Affiliation %s', 'ufsc-clubs' ), $season ) ) . '</h3>';
+		echo '<p class="description">' . esc_html__( 'Données annuelles indépendantes du statut permanent du club.', 'ufsc-clubs' ) . '</p>';
+		echo '<input type="hidden" name="ufsc_annual[season]" value="' . esc_attr( $season ) . '">';
+		echo '<div class="ufsc-admin-grid">';
+		echo '<label>' . esc_html__( 'Statut annuel', 'ufsc-clubs' ) . '<select name="ufsc_annual[status]">';
+		foreach ( $statuses as $value => $label ) { echo '<option value="' . esc_attr( $value ) . '"' . selected( $get( 'status', 'a_renouveler' ), $value, false ) . '>' . esc_html( $label ) . '</option>'; }
+		echo '</select></label>';
+		$fields = array( 'payment_status' => 'Statut de paiement', 'requested_at' => 'Date de demande', 'paid_at' => 'Date de paiement', 'validated_at' => 'Date de validation', 'validated_by' => 'Administrateur ayant validé', 'num_affiliation' => 'Numéro annuel', 'wc_order_id' => 'Commande WooCommerce', 'request_type' => 'Type de demande', 'previous_affiliation_id' => 'Affiliation précédente', 'decision_reason' => 'Motif de refus, correction ou suspension' );
+		foreach ( $fields as $key => $label ) {
+			$readonly = in_array( $key, array( 'validated_at', 'validated_by' ), true ) ? ' readonly' : '';
+			echo '<label>' . esc_html__( $label, 'ufsc-clubs' ) . '<input type="text" name="ufsc_annual[' . esc_attr( $key ) . ']" value="' . esc_attr( $get( $key ) ) . '"' . $readonly . '></label>';
+		}
+		echo '</div><div class="ufsc-admin-form-actions">';
+		$actions = array( 'active' => 'Valider / réactiver', 'pending_validation' => 'Mettre en attente', 'correction_required' => 'Demander une correction', 'rejected' => 'Refuser', 'suspended' => 'Suspendre' );
+		foreach ( $actions as $status => $label ) { echo '<button class="button" type="submit" name="ufsc_annual_action" value="' . esc_attr( $status ) . '">' . esc_html__( $label, 'ufsc-clubs' ) . '</button> '; }
+		echo '</div></section>';
+	}
 
     private static function render_field_club($k, $conf, $val, $readonly = false)
     {
@@ -2461,6 +2505,23 @@ class UFSC_SQL_Admin
 
             // Handle file uploads after club is saved/updated
             if ($id) {
+				if ( isset( $_POST['ufsc_annual'] ) && is_array( $_POST['ufsc_annual'] ) ) {
+					$annual_nonce = isset( $_POST['ufsc_annual_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_annual_nonce'] ) ) : '';
+					if ( ! wp_verify_nonce( $annual_nonce, 'ufsc_save_annual_affiliation_' . $id ) || ! ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) {
+						throw new Exception( __( 'Action annuelle non autorisée.', 'ufsc-clubs' ) );
+					}
+					$annual_values = array_map( 'sanitize_text_field', wp_unslash( $_POST['ufsc_annual'] ) );
+					if ( isset( $_POST['ufsc_annual_action'] ) ) {
+						$annual_values['status'] = sanitize_key( wp_unslash( $_POST['ufsc_annual_action'] ) );
+					}
+					$annual_result = UFSC_Season_Archive_Manager::save_admin_affiliation( $id, UFSC_Season_Service::get_current_season(), $annual_values, get_current_user_id() );
+					if ( is_wp_error( $annual_result ) ) {
+						throw new Exception( $annual_result->get_error_message() );
+					}
+					if ( class_exists( 'UFSC_Audit_Logger' ) ) {
+						UFSC_Audit_Logger::log( 'annual_affiliation_admin_saved', array( 'club_id' => $id, 'season' => UFSC_Season_Service::get_current_season(), 'status' => $annual_values['status'] ?? '' ) );
+					}
+				}
                 self::handle_club_document_uploads($id);
 
                 $can_manage_docs = ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) || current_user_can('edit_post', $id) || (class_exists('UFSC_Capabilities') && UFSC_Capabilities::user_can(UFSC_Capabilities::CAP_MANAGE_READ));
@@ -2479,11 +2540,6 @@ class UFSC_SQL_Admin
                         $status_input  = isset($row['status']) ? sanitize_key((string) $row['status']) : '';
 						$reason        = isset( $row['reason'] ) ? sanitize_textarea_field( (string) $row['reason'] ) : '';
 
-						if ( in_array( $status_input, array( 'rejected', 'correction_required' ), true ) && '' === trim( $reason ) ) {
-							$doc_errors[] = sprintf( __( '%s : un motif est obligatoire pour ce statut.', 'ufsc-clubs' ), $doc_key );
-							continue;
-						}
-
                         if ($is_remove) {
                             self::ufsc_docs_remove_file($id, $doc_key);
                         } elseif ($attachment_id > 0) {
@@ -2491,7 +2547,7 @@ class UFSC_SQL_Admin
                         }
 
                         if ($status_input !== '') {
-                            $status_result = self::ufsc_docs_set_status($id, $doc_key, $status_input);
+                            $status_result = self::save_club_document_decision( $id, $doc_key, $status_input, $reason, get_current_user_id() );
                             if (is_wp_error($status_result)) {
                                 $doc_labels = self::get_club_documents_map();
                                 $doc_errors[] = sprintf(

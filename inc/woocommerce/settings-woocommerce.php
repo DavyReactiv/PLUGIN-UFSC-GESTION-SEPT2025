@@ -116,6 +116,7 @@ function ufsc_get_woocommerce_product_diagnostic( $product_id ) {
         'wc_get_product_available' => function_exists( 'wc_get_product' ),
         'product_id'               => $product_id,
         'product_found'            => false,
+		'product_name'             => '',
         'product_status'           => '',
         'product_purchasable'      => false,
 		'product_visibility'       => '',
@@ -137,6 +138,7 @@ function ufsc_get_woocommerce_product_diagnostic( $product_id ) {
     }
 
     $diagnostic['product_found']       = true;
+	$diagnostic['product_name']        = is_callable( array( $product, 'get_name' ) ) ? (string) $product->get_name() : '';
     $diagnostic['product_status']      = is_callable( array( $product, 'get_status' ) ) ? (string) $product->get_status() : '';
     $diagnostic['product_purchasable'] = is_callable( array( $product, 'is_purchasable' ) ) ? (bool) $product->is_purchasable() : false;
 	$diagnostic['product_visibility']  = is_callable( array( $product, 'get_catalog_visibility' ) ) ? (string) $product->get_catalog_visibility() : '';
@@ -179,8 +181,9 @@ function ufsc_is_woocommerce_product_available( $product_id ) {
 function ufsc_get_woocommerce_product_diagnostic_message( $product_id ) {
 	$d = ufsc_get_woocommerce_product_diagnostic( $product_id );
 	return sprintf(
-		__( 'ID : %1$d · trouvé : %2$s · statut : %3$s · visibilité : %4$s · type : %5$s · prix : %6$s · achetable : %7$s · permalink : %8$s · cause : %9$s', 'ufsc-clubs' ),
+		__( 'ID configuré : %1$d · produit : %2$s · trouvé : %3$s · statut : %4$s · visibilité : %5$s · type : %6$s · prix : %7$s · achetable : %8$s · permalink : %9$s · cause : %10$s', 'ufsc-clubs' ),
 		absint( $product_id ),
+		$d['product_name'] ?: '—',
 		! empty( $d['product_found'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ),
 		$d['product_status'] ?: '—',
 		$d['product_visibility'] ?: '—',
@@ -332,6 +335,8 @@ function ufsc_render_woocommerce_settings_page() {
                                 <span style="color: red;">✗ <?php esc_html_e( 'Produit non trouvé', 'ufsc-clubs' ); ?></span>
                             <?php endif; ?>
                         </p>
+						<p><strong><?php echo esc_html( ufsc_get_woocommerce_product_diagnostic_message( $current_settings['product_affiliation_id'] ) ); ?></strong></p>
+						<p><a class="button" href="#product_affiliation_id"><?php esc_html_e( 'Configurer le produit d’affiliation', 'ufsc-clubs' ); ?></a></p>
                     </td>
                 </tr>
 

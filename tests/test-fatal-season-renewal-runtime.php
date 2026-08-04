@@ -36,7 +36,8 @@ if ( 'disabled' !== $mode ) {
         public function is_purchasable() { return true; }
 		public function get_catalog_visibility() { return 'visible'; }
 		public function get_type() { return 'simple'; }
-		public function get_price() { return '50'; }
+        public function get_price() { return '50'; }
+		public function get_name() { return 'Affiliation UFSC'; }
     }
     function wc_get_product( $id ) {
         return ( 'missing' === $GLOBALS['runtime_mode'] || 77 !== (int) $id ) ? false : new UFSC_Test_Product();

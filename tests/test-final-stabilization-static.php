@@ -27,7 +27,7 @@ $assert( strpos( $files['front'], "assets/css/ufsc-licence-form.css" ) !== false
 $assert( strpos( $files['layout'], 'max-width: 1200px !important' ) !== false && strpos( $files['layout'], 'repeat(2, minmax(0, 1fr))' ) !== false, 'Desktop layout must be wide and balanced.' );
 $assert( strpos( $files['layout'], '@media (max-width: 768px)' ) !== false, 'Responsive single-column layout is required.' );
 $assert( strpos( $files['front'], 'ufsc-final-buttons' ) !== false, 'Final buttons need a stable wrapper.' );
-$assert( strpos( $files['admin'], 'correction_required' ) !== false && strpos( $files['admin'], 'un motif est obligatoire' ) !== false, 'Document correction/rejection must require a reason.' );
+$assert( strpos( $files['admin'], 'correction_required' ) !== false && stripos( $files['admin'], 'un motif est obligatoire' ) !== false, 'Document correction/rejection must require a reason.' );
 
 if ( $failures ) { fwrite( STDERR, implode( "\n", $failures ) . "\n" ); exit( 1 ); }
 echo "Final stabilization static safeguards passed.\n";
