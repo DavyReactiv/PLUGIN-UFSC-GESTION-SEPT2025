@@ -22,7 +22,7 @@ foreach ( array( 'missing_product_id', 'product_not_found', 'product_not_publish
 }
 $assert( substr_count( $files['front'], 'id="honorabilite"' ) === 0, 'Legacy honorability checkbox must not duplicate compliance.' );
 $assert( substr_count( $files['front'], 'name="health_questionnaire_confirmed"' ) === 2, 'Exactly one adult and one mutually exclusive minor health control are expected.' );
-$assert( strpos( $files['js'], "const roles = ['dirigeant'" ) !== false && strpos( $files['js'], "'adherent'" ) === false, 'Honorability must be role-conditional.' );
+$assert( strpos( $files['js'], "role.val() !== 'pratiquant'" ) !== false, 'Pratiquant must be the sole built-in honorability exemption.' );
 $assert( strpos( $files['front'], "assets/css/ufsc-licence-form.css" ) !== false, 'Shared layout stylesheet must load in both render contexts.' );
 $assert( strpos( $files['layout'], 'max-width: 1200px !important' ) !== false && strpos( $files['layout'], 'repeat(2, minmax(0, 1fr))' ) !== false, 'Desktop layout must be wide and balanced.' );
 $assert( strpos( $files['layout'], '@media (max-width: 768px)' ) !== false, 'Responsive single-column layout is required.' );

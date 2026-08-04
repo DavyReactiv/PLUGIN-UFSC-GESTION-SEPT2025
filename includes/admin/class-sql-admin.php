@@ -4213,7 +4213,31 @@ class UFSC_SQL_Admin
             }
             echo '</p>';
         }
+		if ( $id && function_exists( 'ufsc_get_honorability_document' ) ) {
+			self::render_honorability_attestation_admin( $id, $row );
+		}
     }
+
+	private static function render_honorability_attestation_admin( $licence_id, $row ) {
+		$role = $row->role ?? ( $row->fonction ?? 'pratiquant' );
+		if ( ! ufsc_role_requires_honorability( $role ) ) { return; }
+		$season = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence_id ) : self::get_admin_current_season_label();
+		$doc = ufsc_get_honorability_document( $licence_id, $season );
+		$labels = array( 'missing' => 'Manquant', 'pending' => 'En attente', 'validated' => 'Validé', 'rejected' => 'Refusé', 'correction_required' => 'À corriger', 'expired' => 'Expiré' );
+		echo '<section class="ufsc-admin-card"><h2>' . esc_html__( 'Attestation d’honorabilité', 'ufsc-clubs' ) . '</h2>';
+		echo '<p><strong>' . esc_html__( 'Saison :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $season ) . ' · <strong>' . esc_html__( 'Rôle :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $role ) . '</p>';
+		echo '<p><strong>' . esc_html__( 'Statut :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $labels[ $doc['status'] ] ?? $doc['status'] ) . ' · <strong>' . esc_html__( 'Dépôt :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $doc['uploaded_at'] ?: '—' ) . '</p>';
+		if ( $doc['reason'] ) { echo '<div class="notice notice-warning inline"><p>' . esc_html( $doc['reason'] ) . '</p></div>'; }
+		if ( $doc['attachment_id'] ) { $url = wp_get_attachment_url( $doc['attachment_id'] ); echo '<p><a class="button" target="_blank" rel="noopener" href="' . esc_url( $url ) . '">' . esc_html__( 'Voir', 'ufsc-clubs' ) . '</a> <a class="button" download href="' . esc_url( $url ) . '">' . esc_html__( 'Télécharger', 'ufsc-clubs' ) . '</a></p>'; }
+		echo '<form method="post" enctype="multipart/form-data" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'; wp_nonce_field( 'ufsc_honorability_attestation_' . $licence_id );
+		echo '<input type="hidden" name="action" value="ufsc_upload_honorability_attestation"><input type="hidden" name="licence_id" value="' . esc_attr( $licence_id ) . '"><input type="hidden" name="club_id" value="' . esc_attr( absint( $row->club_id ?? 0 ) ) . '"><input required type="file" name="honorability_attestation" accept=".pdf,.jpg,.jpeg,.png"> <button class="button">' . esc_html( $doc['attachment_id'] ? __( 'Remplacer', 'ufsc-clubs' ) : __( 'Déposer', 'ufsc-clubs' ) ) . '</button></form>';
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">'; wp_nonce_field( 'ufsc_decide_honorability_' . $licence_id );
+		echo '<input type="hidden" name="action" value="ufsc_decide_honorability_attestation"><input type="hidden" name="licence_id" value="' . esc_attr( $licence_id ) . '"><input type="hidden" name="season" value="' . esc_attr( $season ) . '">';
+		echo '<select name="document_status"><option value="validated">' . esc_html__( 'Valider', 'ufsc-clubs' ) . '</option><option value="correction_required">' . esc_html__( 'Demander une correction', 'ufsc-clubs' ) . '</option><option value="rejected">' . esc_html__( 'Refuser', 'ufsc-clubs' ) . '</option><option value="expired">' . esc_html__( 'Expirer', 'ufsc-clubs' ) . '</option></select> ';
+		echo '<input type="text" name="reason" placeholder="' . esc_attr__( 'Motif obligatoire si refus/correction', 'ufsc-clubs' ) . '"> <button class="button button-primary">' . esc_html__( 'Enregistrer la décision', 'ufsc-clubs' ) . '</button></form>';
+		if ( $doc['history'] ) { echo '<details><summary>' . esc_html__( 'Historique des remplacements', 'ufsc-clubs' ) . '</summary><ul>'; foreach ( array_reverse( $doc['history'] ) as $version ) { $url = wp_get_attachment_url( absint( $version['attachment_id'] ?? 0 ) ); echo '<li><a href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . esc_html( $version['uploaded_at'] ?? '—' ) . '</a> — ' . esc_html( $version['status'] ?? '' ) . '</li>'; } echo '</ul></details>'; }
+		echo '</section>';
+	}
 
     private static function render_payment_traceability_block( $licence_id, $readonly = false )
     {
@@ -4595,6 +4619,13 @@ class UFSC_SQL_Admin
                 return;
             }
         }
+		if ( isset( $data['statut'] ) && 'valide' === $data['statut'] && $id && function_exists( 'ufsc_can_validate_licence' ) ) {
+			$completion_reasons = array();
+			if ( ! ufsc_can_validate_licence( $id, $completion_reasons ) ) {
+				self::maybe_redirect( self::get_licences_admin_page_url( array( 'action' => 'edit', 'id' => $id, 'return_to' => $return_to, 'error' => implode( ' ', $completion_reasons ) ) ) );
+				return;
+			}
+		}
 
         // Validation
         $validation_errors = UFSC_CL_Utils::validate_licence_data($data);
@@ -6685,6 +6716,10 @@ class UFSC_SQL_Admin
         $has_statut = in_array( 'statut', $columns, true );
         $has_status = in_array( 'status', $columns, true );
         foreach ($item_ids as $item_id) {
+			$validation_reasons = array();
+			if ( function_exists( 'ufsc_can_validate_licence' ) && ! ufsc_can_validate_licence( $item_id, $validation_reasons ) ) {
+				continue;
+			}
             $result = false;
             if ( class_exists( 'UFSC_Licence_Status' ) ) {
                 $result = UFSC_Licence_Status::update_status_columns( $table, array( $pk => $item_id ), 'valide', array( '%d' ) );

@@ -128,7 +128,8 @@ class UFSC_Frontend_Shortcodes {
 
         $sections        = explode( ',', $atts['show_sections'] );
         $club            = self::get_club_data( $club_id );
-        $club_status     = isset( $club->statut ) ? $club->statut : '';
+        // Never expose the permanent club status as the annual affiliation status.
+        $club_status     = 'a_renouveler';
         $bureau_data     = self::get_bureau_coverage_data( (int) $club_id );
         $missing_roles   = ! empty( $bureau_data['missing_labels'] ) ? count( $bureau_data['missing_labels'] ) : 0;
         $mandatory_docs  = array( 'doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer' );
@@ -151,6 +152,14 @@ class UFSC_Frontend_Shortcodes {
         $current_affiliation_done = function_exists( 'ufsc_is_club_affiliated_for_season' ) ? ufsc_is_club_affiliated_for_season( $club_id, $current_season ) : ( $affiliation_season === $current_season );
         $renewal_affiliation_done = ( $renewal_affiliation_season && function_exists( 'ufsc_is_club_affiliated_for_season' ) ) ? ufsc_is_club_affiliated_for_season( $club_id, $renewal_affiliation_season ) : false;
         $annual_affiliation = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( $club_id, $renewal_affiliation_season ) : null;
+        $annual_presentation = function_exists( 'ufsc_get_annual_affiliation_status' ) ? ufsc_get_annual_affiliation_status( $annual_affiliation ) : array( 'key' => 'a_renouveler', 'label' => __( 'À renouveler', 'ufsc-clubs' ) );
+        $club_status = $annual_presentation['key'];
+		$honorability_kpis = array( 'required' => 0, 'validated' => 0, 'pending' => 0, 'rejected' => 0, 'correction_required' => 0, 'missing' => 0, 'complete' => 0, 'incomplete' => 0 );
+		if ( function_exists( 'ufsc_get_honorability_document_kpis' ) ) {
+			$current_licences = self::get_club_licences( $club_id, array( 'season' => $current_season, 'page' => 1, 'per_page' => 2000 ) );
+			$honorability_kpis = ufsc_get_honorability_document_kpis( $current_licences, $current_season );
+			$missing_docs += $honorability_kpis['incomplete'];
+		}
         $affiliation_pending = $annual_affiliation && in_array( sanitize_key( (string) $annual_affiliation->status ), array( 'pending', 'pending_payment', 'pending_validation', 'en_attente' ), true );
         $pending_order = function_exists( 'ufsc_wc_has_pending_renewal_order' ) ? ufsc_wc_has_pending_renewal_order( 'renew_affiliation', $club_id, $renewal_affiliation_season ) : false;
         $renewal_url = function_exists( 'ufsc_get_affiliation_renewal_url' ) ? ufsc_get_affiliation_renewal_url( $club_id, $renewal_affiliation_season ) : '';
@@ -182,11 +191,17 @@ class UFSC_Frontend_Shortcodes {
                                 </p>
                                 <div class="ufsc-dashboard-status-line">
                                     <span class="ufsc-badge ufsc-badge-info"><?php esc_html_e( 'État du club', 'ufsc-clubs' ); ?></span>
-                                    <?php echo self::get_status_badge_front( $club_status ); ?>
+                                    <?php echo self::get_status_badge_front( $club_status, $annual_presentation['label'] ); ?>
                                     <?php if ( ! empty( $club->num_affiliation ) ) : ?>
                                         <span class="ufsc-badge ufsc-badge-region"><?php echo esc_html( sprintf( __( 'Affiliation %s', 'ufsc-clubs' ), $club->num_affiliation ) ); ?></span>
                                     <?php endif; ?>
                                 </div>
+						<?php if ( $honorability_kpis['required'] ) : ?>
+						<div class="ufsc-message <?php echo $honorability_kpis['incomplete'] ? 'ufsc-warning' : 'ufsc-success'; ?>">
+							<strong><?php esc_html_e( 'Attestations d’honorabilité :', 'ufsc-clubs' ); ?></strong>
+							<?php echo esc_html( sprintf( __( '%1$d validée(s), %2$d en attente, %3$d à corriger, %4$d manquante(s).', 'ufsc-clubs' ), $honorability_kpis['validated'], $honorability_kpis['pending'], $honorability_kpis['correction_required'], $honorability_kpis['missing'] + $honorability_kpis['rejected'] ) ); ?>
+						</div>
+						<?php endif; ?>
                             </div>
                         </div>
                         <div class="ufsc-dashboard-actions">
@@ -484,6 +499,7 @@ class UFSC_Frontend_Shortcodes {
             ? UFSC_Season_Service::get_current_season()
             : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
         $archive_filter = '';
+        $show_archives = isset( $_GET['ufsc_show_archives'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['ufsc_show_archives'] ) );
         if ( isset( $_GET['ufsc_archive_season'] ) && ! is_array( $_GET['ufsc_archive_season'] ) ) {
             $archive_filter = sanitize_text_field( wp_unslash( $_GET['ufsc_archive_season'] ) );
         }
@@ -494,7 +510,11 @@ class UFSC_Frontend_Shortcodes {
         $all_licence_args             = $atts;
         $all_licence_args['page']     = 1;
         $all_licence_args['per_page'] = $split_limit;
-        unset( $all_licence_args['season'] );
+        if ( ! $show_archives ) {
+            $all_licence_args['season'] = $active_season;
+        } else {
+            unset( $all_licence_args['season'] );
+        }
 
         $all_licences     = self::get_club_licences( $atts['club_id'], $all_licence_args );
         $seasoned_lists   = self::split_licences_by_active_season( $all_licences, $active_season );
@@ -793,7 +813,11 @@ class UFSC_Frontend_Shortcodes {
                 </div>
             <?php endif; ?>
 
-            <?php echo self::render_archived_licences_section( $archive_licences, $archive_seasons, $archive_filter, $atts, $readonly ); ?>
+            <?php if ( $show_archives ) : ?>
+                <?php echo self::render_archived_licences_section( $archive_licences, $archive_seasons, $archive_filter, $atts, $readonly ); ?>
+            <?php else : ?>
+                <p><a class="ufsc-btn ufsc-btn-secondary" href="<?php echo esc_url( add_query_arg( 'ufsc_show_archives', '1' ) ); ?>#ufsc-licences-archives"><?php esc_html_e( 'Licences des saisons précédentes', 'ufsc-clubs' ); ?></a></p>
+            <?php endif; ?>
             <?php echo self::render_future_licences_section( $future_licences ); ?>
         </div>
 
@@ -901,11 +925,11 @@ class UFSC_Frontend_Shortcodes {
         ?>
         <section id="ufsc-licences-archives" class="ufsc-licences-archives" aria-labelledby="ufsc-licences-archives-title">
             <div class="ufsc-section-header ufsc-section-header--compact">
-				<h4 id="ufsc-licences-archives-title"><?php esc_html_e( 'Licences de la saison précédente', 'ufsc-clubs' ); ?></h4>
+				<h4 id="ufsc-licences-archives-title"><?php esc_html_e( 'Licences des saisons précédentes', 'ufsc-clubs' ); ?></h4>
             </div>
             <p class="ufsc-admin-help"><?php esc_html_e( 'Les licences des saisons précédentes restent consultables ici. Elles ne sont pas modifiées par l’affichage des archives.', 'ufsc-clubs' ); ?></p>
             <?php if ( ! $can_renew_licences ) : ?>
-                <div class="ufsc-message ufsc-info"><?php esc_html_e( 'Vous devez renouveler votre affiliation avant de renouveler vos licences.', 'ufsc-clubs' ); ?></div>
+                <div class="ufsc-message ufsc-info"><?php esc_html_e( 'Vous devez renouveler et faire valider l’affiliation de votre club avant de renouveler les licences.', 'ufsc-clubs' ); ?></div>
             <?php endif; ?>
 
             <?php if ( ! empty( $archive_seasons ) ) : ?>
@@ -929,11 +953,20 @@ class UFSC_Frontend_Shortcodes {
             <?php if ( empty( $archive_licences ) ) : ?>
                 <div class="ufsc-message ufsc-info"><?php esc_html_e( 'Aucune licence archivée pour le filtre sélectionné.', 'ufsc-clubs' ); ?></div>
             <?php else : ?>
+				<?php if ( ! $readonly && $can_renew_licences && $licence_product_id ) : ?>
+				<form id="ufsc-bulk-renew-archives" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<?php wp_nonce_field( 'ufsc_bulk_renew_licences_' . $club_id ); ?><input type="hidden" name="action" value="ufsc_bulk_renew_licences"><input type="hidden" name="ufsc_club_id" value="<?php echo esc_attr( $club_id ); ?>">
+					<label><input type="checkbox" id="ufsc-select-all-renewals"> <?php esc_html_e( 'Tout sélectionner', 'ufsc-clubs' ); ?></label>
+					<button class="ufsc-btn ufsc-btn-primary"><?php esc_html_e( 'Renouveler les licences sélectionnées', 'ufsc-clubs' ); ?></button>
+				</form>
+				<script>document.getElementById('ufsc-select-all-renewals').addEventListener('change',function(){document.querySelectorAll('.ufsc-renewal-checkbox').forEach(function(box){box.checked=this.checked;},this);});</script>
+				<?php endif; ?>
                 <p class="ufsc-front-table-hint"><?php esc_html_e( 'Faites glisser le tableau horizontalement pour consulter les archives.', 'ufsc-clubs' ); ?></p>
                 <div class="ufsc-front-table-scroll" tabindex="0" role="region" aria-label="<?php esc_attr_e( 'Tableau des archives des licences UFSC du club', 'ufsc-clubs' ); ?>">
                     <table class="ufsc-licence-table ufsc-licence-table--archives">
                         <thead>
                             <tr>
+								<th><?php esc_html_e( 'Sélection', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Saison', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></th>
                                 <th><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></th>
@@ -964,6 +997,7 @@ class UFSC_Frontend_Shortcodes {
                                 }
                             ?>
                                 <tr>
+									<td><?php if ( ! $renewed_licence_id && ! $readonly && $can_renew_licences && $licence_product_id ) : ?><input form="ufsc-bulk-renew-archives" class="ufsc-renewal-checkbox" type="checkbox" name="renew_licence_ids[]" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>" aria-label="<?php esc_attr_e( 'Sélectionner cette licence', 'ufsc-clubs' ); ?>"><?php else : ?>—<?php endif; ?></td>
                                     <td><?php echo esc_html( $season ? $season : '—' ); ?></td>
                                     <td><?php echo esc_html( $licence->nom ?? '' ); ?></td>
                                     <td><?php echo esc_html( $licence->prenom ?? '' ); ?></td>
@@ -2173,23 +2207,26 @@ class UFSC_Frontend_Shortcodes {
 
 				<section class="ufsc-card ufsc-form-section ufsc-compliance-section" aria-labelledby="ufsc-health-title">
 					<h4 id="ufsc-health-title"><?php esc_html_e( 'Santé et conformité', 'ufsc-clubs' ); ?></h4>
+					<div class="ufsc-compliance-document-links">
+						<a class="ufsc-btn ufsc-btn-secondary ufsc-health-document-link" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2024-08-28-QUESTIONNAIRE-SANTE-MAJEUR.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Consulter / télécharger le questionnaire majeur', 'ufsc-clubs' ); ?></a>
+						<a class="ufsc-btn ufsc-btn-secondary ufsc-health-document-link" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2021-06-02-5-ANNEXE-4-QUESTIONNAIRE-SANTE-MINEUR.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Consulter / télécharger le questionnaire mineur', 'ufsc-clubs' ); ?></a>
+					</div>
 					<div id="ufsc-health-adult" class="ufsc-compliance-panel">
 						<h5><?php esc_html_e( 'Questionnaire de santé majeur', 'ufsc-clubs' ); ?></h5>
-						<a class="ufsc-btn ufsc-btn-secondary" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2024-08-28-QUESTIONNAIRE-SANTE-MAJEUR.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Télécharger le questionnaire de santé majeur', 'ufsc-clubs' ); ?></a>
 						<label class="ufsc-checkbox-label"><input type="checkbox" name="health_questionnaire_confirmed" value="1" required <?php checked( ! empty( $form_data['health_questionnaire_confirmed'] ) ); ?>> <?php esc_html_e( 'Je confirme que l’adhérent, ou son représentant légal s’il est mineur, a pris connaissance du questionnaire de santé applicable et a répondu à l’ensemble des questions. En fonction des réponses apportées, les démarches médicales nécessaires ont été effectuées.', 'ufsc-clubs' ); ?></label>
 					</div>
 					<div id="ufsc-health-minor" class="ufsc-compliance-panel" hidden>
 						<h5><?php esc_html_e( 'Questionnaire de santé mineur', 'ufsc-clubs' ); ?></h5>
-						<a class="ufsc-btn ufsc-btn-secondary" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2021-06-02-5-ANNEXE-4-QUESTIONNAIRE-SANTE-MINEUR.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Télécharger le questionnaire de santé mineur', 'ufsc-clubs' ); ?></a>
 						<label for="legal_representative_name"><?php esc_html_e( 'Identité du représentant légal', 'ufsc-clubs' ); ?></label>
 						<input type="text" id="legal_representative_name" name="legal_representative_name" value="<?php echo esc_attr( $form_data['legal_representative_name'] ?? '' ); ?>">
 						<label class="ufsc-checkbox-label"><input type="checkbox" name="health_questionnaire_confirmed" value="1" required disabled <?php checked( ! empty( $form_data['health_questionnaire_confirmed'] ) ); ?>> <?php esc_html_e( 'Je confirme que l’adhérent, ou son représentant légal s’il est mineur, a pris connaissance du questionnaire de santé applicable et a répondu à l’ensemble des questions. En fonction des réponses apportées, les démarches médicales nécessaires ont été effectuées.', 'ufsc-clubs' ); ?></label>
 					</div>
 					<div id="ufsc-honorability" class="ufsc-compliance-panel" hidden>
 						<h5><?php esc_html_e( 'Contrôle de l’honorabilité', 'ufsc-clubs' ); ?></h5>
-						<p><?php esc_html_e( 'Les dirigeants, éducateurs, entraîneurs, coachs et encadrants sont soumis aux obligations de contrôle de l’honorabilité applicables à leur fonction. Veuillez prendre connaissance de la note d’information avant de poursuivre.', 'ufsc-clubs' ); ?></p>
+						<p><?php esc_html_e( 'Les dirigeants, éducateurs, entraîneurs, coachs, encadrants et responsables du club sont soumis aux obligations de contrôle de l’honorabilité applicables à leur fonction.', 'ufsc-clubs' ); ?></p>
 						<a class="ufsc-btn ufsc-btn-secondary" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2021-06-02-2-ANNEXE-1-NOTE-SUR-LE-CONTROLE-DE-LHONORABILITE.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Lire la note sur le contrôle de l’honorabilité', 'ufsc-clubs' ); ?></a>
 						<label class="ufsc-checkbox-label"><input type="checkbox" name="honorability_confirmed" value="1" <?php checked( ! empty( $form_data['honorability_confirmed'] ) ); ?>> <?php esc_html_e( 'Je certifie avoir lu la note relative au contrôle de l’honorabilité et confirme l’exactitude des informations déclarées.', 'ufsc-clubs' ); ?></label>
+						<div class="ufsc-message ufsc-warning"><strong><?php esc_html_e( 'Attestation d’honorabilité — Document obligatoire à transmettre pour finaliser le dossier.', 'ufsc-clubs' ); ?></strong><br><?php esc_html_e( 'Le dépôt reste recommandé avant finalisation et ne bloque ni le brouillon, ni le panier, ni le paiement.', 'ufsc-clubs' ); ?></div>
 					</div>
 				</section>
 
@@ -2221,6 +2258,27 @@ class UFSC_Frontend_Shortcodes {
                     <?php endif; ?>
                 </div>
             </form>
+            <?php if ( $is_edit_mode && function_exists( 'ufsc_role_requires_honorability' ) ) :
+				$edit_role = $edit_licence->role ?? ( $edit_licence->fonction ?? 'pratiquant' );
+				$edit_season = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $edit_licence_id ) : ( class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : '' );
+				$honorability_doc = ufsc_get_honorability_document( $edit_licence_id, $edit_season );
+				$doc_labels = array( 'missing' => __( 'Attestation d’honorabilité manquante', 'ufsc-clubs' ), 'pending' => __( 'En attente de validation', 'ufsc-clubs' ), 'validated' => __( 'Validée', 'ufsc-clubs' ), 'rejected' => __( 'Refusée', 'ufsc-clubs' ), 'correction_required' => __( 'À corriger', 'ufsc-clubs' ), 'expired' => __( 'Expirée', 'ufsc-clubs' ) );
+			?>
+				<?php if ( ufsc_role_requires_honorability( $edit_role ) ) : ?>
+				<section class="ufsc-card ufsc-honorability-document-card">
+					<h4><?php esc_html_e( 'Attestation d’honorabilité', 'ufsc-clubs' ); ?></h4>
+					<p><strong><?php echo esc_html( $doc_labels[ $honorability_doc['status'] ] ?? $honorability_doc['status'] ); ?></strong> — <?php echo esc_html( $honorability_doc['uploaded_at'] ?: __( 'Aucun dépôt', 'ufsc-clubs' ) ); ?></p>
+					<?php if ( $honorability_doc['reason'] ) : ?><div class="ufsc-message ufsc-warning"><?php echo esc_html( $honorability_doc['reason'] ); ?></div><?php endif; ?>
+					<?php if ( $honorability_doc['attachment_id'] ) : $doc_url = wp_get_attachment_url( $honorability_doc['attachment_id'] ); ?><p><a href="<?php echo esc_url( $doc_url ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Voir', 'ufsc-clubs' ); ?></a> · <a href="<?php echo esc_url( $doc_url ); ?>" download><?php esc_html_e( 'Télécharger', 'ufsc-clubs' ); ?></a></p><?php endif; ?>
+					<form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<?php wp_nonce_field( 'ufsc_honorability_attestation_' . $edit_licence_id ); ?>
+						<input type="hidden" name="action" value="ufsc_upload_honorability_attestation"><input type="hidden" name="licence_id" value="<?php echo esc_attr( $edit_licence_id ); ?>"><input type="hidden" name="club_id" value="<?php echo esc_attr( $atts['club_id'] ); ?>">
+						<label for="honorability_attestation"><?php echo esc_html( $honorability_doc['attachment_id'] ? __( 'Remplacer l’attestation', 'ufsc-clubs' ) : __( 'Déposer l’attestation', 'ufsc-clubs' ) ); ?></label>
+						<input required type="file" id="honorability_attestation" name="honorability_attestation" accept=".pdf,.jpg,.jpeg,.png"><button class="ufsc-btn ufsc-btn-secondary"><?php echo esc_html( $honorability_doc['attachment_id'] ? __( 'Remplacer', 'ufsc-clubs' ) : __( 'Déposer', 'ufsc-clubs' ) ); ?></button>
+					</form>
+				</section>
+				<?php endif; ?>
+			<?php endif; ?>
             <?php if ( $is_edit_mode && ! $is_locked_licence ) : ?>
                 <form id="ufsc-delete-licence-from-edit" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="display:none;">
                     <?php wp_nonce_field( 'ufsc_delete_licence' ); ?>

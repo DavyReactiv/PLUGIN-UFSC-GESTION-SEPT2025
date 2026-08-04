@@ -36,6 +36,8 @@ class UFSC_Unified_Handlers {
         // UFSC PATCH: Licence document handlers
         add_action( 'admin_post_ufsc_upload_licence_document', array( __CLASS__, 'handle_upload_licence_document' ) );
         add_action( 'admin_post_ufsc_remove_licence_document', array( __CLASS__, 'handle_remove_licence_document' ) );
+        add_action( 'admin_post_ufsc_upload_honorability_attestation', array( __CLASS__, 'handle_upload_honorability_attestation' ) );
+        add_action( 'admin_post_ufsc_decide_honorability_attestation', array( __CLASS__, 'handle_decide_honorability_attestation' ) );
 
 
         
@@ -546,6 +548,10 @@ class UFSC_Unified_Handlers {
             self::redirect_with_error( 'Statut invalide', $licence_id );
             return;
         }
+		if ( in_array( $new_status, array( 'valide', 'validated', 'active' ), true ) && function_exists( 'ufsc_can_validate_licence' ) ) {
+			$reasons = array();
+			if ( ! ufsc_can_validate_licence( $licence_id, $reasons ) ) { self::redirect_with_error( implode( ' ', $reasons ), $licence_id ); return; }
+		}
 
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
@@ -881,6 +887,37 @@ class UFSC_Unified_Handlers {
         self::maybe_redirect( $redirect_url );
         return;
     }
+
+	public static function handle_upload_honorability_attestation() {
+		$licence_id = absint( $_POST['licence_id'] ?? 0 );
+		check_admin_referer( 'ufsc_honorability_attestation_' . $licence_id );
+		$licence = self::get_licence_row( $licence_id, absint( $_POST['club_id'] ?? 0 ) );
+		if ( ! $licence || ! ufsc_can_manage_licence_document( $licence_id, $licence->club_id ) ) { wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) ); }
+		$role = $licence->role ?? ( $licence->fonction ?? 'pratiquant' );
+		if ( ! ufsc_role_requires_honorability( $role ) ) { self::redirect_with_error( __( 'Ce rôle ne requiert pas d’attestation.', 'ufsc-clubs' ), $licence_id ); return; }
+		$file = $_FILES['honorability_attestation'] ?? array();
+		$max = (int) apply_filters( 'ufsc_honorability_document_max_bytes', 5 * MB_IN_BYTES );
+		if ( empty( $file['name'] ) || ! empty( $file['error'] ) || (int) ( $file['size'] ?? 0 ) > $max ) { self::redirect_with_error( __( 'Fichier absent, invalide ou trop volumineux.', 'ufsc-clubs' ), $licence_id ); return; }
+		$allowed = array( 'pdf' => 'application/pdf', 'jpg|jpeg' => 'image/jpeg', 'png' => 'image/png' );
+		$checked = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'], $allowed );
+		if ( empty( $checked['type'] ) ) { self::redirect_with_error( __( 'Format de fichier non autorisé.', 'ufsc-clubs' ), $licence_id ); return; }
+		require_once ABSPATH . 'wp-admin/includes/file.php'; require_once ABSPATH . 'wp-admin/includes/media.php'; require_once ABSPATH . 'wp-admin/includes/image.php';
+		$attachment_id = media_handle_upload( 'honorability_attestation', 0, array( 'post_title' => sanitize_file_name( $file['name'] ) ), array( 'test_form' => false, 'mimes' => $allowed ) );
+		if ( is_wp_error( $attachment_id ) ) { self::redirect_with_error( $attachment_id->get_error_message(), $licence_id ); return; }
+		$season = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence_id ) : UFSC_Season_Service::get_current_season();
+		$result = ufsc_save_honorability_document( $licence_id, $licence->club_id, $season, $role, $attachment_id, get_current_user_id() );
+		if ( is_wp_error( $result ) ) { self::redirect_with_error( $result->get_error_message(), $licence_id ); return; }
+		self::maybe_redirect( add_query_arg( 'honorability_updated', 1, wp_get_referer() ) );
+	}
+
+	public static function handle_decide_honorability_attestation() {
+		if ( ! current_user_can( 'manage_options' ) && ! ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) { wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) ); }
+		$licence_id = absint( $_POST['licence_id'] ?? 0 ); check_admin_referer( 'ufsc_decide_honorability_' . $licence_id );
+		$season = sanitize_text_field( wp_unslash( $_POST['season'] ?? '' ) );
+		$result = ufsc_decide_honorability_document( $licence_id, $season, sanitize_key( $_POST['document_status'] ?? '' ), sanitize_textarea_field( wp_unslash( $_POST['reason'] ?? '' ) ), get_current_user_id() );
+		if ( is_wp_error( $result ) ) { self::redirect_with_error( $result->get_error_message(), $licence_id ); return; }
+		self::maybe_redirect( add_query_arg( 'honorability_decided', 1, wp_get_referer() ) );
+	}
 
     /**
      * // UFSC: Handle club save (profile/documents)
@@ -1363,7 +1400,6 @@ class UFSC_Unified_Handlers {
 
 		$strict_checkout = isset( $post_data['ufsc_submit_action'] ) && 'add_to_cart' === sanitize_key( (string) $post_data['ufsc_submit_action'] );
 		$role = isset( $post_data['role'] ) ? sanitize_key( (string) $post_data['role'] ) : '';
-		$honorability_roles = array( 'dirigeant', 'president', 'secretaire', 'tresorier', 'educateur', 'entraineur', 'coach', 'encadrant', 'responsable_technique' );
 		$is_minor = false;
 		if ( self::is_valid_birth_date( $date_naissance ) ) {
 			$birth = new DateTimeImmutable( $date_naissance );
@@ -1376,7 +1412,7 @@ class UFSC_Unified_Handlers {
 		if ( $strict_checkout && $is_minor && empty( trim( (string) ( $post_data['legal_representative_name'] ?? '' ) ) ) ) {
 			$errors[] = __( 'L’identité du représentant légal est obligatoire pour un mineur.', 'ufsc-clubs' );
 		}
-		if ( $strict_checkout && in_array( $role, $honorability_roles, true ) && empty( $post_data['honorability_confirmed'] ) ) {
+		if ( $strict_checkout && function_exists( 'ufsc_role_requires_honorability' ) && ufsc_role_requires_honorability( $role ) && empty( $post_data['honorability_confirmed'] ) ) {
 			$errors[] = __( 'La lecture de la note sur le contrôle de l’honorabilité doit être confirmée pour ce rôle.', 'ufsc-clubs' );
 		}
         
