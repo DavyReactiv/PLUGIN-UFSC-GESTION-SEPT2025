@@ -114,12 +114,22 @@ class UFSC_Stats {
 
         $where = $wpdb->prepare( 'club_id = %d', $club_id );
         if ( null !== $season ) {
-            // Season column optional; only add if exists.
             $columns = function_exists( 'ufsc_table_columns' )
                 ? ufsc_table_columns( $table )
                 : $wpdb->get_col( "DESCRIBE `{$table}`" );
-            if ( in_array( 'season', $columns, true ) ) {
-                $where .= $wpdb->prepare( ' AND season = %d', $season );
+			$season_column = '';
+			foreach ( array( 'paid_season', 'season', 'saison', 'season_end_year' ) as $candidate ) {
+				if ( in_array( $candidate, $columns, true ) ) {
+					$season_column = $candidate;
+					break;
+				}
+			}
+			if ( 'season_end_year' === $season_column && preg_match( '/^\d{4}-(\d{4})$/', (string) $season, $matches ) ) {
+				$where .= $wpdb->prepare( ' AND season_end_year = %d', (int) $matches[1] );
+			} elseif ( $season_column ) {
+				$where .= $wpdb->prepare( " AND REPLACE(`{$season_column}`, '/', '-') = %s", str_replace( '/', '-', (string) $season ) );
+			} else {
+				$where .= ' AND 0 = 1';
             }
         }
 

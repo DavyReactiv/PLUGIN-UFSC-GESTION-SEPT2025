@@ -36,6 +36,8 @@ class UFSC_Unified_Handlers {
         // UFSC PATCH: Licence document handlers
         add_action( 'admin_post_ufsc_upload_licence_document', array( __CLASS__, 'handle_upload_licence_document' ) );
         add_action( 'admin_post_ufsc_remove_licence_document', array( __CLASS__, 'handle_remove_licence_document' ) );
+        add_action( 'admin_post_ufsc_upload_honorability_attestation', array( __CLASS__, 'handle_upload_honorability_attestation' ) );
+        add_action( 'admin_post_ufsc_decide_honorability_attestation', array( __CLASS__, 'handle_decide_honorability_attestation' ) );
 
 
         
@@ -320,7 +322,7 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_next_season() : ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '' );
+        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
         if ( '' === $target_season ) {
             self::redirect_with_error( 'Saison de renouvellement indisponible' );
             return;
@@ -358,7 +360,7 @@ class UFSC_Unified_Handlers {
             return;
         }
 
-        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_next_season() : ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '' );
+        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
         if ( '' === $target_season ) {
             self::redirect_with_error( 'Saison de renouvellement indisponible' );
             return;
@@ -546,6 +548,10 @@ class UFSC_Unified_Handlers {
             self::redirect_with_error( 'Statut invalide', $licence_id );
             return;
         }
+		if ( in_array( $new_status, array( 'valide', 'validated', 'active' ), true ) && function_exists( 'ufsc_can_validate_licence' ) ) {
+			$reasons = array();
+			if ( ! ufsc_can_validate_licence( $licence_id, $reasons ) ) { self::redirect_with_error( implode( ' ', $reasons ), $licence_id ); return; }
+		}
 
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
@@ -882,6 +888,37 @@ class UFSC_Unified_Handlers {
         return;
     }
 
+	public static function handle_upload_honorability_attestation() {
+		$licence_id = absint( $_POST['licence_id'] ?? 0 );
+		check_admin_referer( 'ufsc_honorability_attestation_' . $licence_id );
+		$licence = self::get_licence_row( $licence_id, absint( $_POST['club_id'] ?? 0 ) );
+		if ( ! $licence || ! ufsc_can_manage_licence_document( $licence_id, $licence->club_id ) ) { wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) ); }
+		$role = $licence->role ?? ( $licence->fonction ?? 'pratiquant' );
+		if ( ! ufsc_role_requires_honorability( $role ) ) { self::redirect_with_error( __( 'Ce rôle ne requiert pas d’attestation.', 'ufsc-clubs' ), $licence_id ); return; }
+		$file = $_FILES['honorability_attestation'] ?? array();
+		$max = (int) apply_filters( 'ufsc_honorability_document_max_bytes', 5 * MB_IN_BYTES );
+		if ( empty( $file['name'] ) || ! empty( $file['error'] ) || (int) ( $file['size'] ?? 0 ) > $max ) { self::redirect_with_error( __( 'Fichier absent, invalide ou trop volumineux.', 'ufsc-clubs' ), $licence_id ); return; }
+		$allowed = array( 'pdf' => 'application/pdf', 'jpg|jpeg' => 'image/jpeg', 'png' => 'image/png' );
+		$checked = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'], $allowed );
+		if ( empty( $checked['type'] ) ) { self::redirect_with_error( __( 'Format de fichier non autorisé.', 'ufsc-clubs' ), $licence_id ); return; }
+		require_once ABSPATH . 'wp-admin/includes/file.php'; require_once ABSPATH . 'wp-admin/includes/media.php'; require_once ABSPATH . 'wp-admin/includes/image.php';
+		$attachment_id = media_handle_upload( 'honorability_attestation', 0, array( 'post_title' => sanitize_file_name( $file['name'] ) ), array( 'test_form' => false, 'mimes' => $allowed ) );
+		if ( is_wp_error( $attachment_id ) ) { self::redirect_with_error( $attachment_id->get_error_message(), $licence_id ); return; }
+		$season = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence_id ) : UFSC_Season_Service::get_current_season();
+		$result = ufsc_save_honorability_document( $licence_id, $licence->club_id, $season, $role, $attachment_id, get_current_user_id() );
+		if ( is_wp_error( $result ) ) { self::redirect_with_error( $result->get_error_message(), $licence_id ); return; }
+		self::maybe_redirect( add_query_arg( 'honorability_updated', 1, wp_get_referer() ) );
+	}
+
+	public static function handle_decide_honorability_attestation() {
+		if ( ! current_user_can( 'manage_options' ) && ! ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) { wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) ); }
+		$licence_id = absint( $_POST['licence_id'] ?? 0 ); check_admin_referer( 'ufsc_decide_honorability_' . $licence_id );
+		$season = sanitize_text_field( wp_unslash( $_POST['season'] ?? '' ) );
+		$result = ufsc_decide_honorability_document( $licence_id, $season, sanitize_key( $_POST['document_status'] ?? '' ), sanitize_textarea_field( wp_unslash( $_POST['reason'] ?? '' ) ), get_current_user_id() );
+		if ( is_wp_error( $result ) ) { self::redirect_with_error( $result->get_error_message(), $licence_id ); return; }
+		self::maybe_redirect( add_query_arg( 'honorability_decided', 1, wp_get_referer() ) );
+	}
+
     /**
      * // UFSC: Handle club save (profile/documents)
      */
@@ -1013,7 +1050,8 @@ class UFSC_Unified_Handlers {
         $added = false;
         if ( function_exists( 'WC' ) ) {
             function_exists( 'wc_load_cart' ) && wc_load_cart();
-            $added = WC()->cart->add_to_cart( 4823, 1, 0, array(), array( 'ufsc_club_id' => $club_id ) );
+			$affiliation_product_id = function_exists( 'ufsc_get_affiliation_product_id' ) ? ufsc_get_affiliation_product_id() : 0;
+			$added = $affiliation_product_id > 0 ? WC()->cart->add_to_cart( $affiliation_product_id, 1, 0, array(), array( 'ufsc_club_id' => $club_id ) ) : false;
         }
 
         if ( $added ) {
@@ -1027,7 +1065,7 @@ class UFSC_Unified_Handlers {
         if ( function_exists( 'wc_create_order' ) ) {
             $order = wc_create_order( array( 'status' => 'pending' ) );
             if ( ! is_wp_error( $order ) ) {
-                $product = wc_get_product( 4823 );
+				$product = wc_get_product( $affiliation_product_id );
                 if ( $product ) {
                     $order->add_product( $product, 1 );
                     $order->calculate_totals();
@@ -1114,6 +1152,7 @@ class UFSC_Unified_Handlers {
         }
 
         $new_id = $result;
+		self::save_licence_compliance_audit( $new_id, $_POST );
 
         $wc_settings = ufsc_get_woocommerce_settings();
 
@@ -1143,7 +1182,7 @@ class UFSC_Unified_Handlers {
                 'ufsc_nom'        => isset( $data['nom'] ) ? sanitize_text_field( $data['nom'] ) : '',
                 'ufsc_prenom'     => isset( $data['prenom'] ) ? sanitize_text_field( $data['prenom'] ) : '',
                 'ufsc_date_naissance' => isset( $data['date_naissance'] ) ? sanitize_text_field( $data['date_naissance'] ) : '',
-                'season'          => isset( $wc_settings['season'] ) ? sanitize_text_field( $wc_settings['season'] ) : '',
+                'season'          => class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ),
                 'category'        => isset( $data['categorie'] ) ? sanitize_text_field( $data['categorie'] ) : '',
             );
 
@@ -1203,7 +1242,7 @@ class UFSC_Unified_Handlers {
                 'ufsc_nom'            => isset( $data['nom'] ) ? sanitize_text_field( $data['nom'] ) : '',
                 'ufsc_prenom'         => isset( $data['prenom'] ) ? sanitize_text_field( $data['prenom'] ) : '',
                 'ufsc_date_naissance' => isset( $data['date_naissance'] ) ? sanitize_text_field( $data['date_naissance'] ) : '',
-                'season'              => isset( $wc_settings['season'] ) ? sanitize_text_field( $wc_settings['season'] ) : '',
+                'season'              => class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ),
                 'category'            => isset( $data['categorie'] ) ? sanitize_text_field( $data['categorie'] ) : '',
             );
             if ( function_exists( 'ufsc_add_licence_ids_to_cart_idempotent' ) ) {
@@ -1358,6 +1397,24 @@ class UFSC_Unified_Handlers {
         } else {
             $data['date_naissance'] = $date_naissance;
         }
+
+		$strict_checkout = isset( $post_data['ufsc_submit_action'] ) && 'add_to_cart' === sanitize_key( (string) $post_data['ufsc_submit_action'] );
+		$role = isset( $post_data['role'] ) ? sanitize_key( (string) $post_data['role'] ) : '';
+		$is_minor = false;
+		if ( self::is_valid_birth_date( $date_naissance ) ) {
+			$birth = new DateTimeImmutable( $date_naissance );
+			$reference = new DateTimeImmutable( current_time( 'Y-m-d' ) );
+			$is_minor = $birth->diff( $reference )->y < 18;
+		}
+		if ( $strict_checkout && empty( $post_data['health_questionnaire_confirmed'] ) ) {
+			$errors[] = $is_minor ? __( 'La lecture du questionnaire de santé mineur doit être confirmée.', 'ufsc-clubs' ) : __( 'La lecture du questionnaire de santé majeur doit être confirmée.', 'ufsc-clubs' );
+		}
+		if ( $strict_checkout && $is_minor && empty( trim( (string) ( $post_data['legal_representative_name'] ?? '' ) ) ) ) {
+			$errors[] = __( 'L’identité du représentant légal est obligatoire pour un mineur.', 'ufsc-clubs' );
+		}
+		if ( $strict_checkout && function_exists( 'ufsc_role_requires_honorability' ) && ufsc_role_requires_honorability( $role ) && empty( $post_data['honorability_confirmed'] ) ) {
+			$errors[] = __( 'La lecture de la note sur le contrôle de l’honorabilité doit être confirmée pour ce rôle.', 'ufsc-clubs' );
+		}
         
         // Optional fields with sanitization
         $optional_fields = array(
@@ -1367,6 +1424,7 @@ class UFSC_Unified_Handlers {
             'code_postal' => 'sanitize_text_field',
             'sexe' => 'sanitize_text_field',
             'poids' => 'sanitize_text_field',
+            'fighter_level' => 'sanitize_key',
             'role' => 'sanitize_text_field',
             'competition' => 'absint',
             'statut' => 'sanitize_text_field',
@@ -1378,6 +1436,13 @@ class UFSC_Unified_Handlers {
                 $data[ $field ] = call_user_func( $sanitizer, $post_data[$field] );
             }
         }
+
+		if ( function_exists( 'ufsc_validate_fighter_level' ) ) {
+			$level_validation = ufsc_validate_fighter_level( $data['fighter_level'] ?? '', $date_naissance, true );
+			if ( is_wp_error( $level_validation ) ) {
+				$errors[] = $level_validation->get_error_message();
+			}
+		}
 
         if ( isset( $data['note'] ) && '' !== $data['note'] ) {
             $data['note'] = trim( (string) preg_replace( '/^\s*club\s*:\s*/i', '', $data['note'] ) );
@@ -1450,6 +1515,32 @@ class UFSC_Unified_Handlers {
 
         return $data;
     }
+
+	/** Persist compliance acknowledgements only; never medical answers. */
+	private static function save_licence_compliance_audit( $licence_id, $post_data ) {
+		$licence_id = absint( $licence_id );
+		if ( $licence_id <= 0 ) {
+			return;
+		}
+		$season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+		$birth_date = sanitize_text_field( (string) ( $post_data['date_naissance'] ?? '' ) );
+		$is_minor = self::is_valid_birth_date( $birth_date ) && ( new DateTimeImmutable( $birth_date ) )->diff( new DateTimeImmutable( current_time( 'Y-m-d' ) ) )->y < 18;
+		$audit = array(
+			'season'                    => $season,
+			'user_id'                   => get_current_user_id(),
+			'confirmed_at'               => current_time( 'mysql' ),
+			'health_confirmed'           => empty( $post_data['health_questionnaire_confirmed'] ) ? 0 : 1,
+			'health_type'                => $is_minor ? 'minor' : 'adult',
+			'health_document_url'        => $is_minor ? 'https://ufsc-france.fr/wp-content/uploads/2026/08/2021-06-02-5-ANNEXE-4-QUESTIONNAIRE-SANTE-MINEUR.pdf' : 'https://ufsc-france.fr/wp-content/uploads/2026/08/2024-08-28-QUESTIONNAIRE-SANTE-MAJEUR.pdf',
+			'legal_representative_name' => $is_minor ? sanitize_text_field( (string) ( $post_data['legal_representative_name'] ?? '' ) ) : '',
+			'honorability_confirmed'     => empty( $post_data['honorability_confirmed'] ) ? 0 : 1,
+			'honorability_role'          => sanitize_key( (string) ( $post_data['role'] ?? '' ) ),
+			'honorability_document_url'  => 'https://ufsc-france.fr/wp-content/uploads/2026/08/2021-06-02-2-ANNEXE-1-NOTE-SUR-LE-CONTROLE-DE-LHONORABILITE.pdf',
+		);
+		if ( function_exists( 'ufsc_set_option_noautoload' ) ) {
+			ufsc_set_option_noautoload( 'ufsc_licence_compliance_' . $licence_id . '_' . sanitize_key( $season ), $audit );
+		}
+	}
 
     /**
      * Validate licence birth date (strict YYYY-MM-DD + valid calendar day).
@@ -1550,16 +1641,34 @@ class UFSC_Unified_Handlers {
             if ( $result === false ) {
                 return new WP_Error( 'update_failed', __( 'Erreur lors de la mise à jour', 'ufsc-clubs' ) );
             }
-            if ( function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
-                $stored_season = ufsc_get_licence_season( (int) $licence_id );
-                if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
-                    ufsc_set_licence_season( (int) $licence_id, ufsc_get_current_season() );
-                }
-            }
+            // Never infer or rewrite the season of an existing historical row.
             do_action( 'ufsc_licence_updated', (int) $club_id );
             return $licence_id;
         } else {
             $data = self::enforce_server_managed_licence_fields( $data, $column_exists );
+			$current_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+			$season_column = function_exists( 'ufsc_get_detected_season_column' ) ? ufsc_get_detected_season_column( $licences_table ) : '';
+			if ( $season_column && ! empty( $data['nom'] ) && ! empty( $data['prenom'] ) && ! empty( $data['date_naissance'] ) ) {
+				$season_sql = 'season_end_year' === $season_column && preg_match( '/^\d{4}-(\d{4})$/', $current_season, $season_matches )
+					? $wpdb->prepare( 'season_end_year = %d', (int) $season_matches[1] )
+					: $wpdb->prepare( "REPLACE(`{$season_column}`, '/', '-') = %s", $current_season );
+				$candidate_rows = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT id, nom, prenom FROM `{$licences_table}` WHERE club_id = %d AND date_naissance = %s AND {$season_sql}",
+						$club_id,
+						$data['date_naissance']
+					)
+				);
+				$normalize_identity = static function ( $value ) {
+					$value = function_exists( 'remove_accents' ) ? remove_accents( (string) $value ) : (string) $value;
+					return strtolower( trim( (string) preg_replace( '/\s+/u', ' ', $value ) ) );
+				};
+				foreach ( (array) $candidate_rows as $candidate ) {
+					if ( $normalize_identity( $candidate->nom ?? '' ) === $normalize_identity( $data['nom'] ) && $normalize_identity( $candidate->prenom ?? '' ) === $normalize_identity( $data['prenom'] ) ) {
+						return new WP_Error( 'duplicate_licence', __( 'Une licence existe déjà pour cette personne, ce club et cette saison.', 'ufsc-clubs' ) );
+					}
+				}
+			}
             // Create
             if ( $column_exists( 'date_creation' ) ) {
                 $data['date_creation'] = current_time( 'mysql' );
@@ -1573,7 +1682,7 @@ class UFSC_Unified_Handlers {
             if ( function_exists( 'ufsc_get_licence_season' ) && function_exists( 'ufsc_set_licence_season' ) ) {
                 $stored_season = ufsc_get_licence_season( $new_id );
                 if ( ! is_string( $stored_season ) || '' === trim( $stored_season ) ) {
-                    ufsc_set_licence_season( $new_id, ufsc_get_current_season() );
+					ufsc_set_licence_season( $new_id, $current_season );
                 }
             }
             do_action( 'ufsc_licence_created', $new_id, (int) $club_id );

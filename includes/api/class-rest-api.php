@@ -272,10 +272,6 @@ class UFSC_REST_API {
 					$season_label = (string) ufsc_get_licence_season( $licence );
 				}
 
-				if ( '' === trim( $season_label ) && function_exists( 'ufsc_get_current_season' ) ) {
-					$season_label = (string) ufsc_get_current_season();
-				}
-
 				$licence->season_label = $season_label;
 				$licence->saison       = $season_label;
 			}
@@ -855,10 +851,6 @@ class UFSC_REST_API {
 				$season_label = (string) ufsc_get_licence_season_label( $row );
 			} elseif ( function_exists( 'ufsc_get_licence_season' ) ) {
 				$season_label = (string) ufsc_get_licence_season( $row );
-			}
-
-			if ( '' === trim( $season_label ) && function_exists( 'ufsc_get_current_season' ) ) {
-				$season_label = (string) ufsc_get_current_season();
 			}
 
 			$row->season_label = $season_label;

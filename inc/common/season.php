@@ -24,13 +24,9 @@ if ( ! function_exists( 'ufsc_get_season_for_date' ) ) {
 
 if ( ! function_exists( 'ufsc_get_current_season' ) ) {
 	function ufsc_get_current_season() {
-		$stored = get_option( 'ufsc_current_season', '' );
-		$stored = is_string( $stored ) ? sanitize_text_field( $stored ) : '';
-		if ( preg_match( '/^(\d{4})-(\d{4})$/', $stored, $matches ) && ( (int) $matches[2] ) === ( (int) $matches[1] + 1 ) ) {
-			return $stored;
-		}
-
-		return ufsc_get_season_for_date( current_time( 'timestamp' ) );
+		return class_exists( 'UFSC_Season_Service' )
+			? UFSC_Season_Service::get_current_season()
+			: ufsc_get_season_for_date( current_time( 'timestamp' ) );
 	}
 }
 
@@ -49,19 +45,9 @@ if ( ! function_exists( 'ufsc_get_current_season_label' ) ) {
  */
 if ( ! function_exists( 'ufsc_get_admin_current_season_label' ) ) {
 	function ufsc_get_admin_current_season_label() {
-		$stored = get_option( 'ufsc_current_season', '' );
-		$stored = is_string( $stored ) ? sanitize_text_field( $stored ) : '';
-		if ( preg_match( '/^(\d{4})-(\d{4})$/', $stored, $matches ) && ( (int) $matches[2] ) === ( (int) $matches[1] + 1 ) ) {
-			return $stored;
-		}
-
-		$timezone   = function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' );
-		$now        = new DateTimeImmutable( 'now', $timezone );
-		$month      = (int) $now->format( 'n' );
-		$year       = (int) $now->format( 'Y' );
-		$start_year = ( $month >= 9 ) ? $year : ( $year - 1 );
-
-		return sprintf( '%d-%d', $start_year, $start_year + 1 );
+		return class_exists( 'UFSC_Season_Service' )
+			? UFSC_Season_Service::get_current_season()
+			: ufsc_get_current_season();
 	}
 }
 
@@ -302,7 +288,7 @@ if ( ! function_exists( 'ufsc_get_licence_season_label' ) ) {
 			}
 		}
 
-		return ufsc_get_current_season();
+		return null;
 	}
 }
 
@@ -432,6 +418,13 @@ if ( ! function_exists( 'ufsc_get_affiliation_season' ) ) {
 			return null;
 		}
 
+		// An explicit season is authoritative: never infer a current annual
+		// affiliation from the permanent club record or a legacy status.
+		if ( '' !== $season && class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+			$annual = UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season );
+			return $annual ? sanitize_text_field( (string) $annual->season ) : null;
+		}
+
 		$table      = ufsc_get_clubs_table();
 		$season_col = ufsc_get_detected_season_column( $table );
 
@@ -448,7 +441,7 @@ if ( ! function_exists( 'ufsc_get_affiliation_season' ) ) {
 			}
 		}
 
-		// Option fallback: if season specified, check it directly.
+		// Compatibility fallback when the archive manager is not loaded.
 		if ( '' !== $season ) {
 			$option_value = ufsc_get_option( 'ufsc_affiliation_season_' . $club_id . '_' . $season, '' );
 			return ( is_string( $option_value ) && '' !== $option_value ) ? sanitize_text_field( $option_value ) : null;
@@ -496,14 +489,12 @@ if ( ! function_exists( 'ufsc_is_club_affiliated_for_season' ) ) {
             return false;
         }
 
-        if ( function_exists( 'ufsc_get_affiliation_season' ) ) {
-            $stored = ufsc_get_affiliation_season( $club_id, $season );
-            if ( is_string( $stored ) && str_replace( '/', '-', $stored ) === str_replace( '/', '-', $season ) ) {
-                return true;
-            }
+        if ( class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+            $annual = UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season );
+            return $annual && in_array( sanitize_key( (string) $annual->status ), array( 'validated', 'valide', 'active', 'actif' ), true );
         }
 
-        return function_exists( 'ufsc_is_affiliation_renewed' ) && ufsc_is_affiliation_renewed( $club_id, $season );
+        return false;
     }
 }
 
@@ -592,6 +583,7 @@ if ( ! function_exists( 'ufsc_get_renewal_copy_fields' ) ) {
 			'surclassement',
 			'piece_identite',
 			'photo_identite',
+			'fighter_level',
 		);
 	}
 }
@@ -637,6 +629,8 @@ if ( ! function_exists( 'ufsc_backfill_licences_season' ) ) {
 			if ( is_string( $season ) && '' !== trim( $season ) ) {
 				ufsc_set_licence_season( $licence_id, $season );
 				$updated++;
+			} elseif ( function_exists( 'ufsc_admin_debug_log' ) ) {
+				ufsc_admin_debug_log( 'ufsc_licence_season_ambiguous', array( 'licence_id' => $licence_id ) );
 			}
 		}
 

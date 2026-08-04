@@ -78,7 +78,9 @@ require_once UFSC_CL_DIR.'inc/common/season.php';
 require_once UFSC_CL_DIR.'inc/common/seasons.php';
 require_once UFSC_CL_DIR.'inc/common/feature-flags.php';
 require_once UFSC_CL_DIR.'inc/common/licence-status.php';
+require_once UFSC_CL_DIR.'inc/common/fighter-level.php';
 require_once UFSC_CL_DIR.'inc/common/licence-documents.php';
+require_once UFSC_CL_DIR.'inc/common/compliance.php';
 require_once UFSC_CL_DIR.'inc/common/attestations.php';
 require_once UFSC_CL_DIR.'inc/common/tables.php';
 require_once UFSC_CL_DIR.'inc/settings.php';
@@ -153,7 +155,6 @@ final class UFSC_CL_Bootstrap {
         add_action( 'init', array( 'UFSC_Simplified_Admin', 'init' ) );
         add_action( 'init', array( 'UFSC_User_Profile_Scope_Field', 'init' ) );
         add_action( 'plugins_loaded', array( 'UFSC_DB_Migrations', 'run_migrations' ) );
-        add_action( 'plugins_loaded', array( 'UFSC_Season_Archive_Manager', 'maybe_migrate' ) );
 
         // Initialize UFSC Gestion WooCommerce hooks
         add_action( 'plugins_loaded', 'ufsc_init_woocommerce_hooks' );

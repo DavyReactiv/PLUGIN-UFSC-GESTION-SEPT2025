@@ -9,12 +9,19 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * licences tables used by UFSC Gestion and Licence & Compétition.
  */
 class UFSC_Season_Archive_Manager {
+	const ADMIN_STATUSES = array( 'a_renouveler', 'pending_payment', 'pending_validation', 'correction_required', 'active', 'rejected', 'suspended' );
 
     /** @var bool */
     private static $hooks_registered = false;
 
     public static function get_affiliations_table() {
         global $wpdb;
+
+        if ( class_exists( 'UFSC_DB_Migrations' ) && method_exists( 'UFSC_DB_Migrations', 'get_affiliation_seasons_table_name' ) ) {
+            return UFSC_DB_Migrations::get_affiliation_seasons_table_name();
+        }
+
+        // Safe bootstrap fallback; the migration class remains the schema owner.
         return $wpdb->prefix . 'ufsc_affiliations_seasons';
     }
 
