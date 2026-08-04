@@ -66,6 +66,14 @@ function ufsc_sanitize_licence_post( $post_data, $submitted_club_id = 0 ) {
     } else {
         $data['date_naissance'] = '';
     }
+
+    $data['fighter_level'] = isset( $post_data['fighter_level'] ) ? sanitize_key( $post_data['fighter_level'] ) : '';
+    if ( function_exists( 'ufsc_validate_fighter_level' ) ) {
+        $level_validation = ufsc_validate_fighter_level( $data['fighter_level'], $data['date_naissance'], true );
+        if ( is_wp_error( $level_validation ) ) {
+            $errors['fighter_level'] = $level_validation->get_error_message();
+        }
+    }
     
     // Sexe validation
     $data['sexe'] = isset( $post_data['sexe'] ) && in_array( $post_data['sexe'], array( 'M', 'F' ), true ) 

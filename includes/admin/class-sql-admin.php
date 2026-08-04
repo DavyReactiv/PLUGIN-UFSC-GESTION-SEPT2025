@@ -3004,6 +3004,7 @@ class UFSC_SQL_Admin
             'filter_status'     => isset( $input['filter_status'] ) ? sanitize_text_field( wp_unslash( $input['filter_status'] ) ) : '',
             'filter_payment'    => isset( $input['filter_payment'] ) ? sanitize_key( wp_unslash( $input['filter_payment'] ) ) : '',
             'filter_duplicate'  => isset( $input['filter_duplicate'] ) ? sanitize_key( wp_unslash( $input['filter_duplicate'] ) ) : '',
+            'filter_level'      => isset( $input['filter_level'] ) ? sanitize_key( wp_unslash( $input['filter_level'] ) ) : '',
             'filter_season'     => ( isset( $input['filter_season'] ) && ! is_array( $input['filter_season'] ) ) ? sanitize_text_field( wp_unslash( $input['filter_season'] ) ) : 'all',
             'filter_visibility' => isset( $input['filter_visibility'] ) ? sanitize_key( wp_unslash( $input['filter_visibility'] ) ) : 'active',
         );
@@ -3068,6 +3069,13 @@ class UFSC_SQL_Admin
         $filter_payment = $filters['filter_payment'];
         $filter_duplicate = $filters['filter_duplicate'];
         $filter_season = isset( $filters['filter_season'] ) ? sanitize_text_field( (string) $filters['filter_season'] ) : '__current';
+        $filter_level = isset( $filters['filter_level'] ) ? sanitize_key( (string) $filters['filter_level'] ) : '';
+
+        if ( '' !== $filter_level && in_array( 'fighter_level', $licence_columns, true ) ) {
+            $where_conditions[] = '__empty' === $filter_level
+                ? "(l.fighter_level IS NULL OR l.fighter_level = '')"
+                : $wpdb->prepare( 'l.fighter_level = %s', $filter_level );
+        }
 
         if (! empty($search)) {
             $search_like   = '%' . $wpdb->esc_like($search) . '%';
@@ -3401,6 +3409,7 @@ class UFSC_SQL_Admin
         $filter_status = $filters['filter_status'];
         $filter_payment = $filters['filter_payment'];
         $filter_duplicate = $filters['filter_duplicate'];
+        $filter_level = $filters['filter_level'];
         $filter_season = isset( $filters['filter_season'] ) ? sanitize_text_field( (string) $filters['filter_season'] ) : '__current';
         $filter_visibility = in_array( $filters['filter_visibility'], array( 'active', 'trash', 'all' ), true ) ? $filters['filter_visibility'] : 'active';
         $scope_slug    = UFSC_Scope::get_user_scope_region();
@@ -3441,6 +3450,7 @@ class UFSC_SQL_Admin
             self::build_select_column('l', 'categorie_age_detectee', $licence_columns),
             self::build_select_column('l', 'categorie_poids_detectee', $licence_columns),
             self::build_select_column('l', 'categorie_updated_at', $licence_columns),
+            self::build_select_column('l', 'fighter_level', $licence_columns),
             self::build_select_column('l', 'club_id', $licence_columns),
             ( $join_sql && in_array( 'region', $club_columns, true ) )
 	? (
@@ -3661,6 +3671,15 @@ class UFSC_SQL_Admin
         echo '</select>';
         echo '</div>';
 
+        if ( in_array( 'fighter_level', $licence_columns, true ) ) {
+            echo '<div><label for="filter_level"><strong>' . esc_html__( 'Niveau sportif', 'ufsc-clubs' ) . '</strong></label><select name="filter_level" id="filter_level">';
+            echo '<option value="">' . esc_html__( 'Tous', 'ufsc-clubs' ) . '</option>';
+            foreach ( ufsc_get_fighter_levels() as $level_key => $level_label ) {
+                echo '<option value="' . esc_attr( $level_key ) . '"' . selected( $filter_level, $level_key, false ) . '>' . esc_html( $level_label ) . '</option>';
+            }
+            echo '<option value="__empty"' . selected( $filter_level, '__empty', false ) . '>' . esc_html__( 'Non renseigné', 'ufsc-clubs' ) . '</option></select></div>';
+        }
+
         // Club filter
         echo '<div>';
         echo '<label for="filter_club"><strong>' . esc_html__('Club', 'ufsc-clubs') . '</strong></label>';
@@ -3797,6 +3816,7 @@ class UFSC_SQL_Admin
         echo '<th class="column-statut">' . esc_html__('Statut', 'ufsc-clubs') . '</th>';
         echo '<th>' . esc_html__('Saison', 'ufsc-clubs') . '</th>';
         echo '<th>' . esc_html__('Catégorie', 'ufsc-clubs') . '</th>';
+        echo '<th>' . esc_html__('Niveau sportif', 'ufsc-clubs') . '</th>';
         echo '<th class="column-date">' . esc_html__('Date création', 'ufsc-clubs') . '</th>';
         echo '<th class="column-actions">' . esc_html__('Actions', 'ufsc-clubs') . '</th>';
         echo '</tr></thead>';
@@ -3851,6 +3871,7 @@ class UFSC_SQL_Admin
                 echo '<td>' . esc_html( $season_label ? $season_label : '—' ) . '</td>';
                 $category_summary = self::get_admin_category_detection_summary( $r, $season_label );
                 echo '<td><span class="ufsc-badge ufsc-badge-neutral">' . esc_html( $category_summary['row_label'] ) . '</span></td>';
+                echo '<td><span class="ufsc-badge ufsc-badge-neutral">' . esc_html( ufsc_fighter_level_label( $r->fighter_level ?? '' ) ) . '</span></td>';
                 echo '<td>' . esc_html($r->date_creation ?: '') . '</td>';
                 echo '<td class="column-actions">';
                 echo '<div class="ufsc-button-group">';
@@ -4342,6 +4363,14 @@ class UFSC_SQL_Admin
             } else {
                 echo '<input type="number" step="1" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
             }
+        } elseif ( 'fighter_level' === $type ) {
+            $levels = function_exists( 'ufsc_get_fighter_levels' ) ? ufsc_get_fighter_levels() : array();
+            echo '<select name="fighter_level" id="fighter_level" data-ufsc-fighter-level ' . $disabled_attr . '>';
+            echo '<option value="">' . esc_html__( 'Non renseigné', 'ufsc-clubs' ) . '</option>';
+            foreach ( $levels as $level_key => $level_label ) {
+                echo '<option value="' . esc_attr( $level_key ) . '" ' . selected( $val, $level_key, false ) . '>' . esc_html( $level_label ) . '</option>';
+            }
+            echo '</select><p class="description" data-ufsc-level-help>' . esc_html__( 'Mineur : Assaut. Majeur : Classe C, Classe B, Classe A ou Vétéran. Le contrôle final est effectué par le serveur.', 'ufsc-clubs' ) . '</p>';
         } elseif ($type === 'region') {
             echo '<select name="' . esc_attr($k) . '" ' . $disabled_attr . '>';
             $scope_slug  = UFSC_Scope::get_user_scope_region();
@@ -4511,6 +4540,14 @@ class UFSC_SQL_Admin
                 $data['poids'] = $normalized_weight;
             } elseif ( '' === $raw_weight ) {
                 $data['poids'] = null;
+            }
+        }
+
+        if ( array_key_exists( 'fighter_level', $data ) && function_exists( 'ufsc_validate_fighter_level' ) ) {
+            $level_validation = ufsc_validate_fighter_level( $data['fighter_level'], $data['date_naissance'] ?? '', true );
+            if ( is_wp_error( $level_validation ) ) {
+                self::maybe_redirect( self::get_licences_admin_page_url( array_merge( $id ? array( 'action' => 'edit', 'id' => $id ) : array( 'action' => 'new' ), array( 'return_to' => $return_to, 'error' => $level_validation->get_error_message() ) ) ) );
+                return;
             }
         }
 

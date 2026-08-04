@@ -1388,6 +1388,7 @@ class UFSC_Unified_Handlers {
             'code_postal' => 'sanitize_text_field',
             'sexe' => 'sanitize_text_field',
             'poids' => 'sanitize_text_field',
+            'fighter_level' => 'sanitize_key',
             'role' => 'sanitize_text_field',
             'competition' => 'absint',
             'statut' => 'sanitize_text_field',
@@ -1399,6 +1400,13 @@ class UFSC_Unified_Handlers {
                 $data[ $field ] = call_user_func( $sanitizer, $post_data[$field] );
             }
         }
+
+		if ( function_exists( 'ufsc_validate_fighter_level' ) ) {
+			$level_validation = ufsc_validate_fighter_level( $data['fighter_level'] ?? '', $date_naissance, true );
+			if ( is_wp_error( $level_validation ) ) {
+				$errors[] = $level_validation->get_error_message();
+			}
+		}
 
         if ( isset( $data['note'] ) && '' !== $data['note'] ) {
             $data['note'] = trim( (string) preg_replace( '/^\s*club\s*:\s*/i', '', $data['note'] ) );

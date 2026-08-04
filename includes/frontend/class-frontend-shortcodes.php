@@ -1974,6 +1974,16 @@ class UFSC_Frontend_Shortcodes {
                             <input type="number" id="poids" name="poids" min="10" max="250" step="0.1" value="<?php echo esc_attr( $form_data['poids'] ?? '' ); ?>">
 							<small><?php echo esc_html( sprintf( __( 'Utilisé pour détecter automatiquement la catégorie Kickboxing / Tatami / Assaut pour la saison %s.', 'ufsc-clubs' ), class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ) ) ); ?></small>
                         </div>
+                        <div class="ufsc-field ufsc-field--full">
+                            <label for="fighter_level"><?php esc_html_e( 'Niveau sportif', 'ufsc-clubs' ); ?></label>
+                            <select id="fighter_level" name="fighter_level" data-ufsc-fighter-level>
+                                <option value=""><?php esc_html_e( 'Non renseigné', 'ufsc-clubs' ); ?></option>
+                                <?php foreach ( ufsc_get_fighter_levels() as $level_key => $level_label ) : ?>
+                                    <option value="<?php echo esc_attr( $level_key ); ?>" <?php selected( $form_data['fighter_level'] ?? '', $level_key ); ?>><?php echo esc_html( $level_label ); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small data-ufsc-level-help><?php esc_html_e( 'Mineur : Assaut. Majeur : Classe C, Classe B, Classe A ou Vétéran.', 'ufsc-clubs' ); ?></small>
+                        </div>
                     </div>
 
                     <div class="ufsc-card ufsc-form-section">

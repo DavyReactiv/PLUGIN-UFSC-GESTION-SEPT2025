@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.3.4';
+    const MIGRATION_VERSION = '1.3.5';
 
     /**
      * Option key for tracking migration version
@@ -148,6 +148,7 @@ class UFSC_DB_Migrations {
             'categorie_age_detectee'   => 'varchar(100) NULL DEFAULT NULL',
             'categorie_poids_detectee' => 'varchar(50) NULL DEFAULT NULL',
             'categorie_updated_at'     => 'datetime NULL DEFAULT NULL',
+            'fighter_level'             => 'varchar(20) NULL DEFAULT NULL',
         );
 
         foreach ( $expected_columns as $column => $definition ) {

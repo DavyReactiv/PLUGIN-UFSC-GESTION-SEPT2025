@@ -379,7 +379,7 @@ function ufsc_wc_process_renewal_items( $order ) {
 				: array(
 					'nom','nom_licence','prenom','email','adresse','code_postal','ville',
 					'tel_fixe','tel_mobile','date_naissance','sexe','nationalite',
-					'competition','surclassement','piece_identite','photo_identite'
+					'competition','surclassement','piece_identite','photo_identite','fighter_level'
 				);
 
 			foreach ( $allowed as $field ) {
