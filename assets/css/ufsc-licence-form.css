@@ -1,0 +1,77 @@
+/* Stable shared layout for [ufsc_add_licence] and the club-dashboard tab. */
+.ufsc-add-licence-section {
+    box-sizing: border-box;
+    width: min(100%, 1200px) !important;
+    max-width: 1200px !important;
+    margin: 24px auto !important;
+    padding: 0 20px;
+    overflow-wrap: normal;
+    word-break: normal;
+}
+
+.ufsc-add-licence-section .ufsc-licence-form {
+    display: block;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0;
+}
+
+.ufsc-add-licence-section .ufsc-licence-form > .ufsc-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 24px;
+    width: 100%;
+}
+
+.ufsc-add-licence-section .ufsc-card,
+.ufsc-add-licence-section .ufsc-field,
+.ufsc-add-licence-section input,
+.ufsc-add-licence-section select,
+.ufsc-add-licence-section textarea {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.ufsc-add-licence-section input:not([type="checkbox"]):not([type="radio"]),
+.ufsc-add-licence-section select,
+.ufsc-add-licence-section textarea {
+    width: 100%;
+}
+
+.ufsc-compliance-section,
+.ufsc-licence-final-actions {
+    width: 100%;
+    grid-column: 1 / -1;
+}
+
+.ufsc-licence-final-actions {
+    display: block !important;
+    text-align: left;
+}
+
+.ufsc-final-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.ufsc-final-buttons .ufsc-btn {
+    width: auto !important;
+    min-width: 220px;
+    white-space: normal;
+    word-break: normal;
+}
+
+@media (max-width: 1024px) {
+    .ufsc-add-licence-section { padding-inline: 16px; }
+}
+
+@media (max-width: 768px) {
+    .ufsc-add-licence-section .ufsc-licence-form > .ufsc-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+    .ufsc-final-buttons { flex-direction: column; }
+    .ufsc-final-buttons .ufsc-btn { width: 100% !important; min-width: 0; }
+}

@@ -177,8 +177,7 @@
 
         form.find('input[type="date"]').each(function() {
             if (!validateDate.call(this)) isValid = false;
-        });
-
+		});
         form.find('input[required]').each(function() {
             if (!validateRequired.call(this)) isValid = false;
         });

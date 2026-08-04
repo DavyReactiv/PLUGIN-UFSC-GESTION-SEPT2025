@@ -239,20 +239,27 @@ class UFSC_CL_Admin_Menu {
 
 		// Clubs KPIs
 		echo '<div class="ufsc-dashboard-card">';
-		echo '<div class="card-label">' . esc_html__( 'Clubs Total', 'ufsc-clubs' ) . '</div>';
+		echo '<div class="card-label">' . esc_html__( 'Clubs enregistrés', 'ufsc-clubs' ) . '</div>';
 		echo '<div class="card-value">' . esc_html( $dashboard_data['clubs_total'] ) . '</div>';
-		echo '<div class="card-description">' . sprintf( esc_html__( '%d actifs', 'ufsc-clubs' ), (int) $dashboard_data['clubs_active'] ) . '</div>';
 		echo '</div>';
+		foreach ( array(
+			'affiliations_validated' => sprintf( __( 'Affiliations validées %s', 'ufsc-clubs' ), $current_season ),
+			'affiliations_pending' => __( 'Affiliations en attente', 'ufsc-clubs' ),
+			'clubs_to_renew' => __( 'Clubs à renouveler', 'ufsc-clubs' ),
+		) as $key => $label ) {
+			echo '<div class="ufsc-dashboard-card"><div class="card-label">' . esc_html( $label ) . '</div><div class="card-value">' . esc_html( (int) $dashboard_data[ $key ] ) . '</div></div>';
+		}
 
 		// Licenses by status
+		echo '<div class="ufsc-dashboard-card"><div class="card-label">' . esc_html__( 'Licences courantes', 'ufsc-clubs' ) . '</div><div class="card-value">' . esc_html( (int) $dashboard_data['licenses_total'] ) . '</div></div>';
 		echo '<div class="ufsc-dashboard-card">';
-		echo '<div class="card-label">' . esc_html__( 'Licences Validées', 'ufsc-clubs' ) . '</div>';
+		echo '<div class="card-label">' . esc_html__( 'Licences validées', 'ufsc-clubs' ) . '</div>';
 		echo '<div class="card-value" style="color: #00a32a;">' . esc_html( $dashboard_data['licenses_valid'] ) . '</div>';
 		echo '<div class="card-description">' . sprintf( esc_html__( 'sur %d total', 'ufsc-clubs' ), (int) $dashboard_data['licenses_total'] ) . '</div>';
 		echo '</div>';
 
 		echo '<div class="ufsc-dashboard-card">';
-		echo '<div class="card-label">' . esc_html__( 'En Attente', 'ufsc-clubs' ) . '</div>';
+		echo '<div class="card-label">' . esc_html__( 'Licences en attente', 'ufsc-clubs' ) . '</div>';
 		echo '<div class="card-value" style="color: #f0b000;">' . esc_html( $dashboard_data['licenses_pending'] ) . '</div>';
 		echo '<div class="card-description">' . esc_html__( 'paiement requis', 'ufsc-clubs' ) . '</div>';
 		echo '</div>';
@@ -281,7 +288,7 @@ class UFSC_CL_Admin_Menu {
 		echo '</div>';
 
 		echo '<div class="ufsc-dashboard-card">';
-		echo '<div class="card-label">' . esc_html__( 'Paiement', 'ufsc-clubs' ) . '</div>';
+		echo '<div class="card-label">' . esc_html__( 'Paiements reçus', 'ufsc-clubs' ) . '</div>';
 		echo '<div class="card-value" style="color:#00a32a;">' . esc_html( (int) $dashboard_data['licenses_paid'] ) . '</div>';
 		echo '<div class="card-description">' . sprintf( esc_html__( 'À régler: %d · Taux: %s%%', 'ufsc-clubs' ), (int) $dashboard_data['licenses_unpaid'], esc_html( $dashboard_data['payment_rate'] ) ) . '</div>';
 		echo '</div>';
@@ -455,6 +462,9 @@ class UFSC_CL_Admin_Menu {
 					$current_season
 				)
 			);
+			$data['affiliations_validated'] = $data['clubs_active'];
+			$data['affiliations_pending'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT a.club_id) FROM `{$affiliations_table}` a INNER JOIN `{$t_clubs}` c ON c.id = a.club_id WHERE a.season = %s AND a.status IN ('pending_payment','pending_validation','correction_required'){$club_scope_for_join}", $current_season ) );
+			$data['clubs_to_renew'] = max( 0, $data['clubs_total'] - $data['affiliations_validated'] - $data['affiliations_pending'] );
 
 			// License stats by status
 			$scope_lics = UFSC_Scope::build_scope_condition( 'region' );
@@ -595,6 +605,9 @@ class UFSC_CL_Admin_Menu {
 			$data = array(
 				'clubs_total'            => 0,
 				'clubs_active'           => 0,
+				'affiliations_validated' => 0,
+				'affiliations_pending'   => 0,
+				'clubs_to_renew'         => 0,
 				'licenses_total'         => 0,
 				'licenses_valid'         => 0,
 				'licenses_pending'       => 0,

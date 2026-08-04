@@ -227,6 +227,8 @@ class UFSC_DB_Migrations {
             `paid_at` datetime NULL DEFAULT NULL,
             `validated_at` datetime NULL DEFAULT NULL,
 			`validated_by` bigint(20) unsigned NULL DEFAULT NULL,
+            `decision_reason` text NULL,
+            `review_history` longtext NULL,
             `created_at` datetime NULL DEFAULT NULL,
             `updated_at` datetime NULL DEFAULT NULL,
             PRIMARY KEY (`id`),

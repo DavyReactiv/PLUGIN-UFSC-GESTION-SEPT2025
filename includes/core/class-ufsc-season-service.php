@@ -117,13 +117,15 @@ class UFSC_Season_Service {
      * @return string[]
      */
     public static function get_available_seasons() {
-        $current  = self::get_current_season();
-        $seasons  = array(
-            self::shift_season( $current, -2 ),
-            self::shift_season( $current, -1 ),
-            $current,
-            self::shift_season( $current, 1 ),
-        );
+        $current = self::get_current_season();
+        // Never manufacture a future season. Callers may add an explicit
+        // projection, while this list contains only current/stored data.
+        $seasons = array( $current );
+        $stored  = get_option( 'ufsc_known_seasons', array() );
+        if ( is_array( $stored ) ) {
+            $seasons = array_merge( $seasons, $stored );
+        }
+        $seasons = apply_filters( 'ufsc_available_seasons', $seasons, $current );
         $filtered = array();
         foreach ( $seasons as $season ) {
             if ( self::is_valid_season( $season ) ) {

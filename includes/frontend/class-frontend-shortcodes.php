@@ -1782,6 +1782,9 @@ class UFSC_Frontend_Shortcodes {
      */
     public static function render_add_licence( $atts = array() ) {
 		wp_enqueue_style( 'ufsc-licence-form', UFSC_CL_URL . 'assets/css/ufsc-frontend.css', array(), UFSC_CL_VERSION );
+		$layout_path    = UFSC_CL_DIR . 'assets/css/ufsc-licence-form.css';
+		$layout_version = file_exists( $layout_path ) ? (string) filemtime( $layout_path ) : UFSC_CL_VERSION;
+		wp_enqueue_style( 'ufsc-licence-form-layout', UFSC_CL_URL . 'assets/css/ufsc-licence-form.css', array( 'ufsc-licence-form' ), $layout_version );
 		wp_enqueue_script( 'ufsc-license-form', UFSC_CL_URL . 'assets/js/ufsc-license-form.js', array( 'jquery' ), UFSC_CL_VERSION, true );
 
         $atts = shortcode_atts( array(
@@ -2137,13 +2140,6 @@ class UFSC_Frontend_Shortcodes {
 
                         <div class="ufsc-form-field">
                             <label class="ufsc-checkbox-label">
-                                <input type="checkbox" id="honorabilite" name="honorabilite" value="1">
-                                <?php esc_html_e( 'Je certifie mon honorabilité', 'ufsc-clubs' ); ?>
-                            </label>
-                        </div>
-
-                        <div class="ufsc-form-field">
-                            <label class="ufsc-checkbox-label">
                                 <input type="checkbox" id="assurance_dommage_corporel" name="assurance_dommage_corporel" value="1" <?php checked( $assurance_dommage_checked ); ?>>
                                 <?php esc_html_e( 'Assurance dommage corporel', 'ufsc-clubs' ); ?>
                             </label>
@@ -2170,14 +2166,14 @@ class UFSC_Frontend_Shortcodes {
 					<div id="ufsc-health-adult" class="ufsc-compliance-panel">
 						<h5><?php esc_html_e( 'Questionnaire de santé majeur', 'ufsc-clubs' ); ?></h5>
 						<a class="ufsc-btn ufsc-btn-secondary" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2024-08-28-QUESTIONNAIRE-SANTE-MAJEUR.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Télécharger le questionnaire de santé majeur', 'ufsc-clubs' ); ?></a>
-						<label class="ufsc-checkbox-label"><input type="checkbox" name="health_questionnaire_confirmed" value="1" <?php checked( ! empty( $form_data['health_questionnaire_confirmed'] ) ); ?>> <?php esc_html_e( 'Je confirme avoir téléchargé et lu le questionnaire de santé majeur. J’atteste avoir pris les mesures nécessaires selon mes réponses.', 'ufsc-clubs' ); ?></label>
+						<label class="ufsc-checkbox-label"><input type="checkbox" name="health_questionnaire_confirmed" value="1" required <?php checked( ! empty( $form_data['health_questionnaire_confirmed'] ) ); ?>> <?php esc_html_e( 'Je confirme que l’adhérent, ou son représentant légal s’il est mineur, a pris connaissance du questionnaire de santé applicable et a répondu à l’ensemble des questions. En fonction des réponses apportées, les démarches médicales nécessaires ont été effectuées.', 'ufsc-clubs' ); ?></label>
 					</div>
 					<div id="ufsc-health-minor" class="ufsc-compliance-panel" hidden>
 						<h5><?php esc_html_e( 'Questionnaire de santé mineur', 'ufsc-clubs' ); ?></h5>
 						<a class="ufsc-btn ufsc-btn-secondary" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2021-06-02-5-ANNEXE-4-QUESTIONNAIRE-SANTE-MINEUR.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Télécharger le questionnaire de santé mineur', 'ufsc-clubs' ); ?></a>
 						<label for="legal_representative_name"><?php esc_html_e( 'Identité du représentant légal', 'ufsc-clubs' ); ?></label>
 						<input type="text" id="legal_representative_name" name="legal_representative_name" value="<?php echo esc_attr( $form_data['legal_representative_name'] ?? '' ); ?>">
-						<label class="ufsc-checkbox-label"><input type="checkbox" name="health_questionnaire_confirmed" value="1" <?php checked( ! empty( $form_data['health_questionnaire_confirmed'] ) ); ?>> <?php esc_html_e( 'Le représentant légal confirme avoir téléchargé et lu le questionnaire de santé mineur et avoir pris les mesures nécessaires selon les réponses apportées.', 'ufsc-clubs' ); ?></label>
+						<label class="ufsc-checkbox-label"><input type="checkbox" name="health_questionnaire_confirmed" value="1" required disabled <?php checked( ! empty( $form_data['health_questionnaire_confirmed'] ) ); ?>> <?php esc_html_e( 'Je confirme que l’adhérent, ou son représentant légal s’il est mineur, a pris connaissance du questionnaire de santé applicable et a répondu à l’ensemble des questions. En fonction des réponses apportées, les démarches médicales nécessaires ont été effectuées.', 'ufsc-clubs' ); ?></label>
 					</div>
 					<div id="ufsc-honorability" class="ufsc-compliance-panel" hidden>
 						<h5><?php esc_html_e( 'Contrôle de l’honorabilité', 'ufsc-clubs' ); ?></h5>
@@ -2187,10 +2183,12 @@ class UFSC_Frontend_Shortcodes {
 					</div>
 				</section>
 
-				<div class="ufsc-form-actions">
+				<div class="ufsc-form-actions ufsc-licence-final-actions">
                     <?php if ( ! $is_locked_licence ) : ?>
                         <?php echo self::render_pre_payment_warning_block(); ?>
-						<p><?php esc_html_e( 'Enregistrez un brouillon pour compléter la licence plus tard. Ajoutez au panier uniquement lorsque toutes les informations ont été vérifiées.', 'ufsc-clubs' ); ?></p>
+						<p class="ufsc-final-help"><?php esc_html_e( 'Enregistrez un brouillon pour compléter la licence plus tard. Ajoutez au panier uniquement lorsque toutes les informations ont été vérifiées.', 'ufsc-clubs' ); ?></p>
+						<p class="ufsc-cart-confirmation"><?php esc_html_e( 'Le club confirme que les informations saisies sont exactes et que l’adhérent ou son représentant légal a accompli les démarches nécessaires relatives au questionnaire de santé.', 'ufsc-clubs' ); ?></p>
+						<div class="ufsc-final-buttons">
                         <button type="submit" class="ufsc-btn ufsc-btn-primary" onclick="document.getElementById('ufsc_submit_action').value='save';">
 							<?php esc_html_e( 'Enregistrer comme brouillon', 'ufsc-clubs' ); ?>
                         </button>
@@ -2202,6 +2200,7 @@ class UFSC_Frontend_Shortcodes {
                                 <?php esc_html_e( 'Supprimer', 'ufsc-clubs' ); ?>
                             </button>
                         <?php endif; ?>
+						</div>
                     <?php else : ?>
                         <div class="ufsc-message ufsc-info">
                             <?php esc_html_e( 'Licence en traitement/validée : modification et suppression désactivées.', 'ufsc-clubs' ); ?>
@@ -3008,6 +3007,13 @@ class UFSC_Frontend_Shortcodes {
                     $has_documents = true;
                     echo '<div class="ufsc-document-item">';
                     echo '<span class="ufsc-document-label">' . esc_html( $label ) . ':</span>';
+					$status = sanitize_key( (string) get_option( 'ufsc_club_doc_' . $slug . '_status_' . $club_id, 'pending' ) );
+					$reason = (string) get_option( 'ufsc_club_doc_' . $slug . '_reason_' . $club_id, '' );
+					echo '<span class="ufsc-document-status">' . esc_html( $status ) . '</span>';
+					if ( in_array( $status, array( 'rejected', 'correction_required' ), true ) && '' !== $reason ) {
+						echo '<p class="ufsc-document-reason"><strong>' . esc_html__( 'Motif :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $reason ) . '</p>';
+						echo '<a class="ufsc-btn ufsc-btn-small" href="' . esc_url( add_query_arg( 'upload_documents', '1' ) ) . '">' . esc_html__( 'Remplacer le document', 'ufsc-clubs' ) . '</a>';
+					}
                     echo '<div class="ufsc-document-actions">';
                     echo '<a href="' . esc_url( $attachment_url ) . '" target="_blank" rel="noopener" class="ufsc-btn ufsc-btn-small">' . esc_html__( 'Voir', 'ufsc-clubs' ) . '</a> ';
                     echo '<a href="' . esc_url( $attachment_url ) . '" download class="ufsc-btn ufsc-btn-small">' . esc_html__( 'Télécharger', 'ufsc-clubs' ) . '</a>';
