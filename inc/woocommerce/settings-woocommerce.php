@@ -118,20 +118,36 @@ function ufsc_get_woocommerce_product_diagnostic( $product_id ) {
         'product_found'            => false,
         'product_status'           => '',
         'product_purchasable'      => false,
+		'product_visibility'       => '',
+		'product_type'             => '',
+		'product_permalink'        => '',
+		'unavailable_reason'       => '',
     );
 
     if ( ! $diagnostic['woocommerce_active'] || ! $diagnostic['wc_get_product_available'] || $product_id <= 0 ) {
+		$diagnostic['unavailable_reason'] = ! $diagnostic['woocommerce_active'] ? 'woocommerce_inactive' : ( $product_id <= 0 ? 'missing_product_id' : 'product_api_unavailable' );
         return $diagnostic;
     }
 
     $product = wc_get_product( $product_id );
     if ( ! $product || ! $product->exists() ) {
+		$diagnostic['unavailable_reason'] = 'product_not_found';
         return $diagnostic;
     }
 
     $diagnostic['product_found']       = true;
     $diagnostic['product_status']      = is_callable( array( $product, 'get_status' ) ) ? (string) $product->get_status() : '';
     $diagnostic['product_purchasable'] = is_callable( array( $product, 'is_purchasable' ) ) ? (bool) $product->is_purchasable() : false;
+	$diagnostic['product_visibility']  = is_callable( array( $product, 'get_catalog_visibility' ) ) ? (string) $product->get_catalog_visibility() : '';
+	$diagnostic['product_type']        = is_callable( array( $product, 'get_type' ) ) ? (string) $product->get_type() : '';
+	$diagnostic['product_permalink']   = get_permalink( $product_id );
+	if ( 'publish' !== $diagnostic['product_status'] ) {
+		$diagnostic['unavailable_reason'] = 'product_not_published';
+	} elseif ( 'hidden' === $diagnostic['product_visibility'] ) {
+		$diagnostic['unavailable_reason'] = 'product_hidden';
+	} elseif ( ! $diagnostic['product_purchasable'] ) {
+		$diagnostic['unavailable_reason'] = 'product_not_purchasable';
+	}
 
     return $diagnostic;
 }
@@ -150,6 +166,7 @@ function ufsc_is_woocommerce_product_available( $product_id ) {
         && ! empty( $diagnostic['product_id'] )
         && ! empty( $diagnostic['product_found'] )
         && 'publish' === $diagnostic['product_status']
+		&& 'hidden' !== $diagnostic['product_visibility']
         && ! empty( $diagnostic['product_purchasable'] );
 }
 

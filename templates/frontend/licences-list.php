@@ -52,8 +52,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
             $status_class  = $status_norm ? sanitize_html_class( $status_norm ) : 'en_attente';
             $season_label  = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $licence ) : ( function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence ) : '' );
-            $current_season = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
-            $next_season    = function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '';
+            $current_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+            $next_season    = $current_season;
             $renew_open     = function_exists( 'ufsc_is_renewal_window_open' ) ? ufsc_is_renewal_window_open() : false;
             $renew_done     = function_exists( 'ufsc_get_renewed_licence_marker' )
                 ? (bool) ufsc_get_renewed_licence_marker( (int) ( $licence->id ?? 0 ), $next_season )

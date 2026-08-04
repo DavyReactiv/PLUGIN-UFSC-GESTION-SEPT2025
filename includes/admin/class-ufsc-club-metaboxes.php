@@ -98,7 +98,7 @@ class UFSC_CL_Club_Metaboxes {
     public static function render_renewal_metabox( $post ) {
         $club_id        = absint( $post->ID );
         $current_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
-        $renewal_affiliation_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_next_season() : ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : '' );
+        $renewal_affiliation_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
         $renew_open     = function_exists( 'ufsc_is_renewal_window_open' ) ? ufsc_is_renewal_window_open() : true;
 
         // Affiliation season (club)

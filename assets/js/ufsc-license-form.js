@@ -10,7 +10,32 @@
     $(document).ready(function() {
         initLicenseFormValidation();
         initClubRegionSync();
+		initCompliancePanels();
     });
+
+	function initCompliancePanels() {
+		const birth = $('#date_naissance');
+		const role = $('#role');
+		const adult = $('#ufsc-health-adult');
+		const minor = $('#ufsc-health-minor');
+		const honorability = $('#ufsc-honorability');
+		const roles = ['dirigeant', 'president', 'secretaire', 'tresorier', 'educateur', 'entraineur', 'coach', 'encadrant', 'responsable_technique'];
+		function refresh() {
+			const value = birth.val();
+			const date = value ? new Date(value + 'T00:00:00') : null;
+			const now = new Date();
+			let age = date && !isNaN(date.getTime()) ? now.getFullYear() - date.getFullYear() : 18;
+			if (date && (now.getMonth() < date.getMonth() || (now.getMonth() === date.getMonth() && now.getDate() < date.getDate()))) age--;
+			const isMinor = age < 18;
+			adult.prop('hidden', isMinor).find(':input').prop('disabled', isMinor);
+			minor.prop('hidden', !isMinor).find(':input').prop('disabled', !isMinor);
+			const needsHonorability = roles.indexOf(role.val()) !== -1;
+			honorability.prop('hidden', !needsHonorability).find(':input').prop('disabled', !needsHonorability);
+		}
+		birth.on('change input', refresh);
+		role.on('change', refresh);
+		refresh();
+	}
 
     /**
      * Initialize form validation for license forms

@@ -807,11 +807,11 @@ function ufsc_handle_add_to_cart_secure() {
 	if ( in_array( $ufsc_action, array( 'renew_licence', 'renew_affiliation' ), true ) ) {
 		if ( '' === $target_season ) {
 			$target_season = class_exists( 'UFSC_Season_Service' )
-				? UFSC_Season_Service::get_next_season()
-				: ( function_exists( 'ufsc_get_next_season' ) ? ufsc_get_next_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ) );
+				? UFSC_Season_Service::get_current_season()
+				: ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
 		}
 
-		$current_season_for_renewal = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
+		$current_season_for_renewal = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
 		if ( $target_season && $current_season_for_renewal && $target_season !== $current_season_for_renewal && ( ! function_exists( 'ufsc_is_renewal_window_open' ) || ! ufsc_is_renewal_window_open() ) ) {
 			$renew_start_ts = function_exists( 'ufsc_get_renewal_window_start_ts' ) ? (int) ufsc_get_renewal_window_start_ts() : 0;
 			$renew_open_label = $renew_start_ts > 0 ? wp_date( 'd/m/Y', $renew_start_ts ) : __( '30/07', 'ufsc-clubs' );

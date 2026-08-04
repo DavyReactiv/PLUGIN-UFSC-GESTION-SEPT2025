@@ -999,6 +999,9 @@ class UFSC_Clubs_List_Table {
         if ( in_array( $normalized, array( 'actif', 'active', 'valide', 'validated' ), true ) ) {
             $label = __( 'Actif', 'ufsc-clubs' );
             $class = 'ufsc-badge ufsc-badge--success';
+		} elseif ( 'a_renouveler' === $normalized ) {
+			$label = __( 'À renouveler', 'ufsc-clubs' );
+			$class = 'ufsc-badge ufsc-badge--warning';
         } elseif ( in_array( $normalized, array( 'en_attente', 'pending', 'a_regler', 'creating', 'en_cours_de_creation' ), true ) ) {
             $label = __( 'En attente', 'ufsc-clubs' );
             $class = 'ufsc-badge ufsc-badge--warning';

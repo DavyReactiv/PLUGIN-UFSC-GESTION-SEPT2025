@@ -795,7 +795,7 @@ class UFSC_SQL_Admin
             'birthdate'     => $birthdate,
             'gender'        => $gender,
             'weight'        => $weight,
-            'season'        => $season ?: '2025-2026',
+			'season'        => $season ?: self::get_admin_current_season_label(),
             'discipline'    => 'Kickboxing / Tatami / Assaut',
             'updated_at'    => trim( (string) self::get_row_field_value( $licence, 'categorie_updated_at' ) ),
         );

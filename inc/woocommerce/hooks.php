@@ -405,6 +405,18 @@ function ufsc_wc_process_renewal_items( $order ) {
 			if ( function_exists( 'ufsc_mark_renewed_licence_marker' ) ) {
 				ufsc_mark_renewed_licence_marker( $source_id, $target_season, $new_id );
 			}
+			if ( function_exists( 'ufsc_set_option_noautoload' ) ) {
+				ufsc_set_option_noautoload(
+					'ufsc_licence_renewal_audit_' . $new_id,
+					array(
+						'previous_licence_id' => $source_id,
+						'season'              => $target_season,
+						'user_id'             => is_callable( array( $order, 'get_user_id' ) ) ? absint( $order->get_user_id() ) : 0,
+						'order_id'            => (int) $order->get_id(),
+						'renewed_at'          => current_time( 'mysql' ),
+					)
+				);
+			}
 
 			// Hooks (keep existing behavior)
 			do_action( 'ufsc_licence_created', $new_id, $club_id );

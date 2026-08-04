@@ -137,8 +137,13 @@ class UFSC_PDF_Attestations {
 								</th>
 								<td>
 									<select name="saison" id="saison" required>
-										<option value="2025-2026" selected>2025-2026</option>
-										<option value="2024-2025">2024-2025</option>
+										<?php
+										$current_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+										$seasons = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_available_seasons() : array( $current_season );
+										foreach ( array_unique( array_filter( $seasons ) ) as $season_option ) :
+										?>
+											<option value="<?php echo esc_attr( $season_option ); ?>" <?php selected( $season_option, $current_season ); ?>><?php echo esc_html( $season_option ); ?></option>
+										<?php endforeach; ?>
 									</select>
 								</td>
 							</tr>
@@ -557,8 +562,11 @@ class UFSC_PDF_Attestations {
 	/**
 	 * Get attestation for specific club/context
 	 */
-	public static function get_attestation_for_club( $club_id, $type = 'affiliation', $saison = '2025-2026' ) {
+	public static function get_attestation_for_club( $club_id, $type = 'affiliation', $saison = '' ) {
 		global $wpdb;
+		if ( '' === $saison ) {
+			$saison = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+		}
 
 		$table_name = $wpdb->prefix . 'ufsc_attestations';
 

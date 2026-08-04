@@ -17,6 +17,11 @@ $season_service = file_get_contents( $root . '/includes/core/class-ufsc-season-s
 $admin_dashboard = file_get_contents( $root . '/includes/admin/class-admin-menu.php' );
 $clubs_list = file_get_contents( $root . '/includes/admin/list-tables/class-ufsc-clubs-list-table.php' );
 $shortcodes = file_get_contents( $root . '/includes/frontend/class-frontend-shortcodes.php' );
+$stats = file_get_contents( $root . '/includes/front/class-ufsc-stats.php' );
+$handlers = file_get_contents( $root . '/includes/core/class-unified-handlers.php' );
+$licence_js = file_get_contents( $root . '/assets/js/ufsc-license-form.js' );
+$licence_css = file_get_contents( $root . '/assets/css/ufsc-frontend.css' );
+$attestations = file_get_contents( $root . '/inc/common/attestations.php' );
 
 $assert = static function ( $condition, $message ) {
     if ( ! $condition ) {
@@ -54,5 +59,13 @@ $assert( strpos( $settings, 'UFSC_Season_Service::get_current_season()' ) !== fa
 $assert( strpos( $shortcodes, '$renewal_affiliation_season = $current_season' ) !== false && strpos( $dashboard, '$renewal_affiliation_season = $current_season' ) !== false, 'Both club dashboard renderers must target the current season.' );
 $assert( strpos( $admin_dashboard, "REPLACE(`{\$season_column}`, '/', '-') = %s" ) !== false, 'Dashboard counters must use an explicit licence season predicate.' );
 $assert( strpos( $admin_dashboard, 'ufsc_affiliations_seasons' ) !== false && strpos( $clubs_list, 'UFSC_Season_Archive_Manager::get_affiliation' ) !== false, 'Admin affiliation counts and rows must use annual affiliation storage.' );
+$assert( strpos( $shortcodes, '0 === $comparison || null === $comparison' ) === false, 'Ambiguous licence seasons must never be treated as current.' );
+$assert( strpos( $stats, "REPLACE(`{\$season_column}`, '/', '-') = %s" ) !== false && strpos( $stats, 'AND 0 = 1' ) !== false, 'Frontend statistics must use an explicit fail-closed season predicate.' );
+$assert( strpos( $shortcodes, "echo self::render_add_licence" ) !== false, 'Shortcode and dashboard licence forms must share one renderer.' );
+$assert( strpos( $handlers, 'health_questionnaire_confirmed' ) !== false && strpos( $handlers, 'honorability_confirmed' ) !== false, 'Health and honorability confirmations need server-side validation.' );
+$assert( strpos( $handlers, 'medical_answer' ) === false && strpos( $handlers, 'questionnaire_response' ) === false, 'Medical questionnaire answers must not be stored.' );
+$assert( strpos( $licence_js, 'initCompliancePanels' ) !== false, 'Birth date and role changes must update compliance panels.' );
+$assert( strpos( $licence_css, 'max-width: 1200px' ) !== false && strpos( $licence_css, '@media (max-width: 782px)' ) !== false, 'Licence form must have desktop and mobile layouts.' );
+$assert( strpos( $attestations, "get_attestation_for_club( \$club_id, 'affiliation', \$current_season )" ) !== false && strpos( $attestations, 'ufsc_club_doc_attestation_affiliation_' ) === false, 'Legacy permanent attestations must not be exposed as current-season documents.' );
 
 echo "Renewal/season static safeguards OK\n";
