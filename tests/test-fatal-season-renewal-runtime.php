@@ -34,6 +34,9 @@ if ( 'disabled' !== $mode ) {
         public function exists() { return true; }
         public function get_status() { return 'publish'; }
         public function is_purchasable() { return true; }
+		public function get_catalog_visibility() { return 'visible'; }
+		public function get_type() { return 'simple'; }
+		public function get_price() { return '50'; }
     }
     function wc_get_product( $id ) {
         return ( 'missing' === $GLOBALS['runtime_mode'] || 77 !== (int) $id ) ? false : new UFSC_Test_Product();
