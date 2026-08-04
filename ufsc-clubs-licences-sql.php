@@ -78,6 +78,7 @@ require_once UFSC_CL_DIR.'inc/common/season.php';
 require_once UFSC_CL_DIR.'inc/common/seasons.php';
 require_once UFSC_CL_DIR.'inc/common/feature-flags.php';
 require_once UFSC_CL_DIR.'inc/common/licence-status.php';
+require_once UFSC_CL_DIR.'inc/common/fighter-level.php';
 require_once UFSC_CL_DIR.'inc/common/licence-documents.php';
 require_once UFSC_CL_DIR.'inc/common/attestations.php';
 require_once UFSC_CL_DIR.'inc/common/tables.php';
