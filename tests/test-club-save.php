@@ -2,6 +2,8 @@
 define('ABSPATH', __DIR__);
 // Minimal stubs for WordPress functions used in handle_save_club
 function wp_verify_nonce( $nonce, $action ) { return $nonce === 'valid'; }
+function check_admin_referer( $action ) { return true; }
+function wp_unslash( $value ) { return $value; }
 function wp_die( $message ) { throw new Exception( $message ); }
 function is_user_logged_in() { return true; }
 function get_current_user_id() { return 1; }

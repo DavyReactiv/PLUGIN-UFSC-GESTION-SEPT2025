@@ -537,6 +537,7 @@ class UFSC_Clubs_List_Table {
             'documents_incomplete' => null,
             'licences' => self::sum_licence_counts_for_scope( $columns, $clubs_table, $licence_counts, $where_scope ),
             'missing_affiliation' => null,
+			'honorability' => array( 'required' => 0, 'validated' => 0, 'pending' => 0, 'rejected' => 0, 'correction_required' => 0, 'missing' => 0, 'complete' => 0, 'incomplete' => 0 ),
         );
 
 		$current_season = self::get_admin_season_label();
@@ -546,6 +547,20 @@ class UFSC_Clubs_List_Table {
 		$stats['active'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT a.club_id) FROM `{$affiliations_table}` a INNER JOIN `{$clubs_table}` c ON c.id = a.club_id WHERE a.season = %s AND LOWER(a.status) IN ('validated','valide','active','actif'){$scope_join}", $current_season ) );
 		$stats['pending'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT a.club_id) FROM `{$affiliations_table}` a INNER JOIN `{$clubs_table}` c ON c.id = a.club_id WHERE a.season = %s AND LOWER(a.status) IN ('pending','pending_payment','pending_validation','en_attente'){$scope_join}", $current_season ) );
 		$stats['to_renew'] = max( 0, $stats['total'] - $stats['active'] - $stats['pending'] );
+		if ( function_exists( 'ufsc_get_honorability_document_kpis' ) && function_exists( 'ufsc_get_licences_table' ) ) {
+			$licences_table = ufsc_get_licences_table();
+			$licence_columns = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $licences_table ) : array();
+			$role_column = in_array( 'role', $licence_columns, true ) ? 'role' : ( in_array( 'fonction', $licence_columns, true ) ? 'fonction AS role' : "'pratiquant' AS role" );
+			$licence_rows = $wpdb->get_results( "SELECT id, club_id, {$role_column} FROM `{$licences_table}`" );
+			$club_view = self::get_query_value( 'club_view', 'key' );
+			if ( 'permanent' !== $club_view ) {
+				$status_clause = 'renewals' === $club_view ? " AND LOWER(status) IN ('active','validated','valide','actif')" : '';
+				$annual_club_ids = array_map( 'absint', (array) $wpdb->get_col( $wpdb->prepare( "SELECT DISTINCT club_id FROM `{$affiliations_table}` WHERE season = %s{$status_clause}", $current_season ) ) );
+				$licence_rows = array_values( array_filter( (array) $licence_rows, static function( $row ) use ( $annual_club_ids, $club_view ) { $found = in_array( absint( $row->club_id ?? 0 ), $annual_club_ids, true ); return 'renewals' === $club_view ? ! $found : $found; } ) );
+			}
+			$licence_rows = array_values( array_filter( (array) $licence_rows, static function( $row ) use ( $current_season ) { return ! function_exists( 'ufsc_get_licence_season' ) || ufsc_get_licence_season( $row->id ) === $current_season; } ) );
+			$stats['honorability'] = ufsc_get_honorability_document_kpis( $licence_rows, $current_season );
+		}
 
         $doc_fields = self::get_available_document_fields( $columns, $clubs_table );
         if ( ! empty( $doc_fields ) ) {
@@ -574,6 +589,12 @@ class UFSC_Clubs_List_Table {
             $cards[] = array( 'label' => __( 'Documents permanents complets', 'ufsc-clubs' ), 'value' => $stats['documents_complete'], 'tone' => 'success' );
             $cards[] = array( 'label' => __( 'Documents permanents incomplets', 'ufsc-clubs' ), 'value' => $stats['documents_incomplete'], 'tone' => 'danger' );
         }
+		if ( $stats['honorability']['required'] ) {
+			$cards[] = array( 'label' => __( 'Attestations d’honorabilité validées', 'ufsc-clubs' ), 'value' => $stats['honorability']['validated'], 'tone' => 'success' );
+			$cards[] = array( 'label' => __( 'Attestations en attente', 'ufsc-clubs' ), 'value' => $stats['honorability']['pending'], 'tone' => 'warning' );
+			$cards[] = array( 'label' => __( 'Attestations refusées / à corriger', 'ufsc-clubs' ), 'value' => $stats['honorability']['rejected'] + $stats['honorability']['correction_required'], 'tone' => 'danger' );
+			$cards[] = array( 'label' => __( 'Dossiers honorabilité incomplets', 'ufsc-clubs' ), 'value' => $stats['honorability']['incomplete'], 'tone' => 'danger' );
+		}
         $cards[] = array( 'label' => sprintf( __( 'Licences %s', 'ufsc-clubs' ), $current_season ), 'value' => $stats['licences'], 'tone' => 'primary' );
         if ( null !== $stats['missing_affiliation'] ) {
             $cards[] = array( 'label' => sprintf( __( 'Clubs sans numéro d’affiliation pour %s', 'ufsc-clubs' ), $current_season ), 'value' => $stats['missing_affiliation'], 'tone' => 'danger' );
@@ -917,7 +938,11 @@ class UFSC_Clubs_List_Table {
     if ( $can_manage_clubs ) {
         echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a> ';
         echo '<a href="' . esc_url( $documents_url ) . '" class="button button-small">' . esc_html__( 'Documents', 'ufsc-clubs' ) . '</a> ';
-        echo '<button type="button" class="button button-small ufsc-button-disabled" disabled="disabled" aria-disabled="true" title="' . esc_attr__( 'Relance à brancher sur une action email sécurisée existante.', 'ufsc-clubs' ) . '">' . esc_html__( 'Relancer', 'ufsc-clubs' ) . '</button> ';
+		if ( 'renewals' === self::get_query_value( 'club_view', 'key' ) ) {
+			$renew_url = function_exists( 'ufsc_get_affiliation_renewal_url' ) ? ufsc_get_affiliation_renewal_url( $club_id, $current_season ) : $edit_url;
+			echo '<a href="' . esc_url( $renew_url ) . '" class="button button-small button-primary">' . esc_html__( 'Créer / renouveler l’affiliation', 'ufsc-clubs' ) . '</a> ';
+			if ( $club_email ) { echo '<a class="button button-small" href="mailto:' . esc_attr( $club_email ) . '?subject=' . rawurlencode( sprintf( __( 'Renouvellement affiliation UFSC %s', 'ufsc-clubs' ), $current_season ) ) . '">' . esc_html__( 'Relancer', 'ufsc-clubs' ) . '</a> '; }
+		}
         echo '<a href="' . esc_url( $delete_url ) . '" class="button button-small button-link-delete" onclick="return confirm(\'' . esc_js( __( 'Êtes-vous sûr de vouloir supprimer ce club ?', 'ufsc-clubs' ) ) . '\')">' . esc_html__( 'Supprimer', 'ufsc-clubs' ) . '</a>';
     }
     echo '</div></td>';

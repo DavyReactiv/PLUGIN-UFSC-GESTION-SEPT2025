@@ -23,6 +23,8 @@ $check( false !== strpos( $front, 'Attestation d’honorabilité manquante' ) &&
 $check( false === strpos( $handler, 'medical_answer' ) && false === strpos( $handler, 'questionnaire_response' ), 'Medical answers must never be stored.' );
 $check( false !== strpos( $woo, "'previous_licence_id'" ), 'Renewals must retain lineage.' );
 $check( false === strpos( $woo, "'numero_asptt','" ) && false === strpos( $woo, "'numero_asptt'," ), 'ASPTT number must not be part of the renewal copy whitelist.' );
+$check( false !== strpos( $woo, 'ufsc_add_renewal_sources_to_cart' ) && false !== strpos( $front, 'renew_licence_ids[]' ), 'Bulk renewal must create selectable, individually contextualized lines.' );
+$check( false !== strpos( $handler, 'handle_upload_honorability_attestation' ) && false !== strpos( $handler, 'handle_decide_honorability_attestation' ), 'Persistent upload and decision handlers must be registered.' );
 
 if ( $failures ) { fwrite( STDERR, "FAIL\n- " . implode( "\n- ", $failures ) . "\n" ); exit( 1 ); }
 echo "OK: season status, archive and honorability static regressions\n";
