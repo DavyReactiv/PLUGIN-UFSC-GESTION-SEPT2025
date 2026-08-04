@@ -35,6 +35,7 @@ class UFSC_Import_Export
             __('Email', 'ufsc-clubs'),
             __('Téléphone mobile', 'ufsc-clubs'),
             __('Date de naissance', 'ufsc-clubs'),
+            __('Niveau sportif', 'ufsc-clubs'),
             __('Sexe', 'ufsc-clubs'),
             __('Adresse', 'ufsc-clubs'),
             __('Suite adresse', 'ufsc-clubs'),
@@ -85,6 +86,7 @@ class UFSC_Import_Export
                 $licence['email'] ?? '',
                 $licence['tel_mobile'] ?? '',
                 $licence['date_naissance'] ?? '',
+                function_exists( 'ufsc_fighter_level_label' ) ? ufsc_fighter_level_label( $licence['fighter_level'] ?? '' ) : ( $licence['fighter_level'] ?? '' ),
                 $licence['sexe'] ?? '',
                 $licence['adresse'] ?? '',
                 $licence['suite_adresse'] ?? '',
@@ -223,6 +225,7 @@ class UFSC_Import_Export
                 'AB1' => __('Note', 'ufsc-clubs'),
                 'AC1' => __('Assurance dommage corporel', 'ufsc-clubs'),
                 'AD1' => __('Assurance assistance', 'ufsc-clubs'),
+                'AE1' => __('Niveau sportif', 'ufsc-clubs'),
             ];
 
             foreach ($headers as $cell => $value) {
@@ -237,7 +240,7 @@ class UFSC_Import_Export
                     'startColor' => ['rgb' => 'E9ECEF'],
                 ],
             ];
-            $sheet->getStyle('A1:AD1')->applyFromArray($headerStyle);
+            $sheet->getStyle('A1:AE1')->applyFromArray($headerStyle);
 
             // Data
             $row = 2;
@@ -286,6 +289,7 @@ class UFSC_Import_Export
                 $sheet->setCellValue("AB{$row}", $licence['note'] ?? '');
                 $sheet->setCellValue("AC{$row}", $assurance_dommage_corporel);
                 $sheet->setCellValue("AD{$row}", $assurance_assistance);
+                $sheet->setCellValue("AE{$row}", function_exists( 'ufsc_fighter_level_label' ) ? ufsc_fighter_level_label( $licence['fighter_level'] ?? '' ) : ( $licence['fighter_level'] ?? '' ));
 
                 $row++;
             }

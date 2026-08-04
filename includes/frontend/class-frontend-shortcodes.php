@@ -1976,13 +1976,13 @@ class UFSC_Frontend_Shortcodes {
                         </div>
                         <div class="ufsc-field ufsc-field--full">
                             <label for="fighter_level"><?php esc_html_e( 'Niveau sportif', 'ufsc-clubs' ); ?></label>
-                            <select id="fighter_level" name="fighter_level" data-ufsc-fighter-level>
+                            <select id="fighter_level" name="fighter_level" data-ufsc-fighter-level data-veteran-min-age="<?php echo esc_attr( ufsc_get_veteran_min_age() ); ?>">
                                 <option value=""><?php esc_html_e( 'Non renseigné', 'ufsc-clubs' ); ?></option>
                                 <?php foreach ( ufsc_get_fighter_levels() as $level_key => $level_label ) : ?>
                                     <option value="<?php echo esc_attr( $level_key ); ?>" <?php selected( $form_data['fighter_level'] ?? '', $level_key ); ?>><?php echo esc_html( $level_label ); ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <small data-ufsc-level-help><?php esc_html_e( 'Mineur : Assaut. Majeur : Classe C, Classe B, Classe A ou Vétéran.', 'ufsc-clubs' ); ?></small>
+                            <small data-ufsc-level-help><?php echo esc_html( sprintf( __( 'Mineur : Assaut. Majeur : Classe C, Classe B ou Classe A. Vétéran à partir de %d ans.', 'ufsc-clubs' ), ufsc_get_veteran_min_age() ) ); ?></small>
                         </div>
                     </div>
 

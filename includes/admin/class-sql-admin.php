@@ -10,6 +10,10 @@ if ( class_exists( 'UFSC_SQL_Admin', false ) ) {
 
 class UFSC_SQL_Admin
 {
+	/** True only for the canonical list route; forms never append the list. */
+	public static function licence_screen_renders_table( $action ) {
+		return ! in_array( sanitize_key( (string) $action ), array( 'new', 'edit', 'view' ), true );
+	}
     /**
      * Get managed club document keys.
      *
@@ -3607,7 +3611,8 @@ class UFSC_SQL_Admin
             echo '<a href="' . esc_url(admin_url('admin.php?page=ufsc-exports')) . '" class="button">' . esc_html__('Exporter', 'ufsc-clubs') . '</a></p>';
         }
 
-        if (isset($_GET['action']) && $_GET['action'] === 'edit') {
+        $screen_action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : '';
+        if ( 'edit' === $screen_action ) {
             if ( ! ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
                 wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
             }
@@ -3621,7 +3626,7 @@ class UFSC_SQL_Admin
             self::render_licence_form( $id, false, $licence_row, $admin_pk, 'preloaded' );
             echo '</div>';
             return;
-        } elseif (isset($_GET['action']) && $_GET['action'] === 'view') {
+        } elseif ( 'view' === $screen_action ) {
             $id = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : 0;
             $licence_row = self::get_admin_licence_by_id( $licences_table, $admin_pk, $id );
             if ( ! $licence_row ) {
@@ -3632,12 +3637,16 @@ class UFSC_SQL_Admin
             self::render_licence_form( $id, true, $licence_row, $admin_pk, 'preloaded' ); // true = readonly mode
             echo '</div>';
             return;
-        } elseif (isset($_GET['action']) && $_GET['action'] === 'new') {
+        } elseif ( 'new' === $screen_action ) {
             if ( ! ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
                 wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) );
             }
             self::render_licence_form(0);
             echo '</div>';
+            return;
+        }
+
+        if ( ! self::licence_screen_renders_table( $screen_action ) ) {
             return;
         }
 
@@ -4365,12 +4374,12 @@ class UFSC_SQL_Admin
             }
         } elseif ( 'fighter_level' === $type ) {
             $levels = function_exists( 'ufsc_get_fighter_levels' ) ? ufsc_get_fighter_levels() : array();
-            echo '<select name="fighter_level" id="fighter_level" data-ufsc-fighter-level ' . $disabled_attr . '>';
+            echo '<select name="fighter_level" id="fighter_level" data-ufsc-fighter-level data-veteran-min-age="' . esc_attr( ufsc_get_veteran_min_age() ) . '" ' . $disabled_attr . '>';
             echo '<option value="">' . esc_html__( 'Non renseigné', 'ufsc-clubs' ) . '</option>';
             foreach ( $levels as $level_key => $level_label ) {
                 echo '<option value="' . esc_attr( $level_key ) . '" ' . selected( $val, $level_key, false ) . '>' . esc_html( $level_label ) . '</option>';
             }
-            echo '</select><p class="description" data-ufsc-level-help>' . esc_html__( 'Mineur : Assaut. Majeur : Classe C, Classe B, Classe A ou Vétéran. Le contrôle final est effectué par le serveur.', 'ufsc-clubs' ) . '</p>';
+            echo '</select><p class="description" data-ufsc-level-help>' . esc_html( sprintf( __( 'Mineur : Assaut. Majeur : Classe C, Classe B ou Classe A. Vétéran à partir de %d ans. Le contrôle final est effectué par le serveur.', 'ufsc-clubs' ), ufsc_get_veteran_min_age() ) ) . '</p>';
         } elseif ($type === 'region') {
             echo '<select name="' . esc_attr($k) . '" ' . $disabled_attr . '>';
             $scope_slug  = UFSC_Scope::get_user_scope_region();
@@ -5368,6 +5377,7 @@ class UFSC_SQL_Admin
             'nom'                        => 'l.nom',
             'prenom'                     => 'l.prenom',
             'date_naissance'             => 'l.date_naissance',
+            'fighter_level'              => "CASE l.fighter_level WHEN 'assaut' THEN 'Assaut' WHEN 'classe_c' THEN 'Classe C' WHEN 'classe_b' THEN 'Classe B' WHEN 'classe_a' THEN 'Classe A' WHEN 'veteran' THEN 'Vétéran' ELSE 'Non renseigné' END AS fighter_level",
             'sexe'                       => 'l.sexe',
             'email'                      => 'l.email',
             'adresse'                    => 'l.adresse',
@@ -5404,6 +5414,7 @@ class UFSC_SQL_Admin
             'nom'                        => 'Nom',
             'prenom'                     => 'Prénom',
             'date_naissance'             => 'Date de naissance',
+            'fighter_level'              => 'Niveau sportif',
             'sexe'                       => 'Sexe',
             'email'                      => 'Email',
             'adresse'                    => 'Adresse',

@@ -583,6 +583,7 @@ if ( ! function_exists( 'ufsc_get_renewal_copy_fields' ) ) {
 			'surclassement',
 			'piece_identite',
 			'photo_identite',
+			'fighter_level',
 		);
 	}
 }

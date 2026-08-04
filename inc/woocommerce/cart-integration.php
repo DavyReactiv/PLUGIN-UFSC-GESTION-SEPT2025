@@ -911,6 +911,7 @@ function ufsc_handle_add_to_cart_secure() {
 			$cart_item_data['ufsc_prenom'] = isset( $row->prenom ) ? (string) $row->prenom : '';
 			$cart_item_data['ufsc_date_naissance'] = isset( $row->date_naissance ) ? (string) $row->date_naissance : '';
 			$cart_item_data['ufsc_sexe'] = isset( $row->sexe ) ? (string) $row->sexe : '';
+			$cart_item_data['ufsc_fighter_level'] = isset( $row->fighter_level ) ? sanitize_key( (string) $row->fighter_level ) : '';
 			$quantity = 1;
 		} else {
 			if ( function_exists( 'ufsc_is_club_affiliated_for_season' ) && ufsc_is_club_affiliated_for_season( $club_id, $target_season ) ) {
@@ -1304,6 +1305,9 @@ function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $orde
 	}
 	if ( isset( $values['ufsc_date_naissance'] ) ) {
 		$item->add_meta_data( '_ufsc_date_naissance', sanitize_text_field( (string) $values['ufsc_date_naissance'] ) );
+	}
+	if ( isset( $values['ufsc_fighter_level'] ) ) {
+		$item->add_meta_data( '_ufsc_fighter_level', sanitize_key( (string) $values['ufsc_fighter_level'] ) );
 	}
 }
 

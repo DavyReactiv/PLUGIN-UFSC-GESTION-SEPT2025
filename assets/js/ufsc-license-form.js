@@ -26,7 +26,9 @@
 			level.find('option').prop('hidden', false);
 			if (age === null) return;
 			level.find('option[value="assaut"]').prop('hidden', age >= 18);
-			level.find('option[value^="classe_"], option[value="veteran"]').prop('hidden', age < 18);
+			level.find('option[value^="classe_"]').prop('hidden', age < 18);
+			const veteranMinAge = parseInt(level.attr('data-veteran-min-age'), 10) || 41;
+			level.find('option[value="veteran"]').prop('hidden', age < veteranMinAge);
 			if (level.find('option:selected').prop('hidden')) level.val('');
 		}
 		birth.on('change input', refreshLevelOptions);
