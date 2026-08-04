@@ -104,13 +104,50 @@ table tr {
 
 /* Frontend form styling */
 .ufsc-frontend-form {
-    max-width: 600px;
+    max-width: 1200px;
     margin: 20px 0;
     background: var(--ufsc-bg);
     color: var(--ufsc-text);
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.ufsc-add-licence-section {
+    width: min(100%, 1200px);
+    margin-inline: auto;
+}
+
+.ufsc-add-licence-section > form > .ufsc-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+}
+
+.ufsc-compliance-section {
+    margin-top: 20px;
+}
+
+.ufsc-compliance-panel {
+    border-left: 4px solid var(--ufsc-primary);
+    padding: 16px;
+    margin-top: 16px;
+    background: #f7fbff;
+}
+
+.ufsc-compliance-panel[hidden] {
+    display: none;
+}
+
+@media (max-width: 782px) {
+    .ufsc-add-licence-section > form > .ufsc-grid {
+        grid-template-columns: 1fr;
+    }
+    .ufsc-add-licence-section .ufsc-form-actions .ufsc-btn {
+        display: block;
+        width: 100%;
+        margin: 8px 0;
+        text-align: center;
+    }
 }
 
 .ufsc-frontend-form h2 {

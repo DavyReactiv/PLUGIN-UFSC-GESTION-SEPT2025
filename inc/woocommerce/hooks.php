@@ -405,6 +405,18 @@ function ufsc_wc_process_renewal_items( $order ) {
 			if ( function_exists( 'ufsc_mark_renewed_licence_marker' ) ) {
 				ufsc_mark_renewed_licence_marker( $source_id, $target_season, $new_id );
 			}
+			if ( function_exists( 'ufsc_set_option_noautoload' ) ) {
+				ufsc_set_option_noautoload(
+					'ufsc_licence_renewal_audit_' . $new_id,
+					array(
+						'previous_licence_id' => $source_id,
+						'season'              => $target_season,
+						'user_id'             => is_callable( array( $order, 'get_user_id' ) ) ? absint( $order->get_user_id() ) : 0,
+						'order_id'            => (int) $order->get_id(),
+						'renewed_at'          => current_time( 'mysql' ),
+					)
+				);
+			}
 
 			// Hooks (keep existing behavior)
 			do_action( 'ufsc_licence_created', $new_id, $club_id );
@@ -420,8 +432,8 @@ function ufsc_wc_process_renewal_items( $order ) {
 				continue;
 			}
 
-			// Idempotence (skip if already renewed)
-			if ( function_exists( 'ufsc_is_affiliation_renewed' ) && ufsc_is_affiliation_renewed( $club_id, $target_season ) ) {
+			$existing_affiliation = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( $club_id, $target_season ) : null;
+			if ( $existing_affiliation && 'paid' === sanitize_key( (string) $existing_affiliation->payment_status ) ) {
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 					ufsc_wc_log(
 						'ufsc_renew_affiliation_idempotent_skip',
@@ -435,14 +447,10 @@ function ufsc_wc_process_renewal_items( $order ) {
 				continue;
 			}
 
-			if ( class_exists( 'UFSC_SQL' ) ) {
-				UFSC_SQL::mark_club_affiliation_active( $club_id, $target_season );
-			}
-			if ( function_exists( 'ufsc_set_affiliation_season' ) ) {
-				ufsc_set_affiliation_season( $club_id, $target_season );
-			}
-			if ( function_exists( 'ufsc_mark_affiliation_renewed' ) ) {
-				ufsc_mark_affiliation_renewed( $club_id, $target_season );
+			$previous_affiliation_id = absint( $item->get_meta( 'ufsc_previous_affiliation_id', true ) );
+			$product_id = is_callable( array( $item, 'get_product_id' ) ) ? absint( $item->get_product_id() ) : 0;
+			if ( class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+				UFSC_Season_Archive_Manager::record_paid_renewal( $club_id, $target_season, $order->get_id(), $product_id, $previous_affiliation_id );
 			}
 
 			do_action( 'ufsc_licence_updated', $club_id );
