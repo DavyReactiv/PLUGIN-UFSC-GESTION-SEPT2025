@@ -36,8 +36,10 @@ class UFSC_SQL_Admin
     {
         return [
             'pending'  => __('En attente', 'ufsc-clubs'),
-            'approved' => __('Approuvé', 'ufsc-clubs'),
+            'approved' => __('Validé', 'ufsc-clubs'),
             'rejected' => __('Rejeté', 'ufsc-clubs'),
+            'correction_required' => __('À corriger', 'ufsc-clubs'),
+            'expired' => __('Expiré', 'ufsc-clubs'),
         ];
     }
 
@@ -145,6 +147,16 @@ class UFSC_SQL_Admin
 
         $file    = self::ufsc_docs_get_file($club_id, $doc_key);
         $storage = $file['storage'];
+		if ( ! empty( $file['attachment_id'] ) && (int) $file['attachment_id'] !== $attachment_id ) {
+			$history   = get_option( 'ufsc_club_' . $doc_key . '_history_' . $club_id, array() );
+			$history   = is_array( $history ) ? $history : array();
+			$history[] = array(
+				'attachment_id' => (int) $file['attachment_id'],
+				'replaced_at'   => current_time( 'mysql' ),
+				'user_id'       => get_current_user_id(),
+			);
+			update_option( 'ufsc_club_' . $doc_key . '_history_' . $club_id, $history );
+		}
 
         if ('option' === $storage) {
             update_option(self::get_doc_option_key($club_id, $doc_key), $attachment_id);
@@ -672,9 +684,6 @@ class UFSC_SQL_Admin
      * @return string
      */
     private static function get_admin_current_season_label() {
-        if ( function_exists( 'ufsc_get_admin_current_season_label' ) ) {
-            return (string) ufsc_get_admin_current_season_label();
-        }
         if ( class_exists( 'UFSC_Season_Service' ) ) {
             return (string) UFSC_Season_Service::get_current_season();
         }
@@ -2300,6 +2309,8 @@ class UFSC_SQL_Admin
                 echo '<option value="' . esc_attr($value) . '" ' . selected($status, $value, false) . '>' . esc_html($label_option) . '</option>';
             }
             echo '</select>';
+			$reason = (string) get_option( 'ufsc_club_' . $doc_key . '_reason_' . $club_id, '' );
+			echo '<label class="ufsc-doc-reason"><span>' . esc_html__( 'Motif (obligatoire pour un refus ou une correction)', 'ufsc-clubs' ) . '</span><textarea name="' . esc_attr( 'ufsc_docs[' . $doc_key . '][reason]' ) . '" rows="2">' . esc_textarea( $reason ) . '</textarea></label>';
             echo '</td>';
 
             echo '<td>';
@@ -2466,6 +2477,12 @@ class UFSC_SQL_Admin
                         $attachment_id = isset($row['attachment_id']) ? absint($row['attachment_id']) : 0;
                         $is_remove     = isset($row['remove']) && '1' === sanitize_text_field((string) $row['remove']);
                         $status_input  = isset($row['status']) ? sanitize_key((string) $row['status']) : '';
+						$reason        = isset( $row['reason'] ) ? sanitize_textarea_field( (string) $row['reason'] ) : '';
+
+						if ( in_array( $status_input, array( 'rejected', 'correction_required' ), true ) && '' === trim( $reason ) ) {
+							$doc_errors[] = sprintf( __( '%s : un motif est obligatoire pour ce statut.', 'ufsc-clubs' ), $doc_key );
+							continue;
+						}
 
                         if ($is_remove) {
                             self::ufsc_docs_remove_file($id, $doc_key);
@@ -2482,6 +2499,13 @@ class UFSC_SQL_Admin
                                     isset($doc_labels[$doc_key]) ? $doc_labels[$doc_key] : $doc_key
                                 );
                             }
+							if ( ! is_wp_error( $status_result ) ) {
+								update_option( 'ufsc_club_' . $doc_key . '_reason_' . $id, $reason );
+								$events   = get_option( 'ufsc_club_' . $doc_key . '_review_history_' . $id, array() );
+								$events   = is_array( $events ) ? $events : array();
+								$events[] = array( 'status' => $status_input, 'reason' => $reason, 'date' => current_time( 'mysql' ), 'user_id' => get_current_user_id() );
+								update_option( 'ufsc_club_' . $doc_key . '_review_history_' . $id, $events );
+							}
                         }
                     }
                 }

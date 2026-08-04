@@ -24,13 +24,9 @@ if ( ! function_exists( 'ufsc_get_season_for_date' ) ) {
 
 if ( ! function_exists( 'ufsc_get_current_season' ) ) {
 	function ufsc_get_current_season() {
-		$stored = get_option( 'ufsc_current_season', '' );
-		$stored = is_string( $stored ) ? sanitize_text_field( $stored ) : '';
-		if ( preg_match( '/^(\d{4})-(\d{4})$/', $stored, $matches ) && ( (int) $matches[2] ) === ( (int) $matches[1] + 1 ) ) {
-			return $stored;
-		}
-
-		return ufsc_get_season_for_date( current_time( 'timestamp' ) );
+		return class_exists( 'UFSC_Season_Service' )
+			? UFSC_Season_Service::get_current_season()
+			: ufsc_get_season_for_date( current_time( 'timestamp' ) );
 	}
 }
 
@@ -49,19 +45,9 @@ if ( ! function_exists( 'ufsc_get_current_season_label' ) ) {
  */
 if ( ! function_exists( 'ufsc_get_admin_current_season_label' ) ) {
 	function ufsc_get_admin_current_season_label() {
-		$stored = get_option( 'ufsc_current_season', '' );
-		$stored = is_string( $stored ) ? sanitize_text_field( $stored ) : '';
-		if ( preg_match( '/^(\d{4})-(\d{4})$/', $stored, $matches ) && ( (int) $matches[2] ) === ( (int) $matches[1] + 1 ) ) {
-			return $stored;
-		}
-
-		$timezone   = function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' );
-		$now        = new DateTimeImmutable( 'now', $timezone );
-		$month      = (int) $now->format( 'n' );
-		$year       = (int) $now->format( 'Y' );
-		$start_year = ( $month >= 9 ) ? $year : ( $year - 1 );
-
-		return sprintf( '%d-%d', $start_year, $start_year + 1 );
+		return class_exists( 'UFSC_Season_Service' )
+			? UFSC_Season_Service::get_current_season()
+			: ufsc_get_current_season();
 	}
 }
 

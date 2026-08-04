@@ -13,8 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 function ufsc_get_default_woocommerce_settings() {
     return array(
-        'product_affiliation_id'  => 4823,
-        'product_license_id'      => 2934,
+        'product_affiliation_id'  => 0,
+        'product_license_id'      => 0,
         'included_licenses'       => 10,
         // "season" ici = saison de quota Woo (historique). La "source de vérité" de saison globale est gérée ailleurs (inc/settings.php + inc/common/season.php).
         'season'                  => function_exists( 'ufsc_get_season_for_date' ) ? ufsc_get_season_for_date( current_time( 'timestamp' ) ) : '',
@@ -119,7 +119,8 @@ function ufsc_get_woocommerce_product_diagnostic( $product_id ) {
         'product_status'           => '',
         'product_purchasable'      => false,
 		'product_visibility'       => '',
-		'product_type'             => '',
+        'product_type'             => '',
+		'product_price'            => '',
 		'product_permalink'        => '',
 		'unavailable_reason'       => '',
     );
@@ -140,11 +141,14 @@ function ufsc_get_woocommerce_product_diagnostic( $product_id ) {
     $diagnostic['product_purchasable'] = is_callable( array( $product, 'is_purchasable' ) ) ? (bool) $product->is_purchasable() : false;
 	$diagnostic['product_visibility']  = is_callable( array( $product, 'get_catalog_visibility' ) ) ? (string) $product->get_catalog_visibility() : '';
 	$diagnostic['product_type']        = is_callable( array( $product, 'get_type' ) ) ? (string) $product->get_type() : '';
+	$diagnostic['product_price']       = is_callable( array( $product, 'get_price' ) ) ? (string) $product->get_price() : '';
 	$diagnostic['product_permalink']   = get_permalink( $product_id );
 	if ( 'publish' !== $diagnostic['product_status'] ) {
 		$diagnostic['unavailable_reason'] = 'product_not_published';
 	} elseif ( 'hidden' === $diagnostic['product_visibility'] ) {
 		$diagnostic['unavailable_reason'] = 'product_hidden';
+	} elseif ( '' === $diagnostic['product_price'] ) {
+		$diagnostic['unavailable_reason'] = 'product_without_price';
 	} elseif ( ! $diagnostic['product_purchasable'] ) {
 		$diagnostic['unavailable_reason'] = 'product_not_purchasable';
 	}
@@ -167,6 +171,7 @@ function ufsc_is_woocommerce_product_available( $product_id ) {
         && ! empty( $diagnostic['product_found'] )
         && 'publish' === $diagnostic['product_status']
 		&& 'hidden' !== $diagnostic['product_visibility']
+		&& '' !== $diagnostic['product_price']
         && ! empty( $diagnostic['product_purchasable'] );
 }
 
@@ -174,12 +179,13 @@ function ufsc_is_woocommerce_product_available( $product_id ) {
 function ufsc_get_woocommerce_product_diagnostic_message( $product_id ) {
 	$d = ufsc_get_woocommerce_product_diagnostic( $product_id );
 	return sprintf(
-		__( 'ID : %1$d · trouvé : %2$s · statut : %3$s · visibilité : %4$s · type : %5$s · achetable : %6$s · permalink : %7$s · cause : %8$s', 'ufsc-clubs' ),
+		__( 'ID : %1$d · trouvé : %2$s · statut : %3$s · visibilité : %4$s · type : %5$s · prix : %6$s · achetable : %7$s · permalink : %8$s · cause : %9$s', 'ufsc-clubs' ),
 		absint( $product_id ),
 		! empty( $d['product_found'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ),
 		$d['product_status'] ?: '—',
 		$d['product_visibility'] ?: '—',
 		$d['product_type'] ?: '—',
+		'' !== $d['product_price'] ? $d['product_price'] : '—',
 		! empty( $d['product_purchasable'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ),
 		$d['product_permalink'] ?: '—',
 		$d['unavailable_reason'] ?: '—'
@@ -319,7 +325,7 @@ function ufsc_render_woocommerce_settings_page() {
                             min="1"
                         />
                         <p class="description">
-                            <?php esc_html_e( 'ID du produit "Pack Affiliation UFSC" dans WooCommerce (par défaut: 4823)', 'ufsc-clubs' ); ?>
+                            <?php esc_html_e( 'ID du produit "Pack Affiliation UFSC" dans WooCommerce. Aucun ID n’est imposé par défaut.', 'ufsc-clubs' ); ?>
                             <?php if ( $woocommerce_active && ufsc_validate_woocommerce_product( $current_settings['product_affiliation_id'] ) ) : ?>
                                 <span style="color: green;">✓ <?php esc_html_e( 'Produit trouvé', 'ufsc-clubs' ); ?></span>
                             <?php elseif ( $woocommerce_active ) : ?>
