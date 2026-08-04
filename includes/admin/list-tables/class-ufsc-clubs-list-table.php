@@ -194,6 +194,7 @@ class UFSC_Clubs_List_Table {
             'affiliation_status' => self::get_query_value( 'affiliation_status', 'key' ),
             'licence_range' => self::get_query_value( 'licence_range', 'key' ),
             'season' => self::get_query_value( 'season' )
+			,'club_view' => self::get_query_value( 'club_view', 'key' )
         );
 
         return $filters;
@@ -339,8 +340,18 @@ class UFSC_Clubs_List_Table {
             }
         }
 
-        // Club rows are permanent and therefore remain visible for every
-        // season. Only annual joins, counters and row details use the context.
+        // A season view contains annual records only. Permanent historical
+        // clubs without a record are available explicitly in the renewal view.
+		$selected_season = self::get_admin_season_label();
+		$selected_filter = self::get_selected_season_filter();
+		if ( ! in_array( $selected_filter, array( 'all', '__archives' ), true ) && class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+			$affiliations_table = UFSC_Season_Archive_Manager::get_affiliations_table();
+			if ( 'renewals' === ( $filters['club_view'] ?? '' ) ) {
+				$conditions[] = $wpdb->prepare( "NOT EXISTS (SELECT 1 FROM `{$affiliations_table}` ua WHERE ua.club_id = `{$clubs_table}`.id AND ua.season = %s AND LOWER(ua.status) IN ('active','validated','valide','actif'))", $selected_season );
+			} elseif ( 'permanent' !== ( $filters['club_view'] ?? '' ) ) {
+				$conditions[] = $wpdb->prepare( "EXISTS (SELECT 1 FROM `{$affiliations_table}` sa WHERE sa.club_id = `{$clubs_table}`.id AND sa.season = %s)", $selected_season );
+			}
+		}
 
         if ( self::has_column( $columns, $clubs_table, 'region' ) ) {
             $scope_condition = UFSC_Scope::build_scope_condition( 'region' );
@@ -675,7 +686,9 @@ class UFSC_Clubs_List_Table {
         unset( $filters );
         $base = admin_url( 'admin.php?page=ufsc-sql-clubs' );
         $links = array(
-            array( 'label' => __( 'Tous les clubs', 'ufsc-clubs' ), 'args' => array() ),
+            array( 'label' => __( 'Clubs de la saison', 'ufsc-clubs' ), 'args' => array() ),
+            array( 'label' => __( 'Tous les clubs permanents', 'ufsc-clubs' ), 'args' => array( 'club_view' => 'permanent' ) ),
+            array( 'label' => __( 'Clubs à renouveler / anciens clubs', 'ufsc-clubs' ), 'args' => array( 'club_view' => 'renewals' ) ),
             array( 'label' => __( 'Actifs', 'ufsc-clubs' ), 'args' => array( 'statut' => 'actif' ) ),
             array( 'label' => __( 'En attente', 'ufsc-clubs' ), 'args' => array( 'statut' => 'en_attente' ) ),
             array( 'label' => __( 'Documents incomplets', 'ufsc-clubs' ), 'args' => array( 'doc_status' => 'incomplete' ) ),

@@ -1363,7 +1363,6 @@ class UFSC_Unified_Handlers {
 
 		$strict_checkout = isset( $post_data['ufsc_submit_action'] ) && 'add_to_cart' === sanitize_key( (string) $post_data['ufsc_submit_action'] );
 		$role = isset( $post_data['role'] ) ? sanitize_key( (string) $post_data['role'] ) : '';
-		$honorability_roles = array( 'dirigeant', 'president', 'secretaire', 'tresorier', 'educateur', 'entraineur', 'coach', 'encadrant', 'responsable_technique' );
 		$is_minor = false;
 		if ( self::is_valid_birth_date( $date_naissance ) ) {
 			$birth = new DateTimeImmutable( $date_naissance );
@@ -1376,7 +1375,7 @@ class UFSC_Unified_Handlers {
 		if ( $strict_checkout && $is_minor && empty( trim( (string) ( $post_data['legal_representative_name'] ?? '' ) ) ) ) {
 			$errors[] = __( 'L’identité du représentant légal est obligatoire pour un mineur.', 'ufsc-clubs' );
 		}
-		if ( $strict_checkout && in_array( $role, $honorability_roles, true ) && empty( $post_data['honorability_confirmed'] ) ) {
+		if ( $strict_checkout && function_exists( 'ufsc_role_requires_honorability' ) && ufsc_role_requires_honorability( $role ) && empty( $post_data['honorability_confirmed'] ) ) {
 			$errors[] = __( 'La lecture de la note sur le contrôle de l’honorabilité doit être confirmée pour ce rôle.', 'ufsc-clubs' );
 		}
         

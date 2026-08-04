@@ -41,7 +41,6 @@
 		const adult = $('#ufsc-health-adult');
 		const minor = $('#ufsc-health-minor');
 		const honorability = $('#ufsc-honorability');
-		const roles = ['dirigeant', 'president', 'secretaire', 'tresorier', 'educateur', 'entraineur', 'coach', 'encadrant', 'responsable_technique'];
 		function refresh() {
 			const value = birth.val();
 			const date = value ? new Date(value + 'T00:00:00') : null;
@@ -51,7 +50,8 @@
 			const isMinor = age < 18;
 			adult.prop('hidden', isMinor).find(':input').prop('disabled', isMinor);
 			minor.prop('hidden', !isMinor).find(':input').prop('disabled', !isMinor);
-			const needsHonorability = roles.indexOf(role.val()) !== -1;
+			// Mirrors the server rule: Pratiquant is the sole built-in exemption.
+			const needsHonorability = Boolean(role.val()) && role.val() !== 'pratiquant';
 			honorability.prop('hidden', !needsHonorability).find(':input').prop('disabled', !needsHonorability);
 		}
 		birth.on('change input', refresh);
