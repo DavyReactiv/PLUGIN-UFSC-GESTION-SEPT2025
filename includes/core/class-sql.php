@@ -90,6 +90,7 @@ class UFSC_SQL {
                 'sexe'=>array('Sexe','sex'),
                 'date_naissance'=>array('Date de naissance','date'),
                 'poids'=>array('Poids','number'),
+                'fighter_level'=>array('Niveau sportif','fighter_level'),
                 'categorie_age_detectee'=>array('Catégorie d’âge détectée','text'),
                 'categorie_poids_detectee'=>array('Catégorie de poids détectée','text'),
                 'categorie_updated_at'=>array('Catégorie mise à jour le','date'),

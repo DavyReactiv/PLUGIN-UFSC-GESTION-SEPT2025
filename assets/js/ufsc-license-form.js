@@ -11,7 +11,29 @@
         initLicenseFormValidation();
         initClubRegionSync();
 		initCompliancePanels();
+		initFighterLevel();
     });
+
+	function initFighterLevel() {
+		const birth = $('#date_naissance');
+		const level = $('[data-ufsc-fighter-level]');
+		if (!birth.length || !level.length) return;
+		function refreshLevelOptions() {
+			const date = birth.val() ? new Date(birth.val() + 'T00:00:00') : null;
+			const now = new Date();
+			let age = date && !isNaN(date.getTime()) ? now.getFullYear() - date.getFullYear() : null;
+			if (date && (now.getMonth() < date.getMonth() || (now.getMonth() === date.getMonth() && now.getDate() < date.getDate()))) age--;
+			level.find('option').prop('hidden', false);
+			if (age === null) return;
+			level.find('option[value="assaut"]').prop('hidden', age >= 18);
+			level.find('option[value^="classe_"]').prop('hidden', age < 18);
+			const veteranMinAge = parseInt(level.attr('data-veteran-min-age'), 10) || 41;
+			level.find('option[value="veteran"]').prop('hidden', age < veteranMinAge);
+			if (level.find('option:selected').prop('hidden')) level.val('');
+		}
+		birth.on('change input', refreshLevelOptions);
+		refreshLevelOptions();
+	}
 
 	function initCompliancePanels() {
 		const birth = $('#date_naissance');

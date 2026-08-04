@@ -6,6 +6,17 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Enhanced admin list with filters, search, and pagination
  */
 class UFSC_Clubs_List_Table {
+	private static function get_selected_season_filter() {
+		$value = self::get_query_value( 'season' );
+		return in_array( $value, array( 'all', '__archives' ), true ) || preg_match( '/^\d{4}-\d{4}$/', $value ) ? $value : '';
+	}
+
+	private static function get_season_context_label() {
+		$selected = self::get_selected_season_filter();
+		if ( 'all' === $selected ) { return __( 'Toutes les saisons (statuts annuels séparés)', 'ufsc-clubs' ); }
+		if ( '__archives' === $selected ) { return __( 'Archives uniquement (statuts annuels séparés)', 'ufsc-clubs' ); }
+		return self::get_admin_season_label();
+	}
     private static function get_current_request_url() {
         $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
         if ( ! is_string( $request_uri ) || '' === $request_uri ) {
@@ -16,6 +27,10 @@ class UFSC_Clubs_List_Table {
     }
 
     private static function get_admin_season_label() {
+		$requested = self::get_query_value( 'season' );
+		if ( preg_match( '/^\d{4}-\d{4}$/', $requested ) ) {
+			return $requested;
+		}
 		if ( class_exists( 'UFSC_Season_Service' ) ) {
 			return (string) UFSC_Season_Service::get_current_season();
 		}
@@ -25,6 +40,20 @@ class UFSC_Clubs_List_Table {
 
         return __( 'saison en cours', 'ufsc-clubs' );
     }
+
+	private static function get_season_options() {
+		$current  = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : self::get_admin_season_label();
+		$previous = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_previous_season() : '';
+		$available = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_available_seasons() : array();
+		$options = array( '' => sprintf( __( 'Saison actuelle : %s', 'ufsc-clubs' ), $current ) );
+		if ( $previous ) { $options[ $previous ] = sprintf( __( 'Saison précédente : %s', 'ufsc-clubs' ), $previous ); }
+		$options['all'] = __( 'Toutes les saisons', 'ufsc-clubs' );
+		$options['__archives'] = __( 'Archives uniquement', 'ufsc-clubs' );
+		foreach ( array_unique( array_filter( (array) $available ) ) as $season ) {
+			if ( $season !== $current && $season !== $previous ) { $options[ $season ] = $season; }
+		}
+		return $options;
+	}
 
     /**
      * Render enhanced clubs list
@@ -84,7 +113,7 @@ class UFSC_Clubs_List_Table {
         echo '<h1 class="ufsc-admin-title">' . esc_html__( 'Clubs UFSC — Affiliations et suivi administratif', 'ufsc-clubs' ) . '</h1>';
         echo '<p class="ufsc-admin-subtitle">' . esc_html__( 'Retrouvez ici l’ensemble des clubs enregistrés, leur région, leur statut d’affiliation, le nombre de licences associées et l’état des documents administratifs. Cette page permet de suivre les clubs actifs, en attente ou à renouveler.', 'ufsc-clubs' ) . '</p>';
         echo '</div>';
-        echo '<div class="ufsc-season-pill"><span>' . esc_html__( 'Saison affichée', 'ufsc-clubs' ) . '</span><strong>' . esc_html( self::get_admin_season_label() ) . '</strong></div>';
+        echo '<div class="ufsc-season-pill"><span>' . esc_html__( 'Saison affichée', 'ufsc-clubs' ) . '</span><strong>' . esc_html( self::get_season_context_label() ) . '</strong></div>';
         echo '</div>';
         echo '<div class="ufsc-renewal-notice"><span class="dashicons dashicons-info"></span><p>' . esc_html__( 'Renouvellement des affiliations : à chaque nouvelle saison, les clubs devront confirmer ou renouveler leur affiliation afin de maintenir leurs licences actives.', 'ufsc-clubs' ) . '</p></div>';
         if ( function_exists( 'ufsc_user_has_all_regions_access' ) && ! ufsc_user_has_all_regions_access() ) {
@@ -310,10 +339,8 @@ class UFSC_Clubs_List_Table {
             }
         }
 
-        $season_column = self::get_season_column( $columns, $clubs_table );
-        if ( '' !== $season_column && ! empty( $filters['season'] ) ) {
-            $conditions[] = $wpdb->prepare( "`{$season_column}` = %s", $filters['season'] );
-        }
+        // Club rows are permanent and therefore remain visible for every
+        // season. Only annual joins, counters and row details use the context.
 
         if ( self::has_column( $columns, $clubs_table, 'region' ) ) {
             $scope_condition = UFSC_Scope::build_scope_condition( 'region' );
@@ -526,19 +553,19 @@ class UFSC_Clubs_List_Table {
             $stats['missing_affiliation'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$clubs_table}` {$scope_prefix} (num_affiliation IS NULL OR num_affiliation = '')" );
         }
 
-        $cards = array(
-            array( 'label' => __( 'Clubs enregistrés', 'ufsc-clubs' ), 'value' => $stats['total'], 'tone' => 'primary' ),
-			array( 'label' => sprintf( __( 'Affiliés validés %s', 'ufsc-clubs' ), $current_season ), 'value' => $stats['active'], 'tone' => 'success' ),
-			array( 'label' => __( 'À renouveler', 'ufsc-clubs' ), 'value' => $stats['to_renew'], 'tone' => 'danger' ),
-            array( 'label' => __( 'Affiliations en attente', 'ufsc-clubs' ), 'value' => $stats['pending'], 'tone' => 'warning' ),
-        );
+        $cards = array( array( 'label' => __( 'Clubs enregistrés', 'ufsc-clubs' ), 'value' => $stats['total'], 'tone' => 'primary' ) );
+		if ( ! in_array( self::get_selected_season_filter(), array( 'all', '__archives' ), true ) ) {
+			$cards[] = array( 'label' => sprintf( __( 'Affiliés validés %s', 'ufsc-clubs' ), $current_season ), 'value' => $stats['active'], 'tone' => 'success' );
+			$cards[] = array( 'label' => sprintf( __( 'Clubs à renouveler pour %s', 'ufsc-clubs' ), $current_season ), 'value' => $stats['to_renew'], 'tone' => 'danger' );
+			$cards[] = array( 'label' => sprintf( __( 'Affiliations en attente %s', 'ufsc-clubs' ), $current_season ), 'value' => $stats['pending'], 'tone' => 'warning' );
+		}
         if ( null !== $stats['documents_complete'] ) {
-            $cards[] = array( 'label' => __( 'Documents complets', 'ufsc-clubs' ), 'value' => $stats['documents_complete'], 'tone' => 'success' );
-            $cards[] = array( 'label' => __( 'Documents incomplets', 'ufsc-clubs' ), 'value' => $stats['documents_incomplete'], 'tone' => 'danger' );
+            $cards[] = array( 'label' => __( 'Documents permanents complets', 'ufsc-clubs' ), 'value' => $stats['documents_complete'], 'tone' => 'success' );
+            $cards[] = array( 'label' => __( 'Documents permanents incomplets', 'ufsc-clubs' ), 'value' => $stats['documents_incomplete'], 'tone' => 'danger' );
         }
-        $cards[] = array( 'label' => __( 'Licences associées', 'ufsc-clubs' ), 'value' => $stats['licences'], 'tone' => 'primary' );
+        $cards[] = array( 'label' => sprintf( __( 'Licences %s', 'ufsc-clubs' ), $current_season ), 'value' => $stats['licences'], 'tone' => 'primary' );
         if ( null !== $stats['missing_affiliation'] ) {
-            $cards[] = array( 'label' => __( 'Sans n° affiliation', 'ufsc-clubs' ), 'value' => $stats['missing_affiliation'], 'tone' => 'danger' );
+            $cards[] = array( 'label' => sprintf( __( 'Clubs sans numéro d’affiliation pour %s', 'ufsc-clubs' ), $current_season ), 'value' => $stats['missing_affiliation'], 'tone' => 'danger' );
         }
 
         echo '<div class="ufsc-stats-grid">';
@@ -618,10 +645,11 @@ class UFSC_Clubs_List_Table {
         echo '<option value="ten_plus"' . selected( $filters['licence_range'], 'ten_plus', false ) . '>' . esc_html__( '10 licences et +', 'ufsc-clubs' ) . '</option>';
         echo '</select></label>';
 
-        $season_column = self::get_season_column( $columns, $clubs_table );
-        if ( '' !== $season_column ) {
-            echo '<label><span>' . esc_html__( 'Saison', 'ufsc-clubs' ) . '</span><input type="text" name="season" value="' . esc_attr( $filters['season'] ) . '" placeholder="' . esc_attr( self::get_admin_season_label() ) . '"></label>';
+        echo '<label><span>' . esc_html__( 'Saison', 'ufsc-clubs' ) . '</span><select name="season">';
+        foreach ( self::get_season_options() as $value => $label ) {
+            echo '<option value="' . esc_attr( $value ) . '"' . selected( $filters['season'], $value, false ) . '>' . esc_html( $label ) . '</option>';
         }
+        echo '</select></label>';
         echo '</div>';
 
         echo '<div class="ufsc-filters-actions">';
@@ -815,16 +843,29 @@ class UFSC_Clubs_List_Table {
     echo '<td class="column-region">' . esc_html( isset( $club->region ) ? $club->region : '' ) . '</td>';
 
 	$current_season = self::get_admin_season_label();
-	$annual_affiliation = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( (int) ( $club->id ?? 0 ), $current_season ) : null;
+	$selected_season = self::get_selected_season_filter();
+	$annual_affiliation = ( ! in_array( $selected_season, array( 'all', '__archives' ), true ) && class_exists( 'UFSC_Season_Archive_Manager' ) ) ? UFSC_Season_Archive_Manager::get_affiliation( (int) ( $club->id ?? 0 ), $current_season ) : null;
 
     // Numéro d’affiliation annuel uniquement; no historical ASPTT carry-over.
     echo '<td class="column-affiliation">';
-    echo self::render_affiliation_number( $annual_affiliation && isset( $annual_affiliation->num_affiliation ) ? $annual_affiliation->num_affiliation : '' );
+    echo in_array( $selected_season, array( 'all', '__archives' ), true ) ? '<em>' . esc_html__( 'Voir les saisons ci-contre', 'ufsc-clubs' ) . '</em>' : self::render_affiliation_number( $annual_affiliation && isset( $annual_affiliation->num_affiliation ) ? $annual_affiliation->num_affiliation : '' );
     echo '</td>';
 
     // Statut
-    $status_value = $annual_affiliation && isset( $annual_affiliation->status ) ? $annual_affiliation->status : 'a_renouveler';
-    echo '<td class="column-status">' . self::render_status_badge( $status_value ) . '</td>';
+    echo '<td class="column-status"><span class="ufsc-permanent-status"><strong>' . esc_html__( 'Club permanent :', 'ufsc-clubs' ) . '</strong> ' . esc_html__( 'Enregistré', 'ufsc-clubs' ) . '</span><br>';
+    if ( in_array( $selected_season, array( 'all', '__archives' ), true ) ) {
+        global $wpdb;
+        $affiliations_table = UFSC_Season_Archive_Manager::get_affiliations_table();
+        $archive_clause = '__archives' === $selected_season ? $wpdb->prepare( ' AND season < %s', UFSC_Season_Service::get_current_season() ) : '';
+        $annual_rows = $wpdb->get_results( $wpdb->prepare( "SELECT season, status, num_affiliation FROM `{$affiliations_table}` WHERE club_id = %d{$archive_clause} ORDER BY season DESC", (int) ( $club->id ?? 0 ) ) );
+        if ( $annual_rows ) { foreach ( $annual_rows as $annual_row ) { echo '<span class="ufsc-annual-status"><strong>' . esc_html( $annual_row->season ) . ' :</strong> ' . self::render_status_badge( $annual_row->status ) . ' <small>' . esc_html( $annual_row->num_affiliation ?: __( 'sans numéro', 'ufsc-clubs' ) ) . '</small></span><br>'; } }
+        else { echo '<em>' . esc_html__( 'Aucune affiliation annuelle enregistrée dans cette vue.', 'ufsc-clubs' ) . '</em>'; }
+    } else {
+        $status_value = $annual_affiliation && isset( $annual_affiliation->status ) ? $annual_affiliation->status : 'a_renouveler';
+        echo '<span class="ufsc-annual-status"><strong>' . esc_html( sprintf( __( 'Affiliation %s :', 'ufsc-clubs' ), $current_season ) ) . '</strong> ' . self::render_status_badge( $status_value ) . '</span>';
+        if ( ! $annual_affiliation ) { echo '<br><small title="' . esc_attr( sprintf( __( 'Ce club existe dans l’historique UFSC mais n’est pas encore affilié pour la saison %s.', 'ufsc-clubs' ), $current_season ) ) . '">' . esc_html__( 'Affiliation annuelle à renouveler', 'ufsc-clubs' ) . '</small>'; }
+    }
+    echo '</td>';
 
     // Licences validées
     $club_id = (int) ( $club->id ?? 0 );
@@ -834,7 +875,7 @@ class UFSC_Clubs_List_Table {
             'page'          => 'ufsc_lc_licences',
             'filter_club'   => absint( $club_id ),
             'filter_status' => 'valide',
-			'filter_season' => $current_season,
+			'filter_season' => in_array( $selected_season, array( 'all', '__archives' ), true ) ? $selected_season : $current_season,
         ),
         admin_url( 'admin.php' )
     );
