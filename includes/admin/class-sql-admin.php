@@ -2555,6 +2555,13 @@ class UFSC_SQL_Admin
                                     isset($doc_labels[$doc_key]) ? $doc_labels[$doc_key] : $doc_key
                                 );
                             }
+							if ( ! is_wp_error( $status_result ) ) {
+								update_option( 'ufsc_club_' . $doc_key . '_reason_' . $id, $reason );
+								$events   = get_option( 'ufsc_club_' . $doc_key . '_review_history_' . $id, array() );
+								$events   = is_array( $events ) ? $events : array();
+								$events[] = array( 'status' => $status_input, 'reason' => $reason, 'date' => current_time( 'mysql' ), 'user_id' => get_current_user_id() );
+								update_option( 'ufsc_club_' . $doc_key . '_review_history_' . $id, $events );
+							}
                         }
                     }
                 }
