@@ -88,6 +88,45 @@ function ufsc_init_woocommerce_hooks() {
 	add_action( 'woocommerce_admin_order_data_after_order_details', 'ufsc_wc_render_generate_missing_admin_action' );
 	add_action( 'admin_post_ufsc_generate_missing_licences', 'ufsc_wc_handle_generate_missing_licences' );
 	add_action( 'admin_notices', 'ufsc_wc_render_generate_missing_notice' );
+	add_filter( 'woocommerce_gateway_description', 'ufsc_wc_bacs_description', 20, 2 );
+	add_action( 'woocommerce_thankyou_bacs', 'ufsc_wc_render_bacs_instructions', 20 );
+	add_action( 'woocommerce_email_before_order_table', 'ufsc_wc_email_bacs_instructions', 20, 4 );
+}
+
+/** Return the configured UFSC contact address, falling back to WordPress. */
+function ufsc_wc_contact_email() {
+	$settings = function_exists( 'ufsc_get_woocommerce_settings' ) ? ufsc_get_woocommerce_settings() : array();
+	$email = isset( $settings['contact_email'] ) ? sanitize_email( $settings['contact_email'] ) : '';
+	return $email && is_email( $email ) ? $email : sanitize_email( get_option( 'admin_email' ) );
+}
+
+/** French BACS instructions shared by checkout, confirmation and e-mail. */
+function ufsc_wc_bacs_instructions_html() {
+	$email = ufsc_wc_contact_email();
+	return '<div class="ufsc-bacs-instructions"><p>' . esc_html__( 'Effectuez votre règlement directement depuis votre compte bancaire en utilisant le numéro de commande comme référence de paiement.', 'ufsc-clubs' ) . '</p><p>' . esc_html__( 'Afin de permettre un traitement rapide de votre affiliation, merci d’envoyer votre justificatif de virement en précisant obligatoirement :', 'ufsc-clubs' ) . '</p><ul><li>' . esc_html__( 'le nom complet du club ;', 'ufsc-clubs' ) . '</li><li>' . esc_html__( 'le numéro de commande ;', 'ufsc-clubs' ) . '</li><li>' . esc_html__( 'le nom de la personne ayant effectué le virement.', 'ufsc-clubs' ) . '</li></ul><p>' . esc_html__( 'Votre affiliation sera traitée après réception et vérification du règlement.', 'ufsc-clubs' ) . '</p><p><strong>' . esc_html( sprintf( __( 'Envoyez votre justificatif de virement à : %s', 'ufsc-clubs' ), $email ) ) . '</strong></p></div>';
+}
+
+function ufsc_wc_bacs_description( $description, $gateway_id ) {
+	return 'bacs' === $gateway_id ? wp_kses_post( ufsc_wc_bacs_instructions_html() ) : $description;
+}
+
+function ufsc_wc_render_bacs_instructions( $order_id ) {
+	$order = wc_get_order( $order_id );
+	if ( $order && 'bacs' === $order->get_payment_method() ) {
+		echo wp_kses_post( ufsc_wc_bacs_instructions_html() );
+	}
+}
+
+function ufsc_wc_email_bacs_instructions( $order, $sent_to_admin, $plain_text, $email ) {
+	unset( $sent_to_admin, $email );
+	if ( ! $order || 'bacs' !== $order->get_payment_method() ) {
+		return;
+	}
+	if ( $plain_text ) {
+		echo wp_strip_all_tags( ufsc_wc_bacs_instructions_html() ) . "\n";
+	} else {
+		echo wp_kses_post( ufsc_wc_bacs_instructions_html() );
+	}
 }
 
 /**
@@ -106,6 +145,9 @@ function ufsc_handle_woocommerce_payment_confirmed( $order_id ) {
 
 	$order = wc_get_order( $order_id );
 	if ( ! $order ) {
+		return;
+	}
+	if ( 'bacs' === $order->get_payment_method() && ! $order->is_paid() ) {
 		return;
 	}
 
@@ -405,6 +447,18 @@ function ufsc_wc_process_renewal_items( $order ) {
 			if ( function_exists( 'ufsc_mark_renewed_licence_marker' ) ) {
 				ufsc_mark_renewed_licence_marker( $source_id, $target_season, $new_id );
 			}
+			if ( function_exists( 'ufsc_set_option_noautoload' ) ) {
+				ufsc_set_option_noautoload(
+					'ufsc_licence_renewal_audit_' . $new_id,
+					array(
+						'previous_licence_id' => $source_id,
+						'season'              => $target_season,
+						'user_id'             => is_callable( array( $order, 'get_user_id' ) ) ? absint( $order->get_user_id() ) : 0,
+						'order_id'            => (int) $order->get_id(),
+						'renewed_at'          => current_time( 'mysql' ),
+					)
+				);
+			}
 
 			// Hooks (keep existing behavior)
 			do_action( 'ufsc_licence_created', $new_id, $club_id );
@@ -420,8 +474,8 @@ function ufsc_wc_process_renewal_items( $order ) {
 				continue;
 			}
 
-			// Idempotence (skip if already renewed)
-			if ( function_exists( 'ufsc_is_affiliation_renewed' ) && ufsc_is_affiliation_renewed( $club_id, $target_season ) ) {
+			$existing_affiliation = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( $club_id, $target_season ) : null;
+			if ( $existing_affiliation && 'paid' === sanitize_key( (string) $existing_affiliation->payment_status ) ) {
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 					ufsc_wc_log(
 						'ufsc_renew_affiliation_idempotent_skip',
@@ -435,14 +489,10 @@ function ufsc_wc_process_renewal_items( $order ) {
 				continue;
 			}
 
-			if ( class_exists( 'UFSC_SQL' ) ) {
-				UFSC_SQL::mark_club_affiliation_active( $club_id, $target_season );
-			}
-			if ( function_exists( 'ufsc_set_affiliation_season' ) ) {
-				ufsc_set_affiliation_season( $club_id, $target_season );
-			}
-			if ( function_exists( 'ufsc_mark_affiliation_renewed' ) ) {
-				ufsc_mark_affiliation_renewed( $club_id, $target_season );
+			$previous_affiliation_id = absint( $item->get_meta( 'ufsc_previous_affiliation_id', true ) );
+			$product_id = is_callable( array( $item, 'get_product_id' ) ) ? absint( $item->get_product_id() ) : 0;
+			if ( class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+				UFSC_Season_Archive_Manager::record_paid_renewal( $club_id, $target_season, $order->get_id(), $product_id, $previous_affiliation_id );
 			}
 
 			do_action( 'ufsc_licence_updated', $club_id );

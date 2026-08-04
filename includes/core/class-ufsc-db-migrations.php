@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.3.2';
+    const MIGRATION_VERSION = '1.3.4';
 
     /**
      * Option key for tracking migration version
@@ -219,7 +219,14 @@ class UFSC_DB_Migrations {
             `status` varchar(50) NOT NULL DEFAULT '',
             `payment_status` varchar(50) NOT NULL DEFAULT '',
             `wc_order_id` bigint(20) unsigned NULL DEFAULT NULL,
+            `previous_affiliation_id` bigint(20) unsigned NULL DEFAULT NULL,
+            `product_id` bigint(20) unsigned NULL DEFAULT NULL,
+            `request_type` varchar(30) NOT NULL DEFAULT 'renewal',
             `num_affiliation` varchar(191) NULL DEFAULT NULL,
+            `requested_at` datetime NULL DEFAULT NULL,
+            `paid_at` datetime NULL DEFAULT NULL,
+            `validated_at` datetime NULL DEFAULT NULL,
+			`validated_by` bigint(20) unsigned NULL DEFAULT NULL,
             `created_at` datetime NULL DEFAULT NULL,
             `updated_at` datetime NULL DEFAULT NULL,
             PRIMARY KEY (`id`),

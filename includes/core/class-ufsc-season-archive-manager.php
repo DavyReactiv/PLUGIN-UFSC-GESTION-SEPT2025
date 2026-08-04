@@ -51,4 +51,43 @@ class UFSC_Season_Archive_Manager {
         $columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : array();
         return array_values( array_intersect( array( 'previous_licence_id', 'renewed_from_licence_id' ), $columns ) );
     }
+
+    /** Return one annual affiliation without consulting the permanent club row. */
+    public static function get_affiliation( $club_id, $season ) {
+        global $wpdb;
+
+        $club_id = absint( $club_id );
+        $season  = sanitize_text_field( (string) $season );
+        if ( $club_id <= 0 || ! preg_match( '/^\d{4}-\d{4}$/', $season ) ) {
+            return null;
+        }
+
+        $table = self::get_affiliations_table();
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE club_id = %d AND season = %s LIMIT 1", $club_id, $season ) );
+    }
+
+    /**
+     * Record a paid annual renewal. The unique (club_id, season) key and this
+     * upsert make repeated WooCommerce callbacks idempotent.
+     */
+    public static function record_paid_renewal( $club_id, $season, $order_id, $product_id, $previous_affiliation_id = 0 ) {
+        global $wpdb;
+
+        $club_id = absint( $club_id );
+        $order_id = absint( $order_id );
+        $product_id = absint( $product_id );
+        $previous_affiliation_id = absint( $previous_affiliation_id );
+        $season = sanitize_text_field( (string) $season );
+        if ( $club_id <= 0 || $order_id <= 0 || ! preg_match( '/^\d{4}-\d{4}$/', $season ) ) {
+            return false;
+        }
+
+        $table = self::get_affiliations_table();
+        $now   = current_time( 'mysql' );
+        $sql   = "INSERT INTO `{$table}` (club_id, season, status, payment_status, wc_order_id, previous_affiliation_id, product_id, request_type, requested_at, paid_at, created_at, updated_at)
+            VALUES (%d, %s, 'pending_validation', 'paid', %d, NULLIF(%d, 0), %d, 'renewal', %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE payment_status = 'paid', wc_order_id = VALUES(wc_order_id), product_id = VALUES(product_id), paid_at = COALESCE(paid_at, VALUES(paid_at)), updated_at = VALUES(updated_at)";
+
+        return false !== $wpdb->query( $wpdb->prepare( $sql, $club_id, $season, $order_id, $previous_affiliation_id, $product_id, $now, $now, $now, $now ) );
+    }
 }

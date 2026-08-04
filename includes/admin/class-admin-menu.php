@@ -430,7 +430,8 @@ class UFSC_CL_Admin_Menu {
 	 */
 	private static function get_dashboard_data_cached( $t_clubs, $t_lics ) {
 		$scope_slug  = UFSC_Scope::get_user_scope_region();
-		$cache_key   = 'ufsc_dashboard_data_' . ( $scope_slug ? $scope_slug : 'all' );
+		$current_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+		$cache_key   = 'ufsc_dashboard_data_' . sanitize_key( $current_season ) . '_' . ( $scope_slug ? $scope_slug : 'all' );
 		$cached_data = get_transient( $cache_key );
 
 		if ( false !== $cached_data ) {
@@ -445,10 +446,21 @@ class UFSC_CL_Admin_Menu {
 			$scope_clubs = UFSC_Scope::build_scope_condition( 'region' );
 			$clubs_where = $scope_clubs ? "WHERE {$scope_clubs}" : '';
 			$data['clubs_total']  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_clubs` {$clubs_where}" );
-			$data['clubs_active'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_clubs` " . ( $clubs_where ? "{$clubs_where} AND" : 'WHERE' ) . " statut IN ('actif', 'active', 'valide')" );
+			$affiliations_table = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliations_table() : $wpdb->prefix . 'ufsc_affiliations_seasons';
+			$club_scope_for_join = UFSC_Scope::build_scope_condition( 'c.region' );
+			$club_scope_for_join = $club_scope_for_join ? ' AND ' . $club_scope_for_join : '';
+			$data['clubs_active'] = (int) $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT COUNT(DISTINCT a.club_id) FROM `{$affiliations_table}` a INNER JOIN `{$t_clubs}` c ON c.id = a.club_id WHERE a.season = %s AND LOWER(a.status) IN ('validated','valide','active','actif'){$club_scope_for_join}",
+					$current_season
+				)
+			);
 
 			// License stats by status
 			$scope_lics = UFSC_Scope::build_scope_condition( 'region' );
+			$columns = function_exists( 'ufsc_table_columns' )
+				? ufsc_table_columns( $t_lics )
+				: $wpdb->get_col( "DESCRIBE `$t_lics`" );
 			$lics_conditions = array();
 			if ( $scope_lics ) {
 				$lics_conditions[] = $scope_lics;
@@ -459,17 +471,22 @@ class UFSC_CL_Admin_Menu {
 			if ( $has_deleted_at ) {
 				$lics_conditions[] = "(deleted_at IS NULL OR CAST(deleted_at AS CHAR) = '' OR CAST(deleted_at AS CHAR) = '0000-00-00 00:00:00')";
 			}
+			$season_column = self::find_first_existing_column( $columns, array( 'paid_season', 'season', 'saison', 'season_end_year' ) );
+			if ( 'season_end_year' === $season_column && preg_match( '/^\d{4}-(\d{4})$/', $current_season, $season_matches ) ) {
+				$lics_conditions[] = $wpdb->prepare( 'season_end_year = %d', (int) $season_matches[1] );
+			} elseif ( $season_column ) {
+				$lics_conditions[] = $wpdb->prepare( "REPLACE(`{$season_column}`, '/', '-') = %s", $current_season );
+			} else {
+				// Missing/ambiguous season storage must never leak historical rows
+				// into the current-season counters.
+				$lics_conditions[] = '0 = 1';
+			}
 			$lics_where = ! empty( $lics_conditions ) ? 'WHERE ' . implode( ' AND ', $lics_conditions ) : '';
 			$data['licenses_total']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` {$lics_where}" );
 			$data['licenses_valid']    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('valide', 'validee', 'active')" );
 			// Intentionally excludes draft/brouillon which is tracked separately in licenses_draft.
 			$data['licenses_pending']  = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('en_attente', 'attente', 'pending', 'a_regler')" );
 			$data['licenses_rejected'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `$t_lics` " . ( $lics_where ? "{$lics_where} AND" : 'WHERE' ) . " statut IN ('refuse', 'rejected')" );
-
-			// Columns
-			$columns = function_exists( 'ufsc_table_columns' )
-				? ufsc_table_columns( $t_lics )
-				: $wpdb->get_col( "DESCRIBE `$t_lics`" );
 
 			$sex_column         = self::find_first_existing_column( $columns, array( 'sexe', 'gender', 'sex' ) );
 			$competition_column = self::find_first_existing_column( $columns, array( 'competition', 'is_competition' ) );
@@ -539,7 +556,7 @@ class UFSC_CL_Admin_Menu {
 						 WHERE `$expiration_field` IS NOT NULL
 						 AND `$expiration_field` <= %s
 						 AND statut IN ('valide', 'validee', 'active')"
-						 . ( $scope_lics ? " AND {$scope_lics}" : '' ),
+						 . ' AND ' . preg_replace( '/^WHERE\s+/i', '', $lics_where ),
 						$thirty_days_from_now
 					)
 				);
@@ -547,7 +564,7 @@ class UFSC_CL_Admin_Menu {
 
 			// Regional breakdown
 			$regions_query        = "SELECT region, COUNT(*) as count FROM `$t_lics` WHERE region IS NOT NULL AND region != ''"
-				. ( $scope_lics ? " AND {$scope_lics}" : '' )
+				. ( $lics_where ? ' AND ' . preg_replace( '/^WHERE\s+/i', '', $lics_where ) : '' )
 				. " GROUP BY region ORDER BY count DESC LIMIT 10";
 			$data['regions_data'] = $wpdb->get_results( $regions_query );
 
@@ -555,7 +572,7 @@ class UFSC_CL_Admin_Menu {
 			$evolution_query        = "SELECT DATE(date_inscription) as date, COUNT(*) as count
 				FROM `$t_lics`
 				WHERE date_inscription >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"
-				. ( $scope_lics ? " AND {$scope_lics}" : '' )
+				. ( $lics_where ? ' AND ' . preg_replace( '/^WHERE\s+/i', '', $lics_where ) : '' )
 				. "
 				GROUP BY DATE(date_inscription)
 				ORDER BY date ASC";
@@ -563,8 +580,7 @@ class UFSC_CL_Admin_Menu {
 
 			// Recent licenses (last 10)
 			$recent_query            = "SELECT prenom, nom, statut, date_inscription
-				FROM `$t_lics`"
-				. ( $scope_lics ? " WHERE {$scope_lics}" : '' )
+				FROM `$t_lics` " . $lics_where
 				. "
 				ORDER BY date_inscription DESC
 				LIMIT 10";

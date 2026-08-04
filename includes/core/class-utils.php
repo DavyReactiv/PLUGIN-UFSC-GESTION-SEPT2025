@@ -42,7 +42,8 @@ class UFSC_CL_Utils {
      * @return array<int,int> Map of club_id => count.
      */
     public static function get_valid_licence_counts_by_club() {
-        $cache_key = 'ufsc_admin_valid_licence_counts';
+		$current_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+		$cache_key = 'ufsc_admin_valid_licence_counts_' . sanitize_key( $current_season );
         $cached    = get_transient( $cache_key );
 
         if ( is_array( $cached ) ) {
@@ -62,14 +63,27 @@ class UFSC_CL_Utils {
             return array();
         }
 
-        $query = $wpdb->prepare(
-            "SELECT club_id, COUNT(*) AS total
-             FROM `{$licences_table}`
-             WHERE statut = %s
-             AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')
-             GROUP BY club_id",
-            'valide'
-        );
+		$columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $licences_table ) : array();
+		$conditions = array( $wpdb->prepare( 'statut = %s', 'valide' ) );
+		if ( in_array( 'deleted_at', $columns, true ) ) {
+			$conditions[] = "(deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
+		}
+		$season_column = '';
+		foreach ( array( 'paid_season', 'season', 'saison', 'season_end_year' ) as $candidate ) {
+			if ( in_array( $candidate, $columns, true ) ) {
+				$season_column = $candidate;
+				break;
+			}
+		}
+		if ( 'season_end_year' === $season_column && preg_match( '/^\d{4}-(\d{4})$/', $current_season, $matches ) ) {
+			$conditions[] = $wpdb->prepare( 'season_end_year = %d', (int) $matches[1] );
+		} elseif ( $season_column ) {
+			$conditions[] = $wpdb->prepare( "REPLACE(`{$season_column}`, '/', '-') = %s", $current_season );
+		} else {
+			$conditions[] = '0 = 1';
+		}
+
+		$query = "SELECT club_id, COUNT(*) AS total FROM `{$licences_table}` WHERE " . implode( ' AND ', $conditions ) . ' GROUP BY club_id';
 
         $results = $wpdb->get_results( $query );
         $counts  = array();
