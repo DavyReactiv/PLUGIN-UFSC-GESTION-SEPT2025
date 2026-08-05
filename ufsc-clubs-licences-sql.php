@@ -83,6 +83,7 @@ require_once UFSC_CL_DIR.'inc/common/licence-documents.php';
 require_once UFSC_CL_DIR.'inc/common/compliance.php';
 require_once UFSC_CL_DIR.'inc/common/attestations.php';
 require_once UFSC_CL_DIR.'inc/common/tables.php';
+require_once UFSC_CL_DIR.'inc/common/diagnostics.php';
 require_once UFSC_CL_DIR.'inc/settings.php';
 require_once UFSC_CL_DIR.'inc/form-license-sanitizer.php';
 require_once UFSC_CL_DIR.'inc/woocommerce/settings-woocommerce.php';

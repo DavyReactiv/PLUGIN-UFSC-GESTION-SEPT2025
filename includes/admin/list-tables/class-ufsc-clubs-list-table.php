@@ -8,7 +8,9 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class UFSC_Clubs_List_Table {
 	private static function get_selected_season_filter() {
 		$value = self::get_query_value( 'season' );
-		return in_array( $value, array( 'all', '__archives' ), true ) || preg_match( '/^\d{4}-\d{4}$/', $value ) ? $value : '';
+		if ( in_array( $value, array( 'all', 'permanent', '__archives' ), true ) ) { return $value; }
+		if ( class_exists( 'UFSC_Season_Service' ) ) { $value = UFSC_Season_Service::normalize_season( $value ); }
+		return preg_match( '/^\d{4}-\d{4}$/', $value ) ? $value : '';
 	}
 
 	private static function get_season_context_label() {
@@ -48,6 +50,7 @@ class UFSC_Clubs_List_Table {
 		$options = array( '' => sprintf( __( 'Saison actuelle : %s', 'ufsc-clubs' ), $current ) );
 		if ( $previous ) { $options[ $previous ] = sprintf( __( 'Saison précédente : %s', 'ufsc-clubs' ), $previous ); }
 		$options['all'] = __( 'Toutes les saisons', 'ufsc-clubs' );
+		$options['permanent'] = __( 'Clubs permanents', 'ufsc-clubs' );
 		$options['__archives'] = __( 'Archives uniquement', 'ufsc-clubs' );
 		foreach ( array_unique( array_filter( (array) $available ) ) as $season ) {
 			if ( $season !== $current && $season !== $previous ) { $options[ $season ] = $season; }
@@ -260,6 +263,13 @@ class UFSC_Clubs_List_Table {
         global $wpdb;
         $conditions = array();
 
+        if ( self::has_verified_column( $columns, $clubs_table, 'deleted_at' ) ) {
+            $conditions[] = "(`{$clubs_table}`.deleted_at IS NULL OR `{$clubs_table}`.deleted_at = '' OR `{$clubs_table}`.deleted_at = '0000-00-00 00:00:00')";
+        }
+        if ( self::has_verified_column( $columns, $clubs_table, 'deleted' ) ) {
+            $conditions[] = "COALESCE(`{$clubs_table}`.deleted, 0) = 0";
+        }
+
         // Search query
         if ( ! empty( $search ) ) {
             $search_like = '%' . $wpdb->esc_like( $search ) . '%';
@@ -344,12 +354,13 @@ class UFSC_Clubs_List_Table {
         // clubs without a record are available explicitly in the renewal view.
 		$selected_season = self::get_admin_season_label();
 		$selected_filter = self::get_selected_season_filter();
-		if ( ! in_array( $selected_filter, array( 'all', '__archives' ), true ) && class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+		if ( ! in_array( $selected_filter, array( 'all', 'permanent', '__archives' ), true ) && class_exists( 'UFSC_Season_Archive_Manager' ) ) {
 			$affiliations_table = UFSC_Season_Archive_Manager::get_affiliations_table();
+			$licence_season_exists = self::get_licence_season_exists_sql( $clubs_table, $selected_season );
 			if ( 'renewals' === ( $filters['club_view'] ?? '' ) ) {
-				$conditions[] = $wpdb->prepare( "NOT EXISTS (SELECT 1 FROM `{$affiliations_table}` ua WHERE ua.club_id = `{$clubs_table}`.id AND ua.season = %s AND LOWER(ua.status) IN ('active','validated','valide','actif'))", $selected_season );
+				$conditions[] = $wpdb->prepare( "NOT EXISTS (SELECT 1 FROM `{$affiliations_table}` ua WHERE ua.club_id = `{$clubs_table}`.id AND ua.season = %s AND LOWER(ua.status) IN ('active','validated','valide','actif')) AND (EXISTS (SELECT 1 FROM `{$affiliations_table}` uh WHERE uh.club_id = `{$clubs_table}`.id)" . ( $licence_season_exists ? " OR {$licence_season_exists}" : '' ) . ')' , $selected_season );
 			} elseif ( 'permanent' !== ( $filters['club_view'] ?? '' ) ) {
-				$conditions[] = $wpdb->prepare( "EXISTS (SELECT 1 FROM `{$affiliations_table}` sa WHERE sa.club_id = `{$clubs_table}`.id AND sa.season = %s)", $selected_season );
+				$conditions[] = $wpdb->prepare( "(EXISTS (SELECT 1 FROM `{$affiliations_table}` sa WHERE sa.club_id = `{$clubs_table}`.id AND sa.season = %s)" . ( $licence_season_exists ? " OR {$licence_season_exists}" : '' ) . ')' , $selected_season );
 			}
 		}
 
@@ -462,6 +473,29 @@ class UFSC_Clubs_List_Table {
         }
 
         return "(SELECT COUNT(*) FROM `{$licences_table}` l WHERE " . implode( ' AND ', $parts ) . ')';
+    }
+
+
+    /** Build an EXISTS clause matching licences by normalized season for historical season filters. */
+    private static function get_licence_season_exists_sql( $clubs_table, $season ) {
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $licences_table = $settings['table_licences'] ?? '';
+        if ( '' === $licences_table || ( function_exists( 'ufsc_table_exists' ) && ! ufsc_table_exists( $licences_table ) ) ) { return ''; }
+        $columns = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $licences_table ) : array();
+        if ( ! self::has_verified_column( $columns, $licences_table, 'club_id' ) ) { return ''; }
+        $season_column = self::get_season_column( $columns, $licences_table );
+        if ( '' === $season_column ) { return ''; }
+        $parts = array( "lx.club_id = `{$clubs_table}`.id" );
+        if ( 'season_end_year' === $season_column && function_exists( 'ufsc_get_season_end_year_from_label' ) ) {
+            $parts[] = $wpdb->prepare( 'lx.season_end_year = %d', (int) ufsc_get_season_end_year_from_label( $season ) );
+        } else {
+            $parts[] = $wpdb->prepare( "REPLACE(lx.`{$season_column}`, '/', '-') = %s", $season );
+        }
+        if ( self::has_verified_column( $columns, $licences_table, 'deleted_at' ) ) {
+            $parts[] = "(lx.deleted_at IS NULL OR lx.deleted_at = '' OR lx.deleted_at = '0000-00-00 00:00:00')";
+        }
+        return "EXISTS (SELECT 1 FROM `{$licences_table}` lx WHERE " . implode( ' AND ', $parts ) . ')';
     }
 
     /**
