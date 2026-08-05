@@ -217,6 +217,12 @@ function ufsc_handle_woocommerce_payment_confirmed( $order_id ) {
 		if ( ! $current ) {
 			continue;
 		}
+		$licence_season = function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $licence_id ) : ( class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : '' );
+		$gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( absint( $current->club_id ?? 0 ), $licence_season ) : array( 'allowed' => false );
+		if ( empty( $gate['allowed'] ) ) {
+			if ( function_exists( 'ufsc_log_licence_affiliation_refusal' ) ) { ufsc_log_licence_affiliation_refusal( $gate, 'payment_status_promotion', $licence_id ); }
+			continue;
+		}
 
 		// Normalize current status.
 		$current_status = function_exists( 'ufsc_normalize_license_status' )
@@ -335,6 +341,11 @@ function ufsc_wc_process_renewal_items( $order ) {
 			}
 
 			if ( $source_id <= 0 || $club_id <= 0 || '' === $target_season ) {
+				continue;
+			}
+			$gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( $club_id, $target_season ) : array( 'allowed' => false );
+			if ( empty( $gate['allowed'] ) ) {
+				if ( function_exists( 'ufsc_log_licence_affiliation_refusal' ) ) { ufsc_log_licence_affiliation_refusal( $gate, 'paid_renewal_processing', $source_id ); }
 				continue;
 			}
 
@@ -564,6 +575,13 @@ function ufsc_wc_maybe_generate_order_licences( $order ) {
 					'item_id'  => $item_id,
 				)
 			);
+			continue;
+		}
+
+		$gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( $club_id, $season ?: null ) : array( 'allowed' => false );
+		if ( empty( $gate['allowed'] ) ) {
+			$all_complete = false;
+			if ( function_exists( 'ufsc_log_licence_affiliation_refusal' ) ) { ufsc_log_licence_affiliation_refusal( $gate, 'order_licence_generation' ); }
 			continue;
 		}
 
