@@ -177,9 +177,9 @@ class UFSC_Frontend_Shortcodes {
 
         ob_start();
         ?>
-        <div class="ufsc-club-dashboard ufsc-premium-v3" id="ufsc-dashboard">
+        <div class="ufsc-club-account ufsc-club-dashboard ufsc-premium-v3" id="ufsc-dashboard">
             <div class="ufsc-dashboard-shell">
-                <div class="ufsc-dashboard-header ufsc-dashboard-header--premium">
+                <div class="ufsc-dashboard-header ufsc-dashboard-header--premium ufsc-club-account__header" id="ufsc-overview">
                     <div class="ufsc-dashboard-hero-layout">
                     <div class="ufsc-hero-left">
                         <div class="ufsc-dashboard-brand">
@@ -201,6 +201,13 @@ class UFSC_Frontend_Shortcodes {
                                         <span class="ufsc-badge ufsc-badge-region"><?php echo esc_html( sprintf( __( 'Affiliation %s', 'ufsc-clubs' ), $club->num_affiliation ) ); ?></span>
                                     <?php endif; ?>
                                 </div>
+                                <dl class="ufsc-club-account__identity" aria-label="<?php esc_attr_e( 'Coordonnées principales du club', 'ufsc-clubs' ); ?>">
+                                    <?php if ( ! empty( $club->region ) ) : ?><div><dt><?php esc_html_e( 'Région', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $club->region ); ?></dd></div><?php endif; ?>
+                                    <?php if ( ! empty( $club->adresse ) || ! empty( $club->code_postal ) || ! empty( $club->ville ) ) : ?><div><dt><?php esc_html_e( 'Adresse', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( trim( (string) ( $club->adresse ?? '' ) . ' ' . ( $club->code_postal ?? '' ) . ' ' . ( $club->ville ?? '' ) ) ); ?></dd></div><?php endif; ?>
+                                    <?php if ( ! empty( $club->telephone ) ) : ?><div><dt><?php esc_html_e( 'Téléphone', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $club->telephone ); ?></dd></div><?php endif; ?>
+                                    <?php if ( ! empty( $club->email ) ) : ?><div><dt><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></dt><dd><a href="mailto:<?php echo esc_attr( $club->email ); ?>"><?php echo esc_html( $club->email ); ?></a></dd></div><?php endif; ?>
+                                    <?php if ( ! empty( $club->url_site ) ) : ?><div><dt><?php esc_html_e( 'Site', 'ufsc-clubs' ); ?></dt><dd><a href="<?php echo esc_url( $club->url_site ); ?>" target="_blank" rel="noopener"><?php echo esc_html( preg_replace( '#^https?://#', '', (string) $club->url_site ) ); ?></a></dd></div><?php endif; ?>
+                                </dl>
 						<?php if ( $honorability_kpis['required'] ) : ?>
 						<div class="ufsc-message <?php echo $honorability_kpis['incomplete'] ? 'ufsc-warning' : 'ufsc-success'; ?>">
 							<strong><?php esc_html_e( 'Attestations d’honorabilité :', 'ufsc-clubs' ); ?></strong>
@@ -287,6 +294,12 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <div class="ufsc-dashboard-mainpane">
+                    <nav class="ufsc-club-account__nav" aria-label="<?php esc_attr_e( 'Navigation Compte Club', 'ufsc-clubs' ); ?>">
+                        <a href="#ufsc-overview"><?php esc_html_e( 'Vue d’ensemble', 'ufsc-clubs' ); ?></a>
+                        <a href="#ufsc-section-profile"><?php esc_html_e( 'Informations du club', 'ufsc-clubs' ); ?></a>
+                        <a href="#ufsc-section-profile"><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></a>
+                        <a href="#ufsc-profile-documents"><?php esc_html_e( 'Documents', 'ufsc-clubs' ); ?></a>
+                    </nav>
                     <div class="ufsc-season-card ufsc-card">
                         <div>
                             <span class="ufsc-kpi-tile-label"><?php esc_html_e( 'Saison UFSC', 'ufsc-clubs' ); ?></span>
@@ -1451,7 +1464,7 @@ class UFSC_Frontend_Shortcodes {
         $regions = UFSC_CL_Utils::regions();
         ?>
 
-        <div class="ufsc-club-profile ufsc-premium-v3">
+        <div class="ufsc-club-account ufsc-club-profile ufsc-premium-v3">
             <div class="ufsc-club-profile-shell">
                 <div class="ufsc-section-header ufsc-profile-header">
                     <div>
@@ -1508,6 +1521,13 @@ class UFSC_Frontend_Shortcodes {
 								<span class="ufsc-badge ufsc-badge-region"><?php echo esc_html( sprintf( __( 'Affiliation %s', 'ufsc-clubs' ), $annual_affiliation->num_affiliation ) ); ?></span>
                             <?php endif; ?>
                         </div>
+                        <dl class="ufsc-club-account__identity" aria-label="<?php esc_attr_e( 'Coordonnées principales du club', 'ufsc-clubs' ); ?>">
+                            <?php if ( ! empty( $club->region ) ) : ?><div><dt><?php esc_html_e( 'Région', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $club->region ); ?></dd></div><?php endif; ?>
+                            <?php if ( ! empty( $club->adresse ) || ! empty( $club->code_postal ) || ! empty( $club->ville ) ) : ?><div><dt><?php esc_html_e( 'Adresse', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( trim( (string) ( $club->adresse ?? '' ) . ' ' . ( $club->code_postal ?? '' ) . ' ' . ( $club->ville ?? '' ) ) ); ?></dd></div><?php endif; ?>
+                            <?php if ( ! empty( $club->telephone ) ) : ?><div><dt><?php esc_html_e( 'Téléphone', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $club->telephone ); ?></dd></div><?php endif; ?>
+                            <?php if ( ! empty( $club->email ) ) : ?><div><dt><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></dt><dd><a href="mailto:<?php echo esc_attr( $club->email ); ?>"><?php echo esc_html( $club->email ); ?></a></dd></div><?php endif; ?>
+                            <?php if ( ! empty( $club->url_site ) ) : ?><div><dt><?php esc_html_e( 'Site', 'ufsc-clubs' ); ?></dt><dd><a href="<?php echo esc_url( $club->url_site ); ?>" target="_blank" rel="noopener"><?php echo esc_html( preg_replace( '#^https?://#', '', (string) $club->url_site ) ); ?></a></dd></div><?php endif; ?>
+                        </dl>
                         <?php if ( $attestation['can_view'] ) : ?>
                             <div class="div-attestation">
                                 <h3 class="title-attestation club front"><?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?></h3>
@@ -1695,7 +1715,7 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <!-- // UFSC: Submit section -->
-                <div class="ufsc-form-actions">
+                <div class="ufsc-form-actions ufsc-club-account__savebar">
                     <?php if ( $can_edit ): ?>
                         <button type="submit" name="ufsc_save_club" class="ufsc-btn ufsc-btn-primary">
                             <?php esc_html_e( 'Mettre à jour le club', 'ufsc-clubs' ); ?>
@@ -1704,7 +1724,7 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <!-- // UFSC: Documents Section - 6 mandatory documents -->
-                <div class="ufsc-club-profile-documents">
+                <div class="ufsc-club-profile-documents ufsc-club-account__documents" id="ufsc-profile-documents">
                     <div class="ufsc-card ufsc-form-section">
                         <h4><?php esc_html_e( 'Mes documents', 'ufsc-clubs' ); ?></h4>
 
