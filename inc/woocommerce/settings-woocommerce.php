@@ -300,7 +300,7 @@ function ufsc_get_affiliation_renewal_url( $club_id, $season, $previous_affiliat
  * @return bool True if WooCommerce is active
  */
 function ufsc_is_woocommerce_active() {
-    return class_exists( 'WooCommerce' );
+    return class_exists( 'WooCommerce' ) || function_exists( 'wc_get_product' );
 }
 
 /**

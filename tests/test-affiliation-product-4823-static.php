@@ -23,6 +23,9 @@ $assert( strpos( $dashboard, 'ufsc_get_affiliation_renewal_state' ) !== false &&
 $assert( strpos( $dashboard, 'Renouveler mon affiliation %s' ) !== false && strpos( $dashboard, 'href="<?php echo esc_url( $renewal_url ); ?>"' ) !== false, 'Renewal button uses generated product permalink URL.' );
 $assert( strpos( $dashboard, 'Affiliation %s active' ) !== false, 'Active annual affiliation hides renewal path.' );
 $assert( strpos( $dashboard, 'Finaliser mon paiement' ) !== false, 'Pending payment shows payment completion action.' );
+$assert( strpos( $front, 'ufsc_get_affiliation_renewal_state' ) !== false && strpos( $front, 'ufsc_get_pending_affiliation_payment_url' ) !== false, 'Compte Club shortcode uses centralized renewal state and pending payment URL.' );
+$assert( strpos( $front, '$can_renew_affiliation' ) !== false && strpos( $front, 'Renouveler mon affiliation %s' ) !== false, 'Compte Club shortcode exposes renewal CTA when annual state allows it.' );
+$assert( strpos( $front, 'Le renouvellement en ligne est temporairement indisponible' ) !== false && strpos( $front, 'ufsc_get_affiliation_product_unavailable_message' ) !== false, 'Compte Club only shows unavailable fallback through product diagnostics.' );
 $assert( strpos( $cart, 'ufsc_force_affiliation_product_quantity_one' ) !== false, 'Affiliation quantity is forced to one.' );
 $assert( strpos( $cart, "ufsc_cart_has_renewal_item( 'renew_affiliation'" ) !== false && strpos( $cart, "ufsc_wc_has_pending_renewal_order( 'renew_affiliation'" ) !== false, 'Cart and pending order duplicates are blocked.' );
 foreach ( array( 'ufsc_item_type', 'ufsc_action', 'ufsc_club_id', 'ufsc_target_season', 'ufsc_previous_affiliation_id', 'ufsc_user_id', 'ufsc_return_url' ) as $meta ) {
