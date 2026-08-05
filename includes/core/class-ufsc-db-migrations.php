@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.3.6';
+    const MIGRATION_VERSION = '1.4.0';
 
     /**
      * Option key for tracking migration version
@@ -54,6 +54,7 @@ class UFSC_DB_Migrations {
             self::migrate_to_innodb();
             self::ensure_licences_soft_delete_columns();
             self::ensure_licences_renewal_columns();
+            self::ensure_identifier_schema();
             $season_archive_ready = self::ensure_season_archive_tables();
             $attestations_ready = self::ensure_attestations_table();
             self::create_indexes();
@@ -73,6 +74,56 @@ class UFSC_DB_Migrations {
             
             add_action( 'admin_notices', array( __CLASS__, 'migration_success_notice' ) );
         }
+    }
+
+    /** Additive, idempotent storage for permanent identifiers and their monotone sequences. */
+    public static function ensure_identifier_schema() {
+        global $wpdb;
+        $charset = method_exists( $wpdb, 'get_charset_collate' ) ? $wpdb->get_charset_collate() : '';
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta( "CREATE TABLE {$wpdb->prefix}ufsc_identifier_sequences (
+            identifier_type varchar(20) NOT NULL, next_value bigint(20) unsigned NOT NULL DEFAULT 1,
+            updated_at datetime NOT NULL, PRIMARY KEY (identifier_type)
+        ) {$charset};" );
+        dbDelta( "CREATE TABLE {$wpdb->prefix}ufsc_identifiers (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT, identifier_type varchar(20) NOT NULL,
+            identifier_value varchar(64) NOT NULL, entity_type varchar(20) NOT NULL,
+            entity_id bigint(20) unsigned NOT NULL, status varchar(20) NOT NULL DEFAULT 'active',
+            created_by bigint(20) unsigned NOT NULL DEFAULT 0, created_at datetime NOT NULL,
+            PRIMARY KEY (id), UNIQUE KEY uniq_identifier (identifier_value),
+            UNIQUE KEY uniq_entity_identifier (identifier_type,entity_type,entity_id), KEY status (status)
+        ) {$charset};" );
+        dbDelta( "CREATE TABLE {$wpdb->prefix}ufsc_identifier_audit (
+            id bigint(20) unsigned NOT NULL AUTO_INCREMENT, action varchar(50) NOT NULL,
+            entity_type varchar(20) NOT NULL, entity_id bigint(20) unsigned NOT NULL,
+            old_value varchar(64) NOT NULL DEFAULT '', new_value varchar(64) NOT NULL DEFAULT '',
+            user_id bigint(20) unsigned NOT NULL DEFAULT 0, season varchar(20) NOT NULL DEFAULT '',
+            justification varchar(255) NOT NULL DEFAULT '', created_at datetime NOT NULL,
+            PRIMARY KEY (id), KEY entity (entity_type,entity_id), KEY action (action)
+        ) {$charset};" );
+
+        $settings = UFSC_SQL::get_settings();
+        self::add_columns_if_missing( $settings['table_clubs'], array(
+            'numero_affiliation_ufsc' => 'varchar(64) NULL DEFAULT NULL',
+            'numero_affiliation_asptt' => 'varchar(64) NULL DEFAULT NULL',
+        ) );
+        self::add_columns_if_missing( $settings['table_licences'], array(
+            'numero_licence_ufsc' => 'varchar(64) NULL DEFAULT NULL',
+            'numero_licence_asptt' => 'varchar(64) NULL DEFAULT NULL',
+            'person_identifier' => 'varchar(100) NULL DEFAULT NULL',
+        ) );
+    }
+
+    private static function add_columns_if_missing( $table, $definitions ) {
+        global $wpdb;
+        if ( ! self::table_exists( $table ) ) { return; }
+        $columns = (array) $wpdb->get_col( "SHOW COLUMNS FROM `{$table}`", 0 );
+        foreach ( $definitions as $column => $definition ) {
+            if ( ! in_array( $column, $columns, true ) ) {
+                $wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}" );
+            }
+        }
+        if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) { ufsc_flush_table_columns_cache(); }
     }
 
     /**

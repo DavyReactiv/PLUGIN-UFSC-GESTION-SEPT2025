@@ -53,6 +53,16 @@ class UFSC_Diagnostics_Admin {
         echo '<li>' . esc_html( sprintf( __( 'Total distinct : %d clubs — qualité : %s', 'ufsc-clubs' ), (int) ( $season_counts['total_distinct'] ?? 0 ), (string) ( $season_counts['quality'] ?? 'unavailable' ) ) ) . '</li>';
         echo '</ul>';
 
+        echo '<h2>' . esc_html__( 'Audit identifiants UFSC / ASPTT', 'ufsc-clubs' ) . '</h2>';
+        echo '<p>' . esc_html__( 'Rapport non destructif. Les valeurs vides sont ignorées et aucune fusion n’est effectuée.', 'ufsc-clubs' ) . '</p>';
+        $identifier_audit = class_exists( 'UFSC_Identifier_Service' ) ? UFSC_Identifier_Service::duplicate_audit() : array();
+        foreach ( $identifier_audit as $type => $rows ) {
+            echo '<h3>' . esc_html( $type ) . '</h3><table class="widefat striped"><thead><tr><th>' . esc_html__( 'Valeur', 'ufsc-clubs' ) . '</th><th>IDs</th><th>' . esc_html__( 'Occurrences', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Action recommandée', 'ufsc-clubs' ) . '</th></tr></thead><tbody>';
+            if ( empty( $rows ) ) { echo '<tr><td colspan="4">' . esc_html__( 'Aucun doublon détecté.', 'ufsc-clubs' ) . '</td></tr>'; }
+            foreach ( $rows as $row ) { echo '<tr><td><code>' . esc_html( $row['value'] ?? '' ) . '</code></td><td>' . esc_html( $row['ids'] ?? '' ) . '</td><td>' . esc_html( $row['count'] ?? 0 ) . '</td><td>' . esc_html__( 'Examiner les fiches puis corriger manuellement avec justification.', 'ufsc-clubs' ) . '</td></tr>'; }
+            echo '</tbody></table>';
+        }
+
         echo '<h2>' . esc_html__( 'Actions sécurisées', 'ufsc-clubs' ) . '</h2>';
         echo '<p><button class="button" disabled>' . esc_html__( 'Simuler la migration (à implémenter après recette)', 'ufsc-clubs' ) . '</button> ';
         echo '<button class="button" disabled>' . esc_html__( 'Exécuter la migration (désactivé)', 'ufsc-clubs' ) . '</button> ';
