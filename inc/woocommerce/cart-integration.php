@@ -30,6 +30,7 @@ function ufsc_init_cart_integration() {
 	// Transfer meta data from cart to order
 	add_action( 'woocommerce_checkout_create_order_line_item', 'ufsc_transfer_cart_meta_to_order', 10, 4 );
 	add_filter( 'woocommerce_add_cart_item_data', 'ufsc_capture_affiliation_product_context', 10, 2 );
+	add_filter( 'woocommerce_add_to_cart_quantity', 'ufsc_force_affiliation_product_quantity_one', 10, 2 );
 
 	// Revert pending licence status when cart items are removed without real order linkage.
 	add_action( 'woocommerce_remove_cart_item', 'ufsc_handle_remove_cart_item_licence_revert', 10, 2 );
@@ -73,6 +74,10 @@ function ufsc_handle_bulk_renew_licences() {
 }
 
 /** Preserve a validated product-page renewal context in the cart. */
+function ufsc_force_affiliation_product_quantity_one( $quantity, $product_id ) {
+	return absint( $product_id ) === absint( ufsc_get_affiliation_product_id() ) ? 1 : $quantity;
+}
+
 function ufsc_capture_affiliation_product_context( $cart_item_data, $product_id ) {
 	$action = isset( $_REQUEST['ufsc_action'] ) && ! is_array( $_REQUEST['ufsc_action'] ) ? sanitize_key( wp_unslash( $_REQUEST['ufsc_action'] ) ) : '';
 	if ( ! in_array( $action, array( 'renewal', 'renew_affiliation' ), true ) || absint( $product_id ) !== absint( ufsc_get_affiliation_product_id() ) ) {
@@ -86,7 +91,10 @@ function ufsc_capture_affiliation_product_context( $cart_item_data, $product_id 
 		? UFSC_Season_Service::get_current_season()
 		: ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
 
-	if ( $club_id <= 0 || $club_id !== $user_club_id || $season !== $current_season || ufsc_is_club_affiliated_for_season( $club_id, $season ) || ufsc_wc_has_pending_renewal_order( 'renew_affiliation', $club_id, $season ) ) {
+	if ( $club_id <= 0 || $club_id !== $user_club_id || $season !== $current_season || ufsc_is_club_affiliated_for_season( $club_id, $season ) || ufsc_wc_has_pending_renewal_order( 'renew_affiliation', $club_id, $season ) || ufsc_cart_has_renewal_item( 'renew_affiliation', $club_id, $season ) ) {
+		if ( function_exists( 'wc_add_notice' ) ) {
+			wc_add_notice( sprintf( __( 'Une demande d’affiliation %s est déjà présente dans votre panier ou en attente de traitement.', 'ufsc-clubs' ), $season ), 'notice' );
+		}
 		return $cart_item_data;
 	}
 
@@ -99,6 +107,8 @@ function ufsc_capture_affiliation_product_context( $cart_item_data, $product_id 
 	$cart_item_data['ufsc_request_date'] = current_time( 'mysql' );
 	$cart_item_data['ufsc_product_id'] = absint( $product_id );
 	$cart_item_data['ufsc_user_id'] = get_current_user_id();
+	$cart_item_data['ufsc_return_url'] = wp_get_referer() ? esc_url_raw( wp_get_referer() ) : home_url( '/' );
+	$cart_item_data['quantity'] = 1;
 
 	return $cart_item_data;
 }
@@ -1302,6 +1312,12 @@ function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $orde
 		$item_type = sanitize_key( $values['ufsc_item_type'] );
 		$item->add_meta_data( '_ufsc_item_type', $item_type );
 		$item->add_meta_data( 'ufsc_item_type', $item_type );
+	}
+	if ( 'renew_affiliation' === ( $values['ufsc_action'] ?? '' ) ) {
+		$item->add_meta_data( '_ufsc_affiliation_request_type', sanitize_key( $values['ufsc_request_type'] ?? 'renewal' ) );
+		$item->add_meta_data( '_ufsc_affiliation_product_id', absint( $values['ufsc_product_id'] ?? ufsc_get_affiliation_product_id() ) );
+		$item->add_meta_data( '_ufsc_request_user_id', absint( $values['ufsc_user_id'] ?? get_current_user_id() ) );
+		$item->add_meta_data( '_ufsc_previous_affiliation_id', absint( $values['ufsc_previous_affiliation_id'] ?? 0 ) );
 	}
 	if ( isset( $values['ufsc_user_id'] ) ) {
 		$item->add_meta_data( '_ufsc_user_id', absint( $values['ufsc_user_id'] ) );
