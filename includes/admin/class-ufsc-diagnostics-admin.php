@@ -36,6 +36,23 @@ class UFSC_Diagnostics_Admin {
         }
         echo '</tbody></table>';
 
+        echo '<h2>' . esc_html__( 'Audit colonnes historiques club', 'ufsc-clubs' ) . '</h2>';
+        echo '<table class="widefat striped"><thead><tr><th>Colonne</th><th>Type</th><th>Non vides</th><th>Valeurs distinctes</th><th>Format anonymisé</th><th>Interprétation</th><th>Confiance</th></tr></thead><tbody>';
+        $legacy_columns = class_exists( 'UFSC_Storage_Resolver' ) ? UFSC_Storage_Resolver::audit_legacy_club_season_columns() : array();
+        foreach ( $legacy_columns as $column ) {
+            echo '<tr><td><code>' . esc_html( $column['column'] ) . '</code></td><td>' . esc_html( $column['type'] ) . '</td><td>' . esc_html( (string) $column['non_empty'] ) . '</td><td>' . esc_html( implode( ', ', array_slice( (array) $column['distinct_values'], 0, 8 ) ) ) . '</td><td>' . esc_html( $column['example_format'] ) . '</td><td>' . esc_html( $column['interpretation'] ) . '</td><td>' . esc_html( $column['confidence'] ) . '</td></tr>';
+        }
+        echo '</tbody></table>';
+
+        echo '<h2>' . esc_html__( 'Diagnostic filtre saison 2025-2026', 'ufsc-clubs' ) . '</h2>';
+        $season_counts = class_exists( 'UFSC_Storage_Resolver' ) ? UFSC_Storage_Resolver::get_season_evidence_counts( '2025-2026' ) : array();
+        echo '<ul>';
+        echo '<li>' . esc_html( sprintf( __( 'Preuves annual affiliation : %d clubs', 'ufsc-clubs' ), (int) ( $season_counts['annual_affiliation'] ?? 0 ) ) ) . '</li>';
+        echo '<li>' . esc_html( sprintf( __( 'Preuves licence : %d clubs', 'ufsc-clubs' ), (int) ( $season_counts['licence'] ?? 0 ) ) ) . '</li>';
+        echo '<li>' . esc_html( sprintf( __( 'Preuves legacy club : %d clubs', 'ufsc-clubs' ), (int) ( $season_counts['legacy_club'] ?? 0 ) ) ) . '</li>';
+        echo '<li>' . esc_html( sprintf( __( 'Total distinct : %d clubs — qualité : %s', 'ufsc-clubs' ), (int) ( $season_counts['total_distinct'] ?? 0 ), (string) ( $season_counts['quality'] ?? 'unavailable' ) ) ) . '</li>';
+        echo '</ul>';
+
         echo '<h2>' . esc_html__( 'Actions sécurisées', 'ufsc-clubs' ) . '</h2>';
         echo '<p><button class="button" disabled>' . esc_html__( 'Simuler la migration (à implémenter après recette)', 'ufsc-clubs' ) . '</button> ';
         echo '<button class="button" disabled>' . esc_html__( 'Exécuter la migration (désactivé)', 'ufsc-clubs' ) . '</button> ';

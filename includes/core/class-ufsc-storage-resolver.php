@@ -180,6 +180,132 @@ class UFSC_Storage_Resolver {
         return '';
     }
 
+
+    /** Return normalized season parts for evidence comparisons. */
+    public static function get_season_reference_parts( $season ) {
+        $normalized = self::normalize_season_reference( $season );
+        if ( ! preg_match( '/^(\d{4})-(\d{4})$/', $normalized, $m ) ) {
+            return array( 'label' => '', 'slash_label' => '', 'start_date' => '', 'end_date' => '', 'end_year' => 0 );
+        }
+        return array(
+            'label'       => $normalized,
+            'slash_label' => str_replace( '-', '/', $normalized ),
+            'start_date'  => $m[1] . '-08-01',
+            'end_date'    => $m[2] . '-07-31',
+            'end_year'    => (int) $m[2],
+        );
+    }
+
+    /**
+     * Build SQL evidence that a permanent club belongs to a historical season.
+     * This is read-only and only references columns proven to exist.
+     */
+    public static function get_club_season_evidence_sql( $clubs_table, $club_alias, $season ) {
+        global $wpdb;
+        $clubs_table = self::sanitize_table_name( $clubs_table );
+        $club_alias  = self::sanitize_identifier( $club_alias ?: $clubs_table );
+        $parts       = self::get_season_reference_parts( $season );
+        $evidence    = array();
+        $sources     = array();
+        if ( '' === $parts['label'] || ! self::table_exists( $clubs_table ) ) {
+            return array( 'sql' => '', 'source' => 'none', 'confidence' => 'none', 'supported' => false, 'diagnostic' => 'invalid_season_or_table' );
+        }
+
+        foreach ( array( 'season', 'saison', 'paid_season', 'saison_affiliation' ) as $column ) {
+            if ( ! self::column_exists( $clubs_table, $column ) ) { continue; }
+            $evidence[] = $wpdb->prepare( "REPLACE({$club_alias}.`{$column}`, '/', '-') IN (%s, %s, %s)", $parts['label'], (string) $parts['end_year'], $parts['slash_label'] );
+            $sources[]  = 'legacy_club_season:' . $column;
+        }
+
+        foreach ( array( 'season_end_year', 'annee_affiliation' ) as $column ) {
+            if ( ! self::column_exists( $clubs_table, $column ) ) { continue; }
+            $evidence[] = $wpdb->prepare( "CAST({$club_alias}.`{$column}` AS UNSIGNED) = %d", $parts['end_year'] );
+            $sources[]  = 'legacy_club_season:' . $column;
+        }
+
+        foreach ( array( 'date_affiliation', 'date_validation', 'date_asptt' ) as $column ) {
+            if ( ! self::column_exists( $clubs_table, $column ) ) { continue; }
+            $evidence[] = $wpdb->prepare( "DATE({$club_alias}.`{$column}`) BETWEEN %s AND %s", $parts['start_date'], $parts['end_date'] );
+            $sources[]  = 'legacy_affiliation_date:' . $column;
+        }
+
+        if ( empty( $evidence ) ) {
+            return array( 'sql' => '', 'source' => 'none', 'confidence' => 'none', 'supported' => false, 'diagnostic' => 'no_supported_legacy_club_columns' );
+        }
+
+        return array(
+            'sql'        => '(' . implode( ' OR ', $evidence ) . ')',
+            'source'     => implode( ',', array_unique( $sources ) ),
+            'confidence' => 'reconstructed',
+            'supported'  => true,
+            'diagnostic' => 'legacy_club_evidence_available',
+        );
+    }
+
+    /** Count distinct clubs by evidence source for an admin diagnostic block. */
+    public static function get_season_evidence_counts( $season ) {
+        global $wpdb;
+        $clubs_table = self::get_clubs_table();
+        $pk = self::first_existing_column( $clubs_table, array( 'id', 'club_id', 'ID' ) );
+        $counts = array( 'annual_affiliation' => 0, 'licence' => 0, 'legacy_club' => 0, 'total_distinct' => 0, 'quality' => 'unavailable' );
+        if ( '' === $pk || ! self::table_exists( $clubs_table ) ) { return $counts; }
+
+        $conditions = array();
+        $aff = self::resolve_table( 'affiliations' );
+        if ( ! empty( $aff['exists'] ) ) {
+            $aff_table = $aff['table'];
+            $aff_club = self::first_existing_column( $aff_table, array( 'club_id', 'id_club' ) );
+            $aff_season = self::first_existing_column( $aff_table, array( 'season', 'saison' ) );
+            if ( $aff_club && $aff_season ) {
+                $annual = $wpdb->prepare( "EXISTS (SELECT 1 FROM `{$aff_table}` af WHERE af.`{$aff_club}` = c.`{$pk}` AND REPLACE(af.`{$aff_season}`, '/', '-') = %s)", self::normalize_season_reference( $season ) );
+                $counts['annual_affiliation'] = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT c.`{$pk}`) FROM `{$clubs_table}` c WHERE " . self::not_deleted_sql( $clubs_table, 'c' ) . " AND {$annual}" );
+                $conditions[] = $annual;
+            }
+        }
+
+        $lic = self::resolve_table( 'licences' );
+        if ( ! empty( $lic['exists'] ) ) {
+            $lic_table = $lic['table'];
+            $lic_club = self::first_existing_column( $lic_table, array( 'club_id', 'id_club' ) );
+            $lic_season = self::first_existing_column( $lic_table, array( 'paid_season', 'season', 'saison', 'season_end_year' ) );
+            $parts = self::get_season_reference_parts( $season );
+            if ( $lic_club && $lic_season && '' !== $parts['label'] ) {
+                $season_sql = 'season_end_year' === $lic_season ? $wpdb->prepare( 'CAST(lx.`season_end_year` AS UNSIGNED) = %d', $parts['end_year'] ) : $wpdb->prepare( "REPLACE(lx.`{$lic_season}`, '/', '-') IN (%s, %s)", $parts['label'], (string) $parts['end_year'] );
+                $licence = "EXISTS (SELECT 1 FROM `{$lic_table}` lx WHERE lx.`{$lic_club}` = c.`{$pk}` AND {$season_sql} AND " . self::not_deleted_sql( $lic_table, 'lx' ) . ')';
+                $counts['licence'] = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT c.`{$pk}`) FROM `{$clubs_table}` c WHERE " . self::not_deleted_sql( $clubs_table, 'c' ) . " AND {$licence}" );
+                $conditions[] = $licence;
+            }
+        }
+
+        $legacy = self::get_club_season_evidence_sql( $clubs_table, 'c', $season );
+        if ( ! empty( $legacy['supported'] ) && ! empty( $legacy['sql'] ) ) {
+            $counts['legacy_club'] = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT c.`{$pk}`) FROM `{$clubs_table}` c WHERE " . self::not_deleted_sql( $clubs_table, 'c' ) . ' AND ' . $legacy['sql'] );
+            $conditions[] = $legacy['sql'];
+        }
+        if ( ! empty( $conditions ) ) {
+            $counts['total_distinct'] = (int) $wpdb->get_var( "SELECT COUNT(DISTINCT c.`{$pk}`) FROM `{$clubs_table}` c WHERE " . self::not_deleted_sql( $clubs_table, 'c' ) . ' AND (' . implode( ' OR ', $conditions ) . ')' );
+            $counts['quality'] = $counts['legacy_club'] > 0 ? 'reconstructed' : 'exact';
+        }
+        return $counts;
+    }
+
+    /** Audit possible legacy club season columns without exposing personal data. */
+    public static function audit_legacy_club_season_columns() {
+        global $wpdb;
+        $table = self::get_clubs_table();
+        $candidates = array( 'season', 'saison', 'paid_season', 'season_end_year', 'saison_affiliation', 'annee_affiliation', 'date_affiliation', 'date_validation', 'date_creation', 'num_affiliation', 'statut', 'status', 'affiliation_status', 'date_asptt', 'numero_affiliation', 'numero_licence' );
+        $rows = array();
+        foreach ( $candidates as $column ) {
+            if ( ! self::column_exists( $table, $column ) ) { continue; }
+            $type = (string) $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM `{$table}` LIKE %s", $column ), 1 );
+            $non_empty = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}` WHERE `{$column}` IS NOT NULL AND CAST(`{$column}` AS CHAR) != ''" );
+            $values = $wpdb->get_col( "SELECT DISTINCT CAST(`{$column}` AS CHAR) FROM `{$table}` WHERE `{$column}` IS NOT NULL AND CAST(`{$column}` AS CHAR) != '' ORDER BY 1 DESC LIMIT 8" );
+            $confidence = in_array( $column, array( 'season', 'saison', 'paid_season', 'season_end_year', 'saison_affiliation', 'annee_affiliation' ), true ) ? 'high' : ( in_array( $column, array( 'date_affiliation', 'date_validation', 'date_asptt' ), true ) ? 'medium' : 'diagnostic' );
+            $rows[] = array( 'column' => $column, 'type' => $type, 'non_empty' => $non_empty, 'distinct_values' => array_map( 'strval', (array) $values ), 'example_format' => isset( $values[0] ) ? preg_replace( '/[A-Za-z0-9]/', 'X', (string) $values[0] ) : '', 'interpretation' => $confidence === 'diagnostic' ? 'contexte seulement' : 'preuve saison potentielle', 'confidence' => $confidence );
+        }
+        return $rows;
+    }
+
     private static function expected_table_name( $type ) {
         global $wpdb;
         $settings = get_option( 'ufsc_sql_settings', array() );

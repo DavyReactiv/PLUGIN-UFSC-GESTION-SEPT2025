@@ -241,3 +241,12 @@ if ( ! function_exists( 'ufsc_normalize_season_reference' ) ) {
         return (string) $value;
     }
 }
+
+if ( ! function_exists( 'ufsc_get_club_season_evidence_sql' ) ) {
+    function ufsc_get_club_season_evidence_sql( $clubs_table, $club_alias, $season ) {
+        if ( class_exists( 'UFSC_Storage_Resolver' ) ) {
+            return UFSC_Storage_Resolver::get_club_season_evidence_sql( $clubs_table, $club_alias, $season );
+        }
+        return array( 'sql' => '', 'source' => 'none', 'confidence' => 'none', 'supported' => false, 'diagnostic' => 'resolver_unavailable' );
+    }
+}

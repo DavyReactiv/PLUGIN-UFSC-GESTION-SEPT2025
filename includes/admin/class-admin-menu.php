@@ -209,12 +209,6 @@ class UFSC_CL_Admin_Menu {
 			echo ' <a href="' . esc_url( admin_url( 'admin.php?page=ufsc-diagnostics' ) ) . '">' . esc_html__( 'Diagnostic détaillé', 'ufsc-clubs' ) . '</a>';
 			echo '</p></div>';
 		}
-		if ( ! empty( $diagnostic['optional_missing_tables'] ) || ! empty( $diagnostic['migration_required'] ) ) {
-			echo '<div class="notice notice-warning inline"><p><strong>' . esc_html__( 'Diagnostic UFSC', 'ufsc-clubs' ) . '</strong> ';
-			echo esc_html__( 'Les données principales sont disponibles. Points techniques à traiter : ', 'ufsc-clubs' );
-			echo esc_html( implode( ', ', array_merge( (array) ( $diagnostic['optional_missing_tables'] ?? array() ), ! empty( $diagnostic['migration_required'] ) ? array( 'migration en attente' ) : array() ) ) );
-			echo '</p></div>';
-		}
 
 		// Get dashboard data with caching
 		$dashboard_data = self::get_dashboard_data_cached( $t_clubs, $t_lics );
