@@ -217,14 +217,7 @@ class UFSC_Frontend_Shortcodes {
                             </div>
                         </div>
                         <div class="ufsc-dashboard-actions ufsc-dashboard-actions--primary">
-                            <?php if ( $can_renew_affiliation ) : ?>
-                                <a href="<?php echo esc_url( $renewal_url ); ?>" class="ufsc-btn ufsc-btn-primary ufsc-btn-xl"><?php echo esc_html( sprintf( __( 'Renouveler mon affiliation %s', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></a>
-                            <?php elseif ( ( 'pending_payment' === $affiliation_state['status'] || $pending_order ) && $pending_payment_url ) : ?>
-                                <a href="<?php echo esc_url( $pending_payment_url ); ?>" class="ufsc-btn ufsc-btn-primary ufsc-btn-xl"><?php esc_html_e( 'Finaliser mon paiement', 'ufsc-clubs' ); ?></a>
-                            <?php elseif ( $renewal_affiliation_done ) : ?>
-                                <span class="ufsc-badge ufsc-badge-success ufsc-affiliation-state-pill"><?php echo esc_html( sprintf( __( 'Affiliation %s active', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></span>
-                            <?php endif; ?>
-                            <?php if ( in_array( 'add_licence', $sections, true ) && $renewal_affiliation_done ): ?>
+                            <?php if ( in_array( 'add_licence', $sections, true ) ): ?>
                                 <a href="#ufsc-section-add_licence" class="ufsc-btn ufsc-btn-primary" onclick="document.querySelector('[data-section=&quot;add_licence&quot;]').click(); return false;">
                                     <?php esc_html_e( 'Ajouter une licence', 'ufsc-clubs' ); ?>
                                 </a>
@@ -309,14 +302,18 @@ class UFSC_Frontend_Shortcodes {
                             <?php endif; ?>
                             <p><?php echo esc_html( sprintf( __( 'Affiliation : %s', 'ufsc-clubs' ), $affiliation_season ? $affiliation_season : __( 'non renseignée', 'ufsc-clubs' ) ) ); ?></p>
                         </div>
-                        <div class="ufsc-affiliation-renewal-alert ufsc-affiliation-state-card">
-                            <h3><?php echo esc_html( sprintf( __( 'Affiliation %1$s : %2$s', 'ufsc-clubs' ), $renewal_affiliation_season, $affiliation_state['label'] ) ); ?></h3>
-                            <?php if ( $renewal_affiliation_done ) : ?>
-                                <span class="ufsc-badge ufsc-badge-success"><?php echo esc_html( sprintf( __( 'Affiliation %s active', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></span>
-                            <?php elseif ( 'pending_payment' === $affiliation_state['status'] || $pending_order ) : ?>
-                                <p><?php echo esc_html( sprintf( __( 'Une demande d’affiliation %s est déjà présente dans votre panier ou en attente de traitement.', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></p>
-                                <?php if ( $pending_payment_url ) : ?>
-                                    <a class="ufsc-btn ufsc-btn-primary" href="<?php echo esc_url( $pending_payment_url ); ?>"><?php esc_html_e( 'Finaliser mon paiement', 'ufsc-clubs' ); ?></a>
+                        <?php if ( $renewal_affiliation_done ) : ?>
+                            <span class="ufsc-badge ufsc-badge-success"><?php echo esc_html( sprintf( __( 'Club affilié pour la saison %s', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></span>
+                        <?php elseif ( $affiliation_pending && 'paid' === sanitize_key( (string) $annual_affiliation->payment_status ) ) : ?>
+                            <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Affiliation en attente de validation', 'ufsc-clubs' ); ?></span>
+                        <?php elseif ( $affiliation_pending || $pending_order ) : ?>
+                            <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Renouvellement en cours', 'ufsc-clubs' ); ?></span>
+                        <?php else : ?>
+                            <div class="ufsc-affiliation-renewal-alert">
+                                <h3><?php echo esc_html( sprintf( __( 'Affiliation %s à renouveler', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></h3>
+                                <p><?php echo esc_html( sprintf( __( 'Votre club n’est pas encore affilié pour la saison %s. Vérifiez vos informations puis procédez au renouvellement de votre affiliation.', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></p>
+                                <?php if ( $renew_window_open && $renewal_url ) : ?>
+                                    <a class="ufsc-btn ufsc-btn-primary ufsc-btn-xl" href="<?php echo esc_url( $renewal_url ); ?>"><?php echo esc_html( sprintf( __( 'Renouveler mon affiliation %s', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></a>
                                 <?php else : ?>
                                     <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Demande existante : contactez l’UFSC si le paiement n’est plus accessible.', 'ufsc-clubs' ); ?></span>
                                 <?php endif; ?>

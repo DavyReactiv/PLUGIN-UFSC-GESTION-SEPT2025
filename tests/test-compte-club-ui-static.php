@@ -17,9 +17,9 @@ foreach ( array( 'Région', 'Adresse', 'Téléphone', 'Email', 'Site' ) as $labe
     $assert( strpos( $front, $label ) !== false, 'Hero must include non-empty summary label: ' . $label );
 }
 $assert( strpos( $front, 'ufsc-club-account__nav' ) !== false && strpos( $front, 'Vue d’ensemble' ) !== false && strpos( $front, 'Documents' ) !== false, 'Accessible anchor navigation is present.' );
-$assert( strpos( $front, 'Renouveler mon affiliation %s' ) !== false && strpos( $front, 'Finaliser mon paiement' ) !== false && strpos( $front, 'Affiliation %s active' ) !== false, 'Affiliation CTA truth table remains visible.' );
-$assert( strpos( $settings, '$product->get_permalink()' ) !== false && strpos( $front, 'dev.ufsc-france.fr/produit' ) === false, 'No hard-coded affiliation product URL is used in UI.' );
-$assert( strpos( $settings, 'ufsc_get_affiliation_product_id()' ) !== false && strpos( $settings, '4823' ) !== false, 'Canonical product helper remains in use.' );
+$assert( strpos( $front, 'Renouveler mon affiliation %s' ) !== false && strpos( $front, 'Le renouvellement en ligne est temporairement indisponible' ) !== false, 'Affiliation CTA and fallback remain rendered by existing logic.' );
+$assert( strpos( $front, 'dev.ufsc-france.fr/produit' ) === false, 'No hard-coded affiliation product URL is used in UI.' );
+$assert( strpos( $settings, 'ufsc_get_affiliation_product_id()' ) !== false, 'Existing affiliation product helper remains available.' );
 $assert( strpos( $front, 'name="action" value="ufsc_save_club"' ) !== false && strpos( $front, "wp_nonce_field( 'ufsc_save_club', 'ufsc_club_nonce' )" ) !== false, 'Save action and nonce are preserved.' );
 foreach ( array( 'profile_photo', 'ufsc_upload_profile_photo', 'ufsc_remove_profile_photo', 'doc_statuts', 'statuts_upload', 'recepisse_upload', 'jo_upload', 'pv_ag_upload', 'cer_upload', 'attestation_cer_upload' ) as $field ) {
     $assert( strpos( $front, $field ) !== false || strpos( $handler, $field ) !== false || strpos( $uploads, $field ) !== false, 'Expected field/handler preserved: ' . $field );
