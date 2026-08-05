@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 function ufsc_get_default_woocommerce_settings() {
     return array(
-        'product_affiliation_id'  => 0,
+        'product_affiliation_id'  => 4823,
         'product_license_id'      => 0,
         'included_licenses'       => 10,
         // "season" ici = saison de quota Woo (historique). La "source de vérité" de saison globale est gérée ailleurs (inc/settings.php + inc/common/season.php).
@@ -89,7 +89,31 @@ function ufsc_save_woocommerce_settings( $settings ) {
  */
 function ufsc_get_affiliation_product_id() {
     $settings = ufsc_get_woocommerce_settings();
-    return isset( $settings['product_affiliation_id'] ) ? absint( $settings['product_affiliation_id'] ) : 0;
+    $configured_id = isset( $settings['product_affiliation_id'] ) ? absint( $settings['product_affiliation_id'] ) : 0;
+
+    return 4823 === $configured_id ? $configured_id : 4823;
+}
+
+/** Return the canonical affiliation WooCommerce product when available. */
+function ufsc_get_affiliation_product() {
+    $product_id = ufsc_get_affiliation_product_id();
+    if ( $product_id <= 0 || ! function_exists( 'wc_get_product' ) ) {
+        return false;
+    }
+
+    $product = wc_get_product( $product_id );
+    return ( $product && is_callable( array( $product, 'exists' ) ) && $product->exists() ) ? $product : false;
+}
+
+/** Return the canonical affiliation product permalink, or an empty string. */
+function ufsc_get_affiliation_product_url() {
+    $product = ufsc_get_affiliation_product();
+    if ( ! $product || ! is_callable( array( $product, 'get_permalink' ) ) ) {
+        return '';
+    }
+
+    $url = $product->get_permalink();
+    return is_string( $url ) ? $url : '';
 }
 
 /**
@@ -144,11 +168,11 @@ function ufsc_get_woocommerce_product_diagnostic( $product_id ) {
 	$diagnostic['product_visibility']  = is_callable( array( $product, 'get_catalog_visibility' ) ) ? (string) $product->get_catalog_visibility() : '';
 	$diagnostic['product_type']        = is_callable( array( $product, 'get_type' ) ) ? (string) $product->get_type() : '';
 	$diagnostic['product_price']       = is_callable( array( $product, 'get_price' ) ) ? (string) $product->get_price() : '';
-	$diagnostic['product_permalink']   = get_permalink( $product_id );
+	$diagnostic['product_permalink']   = is_callable( array( $product, 'get_permalink' ) ) ? (string) $product->get_permalink() : '';
 	if ( 'publish' !== $diagnostic['product_status'] ) {
 		$diagnostic['unavailable_reason'] = 'product_not_published';
-	} elseif ( 'hidden' === $diagnostic['product_visibility'] ) {
-		$diagnostic['unavailable_reason'] = 'product_hidden';
+	} elseif ( '' === $diagnostic['product_permalink'] ) {
+		$diagnostic['unavailable_reason'] = 'permalink_unavailable';
 	} elseif ( '' === $diagnostic['product_price'] ) {
 		$diagnostic['unavailable_reason'] = 'product_without_price';
 	} elseif ( ! $diagnostic['product_purchasable'] ) {
@@ -172,8 +196,8 @@ function ufsc_is_woocommerce_product_available( $product_id ) {
         && ! empty( $diagnostic['product_id'] )
         && ! empty( $diagnostic['product_found'] )
         && 'publish' === $diagnostic['product_status']
-		&& 'hidden' !== $diagnostic['product_visibility']
 		&& '' !== $diagnostic['product_price']
+		&& '' !== $diagnostic['product_permalink']
         && ! empty( $diagnostic['product_purchasable'] );
 }
 
@@ -191,8 +215,49 @@ function ufsc_get_woocommerce_product_diagnostic_message( $product_id ) {
 		'' !== $d['product_price'] ? $d['product_price'] : '—',
 		! empty( $d['product_purchasable'] ) ? __( 'oui', 'ufsc-clubs' ) : __( 'non', 'ufsc-clubs' ),
 		$d['product_permalink'] ?: '—',
-		$d['unavailable_reason'] ?: '—'
+		ufsc_get_affiliation_product_unavailable_message( $d['unavailable_reason'] ?: '' )
 	);
+}
+
+/** Front-safe affiliation product unavailability message. */
+function ufsc_get_affiliation_product_unavailable_message( $reason ) {
+    $messages = array(
+        'woocommerce_inactive'     => __( 'WooCommerce est inactif.', 'ufsc-clubs' ),
+        'missing_product_id'       => __( 'ID produit absent.', 'ufsc-clubs' ),
+        'product_not_found'        => __( 'Produit d’affiliation introuvable.', 'ufsc-clubs' ),
+        'product_not_published'    => __( 'Produit d’affiliation non publié.', 'ufsc-clubs' ),
+        'product_without_price'    => __( 'Prix du produit d’affiliation absent.', 'ufsc-clubs' ),
+        'product_not_purchasable'  => __( 'Produit d’affiliation non achetable.', 'ufsc-clubs' ),
+        'product_api_unavailable'  => __( 'API produit WooCommerce indisponible.', 'ufsc-clubs' ),
+        'permalink_unavailable'    => __( 'Permalink du produit d’affiliation indisponible.', 'ufsc-clubs' ),
+    );
+
+    return isset( $messages[ $reason ] ) ? $messages[ $reason ] : __( 'Le renouvellement en ligne est temporairement indisponible. Veuillez contacter l’UFSC.', 'ufsc-clubs' );
+}
+
+/** Centralized annual affiliation dashboard state. */
+function ufsc_get_affiliation_renewal_state( $club_id, $season ) {
+    $affiliation = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season ) : null;
+    $status = $affiliation && isset( $affiliation->status ) ? sanitize_key( (string) $affiliation->status ) : '';
+    $payment_status = $affiliation && isset( $affiliation->payment_status ) ? sanitize_key( (string) $affiliation->payment_status ) : '';
+
+    if ( in_array( $status, array( 'active', 'validated' ), true ) ) {
+        return array( 'status' => 'active', 'label' => __( 'Affilié', 'ufsc-clubs' ), 'action' => 'none', 'affiliation' => $affiliation );
+    }
+    if ( 'pending_payment' === $status || 'pending' === $payment_status ) {
+        return array( 'status' => 'pending_payment', 'label' => __( 'Paiement en attente', 'ufsc-clubs' ), 'action' => 'finalize_payment', 'affiliation' => $affiliation );
+    }
+    if ( in_array( $status, array( 'pending', 'pending_validation', 'en_attente' ), true ) ) {
+        return array( 'status' => 'pending_validation', 'label' => __( 'En attente de validation', 'ufsc-clubs' ), 'action' => 'wait', 'affiliation' => $affiliation );
+    }
+    if ( 'correction_required' === $status ) {
+        return array( 'status' => 'correction_required', 'label' => __( 'À corriger', 'ufsc-clubs' ), 'action' => 'correct', 'affiliation' => $affiliation );
+    }
+    if ( in_array( $status, array( 'rejected', 'suspended' ), true ) ) {
+        return array( 'status' => $status, 'label' => 'rejected' === $status ? __( 'Refusée', 'ufsc-clubs' ) : __( 'Suspendue', 'ufsc-clubs' ), 'action' => 'contact', 'affiliation' => $affiliation );
+    }
+
+    return array( 'status' => 'renewal_required', 'label' => __( 'À renouveler', 'ufsc-clubs' ), 'action' => 'renew', 'affiliation' => $affiliation );
 }
 
 /** Build the configured affiliation product-page URL with renewal context. */
@@ -212,7 +277,7 @@ function ufsc_get_affiliation_renewal_url( $club_id, $season, $previous_affiliat
         return '';
     }
 
-    $url = get_permalink( $product_id );
+    $url = ufsc_get_affiliation_product_url();
     if ( ! is_string( $url ) || '' === $url ) {
         return '';
     }
@@ -235,7 +300,7 @@ function ufsc_get_affiliation_renewal_url( $club_id, $season, $previous_affiliat
  * @return bool True if WooCommerce is active
  */
 function ufsc_is_woocommerce_active() {
-    return class_exists( 'WooCommerce' );
+    return class_exists( 'WooCommerce' ) || function_exists( 'wc_get_product' );
 }
 
 /**
@@ -328,7 +393,7 @@ function ufsc_render_woocommerce_settings_page() {
                             min="1"
                         />
                         <p class="description">
-                            <?php esc_html_e( 'ID du produit "Pack Affiliation UFSC" dans WooCommerce. Aucun ID n’est imposé par défaut.', 'ufsc-clubs' ); ?>
+                            <?php esc_html_e( 'Produit canonique : Pack Affiliation UFSC / FSASPTT (ID 4823).', 'ufsc-clubs' ); ?>
                             <?php if ( $woocommerce_active && ufsc_validate_woocommerce_product( $current_settings['product_affiliation_id'] ) ) : ?>
                                 <span style="color: green;">✓ <?php esc_html_e( 'Produit trouvé', 'ufsc-clubs' ); ?></span>
                             <?php elseif ( $woocommerce_active ) : ?>
@@ -336,7 +401,7 @@ function ufsc_render_woocommerce_settings_page() {
                             <?php endif; ?>
                         </p>
 						<p><strong><?php echo esc_html( ufsc_get_woocommerce_product_diagnostic_message( $current_settings['product_affiliation_id'] ) ); ?></strong></p>
-						<p><a class="button" href="#product_affiliation_id"><?php esc_html_e( 'Configurer le produit d’affiliation', 'ufsc-clubs' ); ?></a></p>
+						<p><a class="button" href="#product_affiliation_id"><?php esc_html_e( 'Vérifier le produit d’affiliation', 'ufsc-clubs' ); ?></a> <?php if ( ! empty( ufsc_get_woocommerce_product_diagnostic( $current_settings['product_affiliation_id'] )['product_permalink'] ) ) : ?><a class="button" href="<?php echo esc_url( ufsc_get_woocommerce_product_diagnostic( $current_settings['product_affiliation_id'] )['product_permalink'] ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Ouvrir le produit WooCommerce', 'ufsc-clubs' ); ?></a><?php endif; ?></p>
                     </td>
                 </tr>
 
