@@ -19,9 +19,9 @@ class UFSC_User_Club_Admin {
         add_action('admin_enqueue_scripts', function($hook){
             wp_enqueue_style(
                 'ufsc-admin-user-club',
-                plugins_url('assets/admin/css/user-club-admin.css', __FILE__),
+                ( defined( 'UFSC_CL_URL' ) ? UFSC_CL_URL : plugin_dir_url( dirname( dirname( __FILE__ ) ) . '/ufsc-clubs-licences-sql.php' ) ) . 'assets/admin/css/user-club-admin.css',
                 [],
-                '1.0'
+                defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : '1.0'
             );
         });
     }

@@ -289,6 +289,30 @@ class UFSC_Storage_Resolver {
         return $counts;
     }
 
+    /** Count licences with a proven selected season and licences with no readable season metadata. */
+    public static function get_licence_archive_counts( $season ) {
+        global $wpdb;
+        $table = self::get_licences_table();
+        $counts = array( 'proven_for_season' => 0, 'unclassified' => 0, 'total' => 0, 'quality' => 'unavailable', 'season_column' => '' );
+        if ( ! self::table_exists( $table ) ) { return $counts; }
+        $counts['total'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}` WHERE " . self::not_deleted_sql( $table ) );
+        $season_column = self::first_existing_column( $table, array( 'paid_season', 'season', 'saison', 'season_end_year' ) );
+        $counts['season_column'] = $season_column;
+        if ( '' === $season_column ) {
+            $counts['unclassified'] = $counts['total'];
+            return $counts;
+        }
+        $parts = self::get_season_reference_parts( $season );
+        if ( '' === $parts['label'] ) { return $counts; }
+        $season_sql = 'season_end_year' === $season_column
+            ? $wpdb->prepare( "CAST(`{$season_column}` AS UNSIGNED) = %d", $parts['end_year'] )
+            : $wpdb->prepare( "REPLACE(`{$season_column}`, '/', '-') IN (%s, %s)", $parts['label'], (string) $parts['end_year'] );
+        $counts['proven_for_season'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}` WHERE " . self::not_deleted_sql( $table ) . " AND {$season_sql}" );
+        $counts['unclassified'] = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}` WHERE " . self::not_deleted_sql( $table ) . " AND (`{$season_column}` IS NULL OR CAST(`{$season_column}` AS CHAR) = '')" );
+        $counts['quality'] = 'exact';
+        return $counts;
+    }
+
     /** Audit possible legacy club season columns without exposing personal data. */
     public static function audit_legacy_club_season_columns() {
         global $wpdb;

@@ -8,12 +8,13 @@ $diagnostic = file_get_contents( $root . '/includes/admin/class-ufsc-diagnostics
 $assert( strpos( $resolver, 'normalize_season_reference' ) !== false, 'Central season reference normalizer exists.' );
 $assert( strpos( $resolver, 'get_club_season_evidence_sql' ) !== false, 'Central legacy club season evidence helper exists.' );
 $assert( strpos( $resolver, 'date_affiliation' ) !== false && strpos( $resolver, 'date_validation' ) !== false && strpos( $resolver, 'date_creation' ) !== false, 'Legacy club audit knows affiliation dates and diagnostic date_creation.' );
-$assert( strpos( $clubs, '$season_evidence = array();' ) !== false, 'Club archive filters group evidence sources.' );
+$assert( strpos( $clubs, 'get_season_evidence_conditions' ) !== false, 'Club archive filters group evidence sources through a shared helper.' );
 $assert( strpos( $clubs, 'legacy_evidence' ) !== false, 'Club archive filters include legacy club evidence.' );
 $assert( strpos( $clubs, "'permanent'" ) !== false, 'Permanent club filter bypasses annual season requirements.' );
 $assert( strpos( $licences, 'IN (%s, %s)' ) !== false, 'Licence filters compare legacy and normalized season labels.' );
 $assert( strpos( $licences, "'all' === \$filter_season" ) !== false, 'All seasons licence view remains unfiltered by season.' );
 $assert( strpos( $diagnostic, 'Diagnostic filtre saison 2025-2026' ) !== false, 'Admin diagnostic exposes season evidence counts.' );
+$assert( strpos( $clubs, 'archive_scope' ) !== false && strpos( $clubs, 'Saison historique non renseignée' ) !== false, 'Historical season fallback is explicit and non-trompeur.' );
 
 $legacy_fixtures = array(
     'club_1_legacy_label' => array( 'club' => array( 'saison' => '2025-2026' ), 'expected' => 'visible_legacy' ),
