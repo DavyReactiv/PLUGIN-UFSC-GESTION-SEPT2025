@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.3.5';
+    const MIGRATION_VERSION = '1.3.6';
 
     /**
      * Option key for tracking migration version
@@ -24,6 +24,7 @@ class UFSC_DB_Migrations {
         $current_version = get_option( self::VERSION_OPTION, '0.0.0' );
         $category_columns_option = 'ufsc_licence_category_columns_ready';
         $season_archive_option   = 'ufsc_season_archive_table_ready';
+        $attestations_option     = 'ufsc_attestations_table_ready';
 
         if ( version_compare( $current_version, self::MIGRATION_VERSION, '>=' ) && '1' !== get_option( $category_columns_option, '' ) ) {
             $category_columns_ready = self::ensure_licences_category_columns();
@@ -43,17 +44,24 @@ class UFSC_DB_Migrations {
             }
         }
 
+        if ( version_compare( $current_version, self::MIGRATION_VERSION, '>=' ) && '1' !== get_option( $attestations_option, '' ) ) {
+            if ( self::ensure_attestations_table() ) {
+                update_option( $attestations_option, '1' );
+            }
+        }
+
         if ( version_compare( $current_version, self::MIGRATION_VERSION, '<' ) ) {
             self::migrate_to_innodb();
             self::ensure_licences_soft_delete_columns();
             self::ensure_licences_renewal_columns();
             $season_archive_ready = self::ensure_season_archive_tables();
+            $attestations_ready = self::ensure_attestations_table();
             self::create_indexes();
             self::create_unique_constraints();
             $category_columns_ready = self::ensure_licences_category_columns();
             self::create_events_table();
 
-            if ( ! $category_columns_ready || ! $season_archive_ready ) {
+            if ( ! $category_columns_ready || ! $season_archive_ready || ! $attestations_ready ) {
                 self::log_migration_error( 'Database migration incomplete; migration version not advanced.' );
                 return;
             }
@@ -61,6 +69,7 @@ class UFSC_DB_Migrations {
             update_option( self::VERSION_OPTION, self::MIGRATION_VERSION );
             update_option( $category_columns_option, '1' );
             update_option( $season_archive_option, '1' );
+            update_option( $attestations_option, '1' );
             
             add_action( 'admin_notices', array( __CLASS__, 'migration_success_notice' ) );
         }
@@ -243,6 +252,38 @@ class UFSC_DB_Migrations {
 
         if ( $wpdb->last_error ) {
             self::log_migration_error( "UFSC_DB_Migrations: Failed to create affiliation seasons table: {$wpdb->last_error}" );
+            return false;
+        }
+
+        return self::table_exists( $table_name );
+    }
+
+
+    /** Ensure the optional PDF attestations table exists without blocking core data. */
+    public static function ensure_attestations_table() {
+        global $wpdb;
+
+        $table_name      = $wpdb->prefix . 'ufsc_attestations';
+        $charset_collate = method_exists( $wpdb, 'get_charset_collate' ) ? $wpdb->get_charset_collate() : 'DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci';
+        $sql = "CREATE TABLE {$table_name} (
+            id int(11) NOT NULL AUTO_INCREMENT,
+            type varchar(50) NOT NULL,
+            target_type varchar(50) NOT NULL,
+            target_id varchar(100) DEFAULT '',
+            saison varchar(20) NOT NULL,
+            filename varchar(255) NOT NULL,
+            created_at datetime NOT NULL,
+            created_by int(11) NOT NULL,
+            PRIMARY KEY (id),
+            KEY type_target (type, target_type, target_id),
+            KEY saison (saison)
+        ) {$charset_collate};";
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        dbDelta( $sql );
+
+        if ( $wpdb->last_error ) {
+            self::log_migration_error( "UFSC_DB_Migrations: Failed to create attestations table: {$wpdb->last_error}" );
             return false;
         }
 
