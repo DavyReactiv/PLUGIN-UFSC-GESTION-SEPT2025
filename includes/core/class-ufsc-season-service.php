@@ -163,6 +163,15 @@ class UFSC_Season_Service {
      */
     public static function normalize_season( $season ) {
         $season = trim( str_replace( '/', '-', (string) $season ) );
+        if ( preg_match( '/^\d{4}$/', $season ) ) {
+            $end = (int) $season;
+            return sprintf( '%d-%d', $end - 1, $end );
+        }
+        if ( preg_match( '/^(\d{4})\s*[-\/]\s*(\d{2})$/', $season, $m ) ) {
+            $start = (int) $m[1];
+            $end   = (int) substr( (string) $start, 0, 2 ) . $m[2];
+            return ( $end === $start + 1 ) ? sprintf( '%d-%d', $start, $end ) : '';
+        }
         return self::is_valid_season( $season ) ? $season : '';
     }
 
@@ -194,7 +203,7 @@ class UFSC_Season_Service {
      * @return array{0:int,1:int}|null
      */
     private static function parse_season( $season ) {
-        $season = trim( str_replace( '/', '-', (string) $season ) );
+        $season = self::normalize_parse_input( $season );
         if ( ! preg_match( '/^(\d{4})-(\d{4})$/', $season, $matches ) ) {
             return null;
         }
@@ -206,5 +215,15 @@ class UFSC_Season_Service {
         }
 
         return array( $start, $end );
+    }
+
+    /** Normalize legacy parse inputs without recursively calling normalize_season(). */
+    private static function normalize_parse_input( $season ) {
+        $season = trim( str_replace( '/', '-', (string) $season ) );
+        if ( preg_match( '/^\d{4}$/', $season ) ) {
+            $end = (int) $season;
+            return sprintf( '%d-%d', $end - 1, $end );
+        }
+        return $season;
     }
 }

@@ -149,6 +149,14 @@ class UFSC_SQL {
         );
 
         $settings = wp_parse_args( $opts, $defaults );
+        global $wpdb;
+        foreach ( array( 'table_clubs', 'table_licences' ) as $table_key ) {
+            $table = isset( $settings[ $table_key ] ) ? (string) $settings[ $table_key ] : '';
+            if ( '' !== $table && isset( $wpdb->prefix ) && 0 !== strpos( $table, $wpdb->prefix ) && 0 !== strpos( $table, 'wp_' ) ) {
+                $table = $wpdb->prefix . $table;
+            }
+            $settings[ $table_key ] = preg_replace( '/[^A-Za-z0-9_]/', '', $table );
+        }
         return apply_filters( 'ufsc_sql_settings', $settings );
     }
     
