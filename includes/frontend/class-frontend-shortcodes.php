@@ -302,7 +302,10 @@ class UFSC_Frontend_Shortcodes {
                             <?php endif; ?>
                             <p><?php echo esc_html( sprintf( __( 'Affiliation : %s', 'ufsc-clubs' ), $affiliation_season ? $affiliation_season : __( 'non renseignée', 'ufsc-clubs' ) ) ); ?></p>
                         </div>
-                        <?php if ( $renewal_affiliation_done ) : ?>
+                        <?php
+                        // Keep the affiliation CTA branches in one alternative-syntax chain: if/elseif/elseif/else/endif.
+                        if ( $renewal_affiliation_done ) :
+                        ?>
                             <span class="ufsc-badge ufsc-badge-success"><?php echo esc_html( sprintf( __( 'Club affilié pour la saison %s', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></span>
                         <?php elseif ( $affiliation_pending && 'paid' === sanitize_key( (string) $annual_affiliation->payment_status ) ) : ?>
                             <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Affiliation en attente de validation', 'ufsc-clubs' ); ?></span>
