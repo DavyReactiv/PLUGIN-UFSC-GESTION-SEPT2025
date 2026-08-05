@@ -96,3 +96,12 @@ Nettoyage de cette itération :
 - test statique `test-front-club-portal-layout-regression-static.php` pour bloquer le retour des règles qui ont produit les captures cassées.
 
 La validation finale nécessite toujours une capture dev réelle, car l'environnement CLI n'a pas accès à la page WordPress authentifiée.
+
+## Navigation contextuelle de la fiche licence
+
+- **Renderer** : le shortcode `[ufsc_club_licences]` appelle `UFSC_Frontend_Shortcodes::render_club_licences()`. Le paramètre GET `view_licence` sélectionne la fiche et délègue son rendu à `render_single_licence()`.
+- **Autorisation** : `render_single_licence()` résout d'abord le club de l'utilisateur connecté puis appelle `get_licence($club_id, $licence_id)`. La requête lie simultanément l'identifiant de licence et celui du club ; changer uniquement `view_licence` ne donne donc pas accès à une licence tierce.
+- **Liste canonique** : `get_club_portal_url('club-licences')` résout la page WordPress `tableau-de-bord-club` avec `get_page_by_path()` / `get_permalink()`, puis ajoute `#ufsc-club-licences`. Le repli utilise `home_url()` et jamais un domaine de développement codé en dur.
+- **Retour retenu** : chaque lien « Consulter » transmet `ufsc_return`, construit depuis l'URL courante après retrait des paramètres de détail et de messages. Cela conserve `ufsc_page`, `ufsc_status`, `ufsc_search`, `ufsc_sort` et les filtres d'archives. À la lecture, l'ordre est : `ufsc_return`, référent WordPress, liste canonique. Chaque candidat passe par `wp_validate_redirect()`, puis par une comparaison stricte de l'hôte et du chemin avec les deux pages du portail.
+- **Navigation principale** : les entrées Vue d'ensemble, Informations, Dirigeants, Documents et Archives utilisent désormais des permaliens complets vers leur page réelle. La fiche détail affiche seulement Retour à mes licences, Tableau de bord, Archives licences et Règlements sportifs UFSC.
+- **CSS** : aucune feuille ni règle CSS n'a été ajoutée pour cette correction ; les composants de boutons et de navigation existants sont réutilisés.

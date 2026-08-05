@@ -10,9 +10,10 @@ foreach ( array( 'ufsc_club_dashboard', 'ufsc_club_profile' ) as $shortcode ) {
 $assert( strpos( $front, 'ufsc-club-portal ufsc-club-account ufsc-club-dashboard' ) !== false, 'Dashboard uses canonical portal scope.' );
 $assert( strpos( $front, 'ufsc-club-portal ufsc-club-account ufsc-club-profile' ) !== false, 'Account uses canonical portal scope.' );
 foreach ( array( '#ufsc-overview', '#ufsc-club-information', '#ufsc-club-officers', '#ufsc-club-documents', '#ufsc-licences-archives' ) as $anchor ) {
-    $assert( strpos( $front, 'href="' . $anchor . '"' ) !== false || '#ufsc-overview' === $anchor, "Anchor href present: {$anchor}" );
+    $assert( strpos( $front, "'" . substr( $anchor, 6 ) . "'" ) !== false, "Canonical URL helper maps anchor: {$anchor}" );
     $assert( strpos( $front, 'id="' . substr( $anchor, 1 ) . '"' ) !== false, "Anchor target present: {$anchor}" );
 }
+$assert( strpos( $front, 'id="ufsc-club-licences"' ) !== false, 'Licence-list anchor target is present.' );
 $assert( substr_count( $front, 'id="ufsc-club-documents"' ) === 1, 'Documents ID is unique.' );
 $assert( substr_count( $front, 'id="ufsc-club-officers"' ) === 1, 'Officers ID is unique.' );
 $assert( strpos( $front, 'width="96" height="96"' ) !== false && strpos( $front, 'width="280" height="220"' ) !== false, 'Logos/photos reserve first-paint dimensions.' );
