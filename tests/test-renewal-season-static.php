@@ -48,7 +48,7 @@ $assert( strpos( $dashboard, '$renewal_affiliation_season = $current_season' ) !
 $assert( strpos( $dashboard, 'Renouveler mon affiliation %s' ) !== false, 'Historical club without a current annual affiliation must be offered renewal.' );
 $assert( strpos( $dashboard, 'ufsc_get_affiliation_renewal_url' ) !== false && strpos( $dashboard, 'href="<?php echo esc_url( $renewal_url ); ?>"' ) !== false, 'Renewal button must open the configured product page.' );
 $assert( strpos( $settings, 'wc_get_product( $product_id )' ) !== false && strpos( $settings, "'publish' === \$diagnostic['product_status']" ) !== false, 'Missing, unpublished or unavailable products must fail closed.' );
-$assert( strpos( $settings, 'get_permalink( $product_id )' ) !== false, 'Renewal URL must come from the configured WooCommerce product.' );
+$assert( strpos( $settings, '$product->get_permalink()' ) !== false && strpos( $settings, 'ufsc_get_affiliation_product_url()' ) !== false, 'Renewal URL must come from the canonical WooCommerce product permalink.' );
 $assert( strpos( $cart, "\$cart_item_data['ufsc_club_id'] = \$club_id" ) !== false && strpos( $cart, "\$cart_item_data['ufsc_target_season'] = \$season" ) !== false, 'Club and season context must survive the product-page cart flow.' );
 $assert( strpos( $archive, 'ON DUPLICATE KEY UPDATE' ) !== false, 'Repeated payment hooks must upsert the unique annual affiliation.' );
 $assert( strpos( $hooks, 'UFSC_Season_Archive_Manager::record_paid_renewal' ) !== false, 'Renewal payment must update the annual affiliation record.' );
