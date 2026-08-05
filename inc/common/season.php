@@ -491,10 +491,104 @@ if ( ! function_exists( 'ufsc_is_club_affiliated_for_season' ) ) {
 
         if ( class_exists( 'UFSC_Season_Archive_Manager' ) ) {
             $annual = UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season );
-            return $annual && in_array( sanitize_key( (string) $annual->status ), array( 'validated', 'valide', 'active', 'actif' ), true );
+            $gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( $club_id, $season ) : array( 'allowed' => false );
+            return ! empty( $gate['allowed'] );
         }
 
         return false;
+    }
+}
+
+if ( ! function_exists( 'ufsc_club_can_manage_licences_for_season' ) ) {
+    /**
+     * Central fail-closed annual affiliation gate for every licence creation,
+     * renewal, cart, checkout, order and admin validation path.
+     *
+     * @param int         $club_id Club ID.
+     * @param string|null $season  Target season; defaults to the central season service.
+     * @return array{allowed:bool,code:string,message:string,club_id:int,season:string,annual_status:string,affiliation_id:int}
+     */
+    function ufsc_club_can_manage_licences_for_season( $club_id, $season = null ) {
+        $club_id = absint( $club_id );
+        $season  = null === $season || '' === (string) $season
+            ? ( class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ) )
+            : sanitize_text_field( (string) $season );
+
+        $result = array(
+            'allowed'        => false,
+            'code'           => 'affiliation_unknown',
+            'message'        => __( 'Votre club doit renouveler et faire activer son affiliation avant de souscrire ou renouveler des licences.', 'ufsc-clubs' ),
+            'club_id'        => $club_id,
+            'season'         => $season,
+            'annual_status'  => '',
+            'affiliation_id' => 0,
+        );
+
+        if ( $club_id <= 0 || ! preg_match( '/^\d{4}-\d{4}$/', (string) $season ) || ! class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+            return $result;
+        }
+
+        $affiliation = UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season );
+        if ( ! $affiliation ) {
+            $result['code']    = 'affiliation_missing';
+            $result['message'] = sprintf( __( 'Votre club doit renouveler et faire activer son affiliation %s avant de souscrire ou renouveler des licences.', 'ufsc-clubs' ), $season );
+            return $result;
+        }
+
+        $status = isset( $affiliation->status ) ? sanitize_key( (string) $affiliation->status ) : '';
+        $payment_status = isset( $affiliation->payment_status ) ? sanitize_key( (string) $affiliation->payment_status ) : '';
+        $result['annual_status']  = $status;
+        $result['affiliation_id'] = absint( $affiliation->id ?? 0 );
+
+        if ( in_array( $status, array( 'active', 'validated' ), true ) ) {
+            $result['allowed'] = true;
+            $result['code']    = 'affiliation_active';
+            $result['message'] = sprintf( __( 'Affiliation %s active.', 'ufsc-clubs' ), $season );
+            return $result;
+        }
+
+        $code_map = array(
+            'pending_payment'     => 'affiliation_pending_payment',
+            'pending'             => 'affiliation_pending_payment',
+            'pending_validation'  => 'affiliation_pending_validation',
+            'correction_required' => 'affiliation_correction_required',
+            'suspended'           => 'affiliation_suspended',
+            'rejected'            => 'affiliation_rejected',
+            'refused'             => 'affiliation_rejected',
+            'expired'             => 'affiliation_expired',
+            'renewal_required'    => 'affiliation_missing',
+            'cancelled'           => 'affiliation_unknown',
+            'archived'            => 'affiliation_unknown',
+        );
+        $result['code'] = $code_map[ $status ] ?? ( 'unpaid' === $payment_status ? 'affiliation_pending_payment' : 'affiliation_unknown' );
+
+        $messages = array(
+            'affiliation_pending_payment'     => __( 'Finaliser mon paiement d’affiliation avant de souscrire ou renouveler des licences.', 'ufsc-clubs' ),
+            'affiliation_pending_validation'  => __( 'Votre affiliation est en cours de validation. Les licences sont bloquées jusqu’à activation.', 'ufsc-clubs' ),
+            'affiliation_correction_required' => __( 'Votre affiliation nécessite une correction avant toute licence.', 'ufsc-clubs' ),
+            'affiliation_suspended'           => __( 'Votre affiliation est suspendue. Les licences sont bloquées.', 'ufsc-clubs' ),
+            'affiliation_rejected'            => __( 'Votre affiliation est refusée. Les licences sont bloquées.', 'ufsc-clubs' ),
+            'affiliation_expired'             => __( 'Votre affiliation est expirée. Les licences sont bloquées.', 'ufsc-clubs' ),
+        );
+        $result['message'] = $messages[ $result['code'] ] ?? sprintf( __( 'Votre club doit renouveler et faire activer son affiliation %s avant de souscrire ou renouveler des licences.', 'ufsc-clubs' ), $season );
+        return $result;
+    }
+}
+
+if ( ! function_exists( 'ufsc_log_licence_affiliation_refusal' ) ) {
+    function ufsc_log_licence_affiliation_refusal( $gate, $entrypoint, $licence_id = 0 ) {
+        static $seen = array();
+        $gate = is_array( $gate ) ? $gate : array();
+        $key = sanitize_key( $entrypoint . '_' . ( $gate['code'] ?? 'unknown' ) . '_' . absint( $gate['club_id'] ?? 0 ) . '_' . sanitize_key( $gate['season'] ?? '' ) . '_' . absint( $licence_id ) );
+        if ( isset( $seen[ $key ] ) ) { return; }
+        $seen[ $key ] = true;
+        $payload = array(
+            'code' => $gate['code'] ?? 'affiliation_unknown', 'club_id' => absint( $gate['club_id'] ?? 0 ),
+            'season' => sanitize_text_field( (string) ( $gate['season'] ?? '' ) ), 'licence_id' => absint( $licence_id ),
+            'user_id' => function_exists( 'get_current_user_id' ) ? get_current_user_id() : 0, 'entrypoint' => sanitize_key( $entrypoint ), 'date' => function_exists( 'current_time' ) ? current_time( 'mysql' ) : gmdate( 'Y-m-d H:i:s' ),
+        );
+        if ( function_exists( 'ufsc_wc_log' ) ) { ufsc_wc_log( 'ufsc_licence_affiliation_gate_refused', $payload, 'warning' ); }
+        elseif ( function_exists( 'error_log' ) ) { error_log( 'UFSC licence affiliation gate refused: ' . wp_json_encode( $payload ) ); }
     }
 }
 
