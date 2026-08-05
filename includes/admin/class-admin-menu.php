@@ -156,9 +156,9 @@ class UFSC_CL_Admin_Menu {
 	public static function render_dashboard() {
 		global $wpdb;
 
-		$opts    = get_option( 'ufsc_sql_settings', array() );
-		$t_clubs = isset( $opts['table_clubs'] ) ? $opts['table_clubs'] : 'clubs';
-		$t_lics  = isset( $opts['table_licences'] ) ? $opts['table_licences'] : 'licences';
+		$diagnostic = function_exists( 'ufsc_get_configuration_diagnostic' ) ? ufsc_get_configuration_diagnostic() : array();
+		$t_clubs = $diagnostic['diagnostic_details']['clubs']['table'] ?? ( class_exists( 'UFSC_Storage_Resolver' ) ? UFSC_Storage_Resolver::get_clubs_table() : $wpdb->prefix . 'ufsc_clubs' );
+		$t_lics  = $diagnostic['diagnostic_details']['licences']['table'] ?? ( class_exists( 'UFSC_Storage_Resolver' ) ? UFSC_Storage_Resolver::get_licences_table() : $wpdb->prefix . 'ufsc_licences' );
 
 		echo '<div class="wrap ufsc-admin-dashboard">';
 		if ( class_exists( 'UFSC_SQL_Admin' ) ) {
@@ -197,24 +197,17 @@ class UFSC_CL_Admin_Menu {
 			echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Cache du tableau de bord actualisé.', 'ufsc-clubs' ) . '</p></div>';
 		}
 
-		// Vérification des tables avant d'afficher les KPI
-		$tables_exist = true;
-		try {
-			$club_table_exists    = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $t_clubs ) ) === $t_clubs;
-			$licence_table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $t_lics ) ) === $t_lics;
-			$tables_exist         = $club_table_exists && $licence_table_exists;
-		} catch ( Exception $e ) {
-			$tables_exist = false;
-		}
-
-		if ( ! $tables_exist ) {
-			echo '<div class="ufsc-alert error">';
-			echo '<strong>' . esc_html__( 'Configuration requise', 'ufsc-clubs' ) . '</strong><br>';
-			echo esc_html__( 'Les tables de données ne sont pas encore configurées.', 'ufsc-clubs' ) . ' ';
-			echo '<a href="' . esc_url( admin_url( 'admin.php?page=ufsc-settings' ) ) . '">' . esc_html__( 'Configurer maintenant', 'ufsc-clubs' ) . '</a>';
-			echo '</div>';
-			echo '</div>';
-			return;
+		// Read-only storage diagnostic: legacy/hybrid compatible tables keep the dashboard visible.
+		if ( empty( $diagnostic['configured'] ) ) {
+			echo '<div class="ufsc-alert error"><strong>' . esc_html__( 'Configuration requise', 'ufsc-clubs' ) . '</strong><br>';
+			echo esc_html( $diagnostic['message'] ?? __( 'Aucune table clubs/licences compatible retrouvée.', 'ufsc-clubs' ) );
+			echo ' <a href="' . esc_url( admin_url( 'admin.php?page=ufsc-diagnostics' ) ) . '">' . esc_html__( 'Ouvrir le diagnostic', 'ufsc-clubs' ) . '</a></div>';
+		} elseif ( ! empty( $diagnostic['optional_missing_tables'] ) || ! empty( $diagnostic['migration_required'] ) || 'modern' !== ( $diagnostic['schema_mode'] ?? 'modern' ) ) {
+			echo '<div class="notice notice-warning inline"><p><strong>' . esc_html__( 'Diagnostic UFSC', 'ufsc-clubs' ) . '</strong> ';
+			echo esc_html( $diagnostic['message'] ?? '' );
+			if ( ! empty( $diagnostic['optional_missing_tables'] ) ) { echo ' ' . esc_html__( 'Tables optionnelles manquantes : ', 'ufsc-clubs' ) . esc_html( implode( ', ', (array) $diagnostic['optional_missing_tables'] ) ); }
+			echo ' <a href="' . esc_url( admin_url( 'admin.php?page=ufsc-diagnostics' ) ) . '">' . esc_html__( 'Diagnostic détaillé', 'ufsc-clubs' ) . '</a>';
+			echo '</p></div>';
 		}
 
 		// Get dashboard data with caching
