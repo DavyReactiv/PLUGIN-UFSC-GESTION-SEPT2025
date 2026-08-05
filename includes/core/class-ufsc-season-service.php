@@ -213,4 +213,14 @@ class UFSC_Season_Service {
 
         return array( $start, $end );
     }
+
+    /** Normalize legacy parse inputs without recursively calling normalize_season(). */
+    private static function normalize_parse_input( $season ) {
+        $season = trim( str_replace( '/', '-', (string) $season ) );
+        if ( preg_match( '/^\d{4}$/', $season ) ) {
+            $end = (int) $season;
+            return sprintf( '%d-%d', $end - 1, $end );
+        }
+        return $season;
+    }
 }
