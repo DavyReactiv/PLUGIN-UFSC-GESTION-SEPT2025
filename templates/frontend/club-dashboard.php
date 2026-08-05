@@ -32,6 +32,7 @@ $affiliation_state = function_exists( 'ufsc_get_affiliation_renewal_state' ) ? u
 $annual_affiliation = $affiliation_state['affiliation'];
 $pending_order = function_exists( 'ufsc_wc_has_pending_renewal_order' ) ? ufsc_wc_has_pending_renewal_order( 'renew_affiliation', $club->id, $renewal_affiliation_season ) : false;
 $renewal_url = function_exists( 'ufsc_get_affiliation_renewal_url' ) ? ufsc_get_affiliation_renewal_url( $club->id, $renewal_affiliation_season, $annual_affiliation->id ?? 0 ) : '';
+$pending_payment_url = function_exists( 'ufsc_get_pending_affiliation_payment_url' ) ? ufsc_get_pending_affiliation_payment_url( $club->id, $renewal_affiliation_season ) : '';
 $can_manage_current_club = is_user_logged_in() && class_exists( 'UFSC_CL_Permissions' ) && UFSC_CL_Permissions::ufsc_user_can_edit_club( $club->id );
 $can_renew_affiliation = $can_manage_current_club && 'renew' === $affiliation_state['action'] && ! $pending_order && $affiliation_product_available;
 
@@ -259,7 +260,7 @@ $can_renew_affiliation = $can_manage_current_club && 'renew' === $affiliation_st
                 <?php elseif ( 'pending_payment' === $affiliation_state['status'] || $pending_order ) : ?>
                     <strong><?php esc_html_e( 'Paiement en attente', 'ufsc-clubs' ); ?></strong>
                     <p><?php echo esc_html( sprintf( __( 'Une demande d’affiliation %s est déjà présente dans votre panier ou en attente de traitement.', 'ufsc-clubs' ), $renewal_affiliation_season ) ); ?></p>
-                    <?php if ( function_exists( 'wc_get_cart_url' ) ) : ?><a class="ufsc-btn ufsc-btn-primary" href="<?php echo esc_url( wc_get_cart_url() ); ?>"><?php esc_html_e( 'Finaliser mon paiement', 'ufsc-clubs' ); ?></a><?php endif; ?>
+                    <?php if ( $pending_payment_url ) : ?><a class="ufsc-btn ufsc-btn-primary" href="<?php echo esc_url( $pending_payment_url ); ?>"><?php esc_html_e( 'Finaliser mon paiement', 'ufsc-clubs' ); ?></a><?php else : ?><span class="ufsc-text-muted"><?php esc_html_e( 'Votre demande existe déjà, mais le lien de paiement n’est plus disponible. Merci de contacter l’UFSC.', 'ufsc-clubs' ); ?></span><?php endif; ?>
                 <?php elseif ( in_array( $affiliation_state['action'], array( 'wait', 'contact', 'correct' ), true ) ) : ?>
                     <strong><?php echo esc_html( $affiliation_state['label'] ); ?></strong>
                     <p><?php esc_html_e( 'Votre dossier d’affiliation est en cours de traitement ou nécessite une action. Merci de suivre les consignes UFSC.', 'ufsc-clubs' ); ?></p>

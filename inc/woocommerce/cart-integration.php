@@ -114,6 +114,70 @@ function ufsc_capture_affiliation_product_context( $cart_item_data, $product_id 
 }
 
 /**
+ * Return an existing pending affiliation renewal payment URL when WooCommerce can still pay it.
+ *
+ * @param int    $club_id Club ID.
+ * @param string $season  Target season.
+ * @return string
+ */
+function ufsc_get_pending_affiliation_payment_url( $club_id, $season ) {
+	if ( ! function_exists( 'wc_get_orders' ) ) {
+		return '';
+	}
+
+	$club_id = absint( $club_id );
+	$season  = sanitize_text_field( (string) $season );
+	if ( $club_id <= 0 || '' === $season ) {
+		return '';
+	}
+
+	$orders = wc_get_orders(
+		array(
+			'status'  => array( 'pending', 'on-hold' ),
+			'limit'   => 50,
+			'orderby' => 'date',
+			'order'   => 'DESC',
+			'return'  => 'objects',
+		)
+	);
+
+	foreach ( (array) $orders as $order ) {
+		if ( ! $order || ! is_a( $order, 'WC_Order' ) ) {
+			continue;
+		}
+		if ( is_callable( array( $order, 'needs_payment' ) ) && ! $order->needs_payment() ) {
+			continue;
+		}
+
+		foreach ( $order->get_items() as $item ) {
+			$item_action = sanitize_key( (string) $item->get_meta( 'ufsc_action', true ) );
+			if ( '' === $item_action ) {
+				$item_action = sanitize_key( (string) $item->get_meta( '_ufsc_action', true ) );
+			}
+			$item_type = sanitize_key( (string) $item->get_meta( 'ufsc_item_type', true ) );
+			if ( '' === $item_type ) {
+				$item_type = sanitize_key( (string) $item->get_meta( '_ufsc_item_type', true ) );
+			}
+			$item_club_id = absint( $item->get_meta( '_ufsc_club_id', true ) );
+			if ( ! $item_club_id ) {
+				$item_club_id = absint( $item->get_meta( 'ufsc_club_id', true ) );
+			}
+			$item_season = sanitize_text_field( (string) $item->get_meta( '_ufsc_target_season', true ) );
+			if ( '' === $item_season ) {
+				$item_season = sanitize_text_field( (string) $item->get_meta( 'ufsc_target_season', true ) );
+			}
+
+			if ( $item_club_id === $club_id && $item_season === $season && ( 'renew_affiliation' === $item_action || 'affiliation_renewal' === $item_type ) ) {
+				$url = is_callable( array( $order, 'get_checkout_payment_url' ) ) ? $order->get_checkout_payment_url() : '';
+				return is_string( $url ) ? $url : '';
+			}
+		}
+	}
+
+	return '';
+}
+
+/**
  * Check whether a renewal item is already present in the WooCommerce cart.
  *
  * @param string $action Renewal action (renew_affiliation|renew_licence).
@@ -1282,8 +1346,16 @@ function ufsc_validate_licence_ids_for_cart( $licence_ids, $club_id ) {
 function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $order ) {
 	// Transfer club ID (store both underscored + public for compatibility)
 	if ( isset( $values['ufsc_club_id'] ) ) {
-		$item->add_meta_data( '_ufsc_club_id', absint( $values['ufsc_club_id'] ) );
-		$item->add_meta_data( 'ufsc_club_id', absint( $values['ufsc_club_id'] ) );
+		$club_id = absint( $values['ufsc_club_id'] );
+		$item->add_meta_data( '_ufsc_club_id', $club_id );
+		$item->add_meta_data( 'ufsc_club_id', $club_id );
+		if ( function_exists( 'ufsc_get_club_name' ) ) {
+			$club_name = ufsc_get_club_name( $club_id );
+			if ( '' !== (string) $club_name ) {
+				$item->add_meta_data( '_ufsc_club_name', sanitize_text_field( (string) $club_name ) );
+				$item->add_meta_data( 'ufsc_club_name', sanitize_text_field( (string) $club_name ) );
+			}
+		}
 	}
 
 	// Transfer single licence ID (legacy compatibility)
