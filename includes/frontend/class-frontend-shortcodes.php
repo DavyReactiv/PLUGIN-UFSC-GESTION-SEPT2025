@@ -7,6 +7,113 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 class UFSC_Frontend_Shortcodes {
 
+    const SPORTS_RULES_URL = 'https://ufsc-france.fr/ufsc-reglements-sportifs-techniques-interieur/';
+
+    /**
+     * Return the canonical URL of a club portal section.
+     *
+     * Page lookup deliberately uses WordPress permalinks instead of a hard-coded
+     * host. The slug fallback also remains installation-aware through home_url().
+     *
+     * @param string $section Portal section name.
+     * @return string
+     */
+    public static function get_club_portal_url( $section = '' ) {
+        $account_sections = array( 'club-information', 'club-officers', 'club-documents' );
+        $is_account       = in_array( $section, $account_sections, true );
+        $slug             = $is_account ? 'compte-club' : 'tableau-de-bord-club';
+        $page             = get_page_by_path( $slug );
+        $url              = $page ? get_permalink( $page ) : home_url( '/' . $slug . '/' );
+        $anchors          = array(
+            'overview'          => 'ufsc-overview',
+            'club-licences'     => 'ufsc-club-licences',
+            'licences-archives' => 'ufsc-licences-archives',
+            'club-information'  => 'ufsc-club-information',
+            'club-officers'     => 'ufsc-club-officers',
+            'club-documents'    => 'ufsc-club-documents',
+        );
+
+        if ( isset( $anchors[ $section ] ) ) {
+            $url .= '#' . $anchors[ $section ];
+        }
+
+        return $url;
+    }
+
+    /**
+     * Validate a possible return URL against this site's club portal pages.
+     *
+     * @param string $candidate Candidate URL.
+     * @return string Empty when the URL is not a local portal URL.
+     */
+    private static function validate_club_portal_return_url( $candidate ) {
+        $candidate = wp_validate_redirect( (string) $candidate, '' );
+        if ( '' === $candidate ) {
+            return '';
+        }
+
+        $candidate_host = wp_parse_url( $candidate, PHP_URL_HOST );
+        $site_host      = wp_parse_url( home_url( '/' ), PHP_URL_HOST );
+        $candidate_path = untrailingslashit( (string) wp_parse_url( $candidate, PHP_URL_PATH ) );
+        $portal_paths   = array(
+            untrailingslashit( (string) wp_parse_url( self::get_club_portal_url(), PHP_URL_PATH ) ),
+            untrailingslashit( (string) wp_parse_url( self::get_club_portal_url( 'club-information' ), PHP_URL_PATH ) ),
+        );
+
+        if ( $candidate_host !== $site_host || ! in_array( $candidate_path, $portal_paths, true ) ) {
+            return '';
+        }
+
+        return $candidate;
+    }
+
+    /**
+     * Resolve the licence list URL, preserving its filters when explicitly sent.
+     *
+     * @return string
+     */
+    private static function get_licence_return_url() {
+        if ( isset( $_GET['ufsc_return'] ) && ! is_array( $_GET['ufsc_return'] ) ) {
+            $explicit = self::validate_club_portal_return_url( wp_unslash( $_GET['ufsc_return'] ) );
+            if ( '' !== $explicit ) {
+                return $explicit;
+            }
+        }
+
+        $referer = wp_get_referer();
+        if ( $referer ) {
+            $referer = self::validate_club_portal_return_url( $referer );
+            if ( '' !== $referer ) {
+                return $referer;
+            }
+        }
+
+        return self::get_club_portal_url( 'club-licences' );
+    }
+
+    /**
+     * Build a detail URL with a validated, filter-preserving list URL.
+     *
+     * @param int $licence_id Licence identifier.
+     * @return string
+     */
+    private static function get_licence_detail_url( $licence_id ) {
+        $list_url = remove_query_arg(
+            array( 'view_licence', 'edit_licence', 'ufsc_return', 'ufsc_message', 'ufsc_error' )
+        );
+        $list_url = self::validate_club_portal_return_url( $list_url );
+        if ( '' === $list_url ) {
+            $list_url = self::get_club_portal_url( 'club-licences' );
+        }
+
+        return add_query_arg(
+            array(
+                'view_licence' => absint( $licence_id ),
+                'ufsc_return'  => $list_url,
+            )
+        );
+    }
+
     /**
      * Register all frontend shortcodes
      */
@@ -151,7 +258,8 @@ class UFSC_Frontend_Shortcodes {
         $affiliation_season = function_exists( 'ufsc_get_affiliation_season' ) ? ufsc_get_affiliation_season( $club_id, $current_season ) : '';
         $annual_affiliation = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( $club_id, $renewal_affiliation_season ) : null;
         $affiliation_state = function_exists( 'ufsc_get_affiliation_renewal_state' ) ? ufsc_get_affiliation_renewal_state( $club_id, $renewal_affiliation_season ) : array( 'status' => 'renewal_required', 'label' => __( 'À renouveler', 'ufsc-clubs' ), 'action' => 'renew', 'affiliation' => $annual_affiliation );
-        $renewal_affiliation_done = 'active' === $affiliation_state['status'];
+        $renewal_affiliation_done = in_array( $affiliation_state['status'], array( 'active', 'validated' ), true );
+        $affiliation_pending = in_array( $affiliation_state['status'], array( 'pending_payment', 'pending_validation' ), true );
         $annual_presentation = function_exists( 'ufsc_get_annual_affiliation_status' ) ? ufsc_get_annual_affiliation_status( $annual_affiliation ) : array( 'key' => $affiliation_state['status'], 'label' => $affiliation_state['label'] );
         $club_status = ! empty( $annual_presentation['key'] ) ? $annual_presentation['key'] : $affiliation_state['status'];
 		$honorability_kpis = array( 'required' => 0, 'validated' => 0, 'pending' => 0, 'rejected' => 0, 'correction_required' => 0, 'missing' => 0, 'complete' => 0, 'incomplete' => 0 );
@@ -188,13 +296,13 @@ class UFSC_Frontend_Shortcodes {
 
         ob_start();
         ?>
-        <div class="ufsc-club-account ufsc-club-dashboard ufsc-premium-v3" id="ufsc-dashboard">
+        <div class="ufsc-club-portal ufsc-club-account ufsc-club-dashboard ufsc-premium-v3" id="ufsc-dashboard">
             <div class="ufsc-dashboard-shell">
                 <div class="ufsc-dashboard-header ufsc-dashboard-header--premium ufsc-club-account__header" id="ufsc-overview">
                     <div class="ufsc-dashboard-hero-layout">
                     <div class="ufsc-hero-left">
                         <div class="ufsc-dashboard-brand">
-                            <img class="ufsc-dashboard-logo" src="<?php echo esc_url( UFSC_CL_URL . 'assets/svg/ufsc-badge.svg' ); ?>" alt="<?php esc_attr_e( 'UFSC', 'ufsc-clubs' ); ?>">
+                            <img class="ufsc-dashboard-logo" src="<?php echo esc_url( UFSC_CL_URL . 'assets/svg/ufsc-badge.svg' ); ?>" width="96" height="96" alt="<?php esc_attr_e( 'UFSC', 'ufsc-clubs' ); ?>">
                             <div class="ufsc-dashboard-title">
                                 <h2><?php esc_html_e( 'Tableau de bord Club', 'ufsc-clubs' ); ?></h2>
                                 <p class="ufsc-dashboard-subtitle">
@@ -244,7 +352,7 @@ class UFSC_Frontend_Shortcodes {
                         <?php if ( ! empty( $club->profile_photo_url ) || ! empty( $attestation_dashboard['can_view'] ) ) : ?>
                             <div class="ufsc-dashboard-hero-side">
                                 <?php if ( ! empty( $club->profile_photo_url ) ) : ?>
-                                    <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
+                                    <img src="<?php echo esc_url( $club->profile_photo_url ); ?>" width="280" height="220" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" />
                                 <?php endif; ?>
                                 <div class="ufsc-dashboard-hero-side-meta">
                                     <?php if ( ! empty( $attestation_dashboard['can_view'] ) ) : ?>
@@ -300,11 +408,13 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <div class="ufsc-dashboard-mainpane">
-                    <nav class="ufsc-club-account__nav" aria-label="<?php esc_attr_e( 'Navigation Compte Club', 'ufsc-clubs' ); ?>">
-                        <a href="#ufsc-overview"><?php esc_html_e( 'Vue d’ensemble', 'ufsc-clubs' ); ?></a>
-                        <a href="#ufsc-section-profile"><?php esc_html_e( 'Informations du club', 'ufsc-clubs' ); ?></a>
-                        <a href="#ufsc-section-profile"><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></a>
-                        <a href="#ufsc-profile-documents"><?php esc_html_e( 'Documents', 'ufsc-clubs' ); ?></a>
+                    <nav class="ufsc-club-account__nav ufsc-club-portal__nav" aria-label="<?php esc_attr_e( 'Navigation Compte Club', 'ufsc-clubs' ); ?>">
+                        <a href="<?php echo esc_url( self::get_club_portal_url( 'overview' ) ); ?>"><?php esc_html_e( 'Vue d’ensemble', 'ufsc-clubs' ); ?></a>
+                        <a href="<?php echo esc_url( self::get_club_portal_url( 'club-information' ) ); ?>"><?php esc_html_e( 'Informations du club', 'ufsc-clubs' ); ?></a>
+                        <a href="<?php echo esc_url( self::get_club_portal_url( 'club-officers' ) ); ?>"><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></a>
+                        <a href="<?php echo esc_url( self::get_club_portal_url( 'club-documents' ) ); ?>"><?php esc_html_e( 'Documents', 'ufsc-clubs' ); ?></a>
+                        <a href="<?php echo esc_url( self::get_club_portal_url( 'licences-archives' ) ); ?>"><?php esc_html_e( 'Archives licences', 'ufsc-clubs' ); ?></a>
+                        <a href="<?php echo esc_url( self::SPORTS_RULES_URL ); ?>"><?php esc_html_e( 'Règlements sportifs', 'ufsc-clubs' ); ?></a>
                     </nav>
                     <div class="ufsc-season-card ufsc-card">
                         <div>
@@ -331,7 +441,7 @@ class UFSC_Frontend_Shortcodes {
                                 $affiliation_view = array(
                                     'state'        => 'active',
                                     'badge_class'  => 'ufsc-badge-success',
-                                    'message'      => sprintf( __( 'Club affilié pour la saison %s', 'ufsc-clubs' ), $renewal_affiliation_season ),
+                                    'message'      => sprintf( __( 'Affiliation %s active', 'ufsc-clubs' ), $renewal_affiliation_season ),
                                     'url'          => '',
                                     'button_label' => '',
                                     'show_product' => false,
@@ -413,7 +523,7 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                     <div class="ufsc-dashboard-content">
                         <?php if ( in_array( 'licences', $sections ) ): ?>
-                            <div id="ufsc-section-licences" class="ufsc-dashboard-section active">
+                            <div id="ufsc-club-licences" class="ufsc-dashboard-section active">
                                 <?php echo self::render_club_licences( array( 'club_id' => $club_id, 'readonly' => true ) ); ?>
                             </div>
                         <?php endif; ?>
@@ -601,11 +711,7 @@ class UFSC_Frontend_Shortcodes {
         $all_licence_args             = $atts;
         $all_licence_args['page']     = 1;
         $all_licence_args['per_page'] = $split_limit;
-        if ( ! $show_archives ) {
-            $all_licence_args['season'] = $active_season;
-        } else {
-            unset( $all_licence_args['season'] );
-        }
+        unset( $all_licence_args['season'] );
 
         $all_licences     = self::get_club_licences( $atts['club_id'], $all_licence_args );
         $seasoned_lists   = self::split_licences_by_active_season( $all_licences, $active_season );
@@ -856,7 +962,7 @@ class UFSC_Frontend_Shortcodes {
                                     <td><?php echo esc_html( $practice ); ?></td>
                                     <td><?php echo esc_html( $created_at ); ?></td>
                                     <td>
-                                        <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
+                                        <a class="ufsc-action" href="<?php echo esc_url( self::get_licence_detail_url( $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
                                         <?php if ( $target_renewal_season ) : ?>
                                             <?php if ( $renewed_licence_id ) : ?>
                                                 <span class="ufsc-badge ufsc-badge-info"><?php echo esc_html( sprintf( __( 'Renouvelée %s', 'ufsc-clubs' ), $target_renewal_season ) ); ?></span>
@@ -904,11 +1010,8 @@ class UFSC_Frontend_Shortcodes {
                 </div>
             <?php endif; ?>
 
-            <?php if ( $show_archives ) : ?>
-                <?php echo self::render_archived_licences_section( $archive_licences, $archive_seasons, $archive_filter, $atts, $readonly ); ?>
-            <?php else : ?>
-                <p><a class="ufsc-btn ufsc-btn-secondary" href="<?php echo esc_url( add_query_arg( 'ufsc_show_archives', '1' ) ); ?>#ufsc-licences-archives"><?php esc_html_e( 'Licences des saisons précédentes', 'ufsc-clubs' ); ?></a></p>
-            <?php endif; ?>
+            <p><a class="ufsc-btn ufsc-btn-secondary" href="#ufsc-licences-archives"><?php esc_html_e( 'Voir toutes les archives', 'ufsc-clubs' ); ?></a></p>
+            <?php echo self::render_archived_licences_section( $archive_licences, $archive_seasons, $archive_filter, $atts, true ); ?>
             <?php echo self::render_future_licences_section( $future_licences ); ?>
         </div>
 
@@ -1100,7 +1203,7 @@ class UFSC_Frontend_Shortcodes {
                                     <td><?php echo self::render_category_badge( $weight_category_label, $category_summary['status'] ); ?></td>
                                     <td><?php echo esc_html( self::get_first_licence_field( $licence, array( 'date_creation', 'created_at', 'date_inscription' ) ) ); ?></td>
                                     <td>
-                                        <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
+                                        <a class="ufsc-action" href="<?php echo esc_url( self::get_licence_detail_url( $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
                                         <?php if ( $target_renewal_season ) : ?>
                                             <?php if ( $renewed_licence_id ) : ?>
                                                 <span class="ufsc-badge ufsc-badge-info"><?php echo esc_html( sprintf( __( 'Déjà renouvelée %s', 'ufsc-clubs' ), $target_renewal_season ) ); ?></span>
@@ -1171,7 +1274,7 @@ class UFSC_Frontend_Shortcodes {
                                 <td><?php echo esc_html( $licence->nom ?? '' ); ?></td>
                                 <td><?php echo esc_html( $licence->prenom ?? '' ); ?></td>
                                 <td><?php echo self::get_status_badge_front( $status ); ?></td>
-                                <td><a class="ufsc-action" href="<?php echo esc_url( add_query_arg( 'view_licence', $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a></td>
+                                <td><a class="ufsc-action" href="<?php echo esc_url( self::get_licence_detail_url( $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a></td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -1207,10 +1310,17 @@ class UFSC_Frontend_Shortcodes {
         }
 
         $wc_settings = ufsc_get_woocommerce_settings();
+        $return_url  = self::get_licence_return_url();
 
         ob_start();
         ?>
         <div class="ufsc-licence-detail">
+            <nav class="ufsc-club-portal__nav ufsc-club-portal__actions" aria-label="<?php esc_attr_e( 'Navigation de la fiche licence', 'ufsc-clubs' ); ?>">
+                <a href="<?php echo esc_url( $return_url ); ?>" class="ufsc-btn ufsc-btn-primary"><?php esc_html_e( '← Retour à mes licences', 'ufsc-clubs' ); ?></a>
+                <a href="<?php echo esc_url( self::get_club_portal_url( 'overview' ) ); ?>" class="ufsc-btn ufsc-btn-secondary"><?php esc_html_e( 'Tableau de bord', 'ufsc-clubs' ); ?></a>
+                <a href="<?php echo esc_url( self::get_club_portal_url( 'licences-archives' ) ); ?>" class="ufsc-btn ufsc-btn-secondary"><?php esc_html_e( 'Archives licences', 'ufsc-clubs' ); ?></a>
+                <a href="<?php echo esc_url( self::SPORTS_RULES_URL ); ?>" class="ufsc-btn ufsc-btn-secondary"><?php esc_html_e( 'Règlements sportifs UFSC', 'ufsc-clubs' ); ?></a>
+            </nav>
             <div class="ufsc-section-header">
                 <h3><?php esc_html_e( 'Détails de la licence', 'ufsc-clubs' ); ?></h3>
             </div>
@@ -1371,9 +1481,9 @@ class UFSC_Frontend_Shortcodes {
                 <?php endif; ?>
             </div>
             <?php endif; ?>
-            <p>
-                <a href="<?php echo esc_url( remove_query_arg( 'view_licence' ) ); ?>" class="ufsc-btn ufsc-btn-secondary">
-                    <?php esc_html_e( 'Retour aux licences', 'ufsc-clubs' ); ?>
+            <p class="ufsc-club-portal__actions">
+                <a href="<?php echo esc_url( $return_url ); ?>" class="ufsc-btn ufsc-btn-secondary">
+                    <?php esc_html_e( '← Retour à mes licences', 'ufsc-clubs' ); ?>
                 </a>
             </p>
         </div>
@@ -1541,7 +1651,7 @@ class UFSC_Frontend_Shortcodes {
         $regions = UFSC_CL_Utils::regions();
         ?>
 
-        <div class="ufsc-club-account ufsc-club-profile ufsc-premium-v3">
+        <div class="ufsc-club-portal ufsc-club-account ufsc-club-profile ufsc-premium-v3">
             <div class="ufsc-club-profile-shell">
                 <div class="ufsc-section-header ufsc-profile-header">
                     <div>
@@ -1554,6 +1664,14 @@ class UFSC_Frontend_Shortcodes {
                         </p>
                     <?php endif; ?>
                 </div>
+                <nav class="ufsc-club-account__nav ufsc-club-portal__nav" aria-label="<?php esc_attr_e( 'Navigation Compte Club', 'ufsc-clubs' ); ?>">
+                    <a href="<?php echo esc_url( self::get_club_portal_url( 'overview' ) ); ?>"><?php esc_html_e( 'Vue d’ensemble', 'ufsc-clubs' ); ?></a>
+                    <a href="<?php echo esc_url( self::get_club_portal_url( 'club-information' ) ); ?>"><?php esc_html_e( 'Informations du club', 'ufsc-clubs' ); ?></a>
+                    <a href="<?php echo esc_url( self::get_club_portal_url( 'club-officers' ) ); ?>"><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></a>
+                    <a href="<?php echo esc_url( self::get_club_portal_url( 'club-documents' ) ); ?>"><?php esc_html_e( 'Documents', 'ufsc-clubs' ); ?></a>
+                    <a href="<?php echo esc_url( self::get_club_portal_url( 'licences-archives' ) ); ?>"><?php esc_html_e( 'Archives licences', 'ufsc-clubs' ); ?></a>
+                    <a href="<?php echo esc_url( self::SPORTS_RULES_URL ); ?>"><?php esc_html_e( 'Règlements sportifs', 'ufsc-clubs' ); ?></a>
+                </nav>
 
             <?php
                 // UFSC PATCH: Attestation UFSC section (stable + legacy fallback).
@@ -1564,7 +1682,7 @@ class UFSC_Frontend_Shortcodes {
                 <div class="ufsc-card ufsc-club-hero">
                     <div class="ufsc-club-hero-media">
                         <?php if ( '' !== $profile_logo ) : ?>
-                            <img src="<?php echo esc_url( $profile_logo ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" class="photo-club-front"/>
+                            <img src="<?php echo esc_url( $profile_logo ); ?>" alt="<?php esc_attr_e( 'Photo du club', 'ufsc-clubs' ); ?>" class="photo-club-front" width="280" height="220"/>
                             <div class="ufsc-hero-media-actions">
                                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-remove-photo-form">
                                     <?php wp_nonce_field( 'ufsc_remove_profile_photo', 'ufsc_remove_profile_photo_nonce' ); ?>
@@ -1647,12 +1765,12 @@ class UFSC_Frontend_Shortcodes {
 					<?php echo self::get_status_badge_front( $club_status, $annual_presentation['label'] ?? '' ); ?>
                 </div>
                 <div class="ufsc-card ufsc-profile-insight">
-                    <span><?php esc_html_e( 'Bureau', 'ufsc-clubs' ); ?></span>
-                    <strong><?php echo esc_html( sprintf( __( '%d rôle(s) manquant(s)', 'ufsc-clubs' ), (int) $profile_missing_roles ) ); ?></strong>
+                    <strong class="ufsc-profile-insight__value"><?php echo esc_html( (int) $profile_missing_roles ); ?></strong>
+                    <span class="ufsc-profile-insight__label"><?php esc_html_e( 'Rôles manquants', 'ufsc-clubs' ); ?></span>
                 </div>
                 <div class="ufsc-card ufsc-profile-insight">
-                    <span><?php esc_html_e( 'Documents', 'ufsc-clubs' ); ?></span>
-                    <strong><?php echo esc_html( sprintf( __( '%d document(s) manquant(s)', 'ufsc-clubs' ), (int) $profile_missing_docs ) ); ?></strong>
+                    <strong class="ufsc-profile-insight__value"><?php echo esc_html( (int) $profile_missing_docs ); ?></strong>
+                    <span class="ufsc-profile-insight__label"><?php esc_html_e( 'Documents manquants', 'ufsc-clubs' ); ?></span>
                 </div>
                 <div class="ufsc-card ufsc-profile-insight">
                     <span><?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?></span>
@@ -1666,7 +1784,7 @@ class UFSC_Frontend_Shortcodes {
                 <?php wp_nonce_field( 'ufsc_save_club', 'ufsc_club_nonce' ); ?>
                 <div class="ufsc-club-profile-layout">
                     <div class="ufsc-club-profile-main ufsc-profile-cards">
-                <div class="ufsc-card ufsc-section">
+                <div class="ufsc-card ufsc-section" id="ufsc-club-information">
                     <h4><?php esc_html_e( 'Identité du club', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -1716,7 +1834,7 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-card ufsc-form-section ufsc-section-board">
+                <div class="ufsc-card ufsc-form-section ufsc-section-board ufsc-club-portal__section--full" id="ufsc-club-officers">
                     <h4><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></h4>
                     <div class="ufsc-board-columns">
                         <div class="ufsc-board-role-card">
@@ -1782,7 +1900,7 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-card ufsc-form-section">
+                <div class="ufsc-card ufsc-form-section ufsc-club-portal__section--full">
                     <h4><?php esc_html_e( 'Distribution', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -1803,7 +1921,7 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <!-- // UFSC: Documents Section - 6 mandatory documents -->
-                <div class="ufsc-club-profile-documents ufsc-club-account__documents" id="ufsc-profile-documents">
+                <div class="ufsc-club-profile-documents ufsc-club-account__documents ufsc-club-portal__section--full" id="ufsc-club-documents">
                     <div class="ufsc-card ufsc-form-section">
                         <h4><?php esc_html_e( 'Mes documents', 'ufsc-clubs' ); ?></h4>
 
