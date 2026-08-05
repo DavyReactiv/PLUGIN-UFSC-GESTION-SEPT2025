@@ -411,3 +411,15 @@
         min-height: 30px;
     }
 }
+
+/* Exclusive season workflow controls. */
+.ufsc-club-search { grid-column: span 2; }
+.ufsc-club-search input[type="search"] { width: 100%; min-width: 340px; }
+.ufsc-active-filters { margin: 14px 0; padding: 12px 16px; border-left: 4px solid #0b6fa4; background: #fff; }
+.ufsc-active-filters ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 9px 0; }
+.ufsc-active-filters li { margin: 0; padding: 5px 9px; border-radius: 14px; background: #edf6fb; }
+.ufsc-active-filters li a { margin-left: 6px; font-weight: 700; text-decoration: none; }
+.ufsc-stat-card.is-active { outline: 3px solid #2271b1; outline-offset: 2px; }
+.ufsc-empty-state { padding: 30px; text-align: center; }
+.ufsc-empty-state strong { display: block; font-size: 16px; }
+@media (max-width: 782px) { .ufsc-club-search { grid-column: auto; } .ufsc-club-search input[type="search"] { min-width: 0; } }

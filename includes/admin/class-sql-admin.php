@@ -2018,6 +2018,7 @@ class UFSC_SQL_Admin
         $pk     = $s['pk_club'];
         $fields = UFSC_SQL::get_club_fields();
         $row    = $id ? $wpdb->get_row($wpdb->prepare("SELECT * FROM `$t` WHERE `$pk`=%d", $id)) : null;
+		$return_url = self::get_admin_return_url( 'ufsc-sql-clubs' );
         if ( $row && property_exists( $row, 'region' ) ) {
             UFSC_Scope::assert_in_scope( $row->region );
         }
@@ -2065,7 +2066,8 @@ class UFSC_SQL_Admin
             echo '<input type="hidden" name="action" value="ufsc_sql_save_club" />';
             echo '<input type="hidden" name="id" value="' . (int) $id . '" />';
             echo '<input type="hidden" name="page" value="ufsc-sql-clubs"/>';
-            self::render_admin_form_actions( admin_url( 'admin.php?page=ufsc-sql-clubs' ), 'club', (int) $id, 'top' );
+            echo '<input type="hidden" name="return_to" value="' . esc_attr( $return_url ) . '" />';
+            self::render_admin_form_actions( $return_url, 'club', (int) $id, 'top' );
         }
 
         echo '<section class="ufsc-admin-header">';
@@ -2164,10 +2166,10 @@ class UFSC_SQL_Admin
         }
 
         if (! $readonly) {
-            self::render_admin_form_actions( admin_url( 'admin.php?page=ufsc-sql-clubs' ), 'club', (int) $id, 'bottom' );
+            self::render_admin_form_actions( $return_url, 'club', (int) $id, 'bottom' );
             echo '</form>';
         } else {
-            echo '<p><a class="button" href="' . esc_url(admin_url('admin.php?page=ufsc-sql-clubs')) . '">' . esc_html__('Retour à la liste', 'ufsc-clubs') . '</a>';
+            echo '<p><a class="button" href="' . esc_url( $return_url ) . '">' . esc_html__('Retour à la liste', 'ufsc-clubs') . '</a>';
             if (ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE )) {
                 echo ' <a class="button button-primary" href="' . esc_url(admin_url('admin.php?page=ufsc-sql-clubs&action=edit&id=' . $id)) . '">' . esc_html__('Modifier', 'ufsc-clubs') . '</a>';
             }
@@ -2575,7 +2577,8 @@ class UFSC_SQL_Admin
                 }
             }
 
-            self::maybe_redirect(admin_url('admin.php?page=ufsc-sql-clubs&action=edit&id=' . $id . '&updated=1'));
+            $edit_after_save = add_query_arg( array( 'page' => 'ufsc-sql-clubs', 'action' => 'edit', 'id' => $id, 'updated' => 1, 'return_to' => self::get_admin_return_url( 'ufsc-sql-clubs' ) ), admin_url( 'admin.php' ) );
+            self::maybe_redirect( $edit_after_save );
             return;
         } catch (Exception $e) {
             UFSC_CL_Utils::log('Erreur sauvegarde club: ' . $e->getMessage(), 'error');
