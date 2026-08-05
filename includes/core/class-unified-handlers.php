@@ -96,6 +96,13 @@ class UFSC_Unified_Handlers {
             return;
         }
 
+        $gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( $club_id ) : array( 'allowed' => false, 'message' => __( 'Votre club doit renouveler et faire activer son affiliation avant de souscrire ou renouveler des licences.', 'ufsc-clubs' ) );
+        if ( empty( $gate['allowed'] ) ) {
+            if ( function_exists( 'ufsc_log_licence_affiliation_refusal' ) ) { ufsc_log_licence_affiliation_refusal( $gate, 'front_add_licence' ); }
+            self::redirect_with_error( $gate['message'] );
+            return;
+        }
+
         $data = self::process_licence_data( $_POST );
         if ( is_wp_error( $data ) ) {
             self::redirect_with_error( $data->get_error_message() );
@@ -547,6 +554,11 @@ class UFSC_Unified_Handlers {
         if ( ! in_array( $new_status, $valid_statuses, true ) ) {
             self::redirect_with_error( 'Statut invalide', $licence_id );
             return;
+        }
+		$target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+        if ( in_array( $new_status, array( 'valide', 'validated', 'active' ), true ) && function_exists( 'ufsc_club_can_manage_licences_for_season' ) ) {
+            $gate = ufsc_club_can_manage_licences_for_season( $club_id, $target_season );
+            if ( empty( $gate['allowed'] ) ) { if ( function_exists( 'ufsc_log_licence_affiliation_refusal' ) ) { ufsc_log_licence_affiliation_refusal( $gate, 'admin_validate_licence', $licence_id ); } self::redirect_with_error( $gate['message'], $licence_id ); return; }
         }
 		if ( in_array( $new_status, array( 'valide', 'validated', 'active' ), true ) && function_exists( 'ufsc_can_validate_licence' ) ) {
 			$reasons = array();
@@ -1128,6 +1140,14 @@ class UFSC_Unified_Handlers {
 
         if ( ! $club_id ) {
             self::store_form_and_redirect( $_POST, array( __( 'Aucun club associé à votre compte', 'ufsc-clubs' ) ), $licence_id );
+        }
+
+        if ( 0 === $licence_id ) {
+            $gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( $club_id ) : array( 'allowed' => false, 'message' => __( 'Votre club doit renouveler et faire activer son affiliation avant de souscrire ou renouveler des licences.', 'ufsc-clubs' ) );
+            if ( empty( $gate['allowed'] ) ) {
+                if ( function_exists( 'ufsc_log_licence_affiliation_refusal' ) ) { ufsc_log_licence_affiliation_refusal( $gate, 'save_licence' ); }
+                self::store_form_and_redirect( $_POST, array( $gate['message'] ), $licence_id );
+            }
         }
 
         if ( $licence_id > 0 ) {
