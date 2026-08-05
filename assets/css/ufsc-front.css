@@ -5,6 +5,25 @@
  * .ufsc-club-portal is the single source of truth for width, cards, KPIs,
  * anchors, logo sizing and savebar behavior.
  */
+body.ufsc-club-portal-page .site-content > .ast-container,
+body.ufsc-club-portal-page .content-area,
+body.ufsc-club-portal-page .site-main,
+body.ufsc-club-portal-page .entry-content {
+    width: 100%;
+    max-width: none;
+}
+body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal),
+body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) > .elementor-widget-container,
+body.ufsc-club-portal-page .elementor-shortcode:has(.ufsc-club-portal) {
+    width: 100%;
+    max-width: none;
+    flex-basis: auto;
+    flex-grow: 1;
+}
+body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
+    --width: 100%;
+    --container-widget-width: 100%;
+}
 .ufsc-club-portal {
     --ufsc-primary: #075985;
     --ufsc-primary-dark: #0b3b66;
@@ -39,7 +58,7 @@
 .ufsc-club-portal .ufsc-dashboard-header,
 .ufsc-club-portal .ufsc-club-hero,
 .ufsc-club-portal__hero { background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%); border: 1px solid var(--ufsc-border); border-radius: var(--ufsc-radius); box-shadow: var(--ufsc-shadow); padding: clamp(20px, 3vw, 36px); }
-.ufsc-club-portal .ufsc-dashboard-hero-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 500px); gap: clamp(20px, 3vw, 36px); align-items: stretch; }
+.ufsc-club-portal .ufsc-dashboard-hero-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: clamp(20px, 3vw, 36px); align-items: stretch; }
 .ufsc-club-portal .ufsc-club-hero { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: clamp(20px, 3vw, 34px); align-items: start; }
 .ufsc-club-portal .ufsc-dashboard-brand { align-items: flex-start; flex-wrap: nowrap; }
 .ufsc-club-portal .ufsc-dashboard-logo { width: 96px; height: 96px; aspect-ratio: 1 / 1; object-fit: contain; flex: 0 0 96px; }
@@ -59,10 +78,12 @@
 .ufsc-club-portal .ufsc-club-account__nav { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0; }
 .ufsc-club-portal .ufsc-club-account__nav a,
 .ufsc-club-portal .ufsc-btn { border-radius: 999px; padding: 10px 16px; line-height: 1.2; text-decoration: none; }
-.ufsc-club-portal .ufsc-club-profile-layout { display: block; }
+.ufsc-club-portal .ufsc-club-profile-layout,
+.ufsc-club-portal .ufsc-club-profile-main { display: block; }
 .ufsc-club-portal .ufsc-profile-cards,
-.ufsc-club-portal__form-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 22px; }
-.ufsc-club-portal .ufsc-profile-cards > .ufsc-card { grid-column: span 6; height: auto; margin: 0; }
+.ufsc-club-portal__form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+.ufsc-club-portal .ufsc-profile-cards > .ufsc-card { width: 100%; min-width: 0; height: auto; margin: 0; }
+.ufsc-club-portal .ufsc-club-portal__section--full,
 .ufsc-club-portal #ufsc-club-officers,
 .ufsc-club-portal .ufsc-club-profile-documents,
 .ufsc-club-portal .ufsc-profile-cards > .ufsc-section-board { grid-column: 1 / -1; }
@@ -76,7 +97,8 @@
 .ufsc-club-portal .ufsc-club-account__savebar,
 .ufsc-club-portal__savebar { position: sticky; bottom: 12px; z-index: 5; display: flex; justify-content: flex-end; gap: 12px; margin: 24px 0; padding: 12px; background: rgba(255,255,255,.94); border: 1px solid var(--ufsc-border); border-radius: var(--ufsc-radius); box-shadow: var(--ufsc-shadow); }
 .ufsc-club-portal .ufsc-licences-archives { margin-top: 28px; padding-top: 4px; }
-@media (max-width: 1024px) { .ufsc-club-portal .ufsc-dashboard-hero-layout, .ufsc-club-portal .ufsc-club-hero { grid-template-columns: 1fr; } .ufsc-club-portal .ufsc-profile-insight-band { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ufsc-club-portal .ufsc-profile-cards > .ufsc-card { grid-column: 1 / -1; } }
+@media (max-width: 1100px) { .ufsc-club-portal .ufsc-dashboard-hero-layout, .ufsc-club-portal .ufsc-club-hero { grid-template-columns: 1fr; } .ufsc-club-portal .ufsc-profile-insight-band, .ufsc-club-portal .ufsc-hero-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .ufsc-club-portal .ufsc-profile-cards { grid-template-columns: 1fr; } .ufsc-club-portal .ufsc-profile-cards > .ufsc-card { grid-column: 1 / -1; } }
 @media (max-width: 768px) { .ufsc-club-portal { width: min(100% - 20px, 1280px); } .ufsc-club-portal .ufsc-hero-kpi-grid, .ufsc-club-portal .ufsc-club-account__identity, .ufsc-club-portal .ufsc-grid, .ufsc-club-portal .ufsc-board-columns, .ufsc-club-portal .ufsc-documents-grid { grid-template-columns: 1fr; } }
 @media (max-width: 420px) { .ufsc-club-portal .ufsc-dashboard-header, .ufsc-club-portal .ufsc-club-hero { padding: 16px; } .ufsc-club-portal .ufsc-profile-insight-band { grid-template-columns: 1fr; } }
 
@@ -1304,7 +1326,7 @@ button#upload_btn {
 }
 
 .ufsc-premium-v3 .ufsc-section-board .ufsc-board-columns {
-    grid-template-columns: repeat(3, minmax(240px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
 }
 
@@ -2020,22 +2042,22 @@ button#upload_btn {
     --ufsc-danger: #b42318;
     --ufsc-radius: 18px;
     --ufsc-shadow: 0 18px 45px rgba(15, 39, 74, 0.09);
-    width: min(100% - clamp(20px, 4vw, 56px), 1280px) !important;
-    max-width: 1280px !important;
-    margin-inline: auto !important;
+    width: min(calc(100% - 32px), 1280px);
+    max-width: 1280px;
+    margin-inline: auto;
     color: var(--ufsc-text);
 }
 
 body .entry-content > .ufsc-club-account,
 body .elementor-widget-container > .ufsc-club-account,
 body .wp-block-post-content > .ufsc-club-account {
-    width: min(100% - clamp(20px, 4vw, 56px), 1280px) !important;
-    max-width: 1280px !important;
+    width: min(calc(100% - 32px), 1280px);
+    max-width: 1280px;
 }
 
 .ufsc-club-account .ufsc-dashboard-shell,
 .ufsc-club-account .ufsc-club-profile-shell {
-    max-width: 1280px !important;
+    max-width: 1280px;
     margin-inline: auto;
 }
 
@@ -2313,7 +2335,7 @@ body .wp-block-post-content > .ufsc-club-account {
 }
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-dashboard-hero-layout {
-    grid-template-columns: minmax(360px, .86fr) minmax(520px, 1.14fr);
+    grid-template-columns: minmax(0, 1fr) 300px;
     gap: clamp(22px, 3vw, 40px);
 }
 
@@ -2429,7 +2451,7 @@ body .wp-block-post-content > .ufsc-club-account {
 .ufsc-club-account.ufsc-premium-v3 .ufsc-hero-kpi-grid,
 .ufsc-club-account.ufsc-premium-v3 .ufsc-profile-insight-band {
     display: grid;
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
 }
 
@@ -2554,14 +2576,21 @@ body .wp-block-post-content > .ufsc-club-account {
 }
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-profile-insight-band {
-    grid-template-columns: repeat(4, minmax(190px, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-club-profile-layout,
 .ufsc-club-account.ufsc-premium-v3 .ufsc-club-profile-main {
+    display: block;
+    width: 100%;
     max-width: none;
+}
+
+.ufsc-club-account.ufsc-premium-v3 .ufsc-profile-cards {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 22px;
+    gap: 24px;
+    align-items: start;
 }
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-section-board,
@@ -2602,7 +2631,7 @@ body .wp-block-post-content > .ufsc-club-account {
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-board-columns {
     display: grid;
-    grid-template-columns: repeat(3, minmax(240px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
 }
 
@@ -2651,7 +2680,6 @@ body .wp-block-post-content > .ufsc-club-account {
 @media (max-width: 1180px) {
     .ufsc-club-account.ufsc-premium-v3 .ufsc-dashboard-hero-layout,
     .ufsc-club-account.ufsc-premium-v3 .ufsc-club-hero,
-    .ufsc-club-account.ufsc-premium-v3 .ufsc-club-profile-layout,
     .ufsc-club-account.ufsc-premium-v3 .ufsc-club-profile-main {
         grid-template-columns: 1fr;
     }

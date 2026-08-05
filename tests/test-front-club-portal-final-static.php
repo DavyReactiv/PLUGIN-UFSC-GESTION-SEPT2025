@@ -24,7 +24,7 @@ $assert( strpos( $front, 'unset( $all_licence_args[\'season\'] );' ) !== false, 
 $assert( substr_count( $front, 'ufsc-club-account__savebar' ) === 1, 'Only one savebar is rendered.' );
 $assert( strpos( $css, '.ufsc-club-portal' ) !== false && strpos( $css, 'width: min(100% - 32px, 1280px)' ) !== false, 'Canonical portal width exists.' );
 $assert( strpos( $css, 'grid-template-columns: repeat(2, minmax(0, 1fr))' ) !== false, 'KPI/document grids use safe minmax columns.' );
-$assert( strpos( $css, 'grid-template-columns: repeat(12, minmax(0, 1fr))' ) !== false, 'Account form grid uses 12 columns.' );
+$assert( strpos( $css, 'grid-template-columns: repeat(2, minmax(0, 1fr))' ) !== false, 'Account form grid uses the robust two-column desktop layout.' );
 $assert( strpos( $css, 'scroll-margin-top: 120px' ) !== false, 'Anchors account for sticky headers.' );
 $assert( strpos( $css, 'transform: scale(' ) === false && strpos( $css, 'zoom:' ) === false, 'No forbidden zoom or scale rules.' );
 $assert( ! preg_match( '/max-width:\s*(280|320|400)px/', $css ), 'No tiny desktop max-width remains in ufsc-front.css.' );

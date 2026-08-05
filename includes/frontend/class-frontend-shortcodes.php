@@ -1642,12 +1642,12 @@ class UFSC_Frontend_Shortcodes {
 					<?php echo self::get_status_badge_front( $club_status, $annual_presentation['label'] ?? '' ); ?>
                 </div>
                 <div class="ufsc-card ufsc-profile-insight">
-                    <span><?php esc_html_e( 'Bureau', 'ufsc-clubs' ); ?></span>
-                    <strong><?php echo esc_html( sprintf( __( '%d rôle(s) manquant(s)', 'ufsc-clubs' ), (int) $profile_missing_roles ) ); ?></strong>
+                    <strong class="ufsc-profile-insight__value"><?php echo esc_html( (int) $profile_missing_roles ); ?></strong>
+                    <span class="ufsc-profile-insight__label"><?php esc_html_e( 'Rôles manquants', 'ufsc-clubs' ); ?></span>
                 </div>
                 <div class="ufsc-card ufsc-profile-insight">
-                    <span><?php esc_html_e( 'Documents', 'ufsc-clubs' ); ?></span>
-                    <strong><?php echo esc_html( sprintf( __( '%d document(s) manquant(s)', 'ufsc-clubs' ), (int) $profile_missing_docs ) ); ?></strong>
+                    <strong class="ufsc-profile-insight__value"><?php echo esc_html( (int) $profile_missing_docs ); ?></strong>
+                    <span class="ufsc-profile-insight__label"><?php esc_html_e( 'Documents manquants', 'ufsc-clubs' ); ?></span>
                 </div>
                 <div class="ufsc-card ufsc-profile-insight">
                     <span><?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?></span>
@@ -1711,7 +1711,7 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-card ufsc-form-section ufsc-section-board" id="ufsc-club-officers">
+                <div class="ufsc-card ufsc-form-section ufsc-section-board ufsc-club-portal__section--full" id="ufsc-club-officers">
                     <h4><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></h4>
                     <div class="ufsc-board-columns">
                         <div class="ufsc-board-role-card">
@@ -1777,7 +1777,7 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-card ufsc-form-section">
+                <div class="ufsc-card ufsc-form-section ufsc-club-portal__section--full">
                     <h4><?php esc_html_e( 'Distribution', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -1798,7 +1798,7 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <!-- // UFSC: Documents Section - 6 mandatory documents -->
-                <div class="ufsc-club-profile-documents ufsc-club-account__documents" id="ufsc-club-documents">
+                <div class="ufsc-club-profile-documents ufsc-club-account__documents ufsc-club-portal__section--full" id="ufsc-club-documents">
                     <div class="ufsc-card ufsc-form-section">
                         <h4><?php esc_html_e( 'Mes documents', 'ufsc-clubs' ); ?></h4>
 
