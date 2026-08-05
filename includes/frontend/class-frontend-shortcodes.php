@@ -1499,6 +1499,8 @@ class UFSC_Frontend_Shortcodes {
 		$current_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
 		$annual_affiliation = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( $atts['club_id'], $current_season ) : null;
 		$annual_status = $annual_affiliation ? sanitize_key( (string) $annual_affiliation->status ) : 'a_renouveler';
+        $annual_presentation = function_exists( 'ufsc_get_annual_affiliation_status' ) ? ufsc_get_annual_affiliation_status( $annual_affiliation ) : array( 'key' => $annual_status, 'label' => __( 'À renouveler', 'ufsc-clubs' ) );
+        $club_status = ! empty( $annual_presentation['key'] ) ? $annual_presentation['key'] : $annual_status;
 
         if ( ! $can_edit ) {
             return '<div class="ufsc-message ufsc-error">' .
@@ -1521,6 +1523,18 @@ class UFSC_Frontend_Shortcodes {
                 echo '<div class="ufsc-message ufsc-error">' . esc_html( $result['message'] ) . '</div>';
             }
         }
+
+        $profile_name    = function_exists( 'ufsc_get_club_profile_value' ) ? ufsc_get_club_profile_value( $club, 'name' ) : ( $club->nom ?? '' );
+        $profile_region  = function_exists( 'ufsc_get_club_profile_value' ) ? ufsc_get_club_profile_value( $club, 'region' ) : ( $club->region ?? '' );
+        $profile_address = function_exists( 'ufsc_get_club_profile_value' ) ? ufsc_get_club_profile_value( $club, 'address' ) : ( $club->adresse ?? '' );
+        $profile_cp      = function_exists( 'ufsc_get_club_profile_value' ) ? ufsc_get_club_profile_value( $club, 'postal_code' ) : ( $club->code_postal ?? '' );
+        $profile_city    = function_exists( 'ufsc_get_club_profile_value' ) ? ufsc_get_club_profile_value( $club, 'city' ) : ( $club->ville ?? '' );
+        $profile_phone   = function_exists( 'ufsc_get_club_profile_value' ) ? ufsc_get_club_profile_value( $club, 'phone' ) : ( $club->telephone ?? '' );
+        $profile_email   = function_exists( 'ufsc_get_club_profile_value' ) ? ufsc_get_club_profile_value( $club, 'email' ) : ( $club->email ?? '' );
+        $profile_site    = function_exists( 'ufsc_get_club_profile_value' ) ? ufsc_get_club_profile_value( $club, 'website' ) : ( $club->url_site ?? '' );
+        $profile_logo    = function_exists( 'ufsc_get_club_profile_value' ) ? ufsc_get_club_profile_value( $club, 'logo' ) : ( $club->profile_photo_url ?? '' );
+        $profile_affnum  = $annual_affiliation->num_affiliation ?? ( function_exists( 'ufsc_get_club_profile_value' ) ? ufsc_get_club_profile_value( $club, 'affiliation_number' ) : ( $club->num_affiliation ?? '' ) );
+        $profile_address_line = trim( trim( (string) $profile_address ) . ' ' . trim( (string) $profile_cp ) . ' ' . trim( (string) $profile_city ) );
 
         ob_start();
         UFSC_CL_Club_Form_Handler::display_save_club_results();
@@ -1585,11 +1599,13 @@ class UFSC_Frontend_Shortcodes {
                             <?php endif; ?>
                         </div>
                         <dl class="ufsc-club-account__identity" aria-label="<?php esc_attr_e( 'Coordonnées principales du club', 'ufsc-clubs' ); ?>">
-                            <?php if ( ! empty( $club->region ) ) : ?><div><dt><?php esc_html_e( 'Région', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $club->region ); ?></dd></div><?php endif; ?>
-                            <?php if ( ! empty( $club->adresse ) || ! empty( $club->code_postal ) || ! empty( $club->ville ) ) : ?><div><dt><?php esc_html_e( 'Adresse', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( trim( (string) ( $club->adresse ?? '' ) . ' ' . ( $club->code_postal ?? '' ) . ' ' . ( $club->ville ?? '' ) ) ); ?></dd></div><?php endif; ?>
-                            <?php if ( ! empty( $club->telephone ) ) : ?><div><dt><?php esc_html_e( 'Téléphone', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $club->telephone ); ?></dd></div><?php endif; ?>
-                            <?php if ( ! empty( $club->email ) ) : ?><div><dt><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></dt><dd><a href="mailto:<?php echo esc_attr( $club->email ); ?>"><?php echo esc_html( $club->email ); ?></a></dd></div><?php endif; ?>
-                            <?php if ( ! empty( $club->url_site ) ) : ?><div><dt><?php esc_html_e( 'Site', 'ufsc-clubs' ); ?></dt><dd><a href="<?php echo esc_url( $club->url_site ); ?>" target="_blank" rel="noopener"><?php echo esc_html( preg_replace( '#^https?://#', '', (string) $club->url_site ) ); ?></a></dd></div><?php endif; ?>
+                            <?php if ( '' !== $profile_region ) : ?><div><dt><?php esc_html_e( 'Région', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $profile_region ); ?></dd></div><?php endif; ?>
+                            <?php if ( '' !== $profile_address_line ) : ?><div><dt><?php esc_html_e( 'Adresse', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $profile_address_line ); ?></dd></div><?php endif; ?>
+                            <?php if ( '' !== $profile_phone ) : ?><div><dt><?php esc_html_e( 'Téléphone', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $profile_phone ); ?></dd></div><?php endif; ?>
+                            <?php if ( '' !== $profile_email ) : ?><div><dt><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></dt><dd><a href="mailto:<?php echo esc_attr( $profile_email ); ?>"><?php echo esc_html( $profile_email ); ?></a></dd></div><?php endif; ?>
+                            <?php if ( '' !== $profile_site ) : ?><div><dt><?php esc_html_e( 'Site', 'ufsc-clubs' ); ?></dt><dd><a href="<?php echo esc_url( $profile_site ); ?>" target="_blank" rel="noopener"><?php echo esc_html( preg_replace( '#^https?://#', '', (string) $profile_site ) ); ?></a></dd></div><?php endif; ?>
+                            <?php if ( '' !== $profile_affnum ) : ?><div><dt><?php esc_html_e( 'N° affiliation', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $profile_affnum ); ?></dd></div><?php endif; ?>
+                            <?php if ( '' !== $current_season ) : ?><div><dt><?php esc_html_e( 'Saison', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $current_season ); ?></dd></div><?php endif; ?>
                         </dl>
                         <?php if ( $attestation['can_view'] ) : ?>
                             <div class="div-attestation">
