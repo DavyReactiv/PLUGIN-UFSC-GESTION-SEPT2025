@@ -20,6 +20,7 @@ require_once UFSC_CL_DIR.'includes/security/class-ufsc-scope.php';
 require_once UFSC_CL_DIR.'includes/permissions/class-ufsc-permissions.php';
 require_once UFSC_CL_DIR.'includes/admin/class-admin-menu.php';
 require_once UFSC_CL_DIR.'includes/admin/class-ufsc-settings-page.php';
+require_once UFSC_CL_DIR.'includes/admin/class-ufsc-diagnostics-admin.php';
 require_once UFSC_CL_DIR.'includes/core/class-sql.php';
 require_once UFSC_CL_DIR . 'class-sql-admin.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-sql-shortcodes.php';
@@ -42,6 +43,7 @@ require_once UFSC_CL_DIR.'includes/core/class-ufsc-transaction.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-db-migrations.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-category-repository.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-season-service.php';
+require_once UFSC_CL_DIR.'includes/core/class-ufsc-storage-resolver.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-season-archive-manager.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-licence-payments.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-affiliation-form.php';
@@ -83,6 +85,7 @@ require_once UFSC_CL_DIR.'inc/common/licence-documents.php';
 require_once UFSC_CL_DIR.'inc/common/compliance.php';
 require_once UFSC_CL_DIR.'inc/common/attestations.php';
 require_once UFSC_CL_DIR.'inc/common/tables.php';
+require_once UFSC_CL_DIR.'inc/common/functions.php';
 require_once UFSC_CL_DIR.'inc/common/diagnostics.php';
 require_once UFSC_CL_DIR.'inc/settings.php';
 require_once UFSC_CL_DIR.'inc/form-license-sanitizer.php';
@@ -107,6 +110,7 @@ final class UFSC_CL_Bootstrap {
         register_deactivation_hook( __FILE__, array( $this, 'on_deactivate' ) );
 
         add_action( 'admin_menu', array( 'UFSC_CL_Admin_Menu', 'register' ) );
+        add_action( 'admin_menu', array( 'UFSC_Diagnostics_Admin', 'register_menu' ) );
         add_action( 'admin_enqueue_scripts', array( 'UFSC_CL_Admin_Menu', 'enqueue_admin' ) );
         add_action( 'wp_enqueue_scripts', array( 'UFSC_CL_Admin_Menu', 'register_front' ) );
 

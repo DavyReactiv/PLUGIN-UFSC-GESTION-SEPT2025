@@ -13,6 +13,9 @@ class UFSC_User_Club_Mapping {
      * @return string
      */
     private static function get_clubs_table() {
+        if ( class_exists( 'UFSC_Storage_Resolver' ) ) {
+            return UFSC_Storage_Resolver::get_clubs_table();
+        }
         if ( function_exists( 'ufsc_get_clubs_table' ) ) {
             return ufsc_get_clubs_table();
         }
@@ -33,20 +36,25 @@ class UFSC_User_Club_Mapping {
      * @return int|false
      */
     public static function get_user_club_id( $user_id ) {
-        global $wpdb;
+        $result = self::resolve_user_club( $user_id );
+        return ! empty( $result['found'] ) && 'diagnostic_only' !== ( $result['confidence'] ?? '' ) ? (int) $result['club_id'] : false;
+    }
 
+    /**
+     * Resolve a user-to-club link across modern and historical sources.
+     * Email matches are returned as diagnostic-only and never become an automatic link.
+     */
+    public static function resolve_user_club( $user_id ) {
+        if ( class_exists( 'UFSC_Storage_Resolver' ) ) {
+            return UFSC_Storage_Resolver::resolve_club_for_user( $user_id );
+        }
+
+        global $wpdb;
         $clubs_table     = self::get_clubs_table();
         $pk_col          = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id';
         $responsable_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id';
-
-        $club_id = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT `{$pk_col}` FROM `{$clubs_table}` WHERE `{$responsable_col}` = %d LIMIT 1",
-                $user_id
-            )
-        );
-
-        return $club_id ? (int) $club_id : false;
+        $club_id = $wpdb->get_var( $wpdb->prepare( "SELECT `{$pk_col}` FROM `{$clubs_table}` WHERE `{$responsable_col}` = %d LIMIT 1", $user_id ) );
+        return $club_id ? array( 'found' => true, 'club_id' => (int) $club_id, 'source' => 'club_column:responsable_id', 'confidence' => 'high', 'diagnostic_code' => 'explicit_column_match' ) : array( 'found' => false, 'club_id' => 0, 'source' => 'none', 'confidence' => 'none', 'diagnostic_code' => 'no_relation' );
     }
 
     /**
@@ -58,16 +66,11 @@ class UFSC_User_Club_Mapping {
     public static function get_user_club( $user_id ) {
         global $wpdb;
 
-        $clubs_table     = self::get_clubs_table();
-        $responsable_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id';
-
-        $club = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT * FROM `{$clubs_table}` WHERE `{$responsable_col}` = %d LIMIT 1",
-                $user_id
-            )
-        );
-
+        $club_id = self::get_user_club_id( $user_id );
+        if ( ! $club_id ) { return false; }
+        $clubs_table = self::get_clubs_table();
+        $pk_col = class_exists( 'UFSC_Storage_Resolver' ) ? UFSC_Storage_Resolver::first_existing_column( $clubs_table, array( 'id', 'club_id', 'ID' ) ) : ( function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id' );
+        $club = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$clubs_table}` WHERE `{$pk_col}` = %d LIMIT 1", $club_id ) );
         return $club ?: false;
     }
 
@@ -272,6 +275,11 @@ class UFSC_User_Club_Mapping {
 if ( ! function_exists( 'ufsc_get_user_club_id' ) ) {
     function ufsc_get_user_club_id( $user_id ) {
         return UFSC_User_Club_Mapping::get_user_club_id( $user_id );
+    }
+}
+if ( ! function_exists( 'ufsc_get_club_id_for_user' ) ) {
+    function ufsc_get_club_id_for_user( $user_id ) {
+        return UFSC_User_Club_Mapping::resolve_user_club( $user_id );
     }
 }
 

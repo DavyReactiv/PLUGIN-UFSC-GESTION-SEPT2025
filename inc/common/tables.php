@@ -54,6 +54,14 @@ function ufsc_get_legacy_table_names() {
  * @return array{clubs_table:string,licences_table:string,_source:string} Table names and source.
  */
 function ufsc_get_table_names() {
+    if ( class_exists( 'UFSC_Storage_Resolver' ) ) {
+        return array(
+            'clubs_table'    => UFSC_Storage_Resolver::get_clubs_table(),
+            'licences_table' => UFSC_Storage_Resolver::get_licences_table(),
+            '_source'        => 'ufsc_storage_resolver:' . UFSC_Storage_Resolver::get_schema_mode(),
+        );
+    }
+
     $fallback = ufsc_get_legacy_table_names();
 
     if ( class_exists( 'UFSC_SQL' ) && is_callable( array( 'UFSC_SQL', 'get_settings' ) ) ) {
@@ -127,6 +135,10 @@ function ufsc_sanitize_table_name( $table_name ) {
  * @return bool True if table exists
  */
 function ufsc_table_exists( $table_name ) {
+    if ( class_exists( 'UFSC_Storage_Resolver' ) ) {
+        return UFSC_Storage_Resolver::table_exists( $table_name );
+    }
+
     global $wpdb;
 
     $sanitized_table = ufsc_sanitize_table_name( $table_name );
@@ -221,3 +233,11 @@ function ufsc_table_has_column( $table_name, $column ) {
     return in_array( $column, $columns, true );
 }
 
+
+if ( ! function_exists( 'ufsc_normalize_season_reference' ) ) {
+    function ufsc_normalize_season_reference( $value ) {
+        if ( class_exists( 'UFSC_Storage_Resolver' ) ) { return UFSC_Storage_Resolver::normalize_season_reference( $value ); }
+        if ( class_exists( 'UFSC_Season_Service' ) ) { return UFSC_Season_Service::normalize_season( $value ); }
+        return (string) $value;
+    }
+}

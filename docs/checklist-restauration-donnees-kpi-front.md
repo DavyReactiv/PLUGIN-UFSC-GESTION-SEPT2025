@@ -1,38 +1,32 @@
-# Checklist préproduction — restauration données, KPI et front club
+# Checklist préproduction — restauration données historiques, clubs, licences et rattachements
+
+## Audit lecture seule
+- [ ] Ouvrir **UFSC Gestion → Diagnostic stockage** et confirmer le mode `legacy`, `hybrid` ou `modern`.
+- [ ] Relever les tables trouvées pour clubs, licences, affiliations et attestations.
+- [ ] Noter les compteurs avant migration : clubs, licences, affiliations, saisons, utilisateurs liés, documents.
+- [ ] Vérifier que l'inventaire liste les colonnes `club_id`, `user_id/responsable_id`, saison, statut et suppression logique.
 
 ## Admin
-- [ ] Le tableau de bord UFSC Gestion affiche la saison courante calculée (`2026-2027` au 5 août 2026).
-- [ ] Aucune fausse alerte « tables non configurées » si les tables clubs et licences existent.
-- [ ] Le diagnostic administrateur liste les tables critiques, les tables optionnelles, la version de migration et les compteurs non sensibles.
-- [ ] Les clubs permanents historiques sont visibles dans « Clubs permanents ».
-- [ ] La saison courante est visible et filtrable.
-- [ ] La saison précédente `2025-2026` restitue les clubs ayant affiliation annuelle ou licences de cette saison.
-- [ ] Les clubs à renouveler / anciens clubs sont visibles sans affiliation annuelle active courante.
-- [ ] Les licences historiques restent visibles dans leurs filtres de saison.
-- [ ] Les exports CSV/XLSX respectent les filtres actifs.
-- [ ] Les filtres sont réinitialisables et ne se neutralisent pas avec des valeurs vides.
+- [ ] Le dashboard n'affiche plus de fausse alerte bloquante si des tables historiques compatibles contiennent clubs/licences.
+- [ ] Les KPI s'affichent en mode compatibilité historique.
+- [ ] « Tous les clubs permanents » retourne tous les clubs non supprimés logiquement.
+- [ ] « Saison précédente : 2025-2026 » retrouve les clubs par affiliation annuelle ou licences historiques.
+- [ ] « Clubs à renouveler / anciens clubs » affiche les clubs sans affiliation annuelle active courante mais avec historique.
+- [ ] Les vues Actifs, En attente, Documents incomplets, Sans numéro, Moins de 10 licences et Sans licence restent cohérentes.
+- [ ] La liste Licences affiche saison courante, saison précédente, archives et toutes saisons.
+- [ ] Les exports respectent les filtres et ne masquent pas les historiques.
 
 ## Front `/compte-club/`
-- [ ] Le logo ou la photo club s'affiche dans une zone compacte.
-- [ ] Les actions remplacer/supprimer le logo restent disponibles.
-- [ ] Le résumé club est visible avant les formulaires.
-- [ ] L'adresse, le code postal et la ville s'affichent si disponibles.
-- [ ] Le téléphone s'affiche avec compatibilité `telephone` / `tel` / `tel_mobile`.
-- [ ] L'email s'affiche avec compatibilité `email` / `email_contact`.
-- [ ] Le site s'affiche avec compatibilité `url_site` / `site_web`.
-- [ ] La région s'affiche si disponible.
-- [ ] Le numéro, la saison et le statut d'affiliation annuelle s'affichent sans utiliser le statut permanent comme substitut.
-- [ ] Le bloc attestation UFSC affiche les états disponible / préparation / indisponible / erreur sans bouton invalide.
-- [ ] Les dirigeants restent visibles et modifiables.
-- [ ] Les documents restent visibles, téléversables et supprimables selon permissions.
-- [ ] La sauvegarde du formulaire conserve les champs non soumis.
-- [ ] Le rendu est responsive sans débordement horizontal.
+- [ ] Un utilisateur historiquement rattaché retrouve son club et ne voit plus « Aucun club associé ».
+- [ ] Le rattachement persiste même si l'affiliation annuelle est inactive ou absente.
+- [ ] Le résumé affiche nom, logo, région, adresse, code postal, ville, téléphone, email, site, numéro historique et état annuel.
+- [ ] Les alias historiques (`tel`, `email_contact`, `site_web`, `adresse_siege`, etc.) sont lus sans écriture en base.
+- [ ] Les documents, dirigeants, attestations et archives restent consultables.
+- [ ] Les nouvelles licences restent bloquées sans affiliation annuelle `active`/`validated`.
+- [ ] Les clubs actifs peuvent créer des licences.
 
-## Métier
-- [ ] Une licence est bloquée sans affiliation annuelle active/validated pour la saison cible.
-- [ ] Une licence est autorisée avec affiliation annuelle active/validated pour la saison cible.
-- [ ] Une affiliation active uniquement sur une saison précédente ne débloque pas les licences courantes.
-- [ ] Le renouvellement d'affiliation utilise le produit WooCommerce `4823` et son permalink réel.
-- [ ] Un paiement pending/on-hold propose « Finaliser mon paiement ».
-- [ ] Le produit 4823 force la quantité 1 et bloque les doublons panier/saison.
-- [ ] L'historique des clubs, affiliations et licences n'est pas modifié par la consultation.
+## Migration additive éventuelle
+- [ ] Lancer d'abord une simulation, jamais une exécution silencieuse.
+- [ ] Vérifier que les comptages avant/après ne diminuent pas.
+- [ ] Confirmer qu'aucun ID club/licence/utilisateur n'est recréé ou écrasé.
+- [ ] Conserver les sources legacy en fallback pendant la transition.

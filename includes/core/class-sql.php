@@ -157,6 +157,10 @@ class UFSC_SQL {
             }
             $settings[ $table_key ] = preg_replace( '/[^A-Za-z0-9_]/', '', $table );
         }
+        if ( class_exists( 'UFSC_Storage_Resolver' ) ) {
+            $settings['table_clubs'] = UFSC_Storage_Resolver::get_clubs_table();
+            $settings['table_licences'] = UFSC_Storage_Resolver::get_licences_table();
+        }
         return apply_filters( 'ufsc_sql_settings', $settings );
     }
     

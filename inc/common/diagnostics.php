@@ -1,60 +1,41 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-/** Return a structured, non-writing UFSC data configuration diagnostic. */
+/** Structured, read-only UFSC storage/configuration diagnostic. */
 function ufsc_get_configuration_diagnostic() {
+    $clubs = class_exists( 'UFSC_Storage_Resolver' ) ? UFSC_Storage_Resolver::resolve_table( 'clubs' ) : array( 'exists' => false, 'table' => '', 'rows' => 0, 'compatibility' => 'missing' );
+    $licences = class_exists( 'UFSC_Storage_Resolver' ) ? UFSC_Storage_Resolver::resolve_table( 'licences' ) : array( 'exists' => false, 'table' => '', 'rows' => 0, 'compatibility' => 'missing' );
+    $affiliations = class_exists( 'UFSC_Storage_Resolver' ) ? UFSC_Storage_Resolver::resolve_table( 'affiliations' ) : array( 'exists' => false, 'table' => '', 'rows' => 0, 'compatibility' => 'missing' );
     global $wpdb;
+    $attestations_table = $wpdb->prefix . 'ufsc_attestations';
+    $attestations_exists = function_exists( 'ufsc_table_exists' ) ? ufsc_table_exists( $attestations_table ) : false;
 
-    $settings = class_exists( 'UFSC_SQL' ) ? UFSC_SQL::get_settings() : array();
-    $prefix   = isset( $wpdb->prefix ) ? (string) $wpdb->prefix : '';
-    $tables   = array(
-        'clubs'        => $settings['table_clubs'] ?? 'clubs',
-        'licences'     => $settings['table_licences'] ?? 'licences',
-        'affiliations' => class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliations_table() : $prefix . 'ufsc_affiliations_seasons',
-        'attestations' => $prefix . 'ufsc_attestations',
-    );
-
-    foreach ( $tables as $key => $table ) {
-        $table = (string) $table;
-        if ( '' !== $prefix && 0 !== strpos( $table, $prefix ) && 0 !== strpos( $table, 'wp_' ) ) {
-            $table = $prefix . $table;
-        }
-        $tables[ $key ] = function_exists( 'ufsc_sanitize_table_name' ) ? ufsc_sanitize_table_name( $table ) : preg_replace( '/[^A-Za-z0-9_]/', '', $table );
-    }
-
-    $critical = array( 'clubs', 'licences' );
-    $optional = array( 'affiliations', 'attestations' );
-    $details  = array();
     $critical_missing = array();
+    foreach ( array( 'clubs' => $clubs, 'licences' => $licences ) as $key => $info ) {
+        if ( empty( $info['exists'] ) || ! in_array( $info['compatibility'], array( 'compatible', 'partial' ), true ) ) { $critical_missing[] = $key . ':' . ( $info['table'] ?? '' ); }
+    }
+
     $optional_missing = array();
+    if ( empty( $affiliations['exists'] ) ) { $optional_missing[] = $affiliations['table'] ?? $wpdb->prefix . 'ufsc_affiliations_seasons'; }
+    if ( ! $attestations_exists ) { $optional_missing[] = $attestations_table; }
 
-    foreach ( $tables as $key => $table ) {
-        $exists = ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table );
-        $count  = null;
-        if ( $exists ) {
-            $count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$table}`" );
-        }
-        $details[ $key ] = array( 'table' => $table, 'exists' => $exists, 'rows' => $count );
-        if ( ! $exists && in_array( $key, $critical, true ) ) { $critical_missing[] = $table; }
-        if ( ! $exists && in_array( $key, $optional, true ) ) { $optional_missing[] = $table; }
-    }
-
-    $migration_required = false;
-    if ( class_exists( 'UFSC_DB_Migrations' ) ) {
-        $migration_required = version_compare( (string) get_option( UFSC_DB_Migrations::VERSION_OPTION, '0.0.0' ), UFSC_DB_Migrations::MIGRATION_VERSION, '<' );
-    }
-
+    $mode = class_exists( 'UFSC_Storage_Resolver' ) ? UFSC_Storage_Resolver::get_schema_mode() : 'unknown';
     $configured = empty( $critical_missing );
-    $message = $configured
-        ? __( 'Tables principales disponibles. Les données clubs/licences peuvent être affichées.', 'ufsc-clubs' )
-        : __( 'Tables critiques clubs/licences absentes : configuration requise.', 'ufsc-clubs' );
-
     return array(
         'configured'              => $configured,
+        'schema_mode'             => $mode,
         'critical_missing_tables' => $critical_missing,
         'optional_missing_tables' => $optional_missing,
-        'migration_required'      => $migration_required,
-        'message'                 => $message,
-        'diagnostic_details'      => $details,
+        'migration_required'      => class_exists( 'UFSC_DB_Migrations' ) ? version_compare( (string) get_option( UFSC_DB_Migrations::VERSION_OPTION, '0.0.0' ), UFSC_DB_Migrations::MIGRATION_VERSION, '<' ) : false,
+        'message'                 => $configured
+            ? sprintf( __( 'Mode de compatibilité %1$s actif : %2$d clubs et %3$d licences retrouvés.', 'ufsc-clubs' ), $mode, (int) ( $clubs['rows'] ?? 0 ), (int) ( $licences['rows'] ?? 0 ) )
+            : __( 'Aucune table clubs/licences compatible retrouvée après inventaire legacy et moderne.', 'ufsc-clubs' ),
+        'diagnostic_details'      => array(
+            'clubs'        => $clubs,
+            'licences'     => $licences,
+            'affiliations' => $affiliations,
+            'attestations' => array( 'table' => $attestations_table, 'exists' => $attestations_exists, 'rows' => $attestations_exists ? (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$attestations_table}`" ) : 0, 'compatibility' => $attestations_exists ? 'optional_present' : 'optional_missing' ),
+        ),
+        'inventory'               => class_exists( 'UFSC_Storage_Resolver' ) ? UFSC_Storage_Resolver::get_inventory() : array(),
     );
 }
