@@ -149,6 +149,18 @@ class UFSC_SQL {
         );
 
         $settings = wp_parse_args( $opts, $defaults );
+        global $wpdb;
+        foreach ( array( 'table_clubs', 'table_licences' ) as $table_key ) {
+            $table = isset( $settings[ $table_key ] ) ? (string) $settings[ $table_key ] : '';
+            if ( '' !== $table && isset( $wpdb->prefix ) && 0 !== strpos( $table, $wpdb->prefix ) && 0 !== strpos( $table, 'wp_' ) ) {
+                $table = $wpdb->prefix . $table;
+            }
+            $settings[ $table_key ] = preg_replace( '/[^A-Za-z0-9_]/', '', $table );
+        }
+        if ( class_exists( 'UFSC_Storage_Resolver' ) ) {
+            $settings['table_clubs'] = UFSC_Storage_Resolver::get_clubs_table();
+            $settings['table_licences'] = UFSC_Storage_Resolver::get_licences_table();
+        }
         return apply_filters( 'ufsc_sql_settings', $settings );
     }
     

@@ -3039,7 +3039,7 @@ class UFSC_SQL_Admin
                 return $current_end_year > 0 ? $wpdb->prepare( "COALESCE(l.season_end_year, 0) > 0 AND l.season_end_year < %d", $current_end_year ) : '';
             }
 
-            $target_season   = ( '__current' === $filter_season || '' === $filter_season ) ? $current_season : $filter_season;
+            $target_season   = ( '__current' === $filter_season || '' === $filter_season ) ? $current_season : ( function_exists( 'ufsc_normalize_season_reference' ) ? ufsc_normalize_season_reference( $filter_season ) : $filter_season );
             $target_end_year = self::get_season_end_year_from_label( $target_season );
             if ( $target_end_year <= 0 ) {
                 return '';
@@ -3055,12 +3055,13 @@ class UFSC_SQL_Admin
                 : '';
         }
 
-        $target_season = ( '__current' === $filter_season || '' === $filter_season ) ? $current_season : $filter_season;
+        $target_season = ( '__current' === $filter_season || '' === $filter_season ) ? $current_season : ( function_exists( 'ufsc_normalize_season_reference' ) ? ufsc_normalize_season_reference( $filter_season ) : $filter_season );
         if ( '' === $target_season ) {
             return '';
         }
 
-        return $wpdb->prepare( "REPLACE(l.{$season_column}, '/', '-') = %s", str_replace( '/', '-', $target_season ) );
+        $legacy = str_replace( '/', '-', (string) $filter_season );
+        return $wpdb->prepare( "REPLACE(l.{$season_column}, '/', '-') IN (%s, %s)", $legacy, str_replace( '/', '-', $target_season ) );
     }
 
     private static function build_licence_where_conditions( $filters, $licence_columns, $club_columns, $has_club_id ) {
