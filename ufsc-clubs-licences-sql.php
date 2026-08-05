@@ -169,6 +169,7 @@ final class UFSC_CL_Bootstrap {
         // Initialize frontend assets
         add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_frontend_assets' ) );
         add_action( 'wp_enqueue_scripts', array( $this, 'localize_frontend_scripts' ) );
+        add_filter( 'body_class', array( $this, 'add_frontend_portal_body_class' ) );
 
 
     }
@@ -192,6 +193,24 @@ final class UFSC_CL_Bootstrap {
             wp_unschedule_event( $timestamp, 'ufsc_daily' );
         }
         flush_rewrite_rules();
+    }
+
+
+
+    /**
+     * Tag pages that render the club portal so Astra/Elementor wrappers can be widened safely.
+     * The class is scoped to known UFSC club shortcodes only; it is not applied globally.
+     */
+    public function add_frontend_portal_body_class( $classes ) {
+        global $post;
+        $classes = is_array( $classes ) ? $classes : array();
+        if ( $post && (
+            has_shortcode( $post->post_content, 'ufsc_club_dashboard' ) ||
+            has_shortcode( $post->post_content, 'ufsc_club_profile' )
+        ) ) {
+            $classes[] = 'ufsc-club-portal-page';
+        }
+        return array_values( array_unique( $classes ) );
     }
 
     /**
