@@ -313,52 +313,59 @@ class UFSC_Frontend_Shortcodes {
                             'show_admin_diagnostic' => true,
                         );
 
-                        if ( $renewal_affiliation_done ) {
-                            $affiliation_view = array(
-                                'state'        => 'active',
-                                'badge_class'  => 'ufsc-badge-success',
-                                'message'      => sprintf( __( 'Club affilié pour la saison %s', 'ufsc-clubs' ), $renewal_affiliation_season ),
-                                'url'          => '',
-                                'button_label' => '',
-                                'show_product' => false,
-                                'show_admin_diagnostic' => false,
-                            );
-                        } elseif ( $affiliation_pending && 'paid' === sanitize_key( (string) $annual_affiliation->payment_status ) ) {
-                            $affiliation_view = array(
-                                'state'        => 'pending_validation',
-                                'badge_class'  => 'ufsc-badge-warning',
-                                'message'      => __( 'Affiliation en attente de validation', 'ufsc-clubs' ),
-                                'url'          => '',
-                                'button_label' => '',
-                                'show_product' => false,
-                                'show_admin_diagnostic' => false,
-                            );
-                        } elseif ( $affiliation_pending || $pending_order ) {
-                            $affiliation_view = array(
-                                'state'        => 'pending_payment',
-                                'badge_class'  => 'ufsc-badge-warning',
-                                'message'      => __( 'Renouvellement en cours', 'ufsc-clubs' ),
-                                'url'          => $pending_payment_url ? $pending_payment_url : '',
-                                'button_label' => $pending_payment_url ? __( 'Finaliser mon paiement', 'ufsc-clubs' ) : '',
-                                'show_product' => false,
-                                'show_admin_diagnostic' => false,
-                            );
-                        } elseif ( $can_renew_affiliation && $renewal_url ) {
-                            $affiliation_view = array(
-                                'state'        => 'renewal_available',
-                                'badge_class'  => 'ufsc-badge-warning',
-                                'message'      => sprintf( __( 'Votre club n’est pas encore affilié pour la saison %s. Vérifiez vos informations puis procédez au renouvellement de votre affiliation.', 'ufsc-clubs' ), $renewal_affiliation_season ),
-                                'url'          => $renewal_url,
-                                'button_label' => sprintf( __( 'Renouveler mon affiliation %s', 'ufsc-clubs' ), $renewal_affiliation_season ),
-                                'show_product' => true,
-                                'show_admin_diagnostic' => false,
-                            );
-                        } elseif ( in_array( $affiliation_state['action'], array( 'wait', 'contact', 'correct' ), true ) ) {
-                            $affiliation_view['message'] = $affiliation_state['label'] . ' — ' . __( 'suivez les consignes UFSC pour votre dossier annuel.', 'ufsc-clubs' );
-                            $affiliation_view['show_admin_diagnostic'] = false;
-                        } elseif ( ! $renew_window_open ) {
-                            $affiliation_view['message'] = __( 'La période de renouvellement d’affiliation n’est pas encore ouverte.', 'ufsc-clubs' );
-                            $affiliation_view['show_admin_diagnostic'] = false;
+                        switch ( true ) {
+                            case $renewal_affiliation_done:
+                                $affiliation_view = array(
+                                    'state'        => 'active',
+                                    'badge_class'  => 'ufsc-badge-success',
+                                    'message'      => sprintf( __( 'Club affilié pour la saison %s', 'ufsc-clubs' ), $renewal_affiliation_season ),
+                                    'url'          => '',
+                                    'button_label' => '',
+                                    'show_product' => false,
+                                    'show_admin_diagnostic' => false,
+                                );
+                                break;
+                            case $affiliation_pending && 'paid' === sanitize_key( (string) $annual_affiliation->payment_status ):
+                                $affiliation_view = array(
+                                    'state'        => 'pending_validation',
+                                    'badge_class'  => 'ufsc-badge-warning',
+                                    'message'      => __( 'Affiliation en attente de validation', 'ufsc-clubs' ),
+                                    'url'          => '',
+                                    'button_label' => '',
+                                    'show_product' => false,
+                                    'show_admin_diagnostic' => false,
+                                );
+                                break;
+                            case $affiliation_pending || $pending_order:
+                                $affiliation_view = array(
+                                    'state'        => 'pending_payment',
+                                    'badge_class'  => 'ufsc-badge-warning',
+                                    'message'      => __( 'Renouvellement en cours', 'ufsc-clubs' ),
+                                    'url'          => $pending_payment_url ? $pending_payment_url : '',
+                                    'button_label' => $pending_payment_url ? __( 'Finaliser mon paiement', 'ufsc-clubs' ) : '',
+                                    'show_product' => false,
+                                    'show_admin_diagnostic' => false,
+                                );
+                                break;
+                            case $can_renew_affiliation && $renewal_url:
+                                $affiliation_view = array(
+                                    'state'        => 'renewal_available',
+                                    'badge_class'  => 'ufsc-badge-warning',
+                                    'message'      => sprintf( __( 'Votre club n’est pas encore affilié pour la saison %s. Vérifiez vos informations puis procédez au renouvellement de votre affiliation.', 'ufsc-clubs' ), $renewal_affiliation_season ),
+                                    'url'          => $renewal_url,
+                                    'button_label' => sprintf( __( 'Renouveler mon affiliation %s', 'ufsc-clubs' ), $renewal_affiliation_season ),
+                                    'show_product' => true,
+                                    'show_admin_diagnostic' => false,
+                                );
+                                break;
+                            case in_array( $affiliation_state['action'], array( 'wait', 'contact', 'correct' ), true ):
+                                $affiliation_view['message'] = $affiliation_state['label'] . ' — ' . __( 'suivez les consignes UFSC pour votre dossier annuel.', 'ufsc-clubs' );
+                                $affiliation_view['show_admin_diagnostic'] = false;
+                                break;
+                            case ! $renew_window_open:
+                                $affiliation_view['message'] = __( 'La période de renouvellement d’affiliation n’est pas encore ouverte.', 'ufsc-clubs' );
+                                $affiliation_view['show_admin_diagnostic'] = false;
+                                break;
                         }
                         ?>
                         <div class="ufsc-affiliation-renewal-alert" data-affiliation-cta-state="<?php echo esc_attr( $affiliation_view['state'] ); ?>">
