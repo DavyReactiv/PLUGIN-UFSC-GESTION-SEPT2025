@@ -16,7 +16,8 @@ function ufsc_role_requires_honorability( $role ) {
 
 /** Return the canonical annual affiliation presentation used by admin/front. */
 function ufsc_get_annual_affiliation_status( $affiliation ) {
-	$status = $affiliation && isset( $affiliation->status ) ? sanitize_key( (string) $affiliation->status ) : '';
+	$raw_status = $affiliation ? ( $affiliation->status ?? $affiliation->statut ?? '' ) : '';
+	$status = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::normalize_status( $raw_status ) : sanitize_key( (string) $raw_status );
 	$map = array(
 		''                    => array( 'key' => 'a_renouveler', 'label' => __( 'À renouveler', 'ufsc-clubs' ) ),
 		'pending_payment'     => array( 'key' => 'pending_payment', 'label' => __( 'En attente de paiement', 'ufsc-clubs' ) ),

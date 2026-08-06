@@ -257,10 +257,11 @@ class UFSC_Frontend_Shortcodes {
         $renewal_affiliation_season = $current_season;
         $season_start   = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_season_start_date( $current_season ) : '';
         $season_end     = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_season_end_date( $current_season ) : '';
-        $affiliation_season = function_exists( 'ufsc_get_affiliation_season' ) ? ufsc_get_affiliation_season( $club_id, $current_season ) : '';
+        $licence_affiliation_gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( $club_id, $current_season ) : array( 'allowed' => false, 'code' => 'affiliation_resolution_error', 'message' => __( 'L’état de votre affiliation n’a pas pu être déterminé. Veuillez contacter l’UFSC.', 'ufsc-clubs' ) );
+        $affiliation_season = ! empty( $licence_affiliation_gate['allowed'] ) ? $current_season : '';
         $annual_affiliation = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( $club_id, $renewal_affiliation_season ) : null;
         $affiliation_state = function_exists( 'ufsc_get_affiliation_renewal_state' ) ? ufsc_get_affiliation_renewal_state( $club_id, $renewal_affiliation_season ) : array( 'status' => 'renewal_required', 'label' => __( 'À renouveler', 'ufsc-clubs' ), 'action' => 'renew', 'affiliation' => $annual_affiliation );
-        $renewal_affiliation_done = in_array( $affiliation_state['status'], array( 'active', 'validated' ), true );
+        $renewal_affiliation_done = ! empty( $licence_affiliation_gate['allowed'] );
         $affiliation_pending = in_array( $affiliation_state['status'], array( 'pending_payment', 'pending_validation' ), true );
         $annual_presentation = function_exists( 'ufsc_get_annual_affiliation_status' ) ? ufsc_get_annual_affiliation_status( $annual_affiliation ) : array( 'key' => $affiliation_state['status'], 'label' => $affiliation_state['label'] );
         $club_status = ! empty( $annual_presentation['key'] ) ? $annual_presentation['key'] : $affiliation_state['status'];
@@ -425,7 +426,8 @@ class UFSC_Frontend_Shortcodes {
                             <?php if ( $season_start && $season_end ) : ?>
                                 <p><?php echo esc_html( sprintf( __( 'Validité : %s au %s', 'ufsc-clubs' ), mysql2date( 'd/m/Y', $season_start ), mysql2date( 'd/m/Y', $season_end ) ) ); ?></p>
                             <?php endif; ?>
-                            <p><?php echo esc_html( sprintf( __( 'Affiliation : %s', 'ufsc-clubs' ), $affiliation_season ? $affiliation_season : __( 'non renseignée', 'ufsc-clubs' ) ) ); ?></p>
+                            <p><?php echo esc_html( sprintf( __( 'Affiliation %1$s : %2$s', 'ufsc-clubs' ), $current_season, ! empty( $licence_affiliation_gate['allowed'] ) ? __( 'Active', 'ufsc-clubs' ) : ( 'affiliation_missing' === ( $licence_affiliation_gate['code'] ?? '' ) ? __( 'Non souscrite', 'ufsc-clubs' ) : ( $licence_affiliation_gate['message'] ?? __( 'Indéterminée', 'ufsc-clubs' ) ) ) ) ); ?></p>
+                            <p class="ufsc-admin-help"><?php esc_html_e( 'L’état administratif permanent du club et son affiliation annuelle sont deux informations distinctes.', 'ufsc-clubs' ); ?></p>
                         </div>
                         <?php
                         $affiliation_view = array(
@@ -1163,7 +1165,8 @@ class UFSC_Frontend_Shortcodes {
     private static function render_archived_licences_section( $archive_licences, $archive_seasons, $archive_filter, $atts, $readonly ) {
         $target_renewal_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
         $club_id = isset( $atts['club_id'] ) ? absint( $atts['club_id'] ) : 0;
-        $can_renew_licences = ( $club_id > 0 && $target_renewal_season && function_exists( 'ufsc_is_club_affiliated_for_season' ) ) ? ufsc_is_club_affiliated_for_season( $club_id, $target_renewal_season ) : false;
+        $affiliation_gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( $club_id, $target_renewal_season ) : array( 'allowed' => false, 'message' => __( 'L’état de votre affiliation n’a pas pu être déterminé. Veuillez contacter l’UFSC.', 'ufsc-clubs' ) );
+        $can_renew_licences = ! empty( $affiliation_gate['allowed'] );
         $licence_product_id = function_exists( 'ufsc_get_licence_product_id' ) ? ufsc_get_licence_product_id() : ( function_exists( 'ufsc_get_woocommerce_settings' ) ? (int) ( ufsc_get_woocommerce_settings()['product_license_id'] ?? 0 ) : 0 );
 
         ob_start();
@@ -1174,7 +1177,7 @@ class UFSC_Frontend_Shortcodes {
             </div>
             <p class="ufsc-admin-help"><?php esc_html_e( 'Les licences des saisons précédentes restent consultables ici. Elles ne sont pas modifiées par l’affichage des archives.', 'ufsc-clubs' ); ?></p>
             <?php if ( ! $can_renew_licences ) : ?>
-                <div class="ufsc-message ufsc-info"><?php esc_html_e( 'Vous devez renouveler et faire valider l’affiliation de votre club avant de renouveler les licences.', 'ufsc-clubs' ); ?></div>
+                <div class="ufsc-message ufsc-info"><?php echo esc_html( $affiliation_gate['message'] ); ?></div>
             <?php endif; ?>
 
             <?php if ( ! empty( $archive_seasons ) ) : ?>
