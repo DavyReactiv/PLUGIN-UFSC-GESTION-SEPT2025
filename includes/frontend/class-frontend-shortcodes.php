@@ -1189,9 +1189,12 @@ class UFSC_Frontend_Shortcodes {
                                 if ( ! $renewed_licence_id && $target_renewal_season && function_exists( 'ufsc_wc_find_equivalent_renewed_licence_id' ) ) {
                                     $renewed_licence_id = ufsc_wc_find_equivalent_renewed_licence_id( $licence, $club_id, $target_renewal_season );
                                 }
+								$season_context = function_exists( 'ufsc_get_licence_season_context_status' ) ? ufsc_get_licence_season_context_status( $licence, $target_renewal_season ) : array();
+								if ( ! empty( $season_context['renewed_licence_id'] ) ) { $renewed_licence_id = absint( $season_context['renewed_licence_id'] ); }
+								if ( $renewed_licence_id && empty( $season_context['action_url'] ) ) { $season_context['action_url'] = self::get_licence_detail_url( $renewed_licence_id ); }
                             ?>
                                 <tr>
-									<td><?php if ( ! $renewed_licence_id && ! $readonly && $can_renew_licences && $licence_product_id ) : ?><input form="ufsc-bulk-renew-archives" class="ufsc-renewal-checkbox" type="checkbox" name="renew_licence_ids[]" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>" aria-label="<?php esc_attr_e( 'Sélectionner cette licence', 'ufsc-clubs' ); ?>"><?php else : ?>—<?php endif; ?></td>
+									<td><?php if ( ! empty( $season_context['renewal_allowed'] ) && ! $readonly && $licence_product_id ) : ?><input form="ufsc-bulk-renew-archives" class="ufsc-renewal-checkbox" type="checkbox" name="renew_licence_ids[]" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>" aria-label="<?php esc_attr_e( 'Sélectionner cette licence', 'ufsc-clubs' ); ?>"><?php else : ?>—<?php endif; ?></td>
                                     <td><?php echo esc_html( $season ? $season : '—' ); ?></td>
                                     <td><?php echo esc_html( $licence->nom ?? '' ); ?></td>
                                     <td><?php echo esc_html( $licence->prenom ?? '' ); ?></td>
@@ -1205,9 +1208,9 @@ class UFSC_Frontend_Shortcodes {
                                     <td>
                                         <a class="ufsc-action" href="<?php echo esc_url( self::get_licence_detail_url( $licence->id ?? 0 ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a>
                                         <?php if ( $target_renewal_season ) : ?>
-                                            <?php if ( $renewed_licence_id ) : ?>
-                                                <span class="ufsc-badge ufsc-badge-info"><?php echo esc_html( sprintf( __( 'Déjà renouvelée %s', 'ufsc-clubs' ), $target_renewal_season ) ); ?></span>
-                                            <?php elseif ( ! $readonly && $can_renew_licences && $licence_product_id ) : ?>
+                                            <?php if ( in_array( $season_context['renewal_state'] ?? '', array( 'renewed', 'pending', 'payable' ), true ) ) : ?>
+											<?php if ( ! empty( $season_context['action_url'] ) ) : ?><a class="ufsc-badge ufsc-badge-info" href="<?php echo esc_url( $season_context['action_url'] ); ?>"><?php echo esc_html( $season_context['action_label'] ); ?></a><?php else : ?><span class="ufsc-badge ufsc-badge-info"><?php echo esc_html( $season_context['action_label'] ); ?></span><?php endif; ?>
+                                            <?php elseif ( ! $readonly && ! empty( $season_context['renewal_allowed'] ) && $licence_product_id ) : ?>
                                                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-inline-renew-form" style="display:inline">
                                                     <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
                                                     <input type="hidden" name="action" value="ufsc_add_to_cart">
@@ -1216,8 +1219,10 @@ class UFSC_Frontend_Shortcodes {
                                                     <input type="hidden" name="ufsc_action" value="renew_licence">
                                                     <input type="hidden" name="ufsc_target_season" value="<?php echo esc_attr( $target_renewal_season ); ?>">
                                                     <input type="hidden" name="ufsc_renew_from_licence_id" value="<?php echo esc_attr( $licence->id ?? 0 ); ?>">
-                                                    <button type="submit" class="ufsc-action"><?php esc_html_e( 'Renouveler cette licence', 'ufsc-clubs' ); ?></button>
+                                                    <button type="submit" class="ufsc-action"><?php echo esc_html( $season_context['action_label'] ); ?></button>
                                                 </form>
+										<?php elseif ( 'blocked' === ( $season_context['renewal_state'] ?? '' ) ) : ?>
+											<span class="ufsc-badge ufsc-badge-warning"><?php echo esc_html( $season_context['action_label'] ); ?></span><br><small><?php echo esc_html( $season_context['renewal_reason'] ); ?></small>
                                             <?php elseif ( ! $readonly && ! $licence_product_id ) : ?>
                                                 <span class="ufsc-badge ufsc-badge-warning"><?php esc_html_e( 'Produit licence non configuré', 'ufsc-clubs' ); ?></span>
                                             <?php endif; ?>

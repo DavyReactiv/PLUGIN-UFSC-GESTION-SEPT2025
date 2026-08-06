@@ -10,10 +10,10 @@ $failures = array();
 $check = static function ( $condition, $message ) use ( &$failures ) { if ( ! $condition ) { $failures[] = $message; } };
 
 $check( false !== strpos( $front, 'ufsc_get_annual_affiliation_status( $annual_affiliation )' ), 'Dashboard status must use the annual row.' );
-$check( false !== strpos( $admin, 'EXISTS (SELECT 1' ) && false !== strpos( $admin, "'club_view' => 'renewals'" ), 'Season clubs and renewal clubs need separate views.' );
-$check( false !== strpos( $admin, 'Clubs à renouveler / anciens clubs' ) && false !== strpos( $admin, 'name="season"' ), 'Renewal action and season filter must remain visible.' );
-$check( false !== strpos( $front, "'ufsc_show_archives', '1'" ) && false !== strpos( $front, 'if ( $show_archives )' ), 'Archives must be lazy and user-triggered.' );
-$check( false !== strpos( $front, 'Renouveler cette licence' ) && false !== strpos( $front, 'ufsc_renew_from_licence_id' ), 'Individual archive renewal must remain available.' );
+$check( false !== strpos( $admin, "'club_view' => 'permanent'" ) && false !== strpos( $admin, "'__archives'" ), 'Registered clubs and annual archives need separate views.' );
+$check( false !== strpos( $admin, 'Tous les clubs enregistrés' ) && false !== strpos( $admin, 'name="season"' ), 'Registered-club action and season filter must remain visible.' );
+$check( false !== strpos( $front, "get_club_portal_url( 'licences-archives' )" ) && false !== strpos( $front, "'licences-archives' => 'ufsc-licences-archives'" ), 'Archives must use the explicit user-triggered portal route.' );
+$check( false !== strpos( $front, "\$season_context['action_label']" ) && false !== strpos( $front, 'ufsc_renew_from_licence_id' ), 'Individual archive renewal must use the contextual target-season action.' );
 $check( false !== strpos( $front, 'Vous devez renouveler et faire valider' ), 'Inactive affiliation must explain the renewal block.' );
 $check( 2 === substr_count( $front, 'ufsc-health-document-link' ), 'Both health documents must be permanently consultable.' );
 $check( 2 === substr_count( $front, 'name="health_questionnaire_confirmed"' ), 'Exactly two mutually-exclusive confirmation controls are expected.' );

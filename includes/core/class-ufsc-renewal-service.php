@@ -39,6 +39,103 @@ final class UFSC_Renewal_Service {
         return 0;
     }
 
+    /**
+     * Present a seasonal status without ever changing the stored historical row.
+     *
+     * @return array<string,mixed>
+     */
+    public static function season_context_status( $licence, $current_season = '' ) {
+        $licence = is_object( $licence ) ? $licence : (object) $licence;
+        $current_season = $current_season ?: ( class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : '' );
+        $source_season = self::licence_season( $licence );
+        $historical_status = sanitize_key( (string) ( $licence->statut ?? '' ) );
+        $source_id = absint( $licence->id ?? $licence->ufsc_admin_id ?? 0 );
+        $club_id = absint( $licence->club_id ?? 0 );
+        $is_historical = self::season_start_year( $source_season ) > 0 && self::season_start_year( $source_season ) < self::season_start_year( $current_season );
+        $result = array(
+            'historical_status' => $historical_status, 'source_season' => $source_season,
+            'target_season' => $current_season, 'is_historical' => $is_historical,
+            'is_current' => ! $is_historical && $source_season === $current_season,
+            'renewal_state' => $is_historical ? 'renewable' : 'current',
+            'renewal_allowed' => false, 'renewal_reason' => '', 'renewed_licence_id' => 0,
+            'payable_order_id' => 0, 'label' => $is_historical ? __( 'Saison terminée', 'ufsc-clubs' ) : $historical_status,
+            'badge_class' => $is_historical ? 'ufsc-badge-neutral' : '', 'action_label' => '', 'action_url' => '',
+        );
+        if ( ! $is_historical ) { return $result; }
+
+        $person_key = self::person_key( $licence, $club_id );
+        $renewed = $person_key ? self::find_annual_row( $person_key, $club_id, $current_season ) : null;
+        if ( $renewed ) {
+            $result['renewed_licence_id'] = absint( $renewed->id ?? 0 );
+            $renewed_status = sanitize_key( (string) ( $renewed->statut ?? '' ) );
+            if ( in_array( $renewed_status, array( 'draft', 'brouillon', 'pending_payment', 'pending', 'en_attente', 'pending_validation' ), true ) ) {
+				$order = function_exists( 'ufsc_wc_find_pending_renewal_order' ) ? ufsc_wc_find_pending_renewal_order( 'renew_licence', $club_id, $current_season, $source_id ) : false;
+				$payable = $order && is_callable( array( $order, 'needs_payment' ) ) && $order->needs_payment();
+				if ( $payable ) {
+					$result['payable_order_id'] = is_callable( array( $order, 'get_id' ) ) ? absint( $order->get_id() ) : 0;
+					$result['renewal_state'] = 'payable';
+					$result['action_label'] = __( 'Finaliser le paiement', 'ufsc-clubs' );
+					$result['action_url'] = is_callable( array( $order, 'get_checkout_payment_url' ) ) ? (string) $order->get_checkout_payment_url() : '';
+					return $result;
+				}
+                $result['renewal_state'] = 'pending';
+                $result['action_label'] = __( 'Demande en cours', 'ufsc-clubs' );
+            } else {
+                $result['renewal_state'] = 'renewed';
+                $result['action_label'] = __( 'Déjà renouvelée', 'ufsc-clubs' );
+            }
+            return $result;
+        }
+
+        if ( function_exists( 'ufsc_cart_has_renewal_item' ) && ufsc_cart_has_renewal_item( 'renew_licence', $club_id, $current_season, $source_id ) ) {
+            $result['renewal_state'] = 'pending';
+            $result['action_label'] = __( 'Demande en cours', 'ufsc-clubs' );
+            return $result;
+        }
+        $order = function_exists( 'ufsc_wc_find_pending_renewal_order' ) ? ufsc_wc_find_pending_renewal_order( 'renew_licence', $club_id, $current_season, $source_id ) : false;
+        if ( $order ) {
+            $result['payable_order_id'] = is_callable( array( $order, 'get_id' ) ) ? absint( $order->get_id() ) : 0;
+            $payable = is_callable( array( $order, 'needs_payment' ) ) && $order->needs_payment();
+            $result['renewal_state'] = $payable ? 'payable' : 'pending';
+            $result['action_label'] = $payable ? __( 'Finaliser le paiement', 'ufsc-clubs' ) : __( 'Demande en cours', 'ufsc-clubs' );
+            $result['action_url'] = $payable && is_callable( array( $order, 'get_checkout_payment_url' ) ) ? (string) $order->get_checkout_payment_url() : '';
+            return $result;
+        }
+
+        $allowed = self::can_renew( $licence, $club_id, $current_season );
+        if ( is_wp_error( $allowed ) ) {
+            $result['renewal_state'] = 'blocked';
+            $result['renewal_reason'] = $allowed->get_error_message();
+            $result['action_label'] = __( 'Renouvellement bloqué', 'ufsc-clubs' );
+            return $result;
+        }
+        $result['renewal_allowed'] = true;
+        $result['action_label'] = sprintf( __( 'Renouveler pour %s', 'ufsc-clubs' ), $current_season );
+        return $result;
+    }
+
+    private static function find_annual_row( $person_key, $club_id, $season ) {
+        global $wpdb;
+        $id = self::find_annual( $person_key, $club_id, $season );
+        if ( ! $id ) { return null; }
+        $table = UFSC_SQL::get_settings()['table_licences'];
+        return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id=%d LIMIT 1", $id ) );
+    }
+
+    private static function licence_season( $licence ) {
+        foreach ( array( 'season_resolved', 'season', 'saison', 'paid_season', 'season_end_year' ) as $field ) {
+            $value = trim( (string) ( $licence->{$field} ?? '' ) );
+            if ( '' === $value ) { continue; }
+            if ( 'season_end_year' === $field && ctype_digit( $value ) ) { return ( (int) $value - 1 ) . '-' . (int) $value; }
+            return str_replace( '/', '-', $value );
+        }
+        return '';
+    }
+
+    private static function season_start_year( $season ) {
+        return preg_match( '/^(\d{4})-\d{4}$/', (string) $season, $matches ) ? (int) $matches[1] : 0;
+    }
+
     /** Build an allow-list for a fresh annual row. ASPTT, payment and expiring documents are intentionally absent. */
     public static function renewal_payload( $source, $club_id, $season ) {
         $source = (array) $source;

@@ -91,7 +91,8 @@ function ufsc_get_affiliation_product_id() {
     $settings = ufsc_get_woocommerce_settings();
     $configured_id = isset( $settings['product_affiliation_id'] ) ? absint( $settings['product_affiliation_id'] ) : 0;
 
-    return 4823 === $configured_id ? $configured_id : 4823;
+    // Keep 4823 as the default, but never discard an explicit administrator setting.
+    return $configured_id > 0 ? $configured_id : 4823;
 }
 
 /** Return the canonical affiliation WooCommerce product when available. */
