@@ -678,6 +678,7 @@ if ( ! function_exists( 'ufsc_get_renewal_copy_fields' ) ) {
 			'piece_identite',
 			'photo_identite',
 			'fighter_level',
+			'poids',
 		);
 	}
 }

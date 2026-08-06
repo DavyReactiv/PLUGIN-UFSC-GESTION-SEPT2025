@@ -398,11 +398,23 @@ function ufsc_wc_process_renewal_items( $order ) {
 					$data[ $field ] = $source->{$field};
 				}
 			}
+			$renewal_updates = $item->get_meta( '_ufsc_renewal_updates', true );
+			if ( is_array( $renewal_updates ) ) {
+				foreach ( UFSC_Renewal_Service::editable_renewal_fields() as $field ) {
+					if ( array_key_exists( $field, $renewal_updates ) && in_array( $field, $columns, true ) ) { $data[$field] = $renewal_updates[$field]; }
+				}
+			}
 
 			// Forced fields
 			if ( in_array( 'club_id', $columns, true ) ) { $data['club_id'] = $club_id; }
-			if ( in_array( 'statut', $columns, true ) )  { $data['statut'] = 'en_attente'; }
-			if ( in_array( 'status', $columns, true ) )  { $data['status'] = 'en_attente'; }
+			if ( in_array( 'statut', $columns, true ) )  { $data['statut'] = 'pending_validation'; }
+			if ( in_array( 'status', $columns, true ) )  { $data['status'] = 'pending_validation'; }
+			if ( $item->get_meta( '_ufsc_sensitive_identity_change', true ) ) {
+				if ( in_array( 'statut', $columns, true ) ) { $data['statut'] = 'correction_required'; }
+				if ( in_array( 'status', $columns, true ) ) { $data['status'] = 'correction_required'; }
+			}
+			if ( in_array( 'person_identifier', $columns, true ) ) { $data['person_identifier'] = UFSC_Renewal_Service::person_key( $source, $club_id ); }
+			if ( in_array( 'numero_licence_ufsc', $columns, true ) ) { $data['numero_licence_ufsc'] = UFSC_Identifier_Resolver::read( $source, 'licence_ufsc' ); }
 
 			// Season + renewal traceability.
 			foreach ( array( 'season', 'saison', 'paid_season' ) as $season_col ) {
@@ -414,6 +426,13 @@ function ufsc_wc_process_renewal_items( $order ) {
 			if ( in_array( 'renewal_status', $columns, true ) ) { $data['renewal_status'] = 'renouvellement_en_attente'; }
 			if ( in_array( 'order_id', $columns, true ) ) { $data['order_id'] = (int) $order->get_id(); }
 			if ( in_array( 'order_item_id', $columns, true ) ) { $data['order_item_id'] = (int) $item->get_id(); }
+			if ( class_exists( 'UFSC_Category_Repository' ) ) {
+				$category_input = (object) array_merge( (array) $source, $data );
+				$category = UFSC_Category_Repository::detect_for_athlete( $category_input, UFSC_Category_Repository::DEFAULT_DISCIPLINE, $target_season );
+				if ( in_array( 'categorie_age_detectee', $columns, true ) ) { $data['categorie_age_detectee'] = $category['age_category_label'] ?? null; }
+				if ( in_array( 'categorie_poids_detectee', $columns, true ) ) { $data['categorie_poids_detectee'] = $category['weight_category_label'] ?? null; }
+				if ( in_array( 'categorie_updated_at', $columns, true ) ) { $data['categorie_updated_at'] = current_time( 'mysql' ); }
+			}
 
 			// Dates
 			if ( in_array( 'date_creation', $columns, true ) )      { $data['date_creation'] = current_time( 'mysql' ); }
@@ -459,6 +478,7 @@ function ufsc_wc_process_renewal_items( $order ) {
 				ufsc_mark_renewed_licence_marker( $source_id, $target_season, $new_id );
 			}
 			if ( function_exists( 'ufsc_set_option_noautoload' ) ) {
+				$renewal_changes = $item->get_meta( '_ufsc_renewal_changes', true );
 				ufsc_set_option_noautoload(
 					'ufsc_licence_renewal_audit_' . $new_id,
 					array(
@@ -467,6 +487,10 @@ function ufsc_wc_process_renewal_items( $order ) {
 						'user_id'             => is_callable( array( $order, 'get_user_id' ) ) ? absint( $order->get_user_id() ) : 0,
 						'order_id'            => (int) $order->get_id(),
 						'renewed_at'          => current_time( 'mysql' ),
+						'entity_type'         => 'licence_renewal',
+						'club_id'             => $club_id,
+						'changes'             => is_array( $renewal_changes ) ? $renewal_changes : array(),
+						'context'             => 'renewal',
 					)
 				);
 			}
