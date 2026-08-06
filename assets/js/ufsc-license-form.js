@@ -318,3 +318,77 @@
     });
 
 })(jQuery);
+
+/** Progressive six-step licence assistant; the unenhanced server form remains the no-JS fallback. */
+(function($) {
+    'use strict';
+    $(function() {
+        var form = $('.ufsc-licence-form').first();
+        if (!form.length || !form.find('.ufsc-licence-wizard-progress').length) return;
+        var cards = form.find('> .ufsc-grid > .ufsc-form-section');
+        var compliance = form.find('.ufsc-compliance-section');
+        var review = form.find('[data-wizard-review]');
+        var finalActions = form.find('.ufsc-licence-final-actions');
+        var current = 1;
+        var map = [1, 2, 3, 3, 4, 5, 5];
+        cards.each(function(index) { $(this).attr('data-wizard-step', map[index] || 5); });
+        compliance.attr('data-wizard-step', 5);
+        review.attr('data-wizard-step', 6);
+        finalActions.attr('data-wizard-step', 6);
+        form.addClass('ufsc-licence-wizard-enhanced');
+
+        function fieldLabel(input) {
+            return $.trim(input.closest('.ufsc-field, label').find('label').first().text()) || input.attr('name');
+        }
+        function buildReview() {
+            var list = review.find('dl').empty();
+            ['nom','prenom','email','telephone','date_naissance','sexe','adresse','code_postal','ville','role','fighter_level','poids'].forEach(function(name) {
+                var input = form.find('[name="' + name + '"]').first();
+                if (!input.length) return;
+                var value = input.is('select') ? input.find('option:selected').text() : input.val();
+                $('<dt>').text(fieldLabel(input)).appendTo(list);
+                $('<dd>').text($.trim(value || '') || 'Non renseigné').appendTo(list);
+            });
+        }
+        function show(step) {
+            current = Math.max(1, Math.min(6, step));
+            form.attr('data-wizard-current-step', current);
+            form.find('[data-wizard-step]').prop('hidden', true);
+            form.find('[data-wizard-step="' + current + '"]').prop('hidden', false);
+            form.find('[data-wizard-indicator]').removeAttr('aria-current').filter('[data-wizard-indicator="' + current + '"]').attr('aria-current', 'step');
+            form.find('[data-wizard-previous]').prop('disabled', current === 1);
+            form.find('[data-wizard-next]').toggle(current < 6).text(current === 5 ? 'Vérifier les informations' : 'Continuer');
+            if (current === 6) buildReview();
+            var heading = form.find('[data-wizard-step="' + current + '"] h4, [data-wizard-step="' + current + '"] h5').first()[0];
+            if (heading) { heading.setAttribute('tabindex', '-1'); heading.focus({preventScroll: true}); }
+        }
+        function validateStep() {
+            var invalid = [];
+            form.find('[data-wizard-step="' + current + '"] :input:enabled[required]').each(function() {
+                if (!this.checkValidity()) { invalid.push(this); $(this).attr('aria-invalid', 'true'); }
+                else $(this).removeAttr('aria-invalid');
+            });
+            var summary = form.find('.ufsc-licence-wizard-errors');
+            if (!invalid.length) { summary.prop('hidden', true).empty(); return true; }
+            summary.text('Veuillez corriger ' + invalid.length + ' champ(s) obligatoire(s) avant de continuer.').prop('hidden', false).focus();
+            invalid[0].focus(); return false;
+        }
+        form.on('click', '[data-wizard-next]', function() { if (validateStep()) show(current + 1); });
+        form.on('click', '[data-wizard-previous]', function() { show(current - 1); });
+        form.on('click', '[data-wizard-indicator]', function() {
+            var target = Number($(this).attr('data-wizard-indicator'));
+            if (target < current || validateStep()) show(target);
+        });
+        form.on('submit', function(event) {
+            var action = form.find('#ufsc_submit_action').val();
+            if (action === 'save') return true; // Drafts intentionally accept incomplete data.
+            if (!this.checkValidity()) {
+                event.preventDefault();
+                var first = form.find(':invalid').first();
+                var owner = Number(first.closest('[data-wizard-step]').attr('data-wizard-step')) || 1;
+                show(owner); first.focus();
+            }
+        });
+        show(1);
+    });
+})(jQuery);

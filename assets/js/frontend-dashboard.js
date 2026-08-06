@@ -936,6 +936,7 @@
                 var incomplete = renewalForm.find('.ufsc-renewal-source-row .ufsc-badge-warning').length;
                 var blocked = renewalForm.find('.ufsc-renewal-checkbox:disabled').length;
                 renewalForm.find('[data-ufsc-selection-count]').text(selected + ' sélectionnée(s), ' + incomplete + ' à compléter, ' + blocked + ' bloquée(s)');
+                renewalForm.find('[data-ufsc-next-step="2"]').prop('disabled', selected === 0).attr('aria-disabled', selected === 0 ? 'true' : 'false');
             };
             renewalForm.on('change', '.ufsc-renewal-checkbox', updateRenewalCount);
             renewalForm.on('click', '[data-ufsc-renew-one]', function(event) {
@@ -991,4 +992,18 @@
     // Expose to global scope for external access
     window.UfscDashboard = UfscDashboard;
 
+})(jQuery);
+
+// Club-logo preview is scoped to the profile upload controls only.
+(function($){
+    'use strict';
+    $(function(){
+        $('.ufsc-change-photo-form input[name="profile_photo"], .ufsc-upload-photo-form input[name="profile_photo"]').on('change', function(){
+            var file=this.files&&this.files[0]; if(!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
+            var form=$(this).closest('form'); var preview=form.siblings('.ufsc-club-logo').find('img');
+            if(!preview.length) preview=$('<figure class="ufsc-club-logo ufsc-logo-preview"><img alt="Aperçu du nouveau logo"></figure>').insertBefore(form).find('img');
+            var previous=preview.attr('src'); if(previous&&previous.indexOf('blob:')===0) URL.revokeObjectURL(previous);
+            preview.attr('src',URL.createObjectURL(file));
+        });
+    });
 })(jQuery);
