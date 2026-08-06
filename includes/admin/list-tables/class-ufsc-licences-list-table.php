@@ -72,7 +72,7 @@ class UFSC_Licences_List_Table {
         $total_pages = ceil( $total_items / $pagination['per_page'] );
 
         // Render the page
-        echo '<div class="wrap">';
+        echo '<div class="wrap ufsc-admin-licences">';
         echo '<h1>' . esc_html__( 'Licences (SQL)', 'ufsc-clubs' ) . '</h1>';
 
         // Action buttons
@@ -124,8 +124,10 @@ class UFSC_Licences_List_Table {
      * Get pagination parameters
      */
     private static function get_pagination_params() {
-        $per_page_options = array( 20, 50, 100 );
-        $per_page = isset( $_GET['per_page'] ) && in_array( (int) $_GET['per_page'], $per_page_options ) ? (int) $_GET['per_page'] : 20;
+        // Keep the DOM and category calculation bounded. Values outside this
+        // allow-list are deliberately ignored instead of trusting the query string.
+        $per_page_options = array( 25, 50 );
+        $per_page = isset( $_GET['per_page'] ) && in_array( (int) $_GET['per_page'], $per_page_options, true ) ? (int) $_GET['per_page'] : 25;
         
         return array(
             'paged' => isset( $_GET['paged'] ) ? max( 1, (int) $_GET['paged'] ) : 1,
@@ -400,7 +402,7 @@ class UFSC_Licences_List_Table {
         // Per page selector
         echo ' | ';
         echo '<select onchange="window.location.href=this.value">';
-        foreach ( array( 20, 50, 100 ) as $per_page ) {
+        foreach ( array( 25, 50 ) as $per_page ) {
             $url = add_query_arg( 'per_page', $per_page, self::get_current_request_url() );
             echo '<option value="' . esc_url( $url ) . '"' . selected( $pagination['per_page'], $per_page, false ) . '>';
             echo sprintf( esc_html__( '%d par page', 'ufsc-clubs' ), $per_page );
@@ -525,12 +527,25 @@ class UFSC_Licences_List_Table {
         // Creation date
         echo '<td>' . esc_html( mysql2date( 'd/m/Y', $licence->date_creation ) ) . '</td>';
         
-        // Actions
+        // Actions are derived from the licence row's season context, never from
+        // the visual filter. Historical annualities are immutable archives.
         echo '<td class="column-actions">';
         $view_url = admin_url( 'admin.php?page=ufsc-sql-licences&action=view&id=' . $licence->id );
         $edit_url = admin_url( 'admin.php?page=ufsc-sql-licences&action=edit&id=' . $licence->id );
         echo '<a href="' . esc_url( $view_url ) . '" class="button button-small">' . esc_html__( 'Consulter', 'ufsc-clubs' ) . '</a> ';
-        if ( ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
+        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : '';
+        $season_context = function_exists( 'ufsc_get_licence_season_context_status' )
+            ? ufsc_get_licence_season_context_status( $licence, $target_season )
+            : array( 'is_historical' => false );
+
+        if ( ! empty( $season_context['is_historical'] ) ) {
+            if ( ! empty( $season_context['action_url'] ) ) {
+                $action_class = 'renewable' === ( $season_context['renewal_state'] ?? '' ) ? 'button button-primary button-small' : 'button button-small';
+                echo '<a href="' . esc_url( $season_context['action_url'] ) . '" class="' . esc_attr( $action_class ) . '">' . esc_html( $season_context['action_label'] ?? __( 'Voir le renouvellement', 'ufsc-clubs' ) ) . '</a>';
+            } elseif ( ! empty( $season_context['renewal_reason'] ) ) {
+                echo '<span class="ufsc-admin-renewal-reason">' . esc_html( $season_context['renewal_reason'] ) . '</span>';
+            }
+        } elseif ( ufsc_user_can( UFSC_Permissions::CAP_LICENCES_MANAGE ) ) {
             echo '<a href="' . esc_url( $edit_url ) . '" class="button button-small">' . esc_html__( 'Modifier', 'ufsc-clubs' ) . '</a>';
         }
         echo '</td>';

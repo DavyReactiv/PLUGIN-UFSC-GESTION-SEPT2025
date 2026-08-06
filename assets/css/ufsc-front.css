@@ -504,6 +504,37 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
     margin-bottom: var(--ufsc-spacing-md);
     color: #333;
 }
+
+/* Renewal application controls: isolated from Astra/Elementor defaults. */
+.ufsc-club-portal [hidden] { display: none !important; }
+.ufsc-club-portal .ufsc-renewal-button,
+.ufsc-club-portal .ufsc-document-button {
+    display: inline-flex !important;
+    min-height: 44px;
+    padding: 10px 16px !important;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 2px;
+    border: 2px solid #123f6d !important;
+    border-radius: 8px;
+    background: #123f6d !important;
+    color: #fff !important;
+    line-height: 1.25;
+    text-decoration: none !important;
+    white-space: normal;
+    cursor: pointer;
+}
+.ufsc-club-portal .ufsc-renewal-button:hover,
+.ufsc-club-portal .ufsc-document-button:hover { background: #092d50 !important; color: #fff !important; }
+.ufsc-club-portal .ufsc-renewal-button:focus-visible,
+.ufsc-club-portal .ufsc-document-button:focus-visible { outline: 3px solid #ffbf47 !important; outline-offset: 3px; }
+.ufsc-club-portal .ufsc-renewal-button small { color: inherit; font-size: .78rem; }
+.ufsc-club-portal .ufsc-renewal-checkbox { position: relative; z-index: 2; pointer-events: auto; min-width: 22px; min-height: 22px; }
+
+@media (max-width: 768px) {
+    .ufsc-club-portal .ufsc-renewal-button { width: 100%; }
+}
 .ufsc-form-group {
     margin-bottom: var(--ufsc-spacing-sm);
 }
