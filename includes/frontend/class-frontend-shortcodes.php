@@ -1040,7 +1040,29 @@ class UFSC_Frontend_Shortcodes {
         $saved = is_user_logged_in() ? get_transient( 'ufsc_renewal_front_' . get_current_user_id() . '_' . $club_id ) : array();
         $saved = is_array( $saved ) ? $saved : array(); $saved_profiles = (array) ( $saved['profiles'] ?? array() ); $saved_ids = array_map( 'absint', (array) ( $saved['ids'] ?? array() ) );
         $requested_source = isset( $_GET['renew_source_id'] ) ? absint( $_GET['renew_source_id'] ) : 0;
-        if ( $requested_source ) { $saved_ids[] = $requested_source; $saved_ids = array_values( array_unique( $saved_ids ) ); }
+        $requested_target = isset( $_GET['target_season'] ) && ! is_array( $_GET['target_season'] ) ? sanitize_text_field( wp_unslash( $_GET['target_season'] ) ) : '';
+        $requested_row    = null;
+        if ( $requested_source && ( '' === $requested_target || $requested_target === $target ) ) {
+            foreach ( $rows as $candidate ) {
+                if ( absint( $candidate->id ?? 0 ) === $requested_source ) {
+                    $requested_row = $candidate;
+                    break;
+                }
+            }
+        }
+        // The fallback URL only preselects a source after the same ownership,
+        // season and business checks as its rendered checkbox. It never writes.
+        if ( $requested_row ) {
+            $requested_context = ufsc_get_licence_season_context_status( $requested_row, $target );
+            if ( ! empty( $requested_context['renewal_allowed'] ) && $product_id ) {
+                $saved_ids[] = $requested_source;
+                $saved_ids   = array_values( array_unique( $saved_ids ) );
+            } else {
+                $requested_source = 0;
+            }
+        } else {
+            $requested_source = 0;
+        }
         ob_start(); ?>
         <section class="ufsc-renewal-wizard ufsc-card" aria-labelledby="ufsc-renewal-title">
             <h4 id="ufsc-renewal-title"><?php echo esc_html( sprintf( __( 'Licences à renouveler pour %s', 'ufsc-clubs' ), $target ) ); ?></h4>

@@ -900,6 +900,8 @@
         $('[data-ufsc-select-none]').on('click', function() { $('#ufsc-renewal-assistant-form .ufsc-renewal-checkbox').prop('checked', false).trigger('change'); });
         var renewalForm = $('#ufsc-renewal-assistant-form');
         if (renewalForm.length) {
+            if (renewalForm.data('ufsc-renewal-initialized')) { return; }
+            renewalForm.data('ufsc-renewal-initialized', true);
             renewalForm.addClass('ufsc-renewal-enhanced');
             var renewalError = function(message) {
                 var notice = renewalForm.find('.ufsc-renewal-client-notice');
@@ -955,6 +957,10 @@
                             var input = profile.find('[name$="[' + field + ']"]');
                             input.next('.ufsc-renewal-field-error').remove(); input.removeAttr('aria-invalid');
                             if (!String(input.val() || '').trim()) { input.attr('aria-invalid', 'true').after('<span class="ufsc-renewal-field-error" role="alert">Champ obligatoire.</span>'); firstInvalid = firstInvalid || input[0]; }
+                            if (field === 'poids' && String(input.val() || '').trim()) {
+                                var weight = Number(String(input.val()).replace(',', '.'));
+                                if (!Number.isFinite(weight) || weight < 20 || weight > 300) { input.attr('aria-invalid', 'true').after('<span class="ufsc-renewal-field-error" role="alert">Le poids doit être compris entre 20 et 300 kg.</span>'); firstInvalid = firstInvalid || input[0]; }
+                            }
                         });
                     });
                     if (firstInvalid) { firstInvalid.focus(); renewalError('Complétez les informations obligatoires avant de continuer.'); return; }

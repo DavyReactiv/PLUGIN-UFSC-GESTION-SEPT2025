@@ -3431,7 +3431,8 @@ class UFSC_SQL_Admin
         $filters['filter_region'] = $filter_region;
 
         // Pagination
-        $per_page = 20;
+        $requested_per_page = isset( $_GET['per_page'] ) ? absint( wp_unslash( $_GET['per_page'] ) ) : 25;
+        $per_page = min( 50, max( 1, $requested_per_page ) );
         $page     = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
         $offset   = ($page - 1) * $per_page;
 
