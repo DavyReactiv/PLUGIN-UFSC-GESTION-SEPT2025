@@ -911,7 +911,7 @@ class UFSC_Clubs_List_Table {
 		$season = self::get_admin_season_label();
         $links = array(
             array( 'label' => __( 'Clubs de la saison', 'ufsc-clubs' ), 'args' => array( 'season' => $season, 'club_view' => 'season' ) ),
-            array( 'label' => __( 'Tous les clubs permanents', 'ufsc-clubs' ), 'args' => array( 'club_view' => 'permanent' ) ),
+            array( 'label' => __( 'Tous les clubs enregistrés', 'ufsc-clubs' ), 'args' => array( 'club_view' => 'permanent' ) ),
             array( 'label' => __( 'Diagnostic stockage', 'ufsc-clubs' ), 'args' => array( 'archive_scope' => 'all_historical' ) ),
             array( 'label' => __( 'Renouvellements à traiter', 'ufsc-clubs' ), 'args' => array( 'season' => $season, 'kpi_filter' => 'renewals' ) ),
             array( 'label' => __( 'Actifs', 'ufsc-clubs' ), 'args' => array( 'season' => $season, 'kpi_filter' => 'affiliations_active' ) ),

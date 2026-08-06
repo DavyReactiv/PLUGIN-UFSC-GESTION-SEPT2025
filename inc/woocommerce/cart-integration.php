@@ -1802,6 +1802,10 @@ function ufsc_club_affiliation_submit() {
 	if ( $club_id <= 0 ) {
 		ufsc_redirect_with_notice( __( 'Club invalide.', 'ufsc-clubs' ), 'error' );
 	}
+	$user_club_id = function_exists( 'ufsc_get_user_club_id' ) ? absint( ufsc_get_user_club_id( get_current_user_id() ) ) : 0;
+	if ( ! current_user_can( 'manage_options' ) && $club_id !== $user_club_id ) {
+		ufsc_redirect_with_notice( __( 'Vous ne pouvez pas gérer ce club.', 'ufsc-clubs' ), 'error' );
+	}
 
 	if ( ! class_exists( 'UFSC_Uploads' ) || ! method_exists( 'UFSC_Uploads', 'handle_required_docs' ) ) {
 		ufsc_redirect_with_notice( __( 'Système de documents indisponible.', 'ufsc-clubs' ), 'error' );
@@ -1816,8 +1820,8 @@ function ufsc_club_affiliation_submit() {
 	if ( function_exists( 'WC' ) ) {
 		function_exists( 'wc_load_cart' ) && wc_load_cart();
 
-		// Preserve existing behavior: hardcoded affiliation product id 4823.
-		$added = WC()->cart->add_to_cart( 4823, 1, 0, array(), array( 'ufsc_club_id' => $club_id ) );
+		$product_id = function_exists( 'ufsc_get_affiliation_product_id' ) ? ufsc_get_affiliation_product_id() : 4823;
+		$added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), array( 'ufsc_club_id' => $club_id ) );
 	}
 
 	if ( ! $added ) {

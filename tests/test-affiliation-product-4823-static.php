@@ -11,7 +11,7 @@ $front = file_get_contents( $root . '/includes/frontend/class-frontend-shortcode
 $assert = static function ( $condition, $message ) { if ( ! $condition ) { fwrite( STDERR, "FAIL: {$message}\n" ); exit( 1 ); } };
 
 $assert( strpos( $settings, "'product_affiliation_id'  => 4823" ) !== false, 'Default affiliation product is 4823.' );
-$assert( strpos( $settings, 'function ufsc_get_affiliation_product_id()' ) !== false && strpos( $settings, 'return 4823 === $configured_id ? $configured_id : 4823;' ) !== false, 'Canonical helper returns 4823.' );
+$assert( strpos( $settings, 'function ufsc_get_affiliation_product_id()' ) !== false && strpos( $settings, 'return $configured_id > 0 ? $configured_id : 4823;' ) !== false, 'Canonical helper respects an explicit product and otherwise returns 4823.' );
 $assert( strpos( $settings, 'function ufsc_get_affiliation_product()' ) !== false && strpos( $settings, 'wc_get_product( $product_id )' ) !== false, 'Product helper uses wc_get_product.' );
 $assert( strpos( $settings, 'function ufsc_get_affiliation_product_url()' ) !== false && strpos( $settings, '$product->get_permalink()' ) !== false, 'Product URL helper uses product permalink.' );
 foreach ( array( 'woocommerce_inactive', 'missing_product_id', 'product_not_found', 'product_not_published', 'product_without_price', 'product_not_purchasable', 'permalink_unavailable' ) as $reason ) {
@@ -27,6 +27,8 @@ $assert( strpos( $front, 'ufsc_get_affiliation_renewal_state' ) !== false && str
 $assert( strpos( $front, '$can_renew_affiliation' ) !== false && strpos( $front, 'Renouveler mon affiliation %s' ) !== false, 'Compte Club shortcode exposes renewal CTA when annual state allows it.' );
 $assert( strpos( $front, 'Le renouvellement en ligne est temporairement indisponible' ) !== false && strpos( $front, 'ufsc_get_affiliation_product_unavailable_message' ) !== false, 'Compte Club only shows unavailable fallback through product diagnostics.' );
 $assert( strpos( $cart, 'ufsc_force_affiliation_product_quantity_one' ) !== false, 'Affiliation quantity is forced to one.' );
+$assert( strpos( $cart, "add_to_cart( 4823" ) === false, 'No affiliation submission bypasses the configured product helper.' );
+$assert( strpos( $cart, '$club_id !== $user_club_id' ) !== false, 'Legacy affiliation submission enforces club ownership.' );
 $assert( strpos( $cart, "ufsc_cart_has_renewal_item( 'renew_affiliation'" ) !== false && strpos( $cart, "ufsc_wc_has_pending_renewal_order( 'renew_affiliation'" ) !== false, 'Cart and pending order duplicates are blocked.' );
 foreach ( array( 'ufsc_item_type', 'ufsc_action', 'ufsc_club_id', 'ufsc_target_season', 'ufsc_previous_affiliation_id', 'ufsc_user_id', 'ufsc_return_url' ) as $meta ) {
     $assert( strpos( $cart, $meta ) !== false, 'Cart metadata exists: ' . $meta );
