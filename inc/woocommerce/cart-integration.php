@@ -55,6 +55,12 @@ function ufsc_renewal_cart_item_name( $name, $cart_item, $cart_item_key = '' ) {
 function ufsc_add_renewal_sources_to_cart( $product_id, $club_id, $source_ids, $season, $profiles = array() ) {
 	global $wpdb;
 	$result = array( 'added' => array(), 'skipped' => array() );
+	$source_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $source_ids ) ) ) );
+	if ( ! $source_ids ) { return $result; }
+	if ( ! absint( $product_id ) || ! function_exists( 'WC' ) || ! WC() || ! WC()->cart ) {
+		foreach ( $source_ids as $id ) { $result['skipped'][ $id ] = __( 'Le panier WooCommerce est indisponible.', 'ufsc-clubs' ); }
+		return $result;
+	}
 	$gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( $club_id, $season ) : array( 'allowed' => false, 'message' => __( 'Affiliation annuelle inactive.', 'ufsc-clubs' ) );
 	if ( empty( $gate['allowed'] ) ) {
 		if ( function_exists( 'ufsc_log_licence_affiliation_refusal' ) ) { ufsc_log_licence_affiliation_refusal( $gate, 'bulk_renewal' ); }
@@ -62,7 +68,7 @@ function ufsc_add_renewal_sources_to_cart( $product_id, $club_id, $source_ids, $
 		return $result;
 	}
 	$table = ufsc_get_licences_table();
-	foreach ( array_values( array_unique( array_filter( array_map( 'absint', (array) $source_ids ) ) ) ) as $source_id ) {
+	foreach ( $source_ids as $source_id ) {
 		$source = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", $source_id ) );
 		if ( ! $source || absint( $source->club_id ?? 0 ) !== absint( $club_id ) ) { $result['skipped'][ $source_id ] = __( 'Licence inaccessible.', 'ufsc-clubs' ); continue; }
 		if ( empty( $source->nom ) || empty( $source->prenom ) || empty( $source->date_naissance ) ) { $result['skipped'][ $source_id ] = __( 'Identité incomplète.', 'ufsc-clubs' ); continue; }
@@ -70,6 +76,12 @@ function ufsc_add_renewal_sources_to_cart( $product_id, $club_id, $source_ids, $
 		$expected_source_season = $target_start ? ( $target_start - 1 ) . '-' . $target_start : '';
 		$source_season = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $source ) : ( function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $source ) : ( $source->season ?? $source->saison ?? '' ) );
 		if ( $expected_source_season && $source_season && $source_season !== $expected_source_season ) { $result['skipped'][$source_id] = __( 'La licence source ne correspond pas à la saison précédente.', 'ufsc-clubs' ); continue; }
+		$source_status = sanitize_key( (string) ( $source->statut ?? $source->status ?? '' ) );
+		if ( in_array( $source_status, array( 'suspended', 'suspendu', 'rejected', 'refused', 'refuse' ), true ) ) { $result['skipped'][ $source_id ] = __( 'Le statut de cette licence interdit son renouvellement.', 'ufsc-clubs' ); continue; }
+		if ( is_callable( array( 'UFSC_Renewal_Service', 'can_renew' ) ) ) {
+			$renewable = UFSC_Renewal_Service::can_renew( $source, $club_id, $season );
+			if ( is_wp_error( $renewable ) ) { $result['skipped'][ $source_id ] = $renewable->get_error_message(); continue; }
+		}
 		$profile = UFSC_Renewal_Service::sanitize_renewal_updates( $source, $profiles[$source_id] ?? array() );
 		if ( ! empty( $profile['errors'] ) ) { $result['skipped'][$source_id] = implode( ' ', array_values( $profile['errors'] ) ); continue; }
 		$level = $profile['data']['fighter_level'];
