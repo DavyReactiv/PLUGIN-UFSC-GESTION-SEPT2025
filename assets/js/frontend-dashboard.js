@@ -936,7 +936,10 @@
                 renewalForm.find('[data-ufsc-selection-count]').text(selected + ' sélectionnée(s), ' + incomplete + ' à compléter, ' + blocked + ' bloquée(s)');
             };
             renewalForm.on('change', '.ufsc-renewal-checkbox', updateRenewalCount);
-            renewalForm.on('click', '[data-ufsc-renew-one]', function() {
+            renewalForm.on('click', '[data-ufsc-renew-one]', function(event) {
+                // JavaScript enhances the real fallback URL; without JS the link
+                // reloads the assistant with the requested source selected.
+                event.preventDefault();
                 var id = String($(this).data('ufsc-renew-one'));
                 renewalForm.find('.ufsc-renewal-checkbox[value="' + id + '"]').prop('checked', true);
                 updateRenewalCount(); showRenewalStep(2, 'ufsc-renewal-profile-title-' + id);
@@ -959,7 +962,7 @@
                 showRenewalStep(step);
             });
             renewalForm.on('toggle', 'details', function() { $(this).attr('aria-expanded', this.open ? 'true' : 'false'); });
-            updateRenewalCount(); showRenewalStep(1);
+            updateRenewalCount(); showRenewalStep(Number(renewalForm.attr('data-initial-step')) === 2 ? 2 : 1);
         }
         $('.ufsc-renewal-profile').each(function() {
             var profile = this;

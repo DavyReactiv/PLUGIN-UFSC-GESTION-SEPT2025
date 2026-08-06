@@ -4,7 +4,7 @@ $checks=array(
  'selection independent from completeness'=>strpos($front,"\$selectable = ! empty( \$context['renewal_allowed'] ) && \$product_id")!==false&&strpos($front,'$complete = $level')!==false,
  'selectable profile rendered'=>strpos($front,'if ( $selectable ) : $prefix')!==false&&strpos($front,'if ( $eligible ) : $prefix')===false,
  'incomplete badge'=>strpos($front,'Informations à compléter')!==false,
- 'individual real button'=>strpos($front,'<button type="button" class="ufsc-btn ufsc-btn-primary ufsc-btn-small" data-ufsc-renew-one=')!==false,
+ 'individual real link with fallback'=>strpos($front,'class="ufsc-renewal-button')!==false&&strpos($front,"'renew_source_id'")!==false&&strpos($front,"'target_season'")!==false,
  'three functional controls'=>strpos($front,'data-ufsc-next-step="2"')!==false&&strpos($front,'data-ufsc-next-step="3"')!==false&&strpos($front,'type="submit"')!==false,
  'server fallback'=>strpos($front,'admin-post.php')!==false&&strpos($front,'ufsc_bulk_renew_licences')!==false,
  'js wizard wiring'=>strpos($js,'showRenewalStep')!==false&&strpos($js,'data-ufsc-renew-one')!==false&&strpos($js,'ufsc-renewal-checkbox:checked')!==false,
