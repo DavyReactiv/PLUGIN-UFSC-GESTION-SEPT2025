@@ -21,4 +21,11 @@ if(!preg_match('/href="([^"]*renew_source_id=42[^"]*target_season=2026-2027[^"]*
 $_GET=array('renew_source_id'=>'42','target_season'=>'2026-2027'); $fallback=$method->invoke(null,array($row),array('club_id'=>9));
 if(strpos($fallback,'data-initial-step="2"')===false || strpos($fallback,'ufsc-renewal-profile-title-42')===false || !preg_match('/data-ufsc-step-actions="2"/', $fallback))exit("FAIL server step two\n");
 if(strpos($fallback,'name="source_ids[]"')===false || strpos($fallback,'name="action" value="ufsc_bulk_renew_licences"')===false)exit("FAIL cart form\n");
-echo "OK: rendered selectable incomplete checkbox, fallback step 2 and cart form\n";
+$rows=array(); for($id=1;$id<=25;$id++){ $rows[]=(object)array('id'=>$id,'club_id'=>9,'season'=>'2025-2026','nom'=>'Personne '.$id,'prenom'=>'Test','fighter_level'=>'','poids'=>''); }
+$_GET=array('ufsc_renew_per_page'=>'10','ufsc_renew_page'=>'2'); $page_two=$method->invoke(null,$rows,array('club_id'=>9));
+if(substr_count($page_two,'class="ufsc-renewal-source-row')!==10)exit("FAIL controlled pagination row count\n");
+if(strpos($page_two,'value="11"')===false || strpos($page_two,'value="21"')!==false)exit("FAIL controlled pagination window\n");
+if(strpos($page_two,'ufsc_renew_page=3')===false || strpos($page_two,'ufsc_renew_per_page=10')===false)exit("FAIL pagination state URL\n");
+$_GET=array('renew_source_id'=>'24','target_season'=>'2026-2027','ufsc_renew_per_page'=>'10'); $direct_page=$method->invoke(null,$rows,array('club_id'=>9));
+if(strpos($direct_page,'ufsc-renewal-profile-title-24')===false || strpos($direct_page,'Page 3 sur 3')===false)exit("FAIL fallback source page resolution\n");
+echo "OK: rendered selectable incomplete checkbox, fallback steps, cart form and controlled pagination\n";
