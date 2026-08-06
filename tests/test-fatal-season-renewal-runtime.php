@@ -38,6 +38,7 @@ if ( 'disabled' !== $mode ) {
 		public function get_type() { return 'simple'; }
         public function get_price() { return '50'; }
 		public function get_name() { return 'Affiliation UFSC'; }
+		public function get_permalink() { return 'https://example.test/product/affiliation'; }
     }
     function wc_get_product( $id ) {
         return ( 'missing' === $GLOBALS['runtime_mode'] || 77 !== (int) $id ) ? false : new UFSC_Test_Product();
