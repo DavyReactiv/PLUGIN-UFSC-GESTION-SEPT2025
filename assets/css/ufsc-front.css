@@ -2810,3 +2810,19 @@ body .wp-block-post-content > .ufsc-club-account {
 }
 .ufsc-club-portal .ufsc-renewal-selection-control .ufsc-renewal-checkbox:disabled { cursor: not-allowed; }
 .ufsc-archive-results { font-weight: 700; }
+
+/* Shared club logo: square and non-cropping on dashboard and account screens. */
+.ufsc-club-logo{align-items:center;aspect-ratio:1/1;background:#fff;border:1px solid #d6dee8;border-radius:12px;display:flex;flex:0 0 96px;justify-content:center;margin:0;overflow:hidden;padding:8px;width:96px}
+.ufsc-club-logo img{display:block;height:100%!important;max-height:100%;max-width:100%;object-fit:contain!important;object-position:center;width:100%!important}
+.ufsc-club-logo--fallback{background:#eef2f7;color:#173b67;font-size:1.75rem;font-weight:800}
+.ufsc-club-profile .photo-club-front{width:140px;flex-basis:140px}
+/* Compact the cockpit header: secondary contact data stays available on the account page. */
+.ufsc-club-dashboard .ufsc-dashboard-header--premium{padding:20px!important}
+.ufsc-club-dashboard .ufsc-dashboard-hero-layout{align-items:start;gap:16px;grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr)}
+.ufsc-club-dashboard .ufsc-dashboard-brand{align-items:start;gap:14px}
+.ufsc-club-dashboard .ufsc-dashboard-header .ufsc-club-account__identity{display:none}
+.ufsc-club-dashboard .ufsc-hero-kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ufsc-club-dashboard .ufsc-priority-tile{display:none}
+.ufsc-club-dashboard .ufsc-hero-kpi-grid .ufsc-kpi-tile{min-height:74px;padding:10px}
+.ufsc-club-dashboard .ufsc-dashboard-actions--primary{display:flex!important;height:auto!important;margin:12px 0 0!important;overflow:visible!important;clip:auto!important;white-space:normal!important;gap:8px;flex-wrap:wrap}
+@media(max-width:900px){.ufsc-club-dashboard .ufsc-dashboard-hero-layout{grid-template-columns:1fr}.ufsc-club-dashboard .ufsc-hero-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

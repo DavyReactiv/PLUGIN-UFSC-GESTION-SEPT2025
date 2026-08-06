@@ -993,3 +993,17 @@
     window.UfscDashboard = UfscDashboard;
 
 })(jQuery);
+
+// Club-logo preview is scoped to the profile upload controls only.
+(function($){
+    'use strict';
+    $(function(){
+        $('.ufsc-change-photo-form input[name="profile_photo"], .ufsc-upload-photo-form input[name="profile_photo"]').on('change', function(){
+            var file=this.files&&this.files[0]; if(!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
+            var form=$(this).closest('form'); var preview=form.siblings('.ufsc-club-logo').find('img');
+            if(!preview.length) preview=$('<figure class="ufsc-club-logo ufsc-logo-preview"><img alt="Aperçu du nouveau logo"></figure>').insertBefore(form).find('img');
+            var previous=preview.attr('src'); if(previous&&previous.indexOf('blob:')===0) URL.revokeObjectURL(previous);
+            preview.attr('src',URL.createObjectURL(file));
+        });
+    });
+})(jQuery);

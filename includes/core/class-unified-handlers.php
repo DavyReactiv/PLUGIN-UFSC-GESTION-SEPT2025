@@ -7,6 +7,11 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 class UFSC_Unified_Handlers {
 
+    /** Decide whether an explicit form intent may mutate the WooCommerce cart. */
+    public static function should_add_licence_to_cart( $action ) {
+        return 'add_to_cart' === sanitize_key( (string) $action );
+    }
+
     /**
      * Initialize handlers
      */
@@ -1175,6 +1180,8 @@ class UFSC_Unified_Handlers {
 		self::save_licence_compliance_audit( $new_id, $_POST );
 
         $wc_settings = ufsc_get_woocommerce_settings();
+        $submit_action = isset( $_POST['ufsc_submit_action'] ) ? sanitize_key( (string) wp_unslash( $_POST['ufsc_submit_action'] ) ) : 'save';
+        $wants_cart = self::should_add_licence_to_cart( $submit_action );
 
         if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
             $included_quota   = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
@@ -1194,7 +1201,14 @@ class UFSC_Unified_Handlers {
                 //exit;
             }
 
-            // Quota exceeded: add licence product to cart
+            // A draft is persisted but must never enter a payable cart implicitly.
+            if ( ! $wants_cart ) {
+                $redirect_url = add_query_arg( array( 'licence_saved' => 1, 'licence_id' => $new_id ), wp_get_referer() );
+                self::maybe_redirect( esc_url_raw( $redirect_url ) );
+                return;
+            }
+
+            // Quota exceeded: add licence product to cart only after explicit verification.
             $product_id     = isset( $wc_settings['product_license_id'] ) ? absint( $wc_settings['product_license_id'] ) : 0;
             $cart_item_data = array(
                 'ufsc_licence_id' => $new_id,
@@ -1242,7 +1256,7 @@ class UFSC_Unified_Handlers {
             }
         }
 
-        if ( isset( $_POST['ufsc_submit_action'] ) && 'add_to_cart' === $_POST['ufsc_submit_action'] ) {
+        if ( $wants_cart ) {
 
             $wc_settings = ufsc_get_woocommerce_settings();
             $product_id  = isset( $wc_settings['product_license_id'] ) ? absint( $wc_settings['product_license_id'] ) : 0;
