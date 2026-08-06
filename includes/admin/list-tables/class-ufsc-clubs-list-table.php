@@ -911,7 +911,8 @@ class UFSC_Clubs_List_Table {
 		$season = self::get_admin_season_label();
         $links = array(
             array( 'label' => __( 'Clubs de la saison', 'ufsc-clubs' ), 'args' => array( 'season' => $season, 'club_view' => 'season' ) ),
-            array( 'label' => __( 'Tous les clubs permanents', 'ufsc-clubs' ), 'args' => array( 'club_view' => 'permanent' ) ),
+            array( 'label' => __( 'Tous les clubs enregistrés', 'ufsc-clubs' ), 'args' => array( 'club_view' => 'permanent' ) ),
+            array( 'label' => __( 'Clubs à renouveler / anciens clubs', 'ufsc-clubs' ), 'args' => array( 'season' => $season, 'club_view' => 'renewals' ) ),
             array( 'label' => __( 'Diagnostic stockage', 'ufsc-clubs' ), 'args' => array( 'archive_scope' => 'all_historical' ) ),
             array( 'label' => __( 'Renouvellements à traiter', 'ufsc-clubs' ), 'args' => array( 'season' => $season, 'kpi_filter' => 'renewals' ) ),
             array( 'label' => __( 'Actifs', 'ufsc-clubs' ), 'args' => array( 'season' => $season, 'kpi_filter' => 'affiliations_active' ) ),
@@ -1043,7 +1044,7 @@ class UFSC_Clubs_List_Table {
                 self::render_club_row( $club, $licence_counts, $can_manage_clubs );
             }
         } else {
-            echo '<tr><td colspan="' . ( $can_manage_clubs ? '10' : '9' ) . '"><div class="ufsc-empty-state"><strong>' . esc_html__( 'Aucun club ne correspond aux filtres actuels.', 'ufsc-clubs' ) . '</strong><p>' . esc_html__( 'Retirez un filtre ci-dessus ou revenez à une vue complète.', 'ufsc-clubs' ) . '</p><a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs' ) ) . '">' . esc_html__( 'Réinitialiser les filtres', 'ufsc-clubs' ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&club_view=permanent' ) ) . '">' . esc_html__( 'Voir tous les clubs permanents', 'ufsc-clubs' ) . '</a></div></td></tr>';
+                echo '<tr><td colspan="' . ( $can_manage_clubs ? '10' : '9' ) . '"><div class="ufsc-empty-state"><strong>' . esc_html__( 'Aucun club ne correspond aux filtres actuels.', 'ufsc-clubs' ) . '</strong><p>' . esc_html__( 'Retirez un filtre ci-dessus ou revenez à une vue complète.', 'ufsc-clubs' ) . '</p><a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs' ) ) . '">' . esc_html__( 'Réinitialiser les filtres', 'ufsc-clubs' ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&club_view=permanent' ) ) . '">' . esc_html__( 'Voir tous les clubs enregistrés', 'ufsc-clubs' ) . '</a></div></td></tr>';
         }
 
         echo '</tbody>';

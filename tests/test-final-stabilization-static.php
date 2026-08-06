@@ -16,7 +16,7 @@ $assert = static function ( $condition, $message ) use ( &$failures ) { if ( ! $
 $assert( strpos( $files['helpers'], 'UFSC_Season_Service::get_current_season()' ) !== false, 'Legacy helpers must delegate to the season service.' );
 $assert( strpos( $files['season'], "shift_season( \$current, 1 )" ) === false, 'Available seasons must not manufacture the next season.' );
 $assert( strpos( $files['admin'], 'Saison actuelle : %s' ) !== false && strpos( $files['admin'], 'Saison précédente : %s' ) !== false, 'Licence filter labels must remain explicit.' );
-$assert( strpos( $files['woo'], "'product_affiliation_id'  => 4823" ) !== false && strpos( $files['woo'], 'return 4823 === $configured_id ? $configured_id : 4823;' ) !== false, 'Affiliation product ID 4823 must be the canonical fallback.' );
+$assert( strpos( $files['woo'], "'product_affiliation_id'  => 4823" ) !== false && strpos( $files['woo'], 'return $configured_id > 0 ? $configured_id : 4823;' ) !== false, 'Affiliation product ID 4823 must remain the default fallback.' );
 foreach ( array( 'missing_product_id', 'product_not_found', 'product_not_published', 'product_without_price', 'product_not_purchasable' ) as $reason ) {
     $assert( strpos( $files['woo'], $reason ) !== false, 'Missing Woo diagnostic: ' . $reason );
 }

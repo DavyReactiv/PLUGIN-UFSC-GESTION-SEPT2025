@@ -19,11 +19,6 @@ jobs:
       - name: Lint PHP files outside vendor
         run: find . -path ./vendor -prune -o -name '*.php' -type f -print0 | xargs -0 -n1 php -l
       - name: Runtime and static critical tests
-        run: |
-          php tests/test-frontend-shortcodes-load.php
-          php tests/test-compte-club-ui-static.php
-          php tests/test-affiliation-product-4823-static.php
-          php tests/test-affiliation-product-4823-runtime.php
-          php tests/test-renewal-season-static.php
-          php tests/test-final-stabilization-static.php
-          php tests/test-licence-affiliation-gate-runtime.php
+        run: tests/run-tests.sh
+      - name: JavaScript syntax
+        run: find assets -name '*.js' -type f -print0 | xargs -0 -n1 node --check

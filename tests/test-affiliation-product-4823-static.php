@@ -11,7 +11,7 @@ $front = file_get_contents( $root . '/includes/frontend/class-frontend-shortcode
 $assert = static function ( $condition, $message ) { if ( ! $condition ) { fwrite( STDERR, "FAIL: {$message}\n" ); exit( 1 ); } };
 
 $assert( strpos( $settings, "'product_affiliation_id'  => 4823" ) !== false, 'Default affiliation product is 4823.' );
-$assert( strpos( $settings, 'function ufsc_get_affiliation_product_id()' ) !== false && strpos( $settings, 'return 4823 === $configured_id ? $configured_id : 4823;' ) !== false, 'Canonical helper returns 4823.' );
+$assert( strpos( $settings, 'function ufsc_get_affiliation_product_id()' ) !== false && strpos( $settings, 'return $configured_id > 0 ? $configured_id : 4823;' ) !== false, 'Canonical helper keeps 4823 as the safe default while honoring an explicit product.' );
 $assert( strpos( $settings, 'function ufsc_get_affiliation_product()' ) !== false && strpos( $settings, 'wc_get_product( $product_id )' ) !== false, 'Product helper uses wc_get_product.' );
 $assert( strpos( $settings, 'function ufsc_get_affiliation_product_url()' ) !== false && strpos( $settings, '$product->get_permalink()' ) !== false, 'Product URL helper uses product permalink.' );
 foreach ( array( 'woocommerce_inactive', 'missing_product_id', 'product_not_found', 'product_not_published', 'product_without_price', 'product_not_purchasable', 'permalink_unavailable' ) as $reason ) {

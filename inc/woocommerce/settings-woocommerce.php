@@ -91,7 +91,9 @@ function ufsc_get_affiliation_product_id() {
     $settings = ufsc_get_woocommerce_settings();
     $configured_id = isset( $settings['product_affiliation_id'] ) ? absint( $settings['product_affiliation_id'] ) : 0;
 
-    return 4823 === $configured_id ? $configured_id : 4823;
+    // 4823 remains the installation default, while tests/staging and migrated
+    // sites may deliberately configure another published product.
+    return $configured_id > 0 ? $configured_id : 4823;
 }
 
 /** Return the canonical affiliation WooCommerce product when available. */
@@ -108,11 +110,12 @@ function ufsc_get_affiliation_product() {
 /** Return the canonical affiliation product permalink, or an empty string. */
 function ufsc_get_affiliation_product_url() {
     $product = ufsc_get_affiliation_product();
-    if ( ! $product || ! is_callable( array( $product, 'get_permalink' ) ) ) {
+    if ( ! $product ) {
         return '';
     }
-
-    $url = $product->get_permalink();
+    $url = is_callable( array( $product, 'get_permalink' ) )
+        ? $product->get_permalink()
+        : ( function_exists( 'get_permalink' ) ? get_permalink( ufsc_get_affiliation_product_id() ) : '' );
     return is_string( $url ) ? $url : '';
 }
 
@@ -168,7 +171,7 @@ function ufsc_get_woocommerce_product_diagnostic( $product_id ) {
 	$diagnostic['product_visibility']  = is_callable( array( $product, 'get_catalog_visibility' ) ) ? (string) $product->get_catalog_visibility() : '';
 	$diagnostic['product_type']        = is_callable( array( $product, 'get_type' ) ) ? (string) $product->get_type() : '';
 	$diagnostic['product_price']       = is_callable( array( $product, 'get_price' ) ) ? (string) $product->get_price() : '';
-	$diagnostic['product_permalink']   = is_callable( array( $product, 'get_permalink' ) ) ? (string) $product->get_permalink() : '';
+	$diagnostic['product_permalink']   = is_callable( array( $product, 'get_permalink' ) ) ? (string) $product->get_permalink() : ( function_exists( 'get_permalink' ) ? (string) get_permalink( $product_id ) : '' );
 	if ( 'publish' !== $diagnostic['product_status'] ) {
 		$diagnostic['unavailable_reason'] = 'product_not_published';
 	} elseif ( '' === $diagnostic['product_permalink'] ) {

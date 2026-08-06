@@ -21,6 +21,10 @@ final class UFSC_Identifier_Service {
         if ( ! isset( self::TYPES[ $type ] ) || ! $entity_id ) {
             return new WP_Error( 'invalid_entity', __( 'Entité UFSC invalide.', 'ufsc-clubs' ) );
         }
+        list( $entity_table ) = self::entity_storage( $type );
+        if ( ! (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM `{$entity_table}` WHERE id=%d", $entity_id ) ) ) {
+            return new WP_Error( 'unknown_entity', __( 'Cette entité n’existe pas.', 'ufsc-clubs' ) );
+        }
         $existing = self::get( $type, $entity_id );
         if ( $existing ) { return $existing; }
 
@@ -34,6 +38,10 @@ final class UFSC_Identifier_Service {
         ) );
         $number = (int) $wpdb->insert_id;
         $prefix = (string) apply_filters( 'ufsc_identifier_prefix', self::TYPES[ $type ], $type );
+        // A filter may customize formatting, but may not merge the two value spaces.
+        if ( '' === $prefix || $prefix === (string) apply_filters( 'ufsc_identifier_prefix', self::TYPES[ 'club' === $type ? 'licence' : 'club' ], 'club' === $type ? 'licence' : 'club' ) ) {
+            $prefix = self::TYPES[ $type ];
+        }
         $width  = max( 6, min( 12, (int) apply_filters( 'ufsc_identifier_width', 6, $type ) ) );
         $value  = $prefix . str_pad( (string) $number, $width, '0', STR_PAD_LEFT );
         $inserted = $wpdb->query( $wpdb->prepare(
@@ -46,7 +54,10 @@ final class UFSC_Identifier_Service {
             $existing = self::get( $type, $entity_id );
             return $existing ?: new WP_Error( 'identifier_collision', __( 'Le numéro n’a pas pu être réservé sans collision.', 'ufsc-clubs' ) );
         }
-        self::write_canonical( $type, $entity_id, $value );
+        if ( false === self::write_canonical( $type, $entity_id, $value ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            return new WP_Error( 'canonical_write_failed', __( 'Le numéro a été réservé mais son rattachement a échoué.', 'ufsc-clubs' ) );
+        }
         $wpdb->query( 'COMMIT' );
         self::audit( 'generate_ufsc', $type, $entity_id, '', $value, $user_id );
         return $value;
@@ -56,8 +67,11 @@ final class UFSC_Identifier_Service {
         global $wpdb;
         $value = trim( sanitize_text_field( $value ) );
         if ( ! isset( self::TYPES[ $type ] ) || ! absint( $entity_id ) ) { return new WP_Error( 'invalid_entity', __( 'Entité invalide.', 'ufsc-clubs' ) ); }
-        if ( 0 === strpos( $value, 'UFSC-' ) ) { return new WP_Error( 'mixed_identifier', __( 'Un numéro UFSC ne peut pas être enregistré comme numéro ASPTT.', 'ufsc-clubs' ) ); }
+        if ( 0 === strpos( $value, 'UFSC-' ) || 0 === stripos( $value, 'UFSC-' ) ) { return new WP_Error( 'mixed_identifier', __( 'Un numéro UFSC ne peut pas être enregistré comme numéro ASPTT.', 'ufsc-clubs' ) ); }
         list( $table, $field ) = self::entity_storage( $type, true );
+        if ( ! (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM `{$table}` WHERE id=%d", absint( $entity_id ) ) ) ) {
+            return new WP_Error( 'unknown_entity', __( 'Cette entité n’existe pas.', 'ufsc-clubs' ) );
+        }
         if ( $value ) {
             $owner = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM `{$table}` WHERE `{$field}`=%s AND id<>%d LIMIT 1", $value, absint( $entity_id ) ) );
             if ( $owner ) { self::audit( 'reject_duplicate_asptt', $type, $entity_id, '', $value, $user_id ); return new WP_Error( 'duplicate_asptt', __( 'Ce numéro ASPTT est déjà attribué.', 'ufsc-clubs' ) ); }

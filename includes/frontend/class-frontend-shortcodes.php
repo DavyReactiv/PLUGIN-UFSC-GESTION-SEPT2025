@@ -701,6 +701,7 @@ class UFSC_Frontend_Shortcodes {
             : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
         $archive_filter = '';
         $show_archives = isset( $_GET['ufsc_show_archives'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['ufsc_show_archives'] ) );
+        $archives_url = add_query_arg( 'ufsc_show_archives', '1' );
         if ( isset( $_GET['ufsc_archive_season'] ) && ! is_array( $_GET['ufsc_archive_season'] ) ) {
             $archive_filter = sanitize_text_field( wp_unslash( $_GET['ufsc_archive_season'] ) );
         }
@@ -716,7 +717,10 @@ class UFSC_Frontend_Shortcodes {
         $all_licences     = self::get_club_licences( $atts['club_id'], $all_licence_args );
         $seasoned_lists   = self::split_licences_by_active_season( $all_licences, $active_season );
         $active_licences  = $seasoned_lists['active'];
-        $archive_licences = $seasoned_lists['archives'];
+        $archive_licences = array();
+        if ( $show_archives ) {
+            $archive_licences = $seasoned_lists['archives'];
+        }
         $future_licences  = $seasoned_lists['future'];
         $archive_seasons  = $seasoned_lists['archive_seasons'];
 

@@ -2175,7 +2175,38 @@ class UFSC_SQL_Admin
             }
             echo '</p>';
         }
+        if ( $id ) {
+            self::render_identifier_panel( 'club', $id, $row, $readonly );
+        }
         echo '</div>';
+    }
+
+    /** Render permanent and external identifiers outside the entity edit form. */
+    private static function render_identifier_panel( $type, $id, $row, $readonly ) {
+        if ( ! class_exists( 'UFSC_Identifier_Service' ) || ! class_exists( 'UFSC_Identifier_Resolver' ) ) { return; }
+        $kind = 'club' === $type ? 'club' : 'licence';
+        $ufsc_kind = $kind . '_ufsc';
+        $asptt_kind = $kind . '_asptt';
+        $ufsc = UFSC_Identifier_Service::get( $kind, $id );
+        if ( ! $ufsc ) { $ufsc = UFSC_Identifier_Resolver::read( $row, $ufsc_kind ); }
+        $asptt = UFSC_Identifier_Resolver::read( $row, $asptt_kind );
+        $title = 'club' === $kind ? __( 'Identifiants du club', 'ufsc-clubs' ) : __( 'Identifiants du licencié', 'ufsc-clubs' );
+        echo '<section class="ufsc-admin-card ufsc-identifiers"><h2>' . esc_html( $title ) . '</h2>';
+        echo '<p><strong>' . esc_html__( 'N° UFSC :', 'ufsc-clubs' ) . '</strong> <code>' . esc_html( $ufsc ?: '—' ) . '</code> <span class="ufsc-badge badge-info">' . esc_html__( 'Identifiant permanent', 'ufsc-clubs' ) . '</span></p>';
+        echo '<p class="description">' . esc_html__( 'Généré par le plugin, conservé entre les saisons et non modifiable manuellement.', 'ufsc-clubs' ) . '</p>';
+        if ( ! $readonly && ! $ufsc && current_user_can( 'manage_options' ) ) {
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '" onsubmit="return confirm(\'' . esc_js( __( 'Générer définitivement ce numéro UFSC ?', 'ufsc-clubs' ) ) . '\');">';
+            wp_nonce_field( 'ufsc_generate_identifier_' . $kind . '_' . $id );
+            echo '<input type="hidden" name="action" value="ufsc_generate_identifier"><input type="hidden" name="entity_type" value="' . esc_attr( $kind ) . '"><input type="hidden" name="entity_id" value="' . esc_attr( $id ) . '"><button class="button button-primary">' . esc_html__( 'Générer le numéro UFSC', 'ufsc-clubs' ) . '</button></form>';
+        }
+        echo '<hr><p><strong>' . esc_html__( 'N° ASPTT :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $asptt ?: '—' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Identifiant externe distinct, saisi uniquement par un administrateur. Une valeur UFSC est refusée.', 'ufsc-clubs' ) . '</p>';
+        if ( ! $readonly && current_user_can( 'manage_options' ) ) {
+            echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+            wp_nonce_field( 'ufsc_save_asptt_' . $kind . '_' . $id );
+            echo '<input type="hidden" name="action" value="ufsc_save_asptt_identifier"><input type="hidden" name="entity_type" value="' . esc_attr( $kind ) . '"><input type="hidden" name="entity_id" value="' . esc_attr( $id ) . '"><input type="text" name="asptt_identifier" value="' . esc_attr( $asptt ) . '" autocomplete="off"> <button class="button">' . esc_html__( 'Enregistrer le numéro ASPTT', 'ufsc-clubs' ) . '</button></form>';
+        }
+        echo '</section>';
     }
 
 	/** Render the current-season record separately from permanent club fields. */
@@ -4217,6 +4248,9 @@ class UFSC_SQL_Admin
             }
             echo '</p>';
         }
+		if ( $id ) {
+			self::render_identifier_panel( 'licence', $id, $row, $readonly );
+		}
 		if ( $id && function_exists( 'ufsc_get_honorability_document' ) ) {
 			self::render_honorability_attestation_admin( $id, $row );
 		}

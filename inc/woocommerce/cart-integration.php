@@ -47,7 +47,9 @@ function ufsc_init_cart_integration() {
 function ufsc_add_renewal_sources_to_cart( $product_id, $club_id, $source_ids, $season ) {
 	global $wpdb;
 	$result = array( 'added' => array(), 'skipped' => array() );
-	$gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( $club_id, $season ) : array( 'allowed' => false, 'message' => __( 'Affiliation annuelle inactive.', 'ufsc-clubs' ) );
+	$gate = function_exists( 'ufsc_club_can_manage_licences_for_season' )
+		? ufsc_club_can_manage_licences_for_season( $club_id, $season )
+		: array( 'allowed' => function_exists( 'ufsc_is_club_affiliated_for_season' ) && ufsc_is_club_affiliated_for_season( $club_id, $season ), 'message' => __( 'Affiliation annuelle inactive.', 'ufsc-clubs' ) );
 	if ( empty( $gate['allowed'] ) ) {
 		if ( function_exists( 'ufsc_log_licence_affiliation_refusal' ) ) { ufsc_log_licence_affiliation_refusal( $gate, 'bulk_renewal' ); }
 		foreach ( (array) $source_ids as $id ) { $result['skipped'][ absint( $id ) ] = $gate['message'] ?? __( 'Affiliation annuelle inactive.', 'ufsc-clubs' ); }
