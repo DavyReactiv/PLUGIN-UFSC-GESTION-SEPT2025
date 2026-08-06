@@ -5,7 +5,7 @@ cd "$(dirname "$0")/.."
 phpunit_tests=()
 standalone_tests=()
 while IFS= read -r -d '' test_file; do
-  if rg -q 'extends[[:space:]]+(WP_UnitTestCase|TestCase)|PHPUnit\\Framework' "$test_file"; then
+  if grep -Eq 'PHPUnit\\Framework\\TestCase|extends[[:space:]]+(WP_UnitTestCase|TestCase)|use[[:space:]]+PHPUnit\\Framework\\TestCase' "$test_file"; then
     phpunit_tests+=("$test_file")
   else
     standalone_tests+=("$test_file")
@@ -15,14 +15,14 @@ done < <(find tests -maxdepth 1 -name 'test-*.php' -type f -print0 | sort -z)
 echo "Standalone scripts: ${#standalone_tests[@]}"
 for test_file in "${standalone_tests[@]}"; do php "$test_file"; done
 
+echo "PHPUnit tests detected: ${#phpunit_tests[@]}"
 if ((${#phpunit_tests[@]})); then
   if [[ -x vendor/bin/phpunit ]]; then
-    echo "PHPUnit: executing ${#phpunit_tests[@]} test file(s)"
-    vendor/bin/phpunit
+    echo "PHPUnit: executing via vendor/bin/phpunit"
+    vendor/bin/phpunit -c phpunit.xml
   else
-    echo "PHPUnit: unavailable; ${#phpunit_tests[@]} PHPUnit test file(s) detected." >&2
-    echo "Install a compatible vendor/bin/phpunit to execute this suite."
+    echo "PHPUnit unavailable: vendor/bin/phpunit not found."
   fi
-else
-  echo "PHPUnit: no PHPUnit test files detected."
 fi
+
+echo "Standalone test suite completed successfully."

@@ -21,4 +21,6 @@ jobs:
       - name: Check JavaScript syntax
         run: find assets -name '*.js' -type f -print0 | xargs -0 -r -n1 node --check
       - name: Runtime, static and PHPUnit-aware test runner
-        run: tests/run-tests.sh
+        run: |
+          chmod +x tests/run-tests.sh
+          tests/run-tests.sh
