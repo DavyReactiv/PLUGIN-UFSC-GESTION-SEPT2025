@@ -401,8 +401,10 @@ function ufsc_wc_process_renewal_items( $order ) {
 
 			// Forced fields
 			if ( in_array( 'club_id', $columns, true ) ) { $data['club_id'] = $club_id; }
-			if ( in_array( 'statut', $columns, true ) )  { $data['statut'] = 'en_attente'; }
-			if ( in_array( 'status', $columns, true ) )  { $data['status'] = 'en_attente'; }
+			if ( in_array( 'statut', $columns, true ) )  { $data['statut'] = 'pending_validation'; }
+			if ( in_array( 'status', $columns, true ) )  { $data['status'] = 'pending_validation'; }
+			if ( in_array( 'person_identifier', $columns, true ) ) { $data['person_identifier'] = UFSC_Renewal_Service::person_key( $source, $club_id ); }
+			if ( in_array( 'numero_licence_ufsc', $columns, true ) ) { $data['numero_licence_ufsc'] = UFSC_Identifier_Resolver::read( $source, 'licence_ufsc' ); }
 
 			// Season + renewal traceability.
 			foreach ( array( 'season', 'saison', 'paid_season' ) as $season_col ) {

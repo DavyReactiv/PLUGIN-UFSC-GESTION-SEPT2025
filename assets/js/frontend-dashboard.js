@@ -887,6 +887,17 @@
     // Initialize when document is ready
     $(document).ready(function() {
         UfscDashboard.init();
+        var requestedSection = new URLSearchParams(window.location.search).get('ufsc_section');
+        if (requestedSection === 'licences-archives') {
+            var archives = document.getElementById('ufsc-licences-archives');
+            var title = document.getElementById('ufsc-licences-archives-title');
+            if (archives) {
+                archives.scrollIntoView({behavior: 'smooth', block: 'start'});
+                if (title) { title.setAttribute('tabindex', '-1'); title.focus({preventScroll: true}); }
+            }
+        }
+        $('[data-ufsc-select-all]').on('click', function() { $('#ufsc-renewal-assistant-form .ufsc-renewal-checkbox:not(:disabled)').prop('checked', true); });
+        $('[data-ufsc-select-none]').on('click', function() { $('#ufsc-renewal-assistant-form .ufsc-renewal-checkbox').prop('checked', false); });
     });
 
     // Expose to global scope for external access

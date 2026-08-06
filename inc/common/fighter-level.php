@@ -3,13 +3,24 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /** Canonical values for the licence sporting level. */
 function ufsc_get_fighter_levels() {
-	return array(
+	return (array) apply_filters( 'ufsc_sport_level_options', array(
 		'assaut'    => __( 'Assaut', 'ufsc-clubs' ),
 		'classe_c'  => __( 'Classe C', 'ufsc-clubs' ),
 		'classe_b'  => __( 'Classe B', 'ufsc-clubs' ),
 		'classe_a'  => __( 'Classe A', 'ufsc-clubs' ),
 		'veteran'   => __( 'Vétéran', 'ufsc-clubs' ),
-	);
+	) );
+}
+
+/** Public business-name alias used by forms, cart and integrations. */
+function ufsc_get_sport_level_options() { return ufsc_get_fighter_levels(); }
+
+function ufsc_get_sport_level_required_message() {
+	return __( 'Le niveau sportif est obligatoire avant de poursuivre.', 'ufsc-clubs' );
+}
+
+function ufsc_get_sport_level_help() {
+	return __( 'Sélectionnez le niveau correspondant à la pratique actuelle du licencié. Cette information peut modifier les règles sportives, médicales et documentaires applicables.', 'ufsc-clubs' );
 }
 
 function ufsc_fighter_level_label( $level ) {
