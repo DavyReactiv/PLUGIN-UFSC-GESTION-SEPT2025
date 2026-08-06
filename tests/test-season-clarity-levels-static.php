@@ -19,7 +19,7 @@ $assert( false !== strpos( $admin, 'Archives uniquement' ), 'Les archives resten
 $assert( false !== strpos( $clubs, 'get_season_options' ) && false !== strpos( $clubs, 'Archives uniquement' ), 'La page Clubs propose le filtre saison centralisé.' );
 $assert( false !== strpos( $clubs, 'Club permanent :' ) && false !== strpos( $clubs, 'Affiliation %s :' ), 'Club permanent et affiliation annuelle sont séparés.' );
 $assert( false !== strpos( $clubs, 'Affiliations en attente %s' ) && false !== strpos( $clubs, 'Licences %s' ), 'Les KPI Clubs portent la saison sélectionnée.' );
-$assert( false !== strpos( $level, "array( 'assaut' )" ) && false !== strpos( $level, "'classe_c', 'classe_b', 'classe_a'" ), 'Les niveaux mineur et majeur sont validés côté serveur.' );
+$assert( false !== strpos( $level, "array( 'debutant', 'assaut' )" ) && false !== strpos( $level, "'classe_c', 'classe_b', 'classe_a', 'pro'" ), 'Les niveaux mineur et majeur officiels sont validés côté serveur.' );
 $assert( false !== strpos( $level, '$allow_empty' ), 'Une ancienne licence sans niveau reste compatible.' );
 $assert( false !== strpos( $front, 'data-ufsc-fighter-level' ), 'Le formulaire front expose le niveau sportif.' );
 $assert( false !== strpos( $admin, 'filter_level' ) && false !== strpos( $admin, 'ufsc_fighter_level_label' ), 'Le tableau admin filtre et affiche le niveau.' );

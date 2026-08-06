@@ -9,7 +9,7 @@ class UFSC_Category_Repository { static function normalize_weight($v){$v=str_rep
 class UFSC_Identifier_Resolver { static function read(){return 'UFSC-42';} }
 function ufsc_get_sport_level_options(){return array('assaut'=>'Assaut','classe_c'=>'Classe C','classe_b'=>'Classe B','classe_a'=>'Classe A','veteran'=>'Vétéran');}
 require dirname(__DIR__) . '/includes/core/class-ufsc-renewal-service.php';
-$archive=(object)array('id'=>42,'club_id'=>9,'adresse'=>'5 allée des Frênes','email'=>'old@example.test','tel_mobile'=>'06 00 00 00 00','fighter_level'=>'assaut','poids'=>'32.5','nom'=>'Vieira','prenom'=>'Janaelle','date_naissance'=>'2012-05-06','sexe'=>'F','numero_licence_asptt'=>'ASPTT-OLD','statut'=>'validated');
+$archive=(object)array('id'=>42,'club_id'=>9,'adresse'=>'5 allée des Frênes','ville'=>'Montluçon','code_postal'=>'03100','email'=>'old@example.test','tel_mobile'=>'06 00 00 00 00','fighter_level'=>'assaut','poids'=>'32.5','nom'=>'Vieira','prenom'=>'Janaelle','date_naissance'=>'2012-05-06','sexe'=>'F','numero_licence_asptt'=>'ASPTT-OLD','statut'=>'validated');
 $before=serialize($archive);
 $result=UFSC_Renewal_Service::sanitize_renewal_updates($archive,array('adresse'=>'8 rue des Sports','email'=>'new@example.test','tel_mobile'=>'06x12-34','fighter_level'=>'classe_c','poids'=>'34,5','competition'=>'1'));
 if($result['errors']||'8 rue des Sports'!==$result['data']['adresse']||34.5!==$result['data']['poids']||'0612-34'!==$result['data']['tel_mobile']) exit("FAIL valid updates\n");

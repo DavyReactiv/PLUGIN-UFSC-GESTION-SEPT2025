@@ -4,10 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 /** Canonical values for the licence sporting level. */
 function ufsc_get_fighter_levels() {
 	return (array) apply_filters( 'ufsc_sport_level_options', array(
+		'debutant'  => __( 'Débutant', 'ufsc-clubs' ),
 		'assaut'    => __( 'Assaut', 'ufsc-clubs' ),
 		'classe_c'  => __( 'Classe C', 'ufsc-clubs' ),
 		'classe_b'  => __( 'Classe B', 'ufsc-clubs' ),
 		'classe_a'  => __( 'Classe A', 'ufsc-clubs' ),
+		'pro'       => __( 'Pro', 'ufsc-clubs' ),
 		'veteran'   => __( 'Vétéran', 'ufsc-clubs' ),
 	) );
 }
@@ -25,8 +27,16 @@ function ufsc_get_sport_level_help() {
 
 function ufsc_fighter_level_label( $level ) {
 	$levels = ufsc_get_fighter_levels();
-	$key    = sanitize_key( (string) $level );
+	$key    = ufsc_normalize_fighter_level( $level );
 	return isset( $levels[ $key ] ) ? $levels[ $key ] : __( 'Non renseigné', 'ufsc-clubs' );
+}
+
+function ufsc_normalize_fighter_level( $level ) {
+	$raw = trim( (string) $level );
+	$raw = function_exists( 'remove_accents' ) ? remove_accents( $raw ) : strtr( $raw, array( 'é' => 'e', 'É' => 'E' ) );
+	$key = sanitize_key( str_replace( array( ' ', '-' ), '_', $raw ) );
+	$aliases = array( 'debutant' => 'debutant', 'assaut' => 'assaut', 'classe_c' => 'classe_c', 'classe_b' => 'classe_b', 'classe_a' => 'classe_a', 'pro' => 'pro', 'professionnel' => 'pro', 'veteran' => 'veteran' );
+	return $aliases[$key] ?? sanitize_key( (string) $level );
 }
 
 /**
@@ -49,7 +59,7 @@ function ufsc_age_from_birth_date( $birth_date, $today = '' ) {
 
 /** Server-side business validation. Empty is accepted for legacy rows. */
 function ufsc_validate_fighter_level( $level, $birth_date, $allow_empty = true ) {
-	$level = sanitize_key( (string) $level );
+	$level = ufsc_normalize_fighter_level( $level );
 	if ( '' === $level && $allow_empty ) {
 		return true;
 	}
@@ -57,14 +67,14 @@ function ufsc_validate_fighter_level( $level, $birth_date, $allow_empty = true )
 	if ( null === $age ) {
 		return new WP_Error( 'ufsc_invalid_birth_date_for_level', __( 'Une date de naissance valide est requise pour contrôler le niveau sportif.', 'ufsc-clubs' ) );
 	}
-	$allowed = $age < 18 ? array( 'assaut' ) : array( 'classe_c', 'classe_b', 'classe_a' );
+	$allowed = $age < 18 ? array( 'debutant', 'assaut' ) : array( 'debutant', 'assaut', 'classe_c', 'classe_b', 'classe_a', 'pro' );
 	if ( $age >= ufsc_get_veteran_min_age() ) {
 		$allowed[] = 'veteran';
 	}
 	if ( ! in_array( $level, $allowed, true ) ) {
 		return new WP_Error( 'ufsc_invalid_fighter_level', $age < 18
-			? __( 'Niveau sportif incohérent : un mineur peut uniquement choisir Assaut.', 'ufsc-clubs' )
-			: sprintf( __( 'Niveau sportif incohérent : Classe C, Classe B ou Classe A sont autorisées dès 18 ans; Vétéran à partir de %d ans.', 'ufsc-clubs' ), ufsc_get_veteran_min_age() ) );
+			? __( 'Niveau sportif incohérent : un mineur peut choisir Débutant ou Assaut.', 'ufsc-clubs' )
+			: sprintf( __( 'Niveau sportif incohérent. Sélectionnez un niveau officiel; Vétéran est disponible à partir de %d ans.', 'ufsc-clubs' ), ufsc_get_veteran_min_age() ) );
 	}
 	return true;
 }

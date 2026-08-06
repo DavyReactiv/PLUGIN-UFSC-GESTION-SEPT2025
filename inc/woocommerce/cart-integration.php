@@ -29,6 +29,7 @@ function ufsc_init_cart_integration() {
 
 	// Transfer meta data from cart to order
 	add_action( 'woocommerce_checkout_create_order_line_item', 'ufsc_transfer_cart_meta_to_order', 10, 4 );
+	add_filter( 'woocommerce_cart_item_name', 'ufsc_renewal_cart_item_name', 10, 3 );
 	add_filter( 'woocommerce_add_cart_item_data', 'ufsc_capture_affiliation_product_context', 10, 2 );
 	add_filter( 'woocommerce_add_to_cart_quantity', 'ufsc_force_affiliation_product_quantity_one', 10, 2 );
 	add_filter( 'woocommerce_add_to_cart_validation', 'ufsc_validate_licence_affiliation_add_to_cart', 10, 5 );
@@ -41,6 +42,13 @@ function ufsc_init_cart_integration() {
 	add_action( 'woocommerce_cart_item_removed', 'ufsc_handle_cart_item_removed_licence_revert', 10, 2 );
 	add_action( 'woocommerce_before_cart_emptied', 'ufsc_snapshot_cart_before_empty', 10, 1 );
 	add_action( 'woocommerce_cart_emptied', 'ufsc_handle_cart_emptied_licence_revert', 10 );
+}
+
+function ufsc_renewal_cart_item_name( $name, $cart_item, $cart_item_key = '' ) {
+	if ( 'renew_licence' !== sanitize_key( (string) ( $cart_item['ufsc_action'] ?? '' ) ) ) { return $name; }
+	$person = trim( sanitize_text_field( (string) ( $cart_item['ufsc_prenom'] ?? '' ) ) . ' ' . sanitize_text_field( (string) ( $cart_item['ufsc_nom'] ?? '' ) ) );
+	$season = sanitize_text_field( (string) ( $cart_item['ufsc_target_season'] ?? '' ) );
+	return esc_html( sprintf( __( 'Renouvellement licence — %1$s — Saison %2$s', 'ufsc-clubs' ), $person, $season ) );
 }
 
 /** Validate and add archive renewals as distinct quantity-one cart lines. */
@@ -58,13 +66,18 @@ function ufsc_add_renewal_sources_to_cart( $product_id, $club_id, $source_ids, $
 		$source = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", $source_id ) );
 		if ( ! $source || absint( $source->club_id ?? 0 ) !== absint( $club_id ) ) { $result['skipped'][ $source_id ] = __( 'Licence inaccessible.', 'ufsc-clubs' ); continue; }
 		if ( empty( $source->nom ) || empty( $source->prenom ) || empty( $source->date_naissance ) ) { $result['skipped'][ $source_id ] = __( 'Identité incomplète.', 'ufsc-clubs' ); continue; }
+		$target_start = (int) substr( $season, 0, 4 );
+		$expected_source_season = $target_start ? ( $target_start - 1 ) . '-' . $target_start : '';
+		$source_season = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $source ) : ( function_exists( 'ufsc_get_licence_season' ) ? ufsc_get_licence_season( $source ) : ( $source->season ?? $source->saison ?? '' ) );
+		if ( $expected_source_season && $source_season && $source_season !== $expected_source_season ) { $result['skipped'][$source_id] = __( 'La licence source ne correspond pas à la saison précédente.', 'ufsc-clubs' ); continue; }
 		$profile = UFSC_Renewal_Service::sanitize_renewal_updates( $source, $profiles[$source_id] ?? array() );
 		if ( ! empty( $profile['errors'] ) ) { $result['skipped'][$source_id] = implode( ' ', array_values( $profile['errors'] ) ); continue; }
 		$level = $profile['data']['fighter_level'];
 		$weight = $profile['data']['poids'];
+		$category = class_exists( 'UFSC_Category_Repository' ) ? UFSC_Category_Repository::detect_for_athlete( (object) array_merge( (array) $source, $profile['data'] ), UFSC_Category_Repository::DEFAULT_DISCIPLINE, $season ) : array();
 		if ( function_exists( 'ufsc_get_renewed_licence_marker' ) && ufsc_get_renewed_licence_marker( $source_id, $season ) ) { $result['skipped'][ $source_id ] = __( 'Licence déjà renouvelée.', 'ufsc-clubs' ); continue; }
 		if ( ufsc_wc_has_pending_renewal_order( 'renew_licence', $club_id, $season, $source_id ) || ufsc_cart_has_renewal_item( 'renew_licence', $club_id, $season, $source_id ) ) { $result['skipped'][ $source_id ] = __( 'Renouvellement déjà au panier ou en attente.', 'ufsc-clubs' ); continue; }
-		$data = array( 'ufsc_action' => 'renew_licence', 'ufsc_club_id' => absint( $club_id ), 'ufsc_target_season' => $season, 'ufsc_renew_from_licence_id' => $source_id, 'ufsc_person_identifier' => UFSC_Renewal_Service::person_key( $source, $club_id ), 'ufsc_request_type' => 'renewal', 'ufsc_item_type' => 'licence_renewal', 'ufsc_user_id' => get_current_user_id(), 'ufsc_nom' => (string) ( $profile['data']['nom'] ?? $source->nom ), 'ufsc_prenom' => (string) ( $profile['data']['prenom'] ?? $source->prenom ), 'ufsc_fighter_level' => $level, 'ufsc_weight' => $weight, 'ufsc_renewal_updates' => $profile['data'], 'ufsc_renewal_changes' => $profile['changes'], 'ufsc_sensitive_identity_change' => ! empty( $profile['sensitive_identity_change'] ), 'ufsc_cart_identity' => wp_generate_uuid4(), 'quantity' => 1 );
+		$data = array( 'ufsc_action' => 'renew_licence', 'ufsc_club_id' => absint( $club_id ), 'ufsc_target_season' => $season, 'ufsc_renew_from_licence_id' => $source_id, 'ufsc_previous_licence_id' => $source_id, 'ufsc_person_identifier' => UFSC_Renewal_Service::person_key( $source, $club_id ), 'ufsc_numero_licence_ufsc' => UFSC_Identifier_Resolver::read( $source, 'licence_ufsc' ), 'ufsc_request_type' => 'renewal', 'ufsc_item_type' => 'licence_renewal', 'ufsc_user_id' => get_current_user_id(), 'ufsc_nom' => (string) ( $profile['data']['nom'] ?? $source->nom ), 'ufsc_prenom' => (string) ( $profile['data']['prenom'] ?? $source->prenom ), 'ufsc_fighter_level' => $level, 'ufsc_weight' => $weight, 'ufsc_category' => trim( (string) ( $category['age_category_label'] ?? '' ) . ( ! empty( $category['weight_category_label'] ) ? ' — ' . $category['weight_category_label'] : '' ) ), 'ufsc_renewal_updates' => $profile['data'], 'ufsc_renewal_changes' => $profile['changes'], 'ufsc_sensitive_identity_change' => ! empty( $profile['sensitive_identity_change'] ), 'ufsc_cart_identity' => wp_generate_uuid4(), 'quantity' => 1 );
 		$key = WC()->cart->add_to_cart( absint( $product_id ), 1, 0, array(), $data );
 		if ( $key ) { $result['added'][] = $source_id; } else { $result['skipped'][ $source_id ] = __( 'Ajout au panier impossible.', 'ufsc-clubs' ); }
 	}
@@ -72,13 +85,19 @@ function ufsc_add_renewal_sources_to_cart( $product_id, $club_id, $source_ids, $
 }
 
 function ufsc_handle_bulk_renew_licences() {
+	if ( 'POST' !== strtoupper( $_SERVER['REQUEST_METHOD'] ?? '' ) ) { wp_die( __( 'Méthode non autorisée.', 'ufsc-clubs' ), 405 ); }
 	$club_id = absint( $_POST['ufsc_club_id'] ?? 0 ); check_admin_referer( 'ufsc_bulk_renew_licences_' . $club_id );
 	$user_club = function_exists( 'ufsc_get_user_club_id' ) ? absint( ufsc_get_user_club_id( get_current_user_id() ) ) : 0;
 	if ( ! is_user_logged_in() || $club_id !== $user_club ) { wp_die( __( 'Accès refusé.', 'ufsc-clubs' ) ); }
 	$season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ufsc_get_current_season();
+	$posted_season = isset( $_POST['ufsc_target_season'] ) && ! is_array( $_POST['ufsc_target_season'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_target_season'] ) ) : '';
+	if ( $posted_season && $posted_season !== $season ) { wp_die( __( 'Saison cible invalide.', 'ufsc-clubs' ) ); }
 	$ids = isset( $_POST['renew_licence_ids'] ) && is_array( $_POST['renew_licence_ids'] ) ? $_POST['renew_licence_ids'] : array();
 	$profiles = isset( $_POST['renewal_profiles'] ) && is_array( $_POST['renewal_profiles'] ) ? wp_unslash( $_POST['renewal_profiles'] ) : array();
 	$result = ufsc_add_renewal_sources_to_cart( ufsc_get_licence_product_id(), $club_id, $ids, $season, $profiles );
+	if ( $result['skipped'] && function_exists( 'set_transient' ) ) { set_transient( 'ufsc_renewal_front_' . get_current_user_id() . '_' . $club_id, array( 'ids' => array_map( 'absint', $ids ), 'profiles' => $profiles ), 30 * 60 ); }
+	elseif ( function_exists( 'delete_transient' ) ) { delete_transient( 'ufsc_renewal_front_' . get_current_user_id() . '_' . $club_id ); }
+	if ( defined( 'WP_DEBUG' ) && WP_DEBUG && function_exists( 'ufsc_wc_log' ) ) { ufsc_wc_log( 'ufsc_front_renewal_handler', array( 'user_id' => get_current_user_id(), 'club_id' => $club_id, 'selection' => array_map( 'absint', $ids ), 'target_season' => $season, 'added' => count( $result['added'] ), 'skipped' => array_keys( $result['skipped'] ) ) ); }
 	foreach ( $result['skipped'] as $id => $reason ) { wc_add_notice( sprintf( __( 'Licence #%1$d ignorée : %2$s', 'ufsc-clubs' ), $id, $reason ), 'notice' ); }
 	if ( $result['added'] ) { wc_add_notice( sprintf( _n( '%d licence ajoutée au panier.', '%d licences ajoutées au panier.', count( $result['added'] ), 'ufsc-clubs' ), count( $result['added'] ) ), 'success' ); }
 	wp_safe_redirect( function_exists( 'wc_get_cart_url' ) && $result['added'] ? wc_get_cart_url() : wp_get_referer() ); exit;
@@ -1512,6 +1531,9 @@ function ufsc_transfer_cart_meta_to_order( $item, $cart_item_key, $values, $orde
 	}
 	if ( isset( $values['ufsc_weight'] ) ) { $item->add_meta_data( '_ufsc_weight', (string) $values['ufsc_weight'] ); }
 	if ( isset( $values['ufsc_person_identifier'] ) ) { $item->add_meta_data( '_ufsc_person_identifier', sanitize_text_field( (string) $values['ufsc_person_identifier'] ) ); }
+	if ( isset( $values['ufsc_previous_licence_id'] ) ) { $item->add_meta_data( '_ufsc_previous_licence_id', absint( $values['ufsc_previous_licence_id'] ) ); }
+	if ( isset( $values['ufsc_numero_licence_ufsc'] ) ) { $item->add_meta_data( '_ufsc_numero_licence_ufsc', sanitize_text_field( (string) $values['ufsc_numero_licence_ufsc'] ) ); }
+	if ( isset( $values['ufsc_category'] ) ) { $item->add_meta_data( '_ufsc_category', sanitize_text_field( (string) $values['ufsc_category'] ) ); }
 	if ( isset( $values['ufsc_renewal_updates'] ) && is_array( $values['ufsc_renewal_updates'] ) ) { $item->add_meta_data( '_ufsc_renewal_updates', $values['ufsc_renewal_updates'] ); }
 	if ( isset( $values['ufsc_renewal_changes'] ) && is_array( $values['ufsc_renewal_changes'] ) ) { $item->add_meta_data( '_ufsc_renewal_changes', $values['ufsc_renewal_changes'] ); }
 	if ( ! empty( $values['ufsc_sensitive_identity_change'] ) ) { $item->add_meta_data( '_ufsc_sensitive_identity_change', 1 ); }
@@ -1588,6 +1610,7 @@ function ufsc_display_cart_item_data( $item_data, $cart_item ) {
 	}
 	if ( ! empty( $cart_item['ufsc_fighter_level'] ) ) { $item_data[] = array( 'key' => __( 'Niveau sportif', 'ufsc-clubs' ), 'value' => ufsc_fighter_level_label( $cart_item['ufsc_fighter_level'] ) ); }
 	if ( isset( $cart_item['ufsc_weight'] ) ) { $item_data[] = array( 'key' => __( 'Poids', 'ufsc-clubs' ), 'value' => str_replace( '.', ',', (string) $cart_item['ufsc_weight'] ) . ' kg' ); }
+	if ( ! empty( $cart_item['ufsc_category'] ) ) { $item_data[] = array( 'key' => __( 'Catégorie', 'ufsc-clubs' ), 'value' => sanitize_text_field( $cart_item['ufsc_category'] ) ); }
 
 	return $item_data;
 }
