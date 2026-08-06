@@ -5,6 +5,7 @@ $GLOBALS['options'] = array(); $GLOBALS['posts'] = array( 101 => (object) array(
 function __( $v ) { return $v; } function _n( $a, $b, $n ) { return 1 === $n ? $a : $b; }
 function absint( $v ) { return abs( (int) $v ); } function sanitize_key( $v ) { return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $v ) ); }
 function sanitize_text_field( $v ) { return trim( (string) $v ); } function sanitize_textarea_field( $v ) { return trim( (string) $v ); }
+function wp_unslash($v){return $v;} function sanitize_email($v){return filter_var($v,FILTER_SANITIZE_EMAIL);} function is_email($v){return filter_var($v,FILTER_VALIDATE_EMAIL)!==false;}
 function sanitize_title( $v ) { return strtolower( str_replace( array( ' ', '_' ), '-', remove_accents( trim( $v ) ) ) ); }
 function remove_accents( $v ) { return strtr( $v, array( 'é'=>'e', 'É'=>'E', 'è'=>'e', 'î'=>'i' ) ); }
 function apply_filters( $hook, $value ) { return $value; } function get_current_user_id() { return 77; }
@@ -14,7 +15,7 @@ function get_option( $key, $default = false ) { return $GLOBALS['options'][$key]
 function update_option( $key, $value ) { $GLOBALS['options'][$key] = $value; return true; }
 class WP_Error { private $c; private $m; function __construct($c,$m){$this->c=$c;$this->m=$m;} function get_error_message(){return $this->m;} }
 class UFSC_Category_Repository { public static function normalize_weight($v){ return is_numeric(str_replace(',','.',$v)) ? (float) str_replace(',','.',$v) : null; } }
-class UFSC_Renewal_Service { public static function person_key($row,$club){ return 'test:' . $club . ':' . $row->id; } }
+class UFSC_Renewal_Service { public static function person_key($row,$club){ return 'test:' . $club . ':' . $row->id; } public static function sanitize_renewal_updates($source,$raw){return array('data'=>array('fighter_level'=>$source->fighter_level,'poids'=>(float)$source->poids),'changes'=>array(),'errors'=>array(),'sensitive_identity_change'=>false);} }
 function is_wp_error( $v ) { return $v instanceof WP_Error; }
 class FakeWpdb { public $rows=array(); function prepare($q,...$a){return end($a);} function get_row($id){return $this->rows[(int)$id]??null;} }
 $wpdb = new FakeWpdb(); $GLOBALS['wpdb'] = $wpdb;
@@ -40,7 +41,7 @@ function ufsc_club_can_manage_licences_for_season(){return array('allowed'=>true
 function ufsc_get_renewed_licence_marker($id){return 3===$id?99:0;} function ufsc_wc_log(){} function ufsc_get_user_club_id(){return 9;}
 class FakeCart { public $items=array(); function add_to_cart($p,$q,$v,$a,$d){$this->items[]=array('product_id'=>$p,'quantity'=>$q)+$d;return 'k'.count($this->items);} function get_cart(){return $this->items;} }
 class FakeWC { public $cart; function __construct(){ $this->cart=new FakeCart(); } } $GLOBALS['wc']=new FakeWC(); function WC(){return $GLOBALS['wc'];}
-$wpdb->rows[3]=(object)array('id'=>3,'club_id'=>9,'role'=>'coach','nom'=>'Old','prenom'=>'Done','date_naissance'=>'1980-01-01');
+$wpdb->rows[3]=(object)array('id'=>3,'club_id'=>9,'role'=>'coach','nom'=>'Old','prenom'=>'Done','date_naissance'=>'1980-01-01','fighter_level'=>'veteran','poids'=>'82');
 require dirname(__DIR__) . '/inc/woocommerce/cart-integration.php';
 require dirname(__DIR__) . '/inc/common/fighter-level.php';
 $result=ufsc_add_renewal_sources_to_cart(55,9,array(1,2,3),'2026-2027');

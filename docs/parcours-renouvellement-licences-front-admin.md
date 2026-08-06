@@ -4,6 +4,8 @@
 
 Dans **Mes licences UFSC**, le club voit successivement la saison courante, les licences de la saison précédente à renouveler et les archives. L'assistant: (1) sélectionne les personnes éligibles, (2) vérifie identité, niveau et poids, (3) ajoute une ligne nominative par personne. Une ligne incomplète est désactivée et expliquée. Le lien Archives utilise une URL locale stable, conserve les paramètres de portail et positionne le focus sur le titre.
 
+Les coordonnées, le niveau, le poids déclaratif et la compétition peuvent être actualisés dans une fiche repliable par personne. Les différences avant/après sont affichées. La stratégie retenue conserve une structure nominative validée dans la ligne panier puis dans la ligne de commande; aucune requête `UPDATE` ne vise l'archive et aucun brouillon actif n'est créé en cas d'abandon. À la suppression/expiration du panier, cette structure suit le cycle de vie normal de la session WooCommerce. Une modification de l'identité principale exige confirmation et crée la nouvelle annualité en `correction_required`, sans changer le numéro UFSC ni `person_identifier`.
+
 Le niveau sportif provient d'une liste centrale filtrable. Il est requis au panier. Le poids accepte point/virgule dans le handler existant, est borné et déclenche recalcul/journalisation; une pesée officielle n'est jamais exposée à ce formulaire. La catégorie est toujours calculée par `UFSC_Category_Repository` pour la saison cible.
 
 ## Administration

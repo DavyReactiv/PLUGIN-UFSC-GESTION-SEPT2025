@@ -18,6 +18,8 @@ Avant, Archives dépendait essentiellement d'une ancre et l'affichage en lecture
 
 Chaque source éligible devient une ligne panier quantité 1 avec identité unique, personne, source, saison, niveau et poids. Les contrôles sont rejoués à la restauration et au checkout. Une transition réellement payée crée une nouvelle ligne `pending_validation`, conserve UFSC/filiation/personne, mais pas ASPTT, ancien paiement, statut validé, commande ou documents expirés. `on-hold` n'emprunte pas ce chemin payé.
 
+La vérification permet de proposer des coordonnées et informations sportives actualisées. `UFSC_Renewal_Service::sanitize_renewal_updates()` applique une liste blanche et construit les différences sans écrire la source. Les valeurs validées transitent dans les métadonnées nominatives panier/commande, puis remplacent seulement les champs autorisés de la nouvelle annualité. Les catégories sont recalculées pour la saison cible. Les changements sont journalisés avec source, cible, club, utilisateur et contexte; aucune donnée médicale n'est incluse.
+
 ## Risques, corrections et limites
 
 Corrections: navigation Archives stable, assistant front, exigences niveau/poids, lignes nominatives non fusionnées, métadonnées, statut post-paiement et identité permanente. Les protections affiliation, propriété, doublon panier/commande et archives intactes sont conservées.
