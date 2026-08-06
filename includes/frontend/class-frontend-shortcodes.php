@@ -794,6 +794,7 @@ class UFSC_Frontend_Shortcodes {
                 </div>
             <?php endif; ?>
 
+            <div class="ufsc-licences-workspace">
             <!-- Filters -->
             <div class="ufsc-licences-filters">
                 <form method="get" class="ufsc-filters-form">
@@ -1018,6 +1019,7 @@ class UFSC_Frontend_Shortcodes {
             <p><a class="ufsc-btn ufsc-btn-secondary" href="<?php echo esc_url( self::get_club_portal_url( 'licences-archives' ) ); ?>"><?php esc_html_e( 'Voir toutes les archives', 'ufsc-clubs' ); ?></a></p>
             <?php echo self::render_archived_licences_section( $archive_licences, $archive_seasons, $archive_filter, $atts, true ); ?>
             <?php echo self::render_future_licences_section( $future_licences ); ?>
+            </div>
         </div>
 
         <!-- Import Modal -->

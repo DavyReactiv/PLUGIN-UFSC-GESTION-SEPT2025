@@ -97,6 +97,12 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
 .ufsc-club-portal .ufsc-club-account__savebar,
 .ufsc-club-portal__savebar { position: sticky; bottom: 12px; z-index: 5; display: flex; justify-content: flex-end; gap: 12px; margin: 24px 0; padding: 12px; background: rgba(255,255,255,.94); border: 1px solid var(--ufsc-border); border-radius: var(--ufsc-radius); box-shadow: var(--ufsc-shadow); }
 .ufsc-club-portal .ufsc-licences-archives { margin-top: 28px; padding-top: 4px; }
+.ufsc-club-portal .ufsc-licences-workspace {
+    width: 100%;
+    max-width: 1440px;
+    margin-inline: auto;
+    padding-inline: clamp(0px, 1.5vw, 20px);
+}
 .ufsc-club-portal .ufsc-renewal-wizard{margin:28px 0;padding:clamp(16px,3vw,28px)}
 .ufsc-club-portal .ufsc-renewal-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:0;list-style:none}
 .ufsc-club-portal .ufsc-renewal-steps li{padding:12px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc}
@@ -112,8 +118,10 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
 .ufsc-club-portal .ufsc-renewal-profile-grid input,.ufsc-club-portal .ufsc-renewal-profile-grid select{width:100%;min-height:44px}
 .ufsc-club-portal .ufsc-sensitive-identity{margin-top:18px;padding:14px;border:2px solid #b45309}
 .ufsc-club-portal .ufsc-renewal-change-summary{margin:18px 0;padding:12px;background:#ecfdf5;border-left:4px solid #047857}
-.ufsc-club-portal .ufsc-renewal-table{width:100%;table-layout:auto}
-.ufsc-club-portal .ufsc-renewal-table td:last-child{min-width:190px}.ufsc-club-portal .ufsc-renewal-table .ufsc-btn{white-space:normal;margin-top:8px;max-width:100%}
+.ufsc-club-portal .ufsc-renewal-table{width:100%;table-layout:fixed;font-size:clamp(14px,1vw,16px)}
+.ufsc-club-portal .ufsc-renewal-table th,.ufsc-club-portal .ufsc-renewal-table td{padding:14px 12px;vertical-align:middle;overflow-wrap:break-word}
+.ufsc-club-portal .ufsc-renewal-table th:first-child{width:8%}.ufsc-club-portal .ufsc-renewal-table th:nth-child(2){width:20%}.ufsc-club-portal .ufsc-renewal-table th:nth-child(3){width:13%}.ufsc-club-portal .ufsc-renewal-table th:nth-child(4){width:16%}.ufsc-club-portal .ufsc-renewal-table th:nth-child(5){width:11%}.ufsc-club-portal .ufsc-renewal-table th:last-child{width:32%}
+.ufsc-club-portal .ufsc-renewal-table tbody tr:hover{background:#f0f9ff}.ufsc-club-portal .ufsc-renewal-table td:last-child{min-width:0}.ufsc-club-portal .ufsc-renewal-table .ufsc-btn{white-space:normal;margin-top:8px;max-width:100%;min-height:44px;text-align:center}.ufsc-club-portal .ufsc-renewal-button small{display:block;margin-top:3px}
 .ufsc-club-portal .ufsc-renewal-reason{margin-top:6px}.ufsc-club-portal .ufsc-renewal-field-error{display:block;color:#9f1239;font-weight:700;margin-top:4px}
 .ufsc-club-portal .ufsc-renewal-final-review{padding:16px;background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px}
 .ufsc-club-portal .ufsc-renewal-steps [aria-current="step"]{border-color:#173b67;box-shadow:0 0 0 2px #173b67 inset}
