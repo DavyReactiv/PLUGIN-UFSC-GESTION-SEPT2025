@@ -22,6 +22,7 @@ function ufsc_init_cart_integration() {
 	add_action( 'admin_post_ufsc_add_to_cart', 'ufsc_handle_add_to_cart_secure' );
 	add_action( 'admin_post_nopriv_ufsc_add_to_cart', 'ufsc_handle_add_to_cart_secure' );
 	add_action( 'admin_post_ufsc_bulk_renew_licences', 'ufsc_handle_bulk_renew_licences' );
+	add_action( 'admin_post_nopriv_ufsc_bulk_renew_licences', 'ufsc_handle_bulk_renew_licences' );
 
 	if ( ! function_exists( 'ufsc_is_woocommerce_active' ) || ! ufsc_is_woocommerce_active() ) {
 		return;
@@ -104,7 +105,7 @@ function ufsc_handle_bulk_renew_licences() {
 	$season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ufsc_get_current_season();
 	$posted_season = isset( $_POST['ufsc_target_season'] ) && ! is_array( $_POST['ufsc_target_season'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_target_season'] ) ) : '';
 	if ( $posted_season && $posted_season !== $season ) { wp_die( __( 'Saison cible invalide.', 'ufsc-clubs' ) ); }
-	$ids = isset( $_POST['renew_licence_ids'] ) && is_array( $_POST['renew_licence_ids'] ) ? $_POST['renew_licence_ids'] : array();
+	$ids = isset( $_POST['source_ids'] ) && is_array( $_POST['source_ids'] ) ? $_POST['source_ids'] : ( isset( $_POST['renew_licence_ids'] ) && is_array( $_POST['renew_licence_ids'] ) ? $_POST['renew_licence_ids'] : array() );
 	$profiles = isset( $_POST['renewal_profiles'] ) && is_array( $_POST['renewal_profiles'] ) ? wp_unslash( $_POST['renewal_profiles'] ) : array();
 	$result = ufsc_add_renewal_sources_to_cart( ufsc_get_licence_product_id(), $club_id, $ids, $season, $profiles );
 	if ( $result['skipped'] && function_exists( 'set_transient' ) ) { set_transient( 'ufsc_renewal_front_' . get_current_user_id() . '_' . $club_id, array( 'ids' => array_map( 'absint', $ids ), 'profiles' => $profiles ), 30 * 60 ); }

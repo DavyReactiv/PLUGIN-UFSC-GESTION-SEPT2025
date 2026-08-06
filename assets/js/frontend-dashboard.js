@@ -911,16 +911,16 @@
             var showRenewalStep = function(step, focusId) {
                 renewalForm.attr('data-current-step', step);
                 $('[data-ufsc-step-indicator]').removeAttr('aria-current').filter('[data-ufsc-step-indicator="' + step + '"]').attr('aria-current', 'step');
-                $('[data-ufsc-step-actions], [data-ufsc-step-review]').prop('hidden', true);
-                $('[data-ufsc-step-actions="' + step + '"], [data-ufsc-step-review="' + step + '"]').prop('hidden', false);
-                renewalForm.find('.ufsc-renewal-source-row').toggle(step === 1);
+                $('[data-ufsc-step-actions], [data-ufsc-step-review]').prop('hidden', true).addClass('ufsc-is-hidden');
+                $('[data-ufsc-step-actions="' + step + '"], [data-ufsc-step-review="' + step + '"]').prop('hidden', false).removeClass('ufsc-is-hidden');
+                renewalForm.find('.ufsc-renewal-source-row').prop('hidden', step !== 1).toggleClass('ufsc-is-hidden', step !== 1);
                 renewalForm.find('.ufsc-renewal-profile-row').each(function() {
                     var selected = renewalForm.find('.ufsc-renewal-checkbox[value="' + $(this).data('profile-id') + '"]').prop('checked');
-                    $(this).toggle(step === 2 && selected);
+                    $(this).prop('hidden', !(step === 2 && selected)).toggleClass('ufsc-is-hidden', !(step === 2 && selected));
                     if (step === 2 && selected) { $(this).find('details').prop('open', true).attr('aria-expanded', 'true'); }
                 });
-                renewalForm.find('.ufsc-renewal-table thead').toggle(step === 1);
-                renewalForm.find('.ufsc-front-table-scroll').toggle(step !== 3);
+                renewalForm.find('.ufsc-renewal-table thead').prop('hidden', step !== 1).toggleClass('ufsc-is-hidden', step !== 1);
+                renewalForm.find('.ufsc-front-table-scroll').prop('hidden', step === 3).toggleClass('ufsc-is-hidden', step === 3);
                 if (step === 3) {
                     var review = renewalForm.find('[data-ufsc-step-review="3"] ul').empty();
                     renewalForm.find('.ufsc-renewal-checkbox:checked').each(function() {
