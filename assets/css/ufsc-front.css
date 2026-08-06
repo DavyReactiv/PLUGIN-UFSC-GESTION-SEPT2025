@@ -97,6 +97,14 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
 .ufsc-club-portal .ufsc-club-account__savebar,
 .ufsc-club-portal__savebar { position: sticky; bottom: 12px; z-index: 5; display: flex; justify-content: flex-end; gap: 12px; margin: 24px 0; padding: 12px; background: rgba(255,255,255,.94); border: 1px solid var(--ufsc-border); border-radius: var(--ufsc-radius); box-shadow: var(--ufsc-shadow); }
 .ufsc-club-portal .ufsc-licences-archives { margin-top: 28px; padding-top: 4px; }
+.ufsc-club-portal .ufsc-renewal-wizard{margin:28px 0;padding:clamp(16px,3vw,28px)}
+.ufsc-club-portal .ufsc-renewal-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:0;list-style:none}
+.ufsc-club-portal .ufsc-renewal-steps li{padding:12px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc}
+.ufsc-club-portal .ufsc-renewal-steps strong{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#173b67;color:#fff}
+.ufsc-club-portal .ufsc-renewal-summary{margin:16px 0;padding:12px;background:#eef6ff;border-left:4px solid #173b67}
+.ufsc-club-portal .ufsc-renewal-actions{display:flex;flex-wrap:wrap;gap:10px}
+.ufsc-club-portal :focus-visible{outline:3px solid #f59e0b;outline-offset:3px}
+@media(max-width:600px){.ufsc-club-portal .ufsc-renewal-steps{grid-template-columns:1fr}.ufsc-club-portal .ufsc-renewal-actions .ufsc-btn{width:100%}}
 @media (max-width: 1100px) { .ufsc-club-portal .ufsc-dashboard-hero-layout, .ufsc-club-portal .ufsc-club-hero { grid-template-columns: 1fr; } .ufsc-club-portal .ufsc-profile-insight-band, .ufsc-club-portal .ufsc-hero-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .ufsc-club-portal .ufsc-profile-cards { grid-template-columns: 1fr; } .ufsc-club-portal .ufsc-profile-cards > .ufsc-card { grid-column: 1 / -1; } }
 @media (max-width: 768px) { .ufsc-club-portal { width: min(100% - 20px, 1280px); } .ufsc-club-portal .ufsc-hero-kpi-grid, .ufsc-club-portal .ufsc-club-account__identity, .ufsc-club-portal .ufsc-grid, .ufsc-club-portal .ufsc-board-columns, .ufsc-club-portal .ufsc-documents-grid { grid-template-columns: 1fr; } }
