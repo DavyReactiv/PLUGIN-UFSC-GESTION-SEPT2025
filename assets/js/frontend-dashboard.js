@@ -936,6 +936,7 @@
                 var incomplete = renewalForm.find('.ufsc-renewal-source-row .ufsc-badge-warning').length;
                 var blocked = renewalForm.find('.ufsc-renewal-checkbox:disabled').length;
                 renewalForm.find('[data-ufsc-selection-count]').text(selected + ' sélectionnée(s), ' + incomplete + ' à compléter, ' + blocked + ' bloquée(s)');
+                renewalForm.find('[data-ufsc-next-step="2"]').prop('disabled', selected === 0).attr('aria-disabled', selected === 0 ? 'true' : 'false');
             };
             renewalForm.on('change', '.ufsc-renewal-checkbox', updateRenewalCount);
             renewalForm.on('click', '[data-ufsc-renew-one]', function(event) {

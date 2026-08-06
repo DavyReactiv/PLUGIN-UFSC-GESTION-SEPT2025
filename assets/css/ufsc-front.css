@@ -2784,3 +2784,29 @@ body .wp-block-post-content > .ufsc-club-account {
         bottom: 8px;
     }
 }
+
+/* Phase 1 renewal: the label is the 44px hit target and sits above decorative layers. */
+.ufsc-club-portal .ufsc-renewal-selection-control {
+    align-items: center;
+    cursor: pointer;
+    display: inline-flex;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
+    position: relative;
+    z-index: 3;
+}
+.ufsc-club-portal .ufsc-renewal-selection-control:focus-within {
+    border-radius: 6px;
+    outline: 3px solid #0b63ce;
+    outline-offset: 2px;
+}
+.ufsc-club-portal .ufsc-renewal-selection-control .ufsc-renewal-checkbox {
+    accent-color: #173b67;
+    cursor: pointer;
+    height: 24px;
+    margin: 0;
+    width: 24px;
+}
+.ufsc-club-portal .ufsc-renewal-selection-control .ufsc-renewal-checkbox:disabled { cursor: not-allowed; }
+.ufsc-archive-results { font-weight: 700; }
