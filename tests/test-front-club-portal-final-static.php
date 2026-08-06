@@ -17,7 +17,7 @@ $assert( strpos( $front, 'id="ufsc-club-licences"' ) !== false, 'Licence-list an
 $assert( substr_count( $front, 'id="ufsc-club-documents"' ) === 1, 'Documents ID is unique.' );
 $assert( substr_count( $front, 'id="ufsc-club-officers"' ) === 1, 'Officers ID is unique.' );
 $assert( strpos( $front, 'width="96" height="96"' ) !== false && strpos( $front, 'width="280" height="220"' ) !== false, 'Logos/photos reserve first-paint dimensions.' );
-$assert( strpos( $front, 'in_array( $affiliation_state[\'status\'], array( \'active\', \'validated\' ), true )' ) !== false, 'Active/validated annual statuses suppress renewal CTA.' );
+$assert( strpos( $front, "\$renewal_affiliation_done = ! empty( \$licence_affiliation_gate['allowed'] )" ) !== false, 'The canonical annual affiliation gate suppresses the renewal CTA.' );
 $assert( strpos( $front, 'Affiliation %s active' ) !== false, 'Active affiliation message is explicit.' );
 $assert( strpos( $front, 'Finaliser mon paiement' ) !== false && strpos( $front, 'En attente de validation' ) !== false && strpos( $front, 'Renouveler mon affiliation %s' ) !== false, 'Annual affiliation states render expected CTAs/messages.' );
 $assert( strpos( $front, 'render_archived_licences_section( $archive_licences, $archive_seasons, $archive_filter, $atts, true )' ) !== false, 'Dashboard always renders read-only licence archives section.' );

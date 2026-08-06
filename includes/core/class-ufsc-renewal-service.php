@@ -5,6 +5,61 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 final class UFSC_Renewal_Service {
     const DUPLICATE_MESSAGE = 'Cette licence est déjà renouvelée ou fait déjà l’objet d’une demande pour %s.';
 
+    /** Fields a club may propose for the new annual row; never applied to the source row. */
+    public static function editable_renewal_fields() {
+        return array( 'adresse', 'suite_adresse', 'complement_adresse', 'code_postal', 'ville', 'pays', 'email', 'telephone', 'tel_fixe', 'tel_mobile', 'profession', 'contact_urgence', 'legal_representative_name', 'representant_legal_nom', 'representant_legal_email', 'representant_legal_telephone', 'fighter_level', 'poids', 'competition', 'discipline', 'pratique', 'role', 'reduction_benevole', 'reduction_benevole_num', 'reduction_postier', 'reduction_postier_num', 'identifiant_laposte_flag', 'identifiant_laposte', 'fonction_publique', 'licence_delegataire', 'diffusion_image', 'infos_fsasptt', 'infos_asptt', 'infos_cr', 'infos_partenaires', 'honorabilite', 'honorability_confirmed', 'assurance_dommage_corporel', 'assurance_assistance', 'health_questionnaire_confirmed', 'note', 'nom', 'prenom', 'date_naissance', 'sexe' );
+    }
+
+    /**
+     * Validate a proposed profile without writing anything to the historical licence.
+     * Returned values are safe to carry as nominative cart/order metadata.
+     */
+    public static function sanitize_renewal_updates( $source, $raw ) {
+        $source = (object) $source;
+        $raw = is_array( $raw ) ? $raw : array();
+        $data = array(); $errors = array(); $changes = array(); $sensitive = false;
+        $text_fields = array( 'adresse', 'suite_adresse', 'complement_adresse', 'code_postal', 'ville', 'pays', 'profession', 'contact_urgence', 'legal_representative_name', 'representant_legal_nom', 'discipline', 'pratique', 'role', 'reduction_benevole_num', 'reduction_postier_num', 'identifiant_laposte', 'note', 'nom', 'prenom', 'sexe' );
+        foreach ( $text_fields as $field ) {
+            if ( ! array_key_exists( $field, $raw ) ) { continue; }
+            $data[$field] = sanitize_text_field( wp_unslash( $raw[$field] ) );
+        }
+        foreach ( array( 'email', 'representant_legal_email' ) as $field ) {
+            if ( ! array_key_exists( $field, $raw ) ) { continue; }
+            $value = sanitize_email( wp_unslash( $raw[$field] ) );
+            if ( '' !== trim( (string) $raw[$field] ) && ! is_email( $value ) ) { $errors[$field] = __( 'Adresse e-mail invalide.', 'ufsc-clubs' ); }
+            $data[$field] = $value;
+        }
+        foreach ( array( 'telephone', 'tel_fixe', 'tel_mobile', 'representant_legal_telephone' ) as $field ) {
+            if ( ! array_key_exists( $field, $raw ) ) { continue; }
+            $data[$field] = preg_replace( '/[^0-9+(). -]/', '', sanitize_text_field( wp_unslash( $raw[$field] ) ) );
+        }
+        if ( array_key_exists( 'date_naissance', $raw ) ) {
+            $value = sanitize_text_field( wp_unslash( $raw['date_naissance'] ) );
+            $valid = DateTimeImmutable::createFromFormat( '!Y-m-d', $value );
+            if ( ! $valid || $valid->format( 'Y-m-d' ) !== $value ) { $errors['date_naissance'] = __( 'Date de naissance invalide.', 'ufsc-clubs' ); }
+            $data['date_naissance'] = $value;
+        }
+        $level = function_exists( 'ufsc_normalize_fighter_level' ) ? ufsc_normalize_fighter_level( $raw['fighter_level'] ?? $source->fighter_level ?? '' ) : sanitize_key( (string) ( $raw['fighter_level'] ?? $source->fighter_level ?? '' ) );
+        if ( ! isset( ufsc_get_sport_level_options()[$level] ) ) { $errors['fighter_level'] = __( 'Le niveau sportif est obligatoire pour renouveler cette licence.', 'ufsc-clubs' ); }
+        $data['fighter_level'] = $level;
+        $weight = UFSC_Category_Repository::normalize_weight( $raw['poids'] ?? $source->poids ?? '' );
+        if ( null === $weight || $weight < 20 || $weight > 300 ) { $errors['poids'] = __( 'Le poids déclaré doit être compris entre 20 et 300 kg.', 'ufsc-clubs' ); }
+        $data['poids'] = $weight;
+        foreach ( array( 'competition', 'reduction_benevole', 'reduction_postier', 'identifiant_laposte_flag', 'fonction_publique', 'licence_delegataire', 'diffusion_image', 'infos_fsasptt', 'infos_asptt', 'infos_cr', 'infos_partenaires', 'honorabilite', 'honorability_confirmed', 'assurance_dommage_corporel', 'assurance_assistance', 'health_questionnaire_confirmed' ) as $field ) { $data[$field] = empty( $raw[$field] ) ? 0 : 1; }
+        foreach ( array( 'nom', 'prenom', 'email', 'date_naissance', 'sexe', 'adresse', 'ville', 'code_postal' ) as $field ) {
+            $value = $data[$field] ?? $source->{$field} ?? '';
+            if ( '' === trim( (string) $value ) ) { $errors[$field] = sprintf( __( 'Le champ %s est obligatoire.', 'ufsc-clubs' ), $field ); }
+            elseif ( ! array_key_exists( $field, $data ) ) { $data[$field] = $value; }
+        }
+        foreach ( $data as $field => $value ) {
+            $old = isset( $source->{$field} ) ? (string) $source->{$field} : '';
+            if ( (string) $value !== $old ) { $changes[$field] = array( 'old' => $old, 'new' => (string) $value ); }
+        }
+        foreach ( array( 'nom', 'prenom', 'date_naissance', 'sexe' ) as $field ) { if ( isset( $changes[$field] ) ) { $sensitive = true; } }
+        if ( $sensitive && empty( $raw['confirm_identity_change'] ) ) { $errors['confirm_identity_change'] = __( 'Confirmez la modification sensible de l’identité.', 'ufsc-clubs' ); }
+        return array( 'data' => $data, 'changes' => $changes, 'errors' => $errors, 'sensitive_identity_change' => $sensitive );
+    }
+
     public static function person_key( $licence, $club_id ) {
         $ufsc = UFSC_Identifier_Resolver::read( $licence, 'licence_ufsc' );
         if ( $ufsc ) { return 'ufsc:' . strtolower( $ufsc ); }
@@ -17,6 +72,8 @@ final class UFSC_Renewal_Service {
 
     public static function can_renew( $source, $club_id, $target_season ) {
         if ( ! $source || ! absint( $club_id ) || ! $target_season ) { return new WP_Error( 'invalid_renewal', __( 'Demande de renouvellement incomplète.', 'ufsc-clubs' ) ); }
+        $source_status = sanitize_key( (string) ( is_array( $source ) ? ( $source['statut'] ?? $source['status'] ?? '' ) : ( $source->statut ?? $source->status ?? '' ) ) );
+        if ( in_array( $source_status, array( 'suspended', 'suspendu', 'rejected', 'refused', 'refuse' ), true ) ) { return new WP_Error( 'source_status_blocked', __( 'Le statut de cette licence interdit son renouvellement.', 'ufsc-clubs' ) ); }
         $gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( $club_id, $target_season ) : array( 'allowed' => false );
         if ( empty( $gate['allowed'] ) ) { return new WP_Error( 'inactive_affiliation', __( 'L’affiliation du club doit être active ou validée pour cette saison.', 'ufsc-clubs' ) ); }
         $key = self::person_key( $source, $club_id );

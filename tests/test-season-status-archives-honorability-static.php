@@ -14,7 +14,7 @@ $check( false !== strpos( $admin, "'club_view' => 'permanent'" ) && false !== st
 $check( false !== strpos( $admin, 'Tous les clubs enregistrés' ) && false !== strpos( $admin, 'name="season"' ), 'Registered-club action and season filter must remain visible.' );
 $check( false !== strpos( $front, "get_club_portal_url( 'licences-archives' )" ) && false !== strpos( $front, "'licences-archives' => 'ufsc-licences-archives'" ), 'Archives must use the explicit user-triggered portal route.' );
 $check( false !== strpos( $front, "\$season_context['action_label']" ) && false !== strpos( $front, 'ufsc_renew_from_licence_id' ), 'Individual archive renewal must use the contextual target-season action.' );
-$check( false !== strpos( $front, 'Vous devez renouveler et faire valider' ), 'Inactive affiliation must explain the renewal block.' );
+$check( false !== strpos( $front, "\$affiliation_gate['message']" ), 'Inactive affiliation must expose the central gate contextual explanation.' );
 $check( 2 === substr_count( $front, 'ufsc-health-document-link' ), 'Both health documents must be permanently consultable.' );
 $check( 2 === substr_count( $front, 'name="health_questionnaire_confirmed"' ), 'Exactly two mutually-exclusive confirmation controls are expected.' );
 $check( false !== strpos( $js, "role.val() !== 'pratiquant'" ), 'Only Pratiquant is exempt in the browser.' );

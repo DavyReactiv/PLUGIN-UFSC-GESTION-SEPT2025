@@ -422,7 +422,7 @@ if ( ! function_exists( 'ufsc_get_affiliation_season' ) ) {
 		// affiliation from the permanent club record or a legacy status.
 		if ( '' !== $season && class_exists( 'UFSC_Season_Archive_Manager' ) ) {
 			$annual = UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season );
-			return $annual ? sanitize_text_field( (string) $annual->season ) : null;
+			return $annual ? ( method_exists( 'UFSC_Season_Archive_Manager', 'normalize_season' ) ? UFSC_Season_Archive_Manager::normalize_season( $season ) : sanitize_text_field( (string) $season ) ) : null;
 		}
 
 		$table      = ufsc_get_clubs_table();
@@ -514,36 +514,50 @@ if ( ! function_exists( 'ufsc_club_can_manage_licences_for_season' ) ) {
             ? ( class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ) )
             : sanitize_text_field( (string) $season );
 
+        $normalized_season = class_exists( 'UFSC_Season_Archive_Manager' ) && method_exists( 'UFSC_Season_Archive_Manager', 'normalize_season' ) ? UFSC_Season_Archive_Manager::normalize_season( $season ) : ( preg_match( '/^\d{4}-\d{4}$/', (string) $season ) ? (string) $season : '' );
         $result = array(
             'allowed'        => false,
             'code'           => 'affiliation_unknown',
             'message'        => __( 'Votre club doit renouveler et faire activer son affiliation avant de souscrire ou renouveler des licences.', 'ufsc-clubs' ),
             'club_id'        => $club_id,
-            'season'         => $season,
+            'season'         => $normalized_season,
             'annual_status'  => '',
-            'affiliation_id' => 0,
+            'raw_status' => '', 'payment_status' => '', 'order_id' => 0, 'affiliation_id' => 0,
+            'source_table' => '', 'source_column' => '', 'evidence' => array(),
         );
 
-        if ( $club_id <= 0 || ! preg_match( '/^\d{4}-\d{4}$/', (string) $season ) || ! class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+        if ( $club_id <= 0 || '' === $normalized_season || ! class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+            $result['message'] = __( 'L’état de votre affiliation n’a pas pu être déterminé. Veuillez contacter l’UFSC.', 'ufsc-clubs' );
             return $result;
         }
 
-        $affiliation = UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season );
+        $resolution = method_exists( 'UFSC_Season_Archive_Manager', 'resolve_affiliation' ) ? UFSC_Season_Archive_Manager::resolve_affiliation( $club_id, $normalized_season ) : array( 'row' => UFSC_Season_Archive_Manager::get_affiliation( $club_id, $normalized_season ), 'source_table' => '', 'source_column' => 'season', 'columns' => array(), 'rows_found' => 1, 'duplicate_count' => 0, 'code' => 'affiliation_found', 'status_column' => 'status' );
+        $affiliation = $resolution['row'];
+        $result['source_table'] = $resolution['source_table'] ?? '';
+        $result['source_column'] = $resolution['source_column'] ?? '';
+        $result['evidence'] = array( 'rows_found' => absint( $resolution['rows_found'] ?? 0 ), 'duplicate_count' => absint( $resolution['duplicate_count'] ?? 0 ), 'columns' => array_values( (array) ( $resolution['columns'] ?? array() ) ) );
         if ( ! $affiliation ) {
-            $result['code']    = 'affiliation_missing';
-            $result['message'] = sprintf( __( 'Votre club doit renouveler et faire activer son affiliation %s avant de souscrire ou renouveler des licences.', 'ufsc-clubs' ), $season );
+            $technical = 'affiliation_resolution_error' === ( $resolution['code'] ?? '' );
+            $result['code'] = $technical ? 'affiliation_resolution_error' : 'affiliation_missing';
+            $result['message'] = $technical ? __( 'L’état de votre affiliation n’a pas pu être déterminé. Veuillez contacter l’UFSC.', 'ufsc-clubs' ) : sprintf( __( 'Votre club ne possède pas encore d’affiliation active pour la saison %s.', 'ufsc-clubs' ), $normalized_season );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) { error_log( 'UFSC annual affiliation diagnostic: ' . wp_json_encode( array_merge( $result, array( 'user_id' => get_current_user_id(), 'requested_season' => $season ) ) ) ); }
             return $result;
         }
 
-        $status = isset( $affiliation->status ) ? sanitize_key( (string) $affiliation->status ) : '';
+        $status_column = $resolution['status_column'] ?? 'status';
+        $raw_status = (string) ( $affiliation->{$status_column} ?? '' );
+        $status = method_exists( 'UFSC_Season_Archive_Manager', 'normalize_status' ) ? UFSC_Season_Archive_Manager::normalize_status( $raw_status ) : sanitize_key( $raw_status );
         $payment_status = isset( $affiliation->payment_status ) ? sanitize_key( (string) $affiliation->payment_status ) : '';
         $result['annual_status']  = $status;
-        $result['affiliation_id'] = absint( $affiliation->id ?? 0 );
+        $result['raw_status'] = $raw_status; $result['payment_status'] = $payment_status;
+        $result['affiliation_id'] = absint( $affiliation->id ?? $affiliation->affiliation_id ?? 0 );
+        $result['order_id'] = absint( $affiliation->wc_order_id ?? $affiliation->order_id ?? 0 );
 
         if ( in_array( $status, array( 'active', 'validated' ), true ) ) {
             $result['allowed'] = true;
             $result['code']    = 'affiliation_active';
-            $result['message'] = sprintf( __( 'Affiliation %s active.', 'ufsc-clubs' ), $season );
+            $result['message'] = sprintf( __( 'Affiliation %s active.', 'ufsc-clubs' ), $normalized_season );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) { error_log( 'UFSC annual affiliation diagnostic: ' . wp_json_encode( array_merge( $result, array( 'user_id' => get_current_user_id(), 'requested_season' => $season ) ) ) ); }
             return $result;
         }
 
@@ -563,14 +577,15 @@ if ( ! function_exists( 'ufsc_club_can_manage_licences_for_season' ) ) {
         $result['code'] = $code_map[ $status ] ?? ( 'unpaid' === $payment_status ? 'affiliation_pending_payment' : 'affiliation_unknown' );
 
         $messages = array(
-            'affiliation_pending_payment'     => __( 'Finaliser mon paiement d’affiliation avant de souscrire ou renouveler des licences.', 'ufsc-clubs' ),
-            'affiliation_pending_validation'  => __( 'Votre affiliation est en cours de validation. Les licences sont bloquées jusqu’à activation.', 'ufsc-clubs' ),
-            'affiliation_correction_required' => __( 'Votre affiliation nécessite une correction avant toute licence.', 'ufsc-clubs' ),
-            'affiliation_suspended'           => __( 'Votre affiliation est suspendue. Les licences sont bloquées.', 'ufsc-clubs' ),
+            'affiliation_pending_payment'     => __( 'Une demande d’affiliation existe déjà. Finalisez le paiement pour poursuivre.', 'ufsc-clubs' ),
+            'affiliation_pending_validation'  => __( 'Votre affiliation est en attente de validation par l’UFSC.', 'ufsc-clubs' ),
+            'affiliation_correction_required' => __( 'Votre affiliation nécessite une correction avant de poursuivre.', 'ufsc-clubs' ),
+            'affiliation_suspended'           => __( 'Votre affiliation est suspendue. Contactez l’UFSC.', 'ufsc-clubs' ),
             'affiliation_rejected'            => __( 'Votre affiliation est refusée. Les licences sont bloquées.', 'ufsc-clubs' ),
             'affiliation_expired'             => __( 'Votre affiliation est expirée. Les licences sont bloquées.', 'ufsc-clubs' ),
         );
-        $result['message'] = $messages[ $result['code'] ] ?? sprintf( __( 'Votre club doit renouveler et faire activer son affiliation %s avant de souscrire ou renouveler des licences.', 'ufsc-clubs' ), $season );
+        $result['message'] = $messages[ $result['code'] ] ?? __( 'L’état de votre affiliation n’a pas pu être déterminé. Veuillez contacter l’UFSC.', 'ufsc-clubs' );
+        if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) { error_log( 'UFSC annual affiliation diagnostic: ' . wp_json_encode( array_merge( $result, array( 'user_id' => get_current_user_id(), 'requested_season' => $season ) ) ) ); }
         return $result;
     }
 }
@@ -678,6 +693,7 @@ if ( ! function_exists( 'ufsc_get_renewal_copy_fields' ) ) {
 			'piece_identite',
 			'photo_identite',
 			'fighter_level',
+			'poids',
 		);
 	}
 }

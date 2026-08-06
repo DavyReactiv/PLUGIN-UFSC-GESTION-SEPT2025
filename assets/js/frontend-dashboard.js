@@ -887,6 +887,96 @@
     // Initialize when document is ready
     $(document).ready(function() {
         UfscDashboard.init();
+        var requestedSection = new URLSearchParams(window.location.search).get('ufsc_section');
+        if (requestedSection === 'licences-archives') {
+            var archives = document.getElementById('ufsc-licences-archives');
+            var title = document.getElementById('ufsc-licences-archives-title');
+            if (archives) {
+                archives.scrollIntoView({behavior: 'smooth', block: 'start'});
+                if (title) { title.setAttribute('tabindex', '-1'); title.focus({preventScroll: true}); }
+            }
+        }
+        $('[data-ufsc-select-all]').on('click', function() { $('#ufsc-renewal-assistant-form .ufsc-renewal-checkbox:not(:disabled)').prop('checked', true).trigger('change'); });
+        $('[data-ufsc-select-none]').on('click', function() { $('#ufsc-renewal-assistant-form .ufsc-renewal-checkbox').prop('checked', false).trigger('change'); });
+        var renewalForm = $('#ufsc-renewal-assistant-form');
+        if (renewalForm.length) {
+            renewalForm.addClass('ufsc-renewal-enhanced');
+            var renewalError = function(message) {
+                var notice = renewalForm.find('.ufsc-renewal-client-notice');
+                if (!notice.length) { notice = $('<div class="ufsc-message ufsc-error ufsc-renewal-client-notice" role="alert" tabindex="-1"></div>').prependTo(renewalForm); }
+                notice.text(message).focus();
+            };
+            var showRenewalStep = function(step, focusId) {
+                renewalForm.attr('data-current-step', step);
+                $('[data-ufsc-step-indicator]').removeAttr('aria-current').filter('[data-ufsc-step-indicator="' + step + '"]').attr('aria-current', 'step');
+                $('[data-ufsc-step-actions], [data-ufsc-step-review]').prop('hidden', true);
+                $('[data-ufsc-step-actions="' + step + '"], [data-ufsc-step-review="' + step + '"]').prop('hidden', false);
+                renewalForm.find('.ufsc-renewal-source-row').toggle(step === 1);
+                renewalForm.find('.ufsc-renewal-profile-row').each(function() {
+                    var selected = renewalForm.find('.ufsc-renewal-checkbox[value="' + $(this).data('profile-id') + '"]').prop('checked');
+                    $(this).toggle(step === 2 && selected);
+                    if (step === 2 && selected) { $(this).find('details').prop('open', true).attr('aria-expanded', 'true'); }
+                });
+                renewalForm.find('.ufsc-renewal-table thead').toggle(step === 1);
+                renewalForm.find('.ufsc-front-table-scroll').toggle(step !== 3);
+                if (step === 3) {
+                    var review = renewalForm.find('[data-ufsc-step-review="3"] ul').empty();
+                    renewalForm.find('.ufsc-renewal-checkbox:checked').each(function() {
+                        var source = renewalForm.find('.ufsc-renewal-source-row[data-source-id="' + this.value + '"]');
+                        $('<li>').text(source.find('td').eq(1).text().trim() + ' — quantité 1').appendTo(review);
+                    });
+                }
+                var focus = focusId ? document.getElementById(focusId) : renewalForm.find('[data-ufsc-step-indicator="' + step + '"]')[0];
+                if (focus) { focus.setAttribute('tabindex', '-1'); focus.focus(); focus.scrollIntoView({behavior: 'smooth', block: 'start'}); }
+            };
+            var updateRenewalCount = function() {
+                var selected = renewalForm.find('.ufsc-renewal-checkbox:checked').length;
+                var incomplete = renewalForm.find('.ufsc-renewal-source-row .ufsc-badge-warning').length;
+                var blocked = renewalForm.find('.ufsc-renewal-checkbox:disabled').length;
+                renewalForm.find('[data-ufsc-selection-count]').text(selected + ' sélectionnée(s), ' + incomplete + ' à compléter, ' + blocked + ' bloquée(s)');
+            };
+            renewalForm.on('change', '.ufsc-renewal-checkbox', updateRenewalCount);
+            renewalForm.on('click', '[data-ufsc-renew-one]', function() {
+                var id = String($(this).data('ufsc-renew-one'));
+                renewalForm.find('.ufsc-renewal-checkbox[value="' + id + '"]').prop('checked', true);
+                updateRenewalCount(); showRenewalStep(2, 'ufsc-renewal-profile-title-' + id);
+            });
+            renewalForm.on('click', '[data-ufsc-next-step]', function() {
+                var step = Number($(this).data('ufsc-next-step'));
+                if (step > 1 && !renewalForm.find('.ufsc-renewal-checkbox:checked').length) { renewalError('Sélectionnez au moins une licence.'); return; }
+                if (step === 3) {
+                    var firstInvalid = null;
+                    renewalForm.find('.ufsc-renewal-checkbox:checked').each(function() {
+                        var profile = renewalForm.find('.ufsc-renewal-profile-row[data-profile-id="' + this.value + '"]');
+                        ['nom','prenom','email','date_naissance','sexe','adresse','ville','code_postal','fighter_level','poids'].forEach(function(field) {
+                            var input = profile.find('[name$="[' + field + ']"]');
+                            input.next('.ufsc-renewal-field-error').remove(); input.removeAttr('aria-invalid');
+                            if (!String(input.val() || '').trim()) { input.attr('aria-invalid', 'true').after('<span class="ufsc-renewal-field-error" role="alert">Champ obligatoire.</span>'); firstInvalid = firstInvalid || input[0]; }
+                        });
+                    });
+                    if (firstInvalid) { firstInvalid.focus(); renewalError('Complétez les informations obligatoires avant de continuer.'); return; }
+                }
+                showRenewalStep(step);
+            });
+            renewalForm.on('toggle', 'details', function() { $(this).attr('aria-expanded', this.open ? 'true' : 'false'); });
+            updateRenewalCount(); showRenewalStep(1);
+        }
+        $('.ufsc-renewal-profile').each(function() {
+            var profile = this;
+            $(profile).find(':input').each(function() { $(this).data('ufsc-initial', this.type === 'checkbox' ? this.checked : this.value); });
+            $(profile).on('input change', ':input', function() {
+                var list = $(profile).find('.ufsc-renewal-change-summary ul').empty();
+                $(profile).find(':input').each(function() {
+                    var current = this.type === 'checkbox' ? this.checked : this.value;
+                    if ( current !== $(this).data('ufsc-initial') && this.name.indexOf('confirm_identity_change') === -1 ) {
+                        var label = $(this).closest('label').clone().children().remove().end().text().trim() || this.name;
+                        $('<li>').text(label + ' — nouvelle valeur : ' + (this.type === 'checkbox' ? (current ? 'Oui' : 'Non') : current)).appendTo(list);
+                    }
+                });
+                $(profile).find('.ufsc-renewal-change-summary').toggle(list.children().length > 0);
+            });
+            $(profile).find('.ufsc-renewal-change-summary').hide();
+        });
     });
 
     // Expose to global scope for external access

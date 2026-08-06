@@ -17,10 +17,13 @@ $assert = static function ( $condition, $message ) {
 	echo "PASS: {$message}\n";
 };
 $assert( true === ufsc_validate_fighter_level( 'assaut', $birth( 17 ), false ), 'mineur avec Assaut' );
+$assert( true === ufsc_validate_fighter_level( 'débutant', $birth( 17 ), false ), 'mineur avec Débutant legacy normalisé' );
 $assert( is_wp_error( ufsc_validate_fighter_level( 'classe_a', $birth( 17 ), false ) ), 'mineur refusé avec Classe A' );
 foreach ( array( 'classe_c', 'classe_b', 'classe_a' ) as $level ) {
 	$assert( true === ufsc_validate_fighter_level( $level, $birth( 18 ), false ), "majeur accepté en {$level}" );
 }
+$assert( true === ufsc_validate_fighter_level( 'professionnel', $birth( 25 ), false ), 'Professionnel legacy normalisé vers Pro' );
+$assert( array_keys( ufsc_get_sport_level_options() ) === array( 'debutant', 'assaut', 'classe_c', 'classe_b', 'classe_a', 'pro', 'veteran' ), 'ordre officiel Débutant à Vétéran' );
 $assert( is_wp_error( ufsc_validate_fighter_level( 'veteran', $birth( 40 ), false ) ), 'Vétéran refusé avant 41 ans' );
 $assert( true === ufsc_validate_fighter_level( 'veteran', $birth( 41 ), false ), 'Vétéran accepté à 41 ans' );
 $assert( true === ufsc_validate_fighter_level( '', $birth( 60 ), true ), 'ancienne licence NULL/non renseignée acceptée' );
