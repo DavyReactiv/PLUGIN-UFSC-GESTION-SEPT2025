@@ -44,6 +44,9 @@ require_once UFSC_CL_DIR.'includes/core/class-ufsc-db-migrations.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-category-repository.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-season-service.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-storage-resolver.php';
+require_once UFSC_CL_DIR.'includes/core/class-ufsc-identifier-resolver.php';
+require_once UFSC_CL_DIR.'includes/core/class-ufsc-identifier-service.php';
+require_once UFSC_CL_DIR.'includes/core/class-ufsc-renewal-service.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-season-archive-manager.php';
 require_once UFSC_CL_DIR.'includes/core/class-ufsc-licence-payments.php';
 require_once UFSC_CL_DIR.'includes/frontend/class-affiliation-form.php';
@@ -127,6 +130,8 @@ final class UFSC_CL_Bootstrap {
         add_action( 'admin_post_ufsc_sql_force_delete_licence', array( 'UFSC_SQL_Admin', 'handle_force_delete_licence' ) );
         add_action( 'admin_post_ufsc_send_license_payment', array( 'UFSC_SQL_Admin', 'handle_send_license_payment' ) );
         add_action( 'admin_post_ufsc_export_data', array( 'UFSC_SQL_Admin', 'handle_export_data' ) );
+        add_action( 'admin_post_ufsc_generate_identifier', array( 'UFSC_Identifier_Service', 'handle_generate_request' ) );
+        add_action( 'admin_post_ufsc_save_asptt_identifier', array( 'UFSC_Identifier_Service', 'handle_asptt_request' ) );
 
         add_action('admin_post_ufsc_import_data', array('UFSC_SQL_Admin', 'handle_import_data'));
         add_action('admin_post_ufsc_process_import', array('UFSC_SQL_Admin', 'handle_process_import'));

@@ -50,7 +50,7 @@ class UFSC_Clubs_List_Table {
 		$options = array( '' => sprintf( __( 'Saison actuelle : %s', 'ufsc-clubs' ), $current ) );
 		if ( $previous ) { $options[ $previous ] = sprintf( __( 'Saison précédente : %s', 'ufsc-clubs' ), $previous ); }
 		$options['all'] = __( 'Toutes les saisons', 'ufsc-clubs' );
-		$options['permanent'] = __( 'Clubs permanents', 'ufsc-clubs' );
+		$options['permanent'] = __( 'Tous les clubs enregistrés', 'ufsc-clubs' );
 		$options['__archives'] = __( 'Archives uniquement', 'ufsc-clubs' );
 		foreach ( array_unique( array_filter( (array) $available ) ) as $season ) {
 			if ( $season !== $current && $season !== $previous ) { $options[ $season ] = $season; }
@@ -704,7 +704,7 @@ class UFSC_Clubs_List_Table {
             return add_query_arg( array_merge( array( 'page' => 'ufsc-sql-clubs', 'season' => $current_season ), $args ), admin_url( 'admin.php' ) );
         };
         $cards = array(
-            array( 'label' => __( 'Clubs enregistrés', 'ufsc-clubs' ), 'value' => $stats['total'], 'tone' => 'primary', 'url' => $make_url( array( 'season' => 'permanent' ) ), 'description' => __( 'Clubs permanents non supprimés.', 'ufsc-clubs' ) ),
+            array( 'label' => __( 'Clubs enregistrés', 'ufsc-clubs' ), 'value' => $stats['total'], 'tone' => 'primary', 'url' => $make_url( array( 'season' => 'permanent' ) ), 'description' => __( 'Clubs enregistrés non supprimés.', 'ufsc-clubs' ) ),
             array( 'label' => sprintf( __( 'Affiliations actives %s', 'ufsc-clubs' ), $current_season ), 'value' => $stats['active'], 'tone' => 'success', 'url' => $make_url( array( 'kpi_filter' => 'affiliations_active' ) ), 'description' => __( 'Affiliation annuelle active ou validated uniquement.', 'ufsc-clubs' ) ),
             array( 'label' => __( 'Renouvellements à traiter', 'ufsc-clubs' ), 'value' => $stats['to_renew'], 'tone' => 'danger', 'url' => $make_url( array( 'kpi_filter' => 'renewals' ) ), 'description' => __( 'Clubs historiques sans affiliation annuelle active/validated pour la saison courante.', 'ufsc-clubs' ) ),
             array( 'label' => sprintf( __( 'Affiliations en attente %s', 'ufsc-clubs' ), $current_season ), 'value' => $stats['pending'], 'tone' => 'warning', 'url' => $make_url( array( 'kpi_filter' => 'affiliations_pending' ) ), 'description' => __( 'Paiement, validation ou correction en attente.', 'ufsc-clubs' ) ),
