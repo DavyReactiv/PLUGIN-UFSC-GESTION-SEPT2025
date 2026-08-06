@@ -39,7 +39,7 @@ foreach ( array( '_ufsc_club_id', '_ufsc_affiliation_request_type', '_ufsc_targe
 $assert( strpos( $archive, 'ON DUPLICATE KEY UPDATE' ) !== false && strpos( $hooks, 'record_paid_renewal' ) !== false, 'Paid affiliation processing is idempotent.' );
 $record = substr( $archive, strpos( $archive, 'public static function record_paid_renewal' ), 1800 );
 $assert( strpos( $record, 'num_affiliation' ) === false, 'Paid affiliation renewal does not copy historical ASPTT affiliation number.' );
-$assert( strpos( $front, 'Vous devez renouveler et faire valider l’affiliation de votre club avant de renouveler les licences.' ) !== false, 'Licence renewals stay blocked until annual affiliation is active.' );
+$assert( strpos( $front, "ufsc_club_can_manage_licences_for_season" ) !== false && strpos( $front, "\$affiliation_gate['message']" ) !== false, 'Licence renewals use the central annual affiliation gate and its contextual refusal.' );
 $assert( strpos( $cart, 'ufsc_add_renewal_sources_to_cart' ) !== false && strpos( $cart, "'ufsc_request_type' => 'renewal'" ) !== false, 'Nominative individual/group licence renewal flow remains distinct.' );
 $assert( strpos( $cart, 'add_to_cart( $product_id, 1' ) !== false, 'Renewed licences are added as quantity-one lines.' );
 $assert( strpos( $hooks, "'previous_licence_id'" ) !== false, 'previous_licence_id lineage is preserved.' );

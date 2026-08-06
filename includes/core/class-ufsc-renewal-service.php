@@ -5,6 +5,56 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 final class UFSC_Renewal_Service {
     const DUPLICATE_MESSAGE = 'Cette licence est déjà renouvelée ou fait déjà l’objet d’une demande pour %s.';
 
+    /** Fields a club may propose for the new annual row; never applied to the source row. */
+    public static function editable_renewal_fields() {
+        return array( 'adresse', 'complement_adresse', 'code_postal', 'ville', 'pays', 'email', 'tel_fixe', 'tel_mobile', 'profession', 'contact_urgence', 'representant_legal_nom', 'representant_legal_email', 'representant_legal_telephone', 'fighter_level', 'poids', 'competition', 'discipline', 'pratique', 'nom', 'prenom', 'date_naissance', 'sexe' );
+    }
+
+    /**
+     * Validate a proposed profile without writing anything to the historical licence.
+     * Returned values are safe to carry as nominative cart/order metadata.
+     */
+    public static function sanitize_renewal_updates( $source, $raw ) {
+        $source = (object) $source;
+        $raw = is_array( $raw ) ? $raw : array();
+        $data = array(); $errors = array(); $changes = array(); $sensitive = false;
+        $text_fields = array( 'adresse', 'complement_adresse', 'code_postal', 'ville', 'pays', 'profession', 'contact_urgence', 'representant_legal_nom', 'discipline', 'pratique', 'nom', 'prenom', 'sexe' );
+        foreach ( $text_fields as $field ) {
+            if ( ! array_key_exists( $field, $raw ) ) { continue; }
+            $data[$field] = sanitize_text_field( wp_unslash( $raw[$field] ) );
+        }
+        foreach ( array( 'email', 'representant_legal_email' ) as $field ) {
+            if ( ! array_key_exists( $field, $raw ) ) { continue; }
+            $value = sanitize_email( wp_unslash( $raw[$field] ) );
+            if ( '' !== trim( (string) $raw[$field] ) && ! is_email( $value ) ) { $errors[$field] = __( 'Adresse e-mail invalide.', 'ufsc-clubs' ); }
+            $data[$field] = $value;
+        }
+        foreach ( array( 'tel_fixe', 'tel_mobile', 'representant_legal_telephone' ) as $field ) {
+            if ( ! array_key_exists( $field, $raw ) ) { continue; }
+            $data[$field] = preg_replace( '/[^0-9+(). -]/', '', sanitize_text_field( wp_unslash( $raw[$field] ) ) );
+        }
+        if ( array_key_exists( 'date_naissance', $raw ) ) {
+            $value = sanitize_text_field( wp_unslash( $raw['date_naissance'] ) );
+            $valid = DateTimeImmutable::createFromFormat( '!Y-m-d', $value );
+            if ( ! $valid || $valid->format( 'Y-m-d' ) !== $value ) { $errors['date_naissance'] = __( 'Date de naissance invalide.', 'ufsc-clubs' ); }
+            $data['date_naissance'] = $value;
+        }
+        $level = sanitize_key( (string) ( $raw['fighter_level'] ?? $source->fighter_level ?? '' ) );
+        if ( ! isset( ufsc_get_sport_level_options()[$level] ) ) { $errors['fighter_level'] = __( 'Le niveau sportif est obligatoire pour renouveler cette licence.', 'ufsc-clubs' ); }
+        $data['fighter_level'] = $level;
+        $weight = UFSC_Category_Repository::normalize_weight( $raw['poids'] ?? $source->poids ?? '' );
+        if ( null === $weight || $weight < 20 || $weight > 300 ) { $errors['poids'] = __( 'Le poids déclaré doit être compris entre 20 et 300 kg.', 'ufsc-clubs' ); }
+        $data['poids'] = $weight;
+        $data['competition'] = empty( $raw['competition'] ) ? 0 : 1;
+        foreach ( $data as $field => $value ) {
+            $old = isset( $source->{$field} ) ? (string) $source->{$field} : '';
+            if ( (string) $value !== $old ) { $changes[$field] = array( 'old' => $old, 'new' => (string) $value ); }
+        }
+        foreach ( array( 'nom', 'prenom', 'date_naissance', 'sexe' ) as $field ) { if ( isset( $changes[$field] ) ) { $sensitive = true; } }
+        if ( $sensitive && empty( $raw['confirm_identity_change'] ) ) { $errors['confirm_identity_change'] = __( 'Confirmez la modification sensible de l’identité.', 'ufsc-clubs' ); }
+        return array( 'data' => $data, 'changes' => $changes, 'errors' => $errors, 'sensitive_identity_change' => $sensitive );
+    }
+
     public static function person_key( $licence, $club_id ) {
         $ufsc = UFSC_Identifier_Resolver::read( $licence, 'licence_ufsc' );
         if ( $ufsc ) { return 'ufsc:' . strtolower( $ufsc ); }

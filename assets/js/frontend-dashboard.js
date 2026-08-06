@@ -887,6 +887,33 @@
     // Initialize when document is ready
     $(document).ready(function() {
         UfscDashboard.init();
+        var requestedSection = new URLSearchParams(window.location.search).get('ufsc_section');
+        if (requestedSection === 'licences-archives') {
+            var archives = document.getElementById('ufsc-licences-archives');
+            var title = document.getElementById('ufsc-licences-archives-title');
+            if (archives) {
+                archives.scrollIntoView({behavior: 'smooth', block: 'start'});
+                if (title) { title.setAttribute('tabindex', '-1'); title.focus({preventScroll: true}); }
+            }
+        }
+        $('[data-ufsc-select-all]').on('click', function() { $('#ufsc-renewal-assistant-form .ufsc-renewal-checkbox:not(:disabled)').prop('checked', true); });
+        $('[data-ufsc-select-none]').on('click', function() { $('#ufsc-renewal-assistant-form .ufsc-renewal-checkbox').prop('checked', false); });
+        $('.ufsc-renewal-profile').each(function() {
+            var profile = this;
+            $(profile).find(':input').each(function() { $(this).data('ufsc-initial', this.type === 'checkbox' ? this.checked : this.value); });
+            $(profile).on('input change', ':input', function() {
+                var list = $(profile).find('.ufsc-renewal-change-summary ul').empty();
+                $(profile).find(':input').each(function() {
+                    var current = this.type === 'checkbox' ? this.checked : this.value;
+                    if ( current !== $(this).data('ufsc-initial') && this.name.indexOf('confirm_identity_change') === -1 ) {
+                        var label = $(this).closest('label').clone().children().remove().end().text().trim() || this.name;
+                        $('<li>').text(label + ' — nouvelle valeur : ' + (this.type === 'checkbox' ? (current ? 'Oui' : 'Non') : current)).appendTo(list);
+                    }
+                });
+                $(profile).find('.ufsc-renewal-change-summary').toggle(list.children().length > 0);
+            });
+            $(profile).find('.ufsc-renewal-change-summary').hide();
+        });
     });
 
     // Expose to global scope for external access
