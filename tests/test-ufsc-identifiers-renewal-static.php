@@ -14,5 +14,5 @@ $assert(strpos($resolver,"'club_asptt'")!==false && strpos($resolver,"'licence_a
 $assert(strpos($renewal,"'previous_licence_id'")!==false && strpos($renewal,"'person_identifier'")!==false,'Renewal lineage and stable key retained.');
 $assert(strpos($renewal,"'numero_licence_asptt'")===false,'ASPTT is not copied into renewal payload.');
 $assert(strpos($renewal,"'quantity'=>1")!==false,'Cart metadata is nominative quantity one.');
-$assert(strpos($renewal,"UFSC_Season_Service")===false,'Renewal service receives season and does not invent a second season clock.');
+$assert(strpos($renewal,"UFSC_Season_Service::get_current_season()")!==false,'Contextual renewal defaults exclusively to the canonical season service.');
 $assert(strpos($service,"'POST' !== strtoupper")!==false && substr_count($service,'check_admin_referer')>=2,'Handlers require POST and nonces.');

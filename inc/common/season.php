@@ -748,3 +748,14 @@ if ( ! function_exists( 'ufsc_maybe_backfill_licences_season' ) ) {
 	}
 	add_action( 'admin_init', 'ufsc_maybe_backfill_licences_season' );
 }
+
+if ( ! function_exists( 'ufsc_get_licence_season_context_status' ) ) {
+	/** Read-only contextual status shared by administration and club portal. */
+	function ufsc_get_licence_season_context_status( $licence, $current_season = '' ) {
+		if ( ! class_exists( 'UFSC_Renewal_Service' ) ) {
+			return array();
+		}
+		$current_season = $current_season ?: UFSC_Season_Service::get_current_season();
+		return UFSC_Renewal_Service::season_context_status( $licence, $current_season );
+	}
+}

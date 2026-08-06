@@ -237,7 +237,7 @@ function ufsc_cart_has_renewal_item( $action, $club_id, $season, $source_licence
  * @param int    $source_licence_id Source licence for licence renewals.
  * @return bool
  */
-function ufsc_wc_has_pending_renewal_order( $action, $club_id, $season, $source_licence_id = 0 ) {
+function ufsc_wc_find_pending_renewal_order( $action, $club_id, $season, $source_licence_id = 0 ) {
     if ( ! function_exists( 'wc_get_orders' ) ) {
         return false;
     }
@@ -336,11 +336,16 @@ function ufsc_wc_has_pending_renewal_order( $action, $club_id, $season, $source_
                 }
             }
 
-            return true;
+            return $order;
         }
     }
 
     return false;
+}
+
+/** Boolean compatibility wrapper around the contextual pending-order lookup. */
+function ufsc_wc_has_pending_renewal_order( $action, $club_id, $season, $source_licence_id = 0 ) {
+    return false !== ufsc_wc_find_pending_renewal_order( $action, $club_id, $season, $source_licence_id );
 }
 
 /**
