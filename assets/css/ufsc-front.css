@@ -514,7 +514,8 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
 }
 
 /* Renewal application controls: isolated from Astra/Elementor defaults. */
-.ufsc-club-portal [hidden] { display: none !important; }
+.ufsc-club-portal [hidden],
+.ufsc-club-portal .ufsc-is-hidden { display: none !important; }
 .ufsc-club-portal .ufsc-renewal-button,
 .ufsc-club-portal .ufsc-document-button {
     display: inline-flex !important;
