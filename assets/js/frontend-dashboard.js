@@ -977,7 +977,7 @@
             var updateRenewalCount = function() {
                 var selected = renewalForm.find('.ufsc-renewal-checkbox:checked').length;
                 var incomplete = renewalForm.find('.ufsc-renewal-source-row .ufsc-badge-warning').length;
-                var blocked = renewalForm.find('.ufsc-renewal-checkbox:disabled').length;
+                var blocked = renewalForm.find('.ufsc-renewal-source-row[data-blocked="1"]').length;
                 renewalForm.find('[data-ufsc-selection-count]').text(selected + ' sélectionnée(s), ' + incomplete + ' à compléter, ' + blocked + ' bloquée(s)');
                 renewalForm.find('[data-ufsc-next-step="2"]').prop('disabled', selected === 0).attr('aria-disabled', selected === 0 ? 'true' : 'false');
             };
@@ -987,10 +987,11 @@
                 // reloads the assistant with the requested source selected.
                 event.preventDefault();
                 var id = String($(this).data('ufsc-renew-one'));
-                renewalForm.find('.ufsc-renewal-checkbox[value="' + id + '"]').prop('checked', true);
+                renewalForm.find('.ufsc-renewal-checkbox[value="' + id + '"]').prop('checked', true).trigger('change');
                 updateRenewalCount(); showRenewalStep(2, 'ufsc-renewal-profile-title-' + id);
             });
-            renewalForm.on('click', '[data-ufsc-next-step]', function() {
+            renewalForm.on('click', '[data-ufsc-next-step]', function(event) {
+                event.preventDefault();
                 var step = Number($(this).data('ufsc-next-step'));
                 if (step > 1 && !renewalForm.find('.ufsc-renewal-checkbox:checked').length) { renewalError('Sélectionnez au moins une licence.'); return; }
                 if (step === 3) {
