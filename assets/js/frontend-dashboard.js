@@ -340,6 +340,8 @@
                     timestamp: Date.now()
                 };
                 self.updateDocumentsStatus(data);
+            }, function() {
+                $('#ufsc-documents-status').attr('aria-live', 'polite');
             });
         },
 
@@ -693,6 +695,8 @@
                     timestamp: Date.now()
                 };
                 self.updateStatistics(data);
+            }, function() {
+                $('#stats-alerts').html('<p class="ufsc-error">Statistiques temporairement indisponibles.</p>');
             });
         },
 
@@ -784,6 +788,7 @@
 
         // Utility functions
         apiRequest: function(action, data, successCallback, errorCallback) {
+            var self = this;
             var requestData = $.extend({
                 action: 'ufsc_dashboard_' + action,
                 nonce: this.config.nonce
@@ -795,19 +800,32 @@
                 data: requestData,
                 success: function(response) {
                     if (response.success) {
-                        successCallback(response.data);
+                        if (typeof successCallback === 'function') {
+                            successCallback(response.data);
+                        }
                     } else {
-                        errorCallback(response.data || 'Erreur inconnue');
+                        var message = response.data || 'Erreur inconnue';
+                        if (typeof errorCallback === 'function') {
+                            errorCallback(message);
+                        } else {
+                            self.showError(message);
+                        }
                     }
                 },
                 error: function() {
-                    errorCallback('Erreur de communication');
+                    var message = 'Erreur de communication';
+                    if (typeof errorCallback === 'function') {
+                        errorCallback(message);
+                    } else {
+                        self.showError(message);
+                    }
                 }
             });
         },
 
         // // UFSC: REST API request method
         restRequest: function(endpoint, data, successCallback, errorCallback) {
+            var self = this;
             var url = this.config.rest_url + endpoint;
             var params = $.param(data || {});
             if (params) {
@@ -822,20 +840,27 @@
                     xhr.setRequestHeader('X-WP-Nonce', nonce);
                 },
                 success: function(response) {
-                    successCallback(response);
+                    if (typeof successCallback === 'function') {
+                        successCallback(response);
+                    }
                 },
                 error: function(xhr) {
                     var message = 'Erreur de communication';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         message = xhr.responseJSON.message;
                     }
-                    errorCallback(message);
+                    if (typeof errorCallback === 'function') {
+                        errorCallback(message);
+                    } else {
+                        self.showError(message);
+                    }
                 }
             });
         },
 
         // // UFSC: DELETE request for license deletion
         restDelete: function(endpoint, successCallback, errorCallback) {
+            var self = this;
             $.ajax({
                 url: this.config.rest_url + endpoint,
                 type: 'DELETE',
@@ -844,14 +869,20 @@
                     xhr.setRequestHeader('X-WP-Nonce', nonce);
                 },
                 success: function(response) {
-                    successCallback(response);
+                    if (typeof successCallback === 'function') {
+                        successCallback(response);
+                    }
                 },
                 error: function(xhr) {
                     var message = 'Erreur de communication';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         message = xhr.responseJSON.message;
                     }
-                    errorCallback(message);
+                    if (typeof errorCallback === 'function') {
+                        errorCallback(message);
+                    } else {
+                        self.showError(message);
+                    }
                 }
             });
         },
