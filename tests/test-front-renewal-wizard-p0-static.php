@@ -1,7 +1,7 @@
 <?php
 $root=dirname(__DIR__);$front=file_get_contents($root.'/includes/frontend/class-frontend-shortcodes.php');$js=file_get_contents($root.'/assets/js/frontend-dashboard.js');$css=file_get_contents($root.'/assets/css/ufsc-front.css');$cart=file_get_contents($root.'/inc/woocommerce/cart-integration.php');$levels=file_get_contents($root.'/inc/common/fighter-level.php');
 $checks=array(
- 'selection independent from completeness'=>strpos($front,"\$selectable = ! empty( \$context['renewal_allowed'] ) && \$product_id")!==false&&strpos($front,'$complete = $level')!==false,
+ 'selection independent from completeness'=>strpos($front,"\$selectable = ! empty( \$context['renewal_allowed'] );")!==false&&strpos($front,'$complete = empty( $missing_fields )')!==false,
  'selectable profile rendered'=>strpos($front,'if ( $selectable ) : $prefix')!==false&&strpos($front,'if ( $eligible ) : $prefix')===false,
  'incomplete badge'=>strpos($front,'Informations à compléter')!==false,
  'individual real link with fallback'=>strpos($front,'class="ufsc-renewal-button')!==false&&strpos($front,"'renew_source_id'")!==false&&strpos($front,"'target_season'")!==false,
