@@ -267,7 +267,13 @@ final class UFSC_CL_Bootstrap {
      */
     public function localize_frontend_scripts() {
         if ( wp_script_is( 'ufsc-frontend', 'enqueued' ) ) {
+            // This value is display/runtime context only. Mutating endpoints must
+            // (and do) resolve the canonical club again from the authenticated user.
+            $club_id = is_user_logged_in() && function_exists( 'ufsc_get_user_club_id' )
+                ? absint( ufsc_get_user_club_id( get_current_user_id() ) )
+                : 0;
             wp_localize_script( 'ufsc-frontend', 'ufsc_frontend_vars', array(
+                'club_id' => $club_id,
                 'ajax_url' => admin_url( 'admin-ajax.php' ),
                 'rest_url' => rest_url( 'ufsc/v1/' ),
                 'nonce' => wp_create_nonce( 'ufsc_frontend_nonce' ),
@@ -312,6 +318,13 @@ final class UFSC_CL_Bootstrap {
                     'skip_to_content' => __( 'Aller au contenu', 'ufsc-clubs' )
                 )
             ) );
+
+            if ( wp_script_is( 'ufsc-renewal-runtime', 'enqueued' ) ) {
+                wp_localize_script( 'ufsc-renewal-runtime', 'ufsc_dashboard_vars', array(
+                    'club_id' => $club_id,
+                    'rest_url' => rest_url( 'ufsc/v1/' ),
+                ) );
+            }
         }
     }
 }

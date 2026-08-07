@@ -316,7 +316,7 @@ class UFSC_Frontend_Shortcodes {
 
         ob_start();
         ?>
-        <div class="ufsc-club-portal ufsc-club-account ufsc-club-dashboard ufsc-premium-v3" id="ufsc-dashboard">
+        <div class="ufsc-club-portal ufsc-club-account ufsc-club-dashboard ufsc-premium-v3" id="ufsc-dashboard" data-club-id="<?php echo esc_attr( absint( $club_id ) ); ?>">
             <div class="ufsc-dashboard-shell">
                 <div class="ufsc-dashboard-header ufsc-dashboard-header--premium ufsc-club-account__header" id="ufsc-overview">
                     <div class="ufsc-dashboard-hero-layout">

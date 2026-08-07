@@ -22,22 +22,34 @@
         // Charts instances
         charts: {},
 
+        initialized: false,
+
         // Initialize dashboard
         init: function() {
+            if (this.initialized) {
+                return;
+            }
+            this.initialized = true;
             // // UFSC: Use frontend vars and get club ID from current user
             this.config = $.extend(this.config, window.ufsc_frontend_vars || {});
             
             // Get club ID from dashboard configuration
             var dashboardConfig = window.ufsc_dashboard_vars || {};
-            this.config.club_id = dashboardConfig.club_id || this.config.club_id;
+            var dashboard = document.getElementById('ufsc-dashboard');
+            var renderedClubId = dashboard ? Number(dashboard.getAttribute('data-club-id')) : 0;
+            this.config.club_id = Number(dashboardConfig.club_id || this.config.club_id || renderedClubId) || 0;
             this.config.rest_url = dashboardConfig.rest_url || this.config.rest_url;
-            
-            if (!this.config.club_id) {
-                console.warn('UFSC Dashboard: No club ID provided');
+
+            // These handlers also drive server-rendered forms, tabs and selection.
+            // They must remain available on shortcode/account pages that do not
+            // render the KPI dashboard (and consequently have no club id in DOM).
+            this.setupEventHandlers();
+
+            // Only the REST-backed dashboard widgets require a club identifier.
+            // Server-side endpoints still resolve ownership from the current user.
+            if (!this.config.club_id || !dashboard) {
                 return;
             }
-
-            this.setupEventHandlers();
             this.loadInitialData();
             this.initializeCharts();
             this.startRefreshTimer();
