@@ -22,22 +22,34 @@
         // Charts instances
         charts: {},
 
+        initialized: false,
+
         // Initialize dashboard
         init: function() {
+            if (this.initialized) {
+                return;
+            }
+            this.initialized = true;
             // // UFSC: Use frontend vars and get club ID from current user
             this.config = $.extend(this.config, window.ufsc_frontend_vars || {});
             
             // Get club ID from dashboard configuration
             var dashboardConfig = window.ufsc_dashboard_vars || {};
-            this.config.club_id = dashboardConfig.club_id || this.config.club_id;
+            var dashboard = document.getElementById('ufsc-dashboard');
+            var renderedClubId = dashboard ? Number(dashboard.getAttribute('data-club-id')) : 0;
+            this.config.club_id = Number(dashboardConfig.club_id || this.config.club_id || renderedClubId) || 0;
             this.config.rest_url = dashboardConfig.rest_url || this.config.rest_url;
-            
-            if (!this.config.club_id) {
-                console.warn('UFSC Dashboard: No club ID provided');
+
+            // These handlers also drive server-rendered forms, tabs and selection.
+            // They must remain available on shortcode/account pages that do not
+            // render the KPI dashboard (and consequently have no club id in DOM).
+            this.setupEventHandlers();
+
+            // Only the REST-backed dashboard widgets require a club identifier.
+            // Server-side endpoints still resolve ownership from the current user.
+            if (!this.config.club_id || !dashboard) {
                 return;
             }
-
-            this.setupEventHandlers();
             this.loadInitialData();
             this.initializeCharts();
             this.startRefreshTimer();
@@ -328,6 +340,8 @@
                     timestamp: Date.now()
                 };
                 self.updateDocumentsStatus(data);
+            }, function() {
+                $('#ufsc-documents-status').attr('aria-live', 'polite');
             });
         },
 
@@ -681,6 +695,8 @@
                     timestamp: Date.now()
                 };
                 self.updateStatistics(data);
+            }, function() {
+                $('#stats-alerts').html('<p class="ufsc-error">Statistiques temporairement indisponibles.</p>');
             });
         },
 
@@ -772,6 +788,7 @@
 
         // Utility functions
         apiRequest: function(action, data, successCallback, errorCallback) {
+            var self = this;
             var requestData = $.extend({
                 action: 'ufsc_dashboard_' + action,
                 nonce: this.config.nonce
@@ -783,19 +800,32 @@
                 data: requestData,
                 success: function(response) {
                     if (response.success) {
-                        successCallback(response.data);
+                        if (typeof successCallback === 'function') {
+                            successCallback(response.data);
+                        }
                     } else {
-                        errorCallback(response.data || 'Erreur inconnue');
+                        var message = response.data || 'Erreur inconnue';
+                        if (typeof errorCallback === 'function') {
+                            errorCallback(message);
+                        } else {
+                            self.showError(message);
+                        }
                     }
                 },
                 error: function() {
-                    errorCallback('Erreur de communication');
+                    var message = 'Erreur de communication';
+                    if (typeof errorCallback === 'function') {
+                        errorCallback(message);
+                    } else {
+                        self.showError(message);
+                    }
                 }
             });
         },
 
         // // UFSC: REST API request method
         restRequest: function(endpoint, data, successCallback, errorCallback) {
+            var self = this;
             var url = this.config.rest_url + endpoint;
             var params = $.param(data || {});
             if (params) {
@@ -810,20 +840,27 @@
                     xhr.setRequestHeader('X-WP-Nonce', nonce);
                 },
                 success: function(response) {
-                    successCallback(response);
+                    if (typeof successCallback === 'function') {
+                        successCallback(response);
+                    }
                 },
                 error: function(xhr) {
                     var message = 'Erreur de communication';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         message = xhr.responseJSON.message;
                     }
-                    errorCallback(message);
+                    if (typeof errorCallback === 'function') {
+                        errorCallback(message);
+                    } else {
+                        self.showError(message);
+                    }
                 }
             });
         },
 
         // // UFSC: DELETE request for license deletion
         restDelete: function(endpoint, successCallback, errorCallback) {
+            var self = this;
             $.ajax({
                 url: this.config.rest_url + endpoint,
                 type: 'DELETE',
@@ -832,14 +869,20 @@
                     xhr.setRequestHeader('X-WP-Nonce', nonce);
                 },
                 success: function(response) {
-                    successCallback(response);
+                    if (typeof successCallback === 'function') {
+                        successCallback(response);
+                    }
                 },
                 error: function(xhr) {
                     var message = 'Erreur de communication';
                     if (xhr.responseJSON && xhr.responseJSON.message) {
                         message = xhr.responseJSON.message;
                     }
-                    errorCallback(message);
+                    if (typeof errorCallback === 'function') {
+                        errorCallback(message);
+                    } else {
+                        self.showError(message);
+                    }
                 }
             });
         },
