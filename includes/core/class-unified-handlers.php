@@ -7,9 +7,20 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 class UFSC_Unified_Handlers {
 
+    /** Normalize the only supported licence workflow intentions. */
+    public static function normalize_licence_intent( $action ) {
+        $action = sanitize_key( (string) $action );
+        return in_array( $action, array( 'save_draft', 'continue', 'verify', 'add_to_cart' ), true ) ? $action : 'continue';
+    }
+
     /** Decide whether an explicit form intent may mutate the WooCommerce cart. */
-    public static function should_add_licence_to_cart( $action ) {
-        return 'add_to_cart' === sanitize_key( (string) $action );
+    public static function should_add_licence_to_cart( $action ) { return 'add_to_cart' === self::normalize_licence_intent( $action ); }
+
+    /** Normalize a declared former licence number without assigning a UFSC number. */
+    public static function normalize_previous_licence_number( $enabled, $number ) {
+        if ( ! $enabled ) { return ''; }
+        $number = strtoupper( trim( (string) $number ) );
+        return preg_match( '/^[A-Z0-9]{1,10}$/', $number ) ? $number : false;
     }
 
     /**
@@ -1177,10 +1188,17 @@ class UFSC_Unified_Handlers {
         }
 
         $new_id = $result;
+        $submit_action = isset( $_POST['ufsc_submit_action'] ) ? self::normalize_licence_intent( wp_unslash( $_POST['ufsc_submit_action'] ) ) : 'continue';
+        if ( 'save_draft' === $submit_action ) {
+            self::update_licence_status_db( $new_id, 'brouillon' );
+            $step = isset( $_POST['ufsc_wizard_step'] ) ? min( 6, max( 1, absint( $_POST['ufsc_wizard_step'] ) ) ) : 1;
+            $redirect_url = add_query_arg( array( 'edit_licence' => $new_id, 'draft_saved' => 1, 'ufsc_wizard_step' => $step ), wp_get_referer() );
+            self::maybe_redirect( esc_url_raw( $redirect_url ) );
+            return;
+        }
 		self::save_licence_compliance_audit( $new_id, $_POST );
 
         $wc_settings = ufsc_get_woocommerce_settings();
-        $submit_action = isset( $_POST['ufsc_submit_action'] ) ? sanitize_key( (string) wp_unslash( $_POST['ufsc_submit_action'] ) ) : 'save';
         $wants_cart = self::should_add_licence_to_cart( $submit_action );
 
         if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
@@ -1407,8 +1425,10 @@ class UFSC_Unified_Handlers {
         $errors = array();
         $data = array();
         
-        // Required fields
-        $required_fields = array( 'prenom', 'nom', 'email','adresse' ,'ville','code_postal','telephone' );
+        $intent = isset( $post_data['ufsc_submit_action'] ) ? self::normalize_licence_intent( $post_data['ufsc_submit_action'] ) : 'continue';
+        $is_draft = 'save_draft' === $intent;
+        // Drafts need only an identity; all checkout fields remain mandatory for finalisation.
+        $required_fields = $is_draft ? array( 'prenom', 'nom' ) : array( 'prenom', 'nom', 'email','adresse' ,'ville','code_postal','telephone' );
         foreach ( $required_fields as $field ) {
             if ( empty( $post_data[$field] ) ) {
                 $errors[] = sprintf( __( 'Le champ %s est requis', 'ufsc-clubs' ), $field );
@@ -1419,14 +1439,14 @@ class UFSC_Unified_Handlers {
         
         // Email validation (required)
         $email = isset( $post_data['email'] ) ? sanitize_email( wp_unslash( (string) $post_data['email'] ) ) : '';
-        if ( '' === $email || ! is_email( $email ) ) {
+        if ( ( ! $is_draft || '' !== $email ) && ! is_email( $email ) ) {
             $errors[] = __( 'Adresse email invalide', 'ufsc-clubs' );
         } else {
             $data['email'] = $email;
         }
 
         $date_naissance = isset( $post_data['date_naissance'] ) ? sanitize_text_field( wp_unslash( (string) $post_data['date_naissance'] ) ) : '';
-        if ( ! self::is_valid_birth_date( $date_naissance ) ) {
+        if ( ( ! $is_draft || '' !== $date_naissance ) && ! self::is_valid_birth_date( $date_naissance ) ) {
             $errors[] = __( 'Date de naissance invalide (YYYY-MM-DD requis)', 'ufsc-clubs' );
         } else {
             $data['date_naissance'] = $date_naissance;
@@ -1471,7 +1491,7 @@ class UFSC_Unified_Handlers {
             }
         }
 
-		if ( function_exists( 'ufsc_validate_fighter_level' ) ) {
+		if ( function_exists( 'ufsc_validate_fighter_level' ) && ( ! $is_draft || ! empty( $data['fighter_level'] ) ) ) {
 			$level_validation = ufsc_validate_fighter_level( $data['fighter_level'] ?? '', $date_naissance, true );
 			if ( is_wp_error( $level_validation ) ) {
 				$errors[] = $level_validation->get_error_message();
@@ -1521,10 +1541,17 @@ class UFSC_Unified_Handlers {
             : '';
 
         // Conditional fields - clear if toggle is off
-        if ( empty( $post_data['has_license_number'] ) ) {
+        $data['has_license_number'] = empty( $post_data['has_license_number'] ) ? 0 : 1;
+        if ( ! $data['has_license_number'] ) {
             $data['numero_licence'] = '';
-        } elseif ( ! empty( $post_data['numero_licence'] ) ) {
-            $data['numero_licence'] = sanitize_text_field( $post_data['numero_licence'] );
+        } else {
+            $raw_previous_number = isset( $post_data['numero_licence'] ) ? sanitize_text_field( wp_unslash( (string) $post_data['numero_licence'] ) ) : '';
+            $previous_number = self::normalize_previous_licence_number( true, $raw_previous_number );
+            if ( false === $previous_number ) {
+                $errors[] = __( 'Le numéro de licence antérieur est obligatoire et doit contenir 1 à 10 lettres ou chiffres, sans espace.', 'ufsc-clubs' );
+            } else {
+                $data['numero_licence'] = $previous_number;
+            }
         }
         
         if ( array_key_exists( 'poids', $post_data ) && class_exists( 'UFSC_Category_Repository' ) ) {

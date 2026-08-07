@@ -329,7 +329,7 @@
         var compliance = form.find('.ufsc-compliance-section');
         var review = form.find('[data-wizard-review]');
         var finalActions = form.find('.ufsc-licence-final-actions');
-        var current = 1;
+        var current = Math.max(1, Math.min(6, Number(form.find('#ufsc_wizard_step').val()) || 1));
         var map = [1, 2, 3, 3, 4, 5, 5];
         cards.each(function(index) { $(this).attr('data-wizard-step', map[index] || 5); });
         compliance.attr('data-wizard-step', 5);
@@ -342,7 +342,7 @@
         }
         function buildReview() {
             var list = review.find('dl').empty();
-            ['nom','prenom','email','telephone','date_naissance','sexe','adresse','code_postal','ville','role','fighter_level','poids'].forEach(function(name) {
+            ['nom','prenom','email','telephone','date_naissance','sexe','adresse','code_postal','ville','role','fighter_level','poids','numero_licence'].forEach(function(name) {
                 var input = form.find('[name="' + name + '"]').first();
                 if (!input.length) return;
                 var value = input.is('select') ? input.find('option:selected').text() : input.val();
@@ -352,7 +352,7 @@
         }
         function show(step) {
             current = Math.max(1, Math.min(6, step));
-            form.attr('data-wizard-current-step', current);
+            form.attr('data-wizard-current-step', current); form.find('#ufsc_wizard_step').val(current);
             form.find('[data-wizard-step]').prop('hidden', true);
             form.find('[data-wizard-step="' + current + '"]').prop('hidden', false);
             form.find('[data-wizard-indicator]').removeAttr('aria-current').filter('[data-wizard-indicator="' + current + '"]').attr('aria-current', 'step');
@@ -381,7 +381,11 @@
         });
         form.on('submit', function(event) {
             var action = form.find('#ufsc_submit_action').val();
-            if (action === 'save') return true; // Drafts intentionally accept incomplete data.
+            if (action === 'save_draft') {
+                var nom=form.find('[name="nom"]')[0], prenom=form.find('[name="prenom"]')[0];
+                if (!nom.value.trim() || !prenom.value.trim()) { event.preventDefault(); show(1); (!nom.value.trim() ? nom : prenom).focus(); return false; }
+                return true; // Drafts intentionally accept all other incomplete data.
+            }
             if (!this.checkValidity()) {
                 event.preventDefault();
                 var first = form.find(':invalid').first();
@@ -389,6 +393,15 @@
                 show(owner); first.focus();
             }
         });
-        show(1);
+        var previousToggle = form.find('#has_license_number');
+        var previousField = form.find('[data-depends="has_license_number"]');
+        function syncPreviousNumber() {
+            var enabled = previousToggle.is(':checked');
+            previousField.prop('hidden', !enabled);
+            previousField.find('input').prop('required', enabled).prop('disabled', !enabled);
+            if (!enabled) previousField.find('input').val('');
+        }
+        previousToggle.on('change', syncPreviousNumber); syncPreviousNumber();
+        show(current);
     });
 })(jQuery);

@@ -1007,3 +1007,28 @@
         });
     });
 })(jQuery);
+
+// Accessible Compte Club tabs: inactive panels are removed from layout after enhancement.
+(function($){
+    'use strict';
+    $(function(){
+        var account=$('.ufsc-club-profile').first(); if(!account.length) return;
+        var nav=account.find('.ufsc-club-account__nav').first();
+        var form=account.find('form').filter(function(){return $(this).find('.ufsc-club-account__savebar').length;}).first();
+        var panels={overview:account.find('.ufsc-profile-header, .ufsc-club-hero, .ufsc-profile-insight-band'),information:form.find('.ufsc-club-profile-main > .ufsc-card, #ufsc-club-information').not('#ufsc-club-officers, #ufsc-club-documents'),officers:form.find('#ufsc-club-officers'),documents:account.find('#ufsc-club-documents')};
+        var links=nav.find('a'); account.addClass('ufsc-account-tabs-enhanced'); nav.attr('role','tablist');
+        links.each(function(index){var key=['overview','information','officers','documents','archives','rules'][index]||'overview';$(this).attr({'role':'tab','data-account-tab':key,'aria-selected':'false'});});
+        function show(key){
+            if(!panels[key]||!panels[key].length) return false;
+            $.each(panels,function(name,panel){panel.prop('hidden',name!==key);});
+            links.attr({'aria-selected':'false'}).removeAttr('aria-current').filter('[data-account-tab="'+key+'"]').attr({'aria-selected':'true','aria-current':'page'});
+            return true;
+        }
+        nav.on('click','[data-account-tab]',function(e){var key=$(this).data('account-tab');if(show(key)){e.preventDefault();history.replaceState(null,'',location.pathname+location.search+'#ufsc-account-'+key);}});
+        var initial=(location.hash.match(/^#ufsc-account-(overview|information|officers|documents)$/)||[])[1]||'overview'; show(initial);
+        var savebar=form.find('.ufsc-club-account__savebar').prop('hidden',true); var dirty=false;
+        form.on('input change',':input',function(){dirty=true;savebar.prop('hidden',false);});
+        form.on('submit',function(){if(!dirty)return;savebar.find(':submit').prop('disabled',true).attr('aria-disabled','true');});
+        savebar.find('[data-ufsc-cancel]').on('click',function(){form[0].reset();dirty=false;savebar.prop('hidden',true);});
+    });
+})(jQuery);

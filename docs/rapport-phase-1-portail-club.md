@@ -33,3 +33,17 @@ Le dépôt fourni ne contient ni URL DEV, ni compte de recette, ni base WordPres
 ## Décision
 
 **Prêt pour recette DEV, pas prêt pour production.** Le code traitable depuis le dépôt est implémenté et testé localement; les preuves navigateur, le paiement sandbox, l’attribution du widget externe et les mesures réelles restent obligatoires.
+
+## Correctif final après recette cdfdc85
+
+| Exigence | Cause réelle | Correction | Fichier | Test | Preuve navigateur | Résultat | Risque restant |
+|---|---|---|---|---|---|---|---|
+| Brouillon à chaque étape | Le seul bouton brouillon se trouvait à l’étape finale et la validation serveur exigeait le dossier complet | Bouton persistant, intention `save_draft`, nom/prénom seuls obligatoires, reprise du même ID et étape conservée; sortie avant quota/panier/audit | `class-unified-handlers.php`, formulaire et JS | runtime intentions étapes 1–6 | Non disponible dans ce conteneur | Implémenté, non vérifié DEV | Schéma SQL DEV à confirmer pour champs nuls |
+| Numéro antérieur | Le champ existait mais le script conditionnel chargé sur cette page ne le pilotait pas | Pilotage dans le JS réellement chargé, effacement à la décoche, required dynamique, pattern et validation serveur 1–10 alphanumérique | formulaire, JS, handler | runtime valeurs valides/invalides | Non disponible | Implémenté | Vérifier restitution sur données legacy |
+| Accès renouvellement/archive | La fiche historique ne rendait pas l’état de renouvellement | Actions haut/bas vers l’assistant; lien vers la nouvelle annualité si filiation existante | shortcode front | suite renewal runtime | Non disponible | Implémenté | Paiement sandbox requis |
+| Double tableau | Le renderer combinait liste active et assistant | Suppression du rendu de la liste active dans cet écran seulement; services intacts | shortcode front | suite de rendu | Non disponible | Implémenté | Vérifier plugin Compétition séparé |
+| Filtres/pagination | La pagination opérait après chargement et les filtres étaient absents | Filtres sanitizés intégrés au SQL avant COUNT/LIMIT/OFFSET; contrôles complets haut/bas | shortcode front | runtime filtres/navigation | Non disponible | Implémenté | États métier complexes à comparer aux données DEV |
+| KPI saison | Quatre cartes seulement; éléments permanents mélangés | Six KPI dérivés de la saison centrale et liens filtrés; attestation séparée | dashboard front | suite saison | Non disponible | Implémenté | Chiffres à confronter Query Monitor |
+| Compte Club | Tous les panneaux restaient simultanément dans le flux et savebar toujours visible | Onglets accessibles progressifs, panneau unique, savebar dirty-only, annulation et anti-double-submit | JS/CSS/markup | suite UI + syntaxe JS | Non disponible | Implémenté progressivement | Les panneaux restent dans le HTML sans JS |
+| Texte vertical | Aucun sélecteur, texte ou initiateur correspondant n’existe dans le dépôt fourni | Aucun masquage spéculatif; inspection DEV toujours indispensable | documentation | audit `rg` | Non disponible | **Non vérifié** | Bloquant: fournir DOM DEV exact |
+| Performance | Renouvelables encore chargées puis découpées en PHP | COUNT et filtres SQL, LIMIT/OFFSET avant profils; suppression `array_slice` | shortcode front | runtime pagination | Non disponible | Implémenté dépôt | Mesures DEV indisponibles |
