@@ -610,10 +610,10 @@
             }
 
             var actionUrl = window.location.href.split('?')[0];
-            var form = $('<form method="get" action="' + actionUrl + '">');
-            form.append('<input type="hidden" name="ufsc_export" value="csv">');
+            var form = $('<form>', { method: 'get', action: actionUrl });
+            form.append($('<input>', { type: 'hidden', name: 'ufsc_export' }).val('csv'));
             selectedIds.forEach(function(id) {
-                form.append('<input type="hidden" name="ids[]" value="' + id + '">');
+                form.append($('<input>', { type: 'hidden', name: 'ids[]' }).val(id));
             });
 
             $('body').append(form);
