@@ -124,7 +124,29 @@ function ufsc_get_affiliation_product_url() {
  */
 function ufsc_get_licence_product_id() {
     $settings = ufsc_get_woocommerce_settings();
-    return isset( $settings['product_license_id'] ) ? absint( $settings['product_license_id'] ) : 0;
+    $configured_id = isset( $settings['product_license_id'] ) ? absint( $settings['product_license_id'] ) : 0;
+
+    /**
+     * Single, explicit extension point for installations that provision their
+     * product outside this settings screen. A filter may validate/migrate a
+     * known ID, but the resolver deliberately never guesses from the catalogue.
+     */
+    return function_exists( 'apply_filters' ) ? absint( apply_filters( 'ufsc_licence_product_id', $configured_id, $settings ) ) : $configured_id;
+}
+
+/** Return the canonical licence product diagnostic used by admin, UI and cart. */
+function ufsc_get_licence_product_resolution() {
+    $product_id = ufsc_get_licence_product_id();
+    $diagnostic = ufsc_get_woocommerce_product_diagnostic( $product_id );
+    $diagnostic['configured_id'] = $product_id;
+    $diagnostic['valid'] = ufsc_is_woocommerce_product_available( $product_id );
+    return $diagnostic;
+}
+
+/** Stable cache-busting version for a plugin asset. */
+function ufsc_asset_version( $relative_path ) {
+    $path = defined( 'UFSC_CL_DIR' ) ? UFSC_CL_DIR . ltrim( $relative_path, '/' ) : '';
+    return $path && is_file( $path ) ? (string) filemtime( $path ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : '1' );
 }
 
 
@@ -364,6 +386,7 @@ function ufsc_render_woocommerce_settings_page() {
 
     $current_settings   = ufsc_get_woocommerce_settings();
     $woocommerce_active = ufsc_is_woocommerce_active();
+    $licence_resolution = ufsc_get_licence_product_resolution();
     ?>
     <div class="wrap">
         <?php if ( class_exists( 'UFSC_SQL_Admin' ) ) { UFSC_SQL_Admin::render_admin_quick_nav(); } ?>
@@ -411,22 +434,25 @@ function ufsc_render_woocommerce_settings_page() {
                         <label for="product_license_id"><?php esc_html_e( 'ID du produit licence additionnelle', 'ufsc-clubs' ); ?></label>
                     </th>
                     <td>
-                        <input
-                            type="number"
+                        <select
                             id="product_license_id"
                             name="product_license_id"
-                            value="<?php echo esc_attr( $current_settings['product_license_id'] ); ?>"
                             class="regular-text"
-                            min="1"
-                        />
+                        >
+                            <option value="0"><?php esc_html_e( '— Aucun produit configuré —', 'ufsc-clubs' ); ?></option>
+                            <?php if ( function_exists( 'wc_get_products' ) ) : foreach ( wc_get_products( array( 'status' => array( 'publish', 'draft', 'private' ), 'limit' => -1, 'orderby' => 'name', 'order' => 'ASC' ) ) as $candidate ) : ?>
+                                <option value="<?php echo esc_attr( $candidate->get_id() ); ?>" <?php selected( $current_settings['product_license_id'], $candidate->get_id() ); ?>><?php echo esc_html( $candidate->get_name() . ' (#' . $candidate->get_id() . ', ' . $candidate->get_status() . ')' ); ?></option>
+                            <?php endforeach; endif; ?>
+                        </select>
                         <p class="description">
                             <?php esc_html_e( 'ID du produit "Licence UFSC/ASPTT" dans WooCommerce (par défaut: 2934)', 'ufsc-clubs' ); ?>
-                            <?php if ( $woocommerce_active && ufsc_validate_woocommerce_product( $current_settings['product_license_id'] ) ) : ?>
-                                <span style="color: green;">✓ <?php esc_html_e( 'Produit trouvé', 'ufsc-clubs' ); ?></span>
+                            <?php if ( ! empty( $licence_resolution['valid'] ) ) : ?>
+                                <span style="color: green;">✓ <?php esc_html_e( 'Produit publié et achetable', 'ufsc-clubs' ); ?></span>
                             <?php elseif ( $woocommerce_active ) : ?>
-                                <span style="color: red;">✗ <?php esc_html_e( 'Produit non trouvé', 'ufsc-clubs' ); ?></span>
+                                <span style="color: #b32d2e;">✗ <?php esc_html_e( 'Le produit Licence UFSC est absent, non publié ou non achetable.', 'ufsc-clubs' ); ?></span>
                             <?php endif; ?>
                         </p>
+                        <p><strong><?php echo esc_html( ufsc_get_woocommerce_product_diagnostic_message( $current_settings['product_license_id'] ) ); ?></strong></p>
                     </td>
                 </tr>
             </table>
