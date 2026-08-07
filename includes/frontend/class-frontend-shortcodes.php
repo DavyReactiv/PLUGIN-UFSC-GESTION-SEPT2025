@@ -178,7 +178,7 @@ class UFSC_Frontend_Shortcodes {
     }
 
     public static function render_club_dashboard( $atts = array() ) {
-        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/css/ufsc-front.css' ) : UFSC_CL_VERSION );
         wp_enqueue_script(
             'chart-js',
             'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
@@ -628,7 +628,7 @@ class UFSC_Frontend_Shortcodes {
      * @return string HTML output
      */
     public static function render_club_licences( $atts = array() ) {
-        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/css/ufsc-front.css' ) : UFSC_CL_VERSION );
         $atts = shortcode_atts( array(
             'club_id' => 0,
             'per_page' => 20,
@@ -802,9 +802,9 @@ class UFSC_Frontend_Shortcodes {
         if ( $total_pages <= 1 ) { return ''; }
         $link = static function ( $target, $label, $rel = '' ) use ( $args, $base_url ) { $url = add_query_arg( array_merge( $args, array( 'ufsc_renew_page' => $target ) ), $base_url ); return '<a class="ufsc-btn ufsc-btn-secondary"' . ( $rel ? ' rel="' . esc_attr( $rel ) . '"' : '' ) . ' href="' . esc_url( $url ) . '">' . esc_html( $label ) . '</a>'; };
         $html = '<nav class="ufsc-renewal-pagination" aria-label="' . esc_attr__( 'Pagination des licences à renouveler', 'ufsc-clubs' ) . '">';
-        if ( $page > 1 ) { $html .= $link( 1, __( 'Première page', 'ufsc-clubs' ) ) . $link( $page - 1, __( 'Page précédente', 'ufsc-clubs' ), 'prev' ); }
+        if ( $page > 1 ) { $html .= $link( 1, __( 'Première page', 'ufsc-clubs' ) ) . $link( $page - 1, __( 'Page précédente', 'ufsc-clubs' ), 'prev' ); } else { $html .= '<span class="ufsc-btn ufsc-btn-disabled" aria-disabled="true">' . esc_html__( 'Première page', 'ufsc-clubs' ) . '</span><span class="ufsc-btn ufsc-btn-disabled" aria-disabled="true">' . esc_html__( 'Page précédente', 'ufsc-clubs' ) . '</span>'; }
         for ( $number = 1; $number <= $total_pages; $number++ ) { $html .= $number === $page ? '<span class="ufsc-btn" aria-current="page">' . $number . '</span>' : $link( $number, (string) $number ); }
-        if ( $page < $total_pages ) { $html .= $link( $page + 1, __( 'Page suivante', 'ufsc-clubs' ), 'next' ) . $link( $total_pages, __( 'Dernière page', 'ufsc-clubs' ) ); }
+        if ( $page < $total_pages ) { $html .= $link( $page + 1, __( 'Page suivante', 'ufsc-clubs' ), 'next' ) . $link( $total_pages, __( 'Dernière page', 'ufsc-clubs' ) ); } else { $html .= '<span class="ufsc-btn ufsc-btn-disabled" aria-disabled="true">' . esc_html__( 'Page suivante', 'ufsc-clubs' ) . '</span><span class="ufsc-btn ufsc-btn-disabled" aria-disabled="true">' . esc_html__( 'Dernière page', 'ufsc-clubs' ) . '</span>'; }
         return $html . '</nav>';
     }
 
@@ -818,7 +818,9 @@ class UFSC_Frontend_Shortcodes {
         $total_rows = max( 0, absint( $total_rows ) );
         $per_page = in_array( absint( $per_page ), array( 10, 20 ), true ) ? absint( $per_page ) : 10;
         $page = max( 1, absint( $page ) );
-        $product_id = function_exists( 'ufsc_get_licence_product_id' ) ? absint( ufsc_get_licence_product_id() ) : 0;
+        $product_resolution = function_exists( 'ufsc_get_licence_product_resolution' ) ? ufsc_get_licence_product_resolution() : array( 'configured_id' => 0, 'valid' => false );
+        $product_id = absint( $product_resolution['configured_id'] ?? 0 );
+        $product_ready = ! empty( $product_resolution['valid'] );
         $counts = array( 'renewable' => 0, 'renewed' => 0, 'pending' => 0, 'payable' => 0, 'blocked' => 0 );
         $saved = is_user_logged_in() ? get_transient( 'ufsc_renewal_front_' . get_current_user_id() . '_' . $club_id ) : array();
         $saved = is_array( $saved ) ? $saved : array(); $saved_profiles = (array) ( $saved['profiles'] ?? array() ); $saved_ids = array_map( 'absint', (array) ( $saved['ids'] ?? array() ) );
@@ -852,7 +854,7 @@ class UFSC_Frontend_Shortcodes {
         $pagination_args = array( 'ufsc_section' => 'licences-renouvellement', 'ufsc_renew_per_page' => $per_page, 'ufsc_renew_search' => $filters['search'] ?? '', 'ufsc_renew_sex' => $filters['gender'] ?? '', 'ufsc_renew_practice' => $filters['practice'] ?? '', 'ufsc_renew_birth_from' => $filters['birth_from'] ?? '', 'ufsc_renew_birth_to' => $filters['birth_to'] ?? '', 'ufsc_renew_state' => $filters['renewal_state'] ?? '' );
         $pagination_url = self::get_club_portal_url( 'licences-renouvellement' );
         ob_start(); ?>
-        <section class="ufsc-renewal-wizard ufsc-card" aria-labelledby="ufsc-renewal-title">
+        <section class="ufsc-renewal-wizard ufsc-card" data-ufsc-build="<?php echo esc_attr( substr( md5_file( __FILE__ ), 0, 8 ) ); ?>" aria-labelledby="ufsc-renewal-title">
             <h4 id="ufsc-renewal-title"><?php echo esc_html( sprintf( __( 'Licences à renouveler pour %s', 'ufsc-clubs' ), $target ) ); ?></h4>
             <ol class="ufsc-renewal-steps" aria-label="<?php esc_attr_e( 'Étapes du renouvellement', 'ufsc-clubs' ); ?>"><li data-ufsc-step-indicator="1" aria-current="step"><strong>1</strong> <?php esc_html_e( 'Sélectionner', 'ufsc-clubs' ); ?></li><li data-ufsc-step-indicator="2"><strong>2</strong> <?php esc_html_e( 'Vérifier les informations', 'ufsc-clubs' ); ?></li><li data-ufsc-step-indicator="3"><strong>3</strong> <?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?></li></ol>
             <?php if ( empty( $rows ) ) : ?><p class="ufsc-message ufsc-info"><?php esc_html_e( 'Aucune licence à renouveler pour cette saison.', 'ufsc-clubs' ); ?></p><?php else : ?>
@@ -896,7 +898,7 @@ class UFSC_Frontend_Shortcodes {
                     $decision = array(
                         'selectable' => ! empty( $context['renewal_allowed'] ),
                         'complete' => (bool) $complete,
-                        'cart_eligible' => ! empty( $context['renewal_allowed'] ) && (bool) $product_id && (bool) $complete,
+                        'cart_eligible' => ! empty( $context['renewal_allowed'] ) && $product_ready && (bool) $complete,
                         'blocked' => empty( $context['renewal_allowed'] ),
                         'block_code' => empty( $context['renewal_allowed'] ) ? sanitize_key( (string) ( $context['renewal_state'] ?? 'blocked' ) ) : '',
                         'block_message' => empty( $context['renewal_allowed'] ) ? (string) ( $context['renewal_reason'] ?? __( 'Renouvellement indisponible.', 'ufsc-clubs' ) ) : '',
@@ -933,7 +935,7 @@ class UFSC_Frontend_Shortcodes {
                 <noscript><p class="ufsc-message ufsc-info"><?php esc_html_e( 'Sans JavaScript, sélectionnez les licences puis soumettez la sélection pour ouvrir la vérification serveur.', 'ufsc-clubs' ); ?></p></noscript><div class="ufsc-renewal-actions<?php echo $requested_source ? ' ufsc-is-hidden' : ''; ?>" <?php echo $requested_source ? 'hidden' : ''; ?> data-ufsc-step-actions="1"><button type="button" class="ufsc-btn ufsc-btn-secondary" data-ufsc-select-all><?php esc_html_e( 'Tout sélectionner', 'ufsc-clubs' ); ?></button><button type="button" class="ufsc-btn ufsc-btn-secondary" data-ufsc-select-none><?php esc_html_e( 'Tout désélectionner', 'ufsc-clubs' ); ?></button><button type="submit" name="ufsc_renew_intent" value="save_draft" formnovalidate class="ufsc-btn ufsc-btn-secondary"><?php esc_html_e( 'Enregistrer en brouillon', 'ufsc-clubs' ); ?></button><button type="submit" name="ufsc_renew_intent" value="verify" class="ufsc-btn ufsc-btn-primary" data-ufsc-next-step="2"><?php esc_html_e( 'Continuer vers la vérification', 'ufsc-clubs' ); ?></button></div>
                 <div class="ufsc-renewal-actions<?php echo ( $requested_source || 2 === $requested_step ) ? '' : ' ufsc-is-hidden'; ?>" <?php echo ( $requested_source || 2 === $requested_step ) ? '' : 'hidden'; ?> data-ufsc-step-actions="2"><button type="button" class="ufsc-btn ufsc-btn-secondary" data-ufsc-next-step="1"><?php esc_html_e( 'Précédent', 'ufsc-clubs' ); ?></button><button type="submit" name="ufsc_renew_intent" value="save_draft" formnovalidate class="ufsc-btn ufsc-btn-secondary"><?php esc_html_e( 'Enregistrer en brouillon', 'ufsc-clubs' ); ?></button><button type="button" class="ufsc-btn ufsc-btn-primary" data-ufsc-next-step="3"><?php esc_html_e( 'Continuer', 'ufsc-clubs' ); ?></button></div>
                 <div class="ufsc-renewal-final-review ufsc-is-hidden" hidden data-ufsc-step-review="3" aria-live="polite"><h5><?php esc_html_e( 'Dossiers prêts pour le panier', 'ufsc-clubs' ); ?></h5><ul></ul></div>
-                <div class="ufsc-renewal-actions ufsc-is-hidden" hidden data-ufsc-step-actions="3"><button type="button" class="ufsc-btn ufsc-btn-secondary" data-ufsc-next-step="2"><?php esc_html_e( 'Précédent', 'ufsc-clubs' ); ?></button><button type="submit" name="ufsc_renew_intent" value="save_draft" formnovalidate class="ufsc-btn ufsc-btn-secondary"><?php esc_html_e( 'Enregistrer en brouillon', 'ufsc-clubs' ); ?></button><button type="submit" name="ufsc_renew_intent" value="add_to_cart" class="ufsc-btn ufsc-btn-primary"><?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?></button></div>
+                <div class="ufsc-renewal-actions ufsc-is-hidden" hidden data-ufsc-step-actions="3"><button type="button" class="ufsc-btn ufsc-btn-secondary" data-ufsc-next-step="2"><?php esc_html_e( 'Précédent', 'ufsc-clubs' ); ?></button><button type="submit" name="ufsc_renew_intent" value="save_draft" formnovalidate class="ufsc-btn ufsc-btn-secondary"><?php esc_html_e( 'Enregistrer en brouillon', 'ufsc-clubs' ); ?></button><button type="submit" name="ufsc_renew_intent" value="add_to_cart" class="ufsc-btn ufsc-btn-primary" <?php disabled( ! $product_ready ); ?> data-ufsc-cart-ready="<?php echo $product_ready ? '1' : '0'; ?>"><?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?></button><?php if ( ! $product_ready ) : ?><p class="ufsc-message ufsc-warning" role="status"><?php esc_html_e( 'Le produit Licence UFSC n’est pas configuré. Contactez l’administration.', 'ufsc-clubs' ); ?></p><?php endif; ?></div>
             </form>
             <?php echo self::render_renewal_pagination( $page, $total_pages, $pagination_args, $pagination_url ); ?>
             <?php endif; ?>
@@ -1229,7 +1231,7 @@ class UFSC_Frontend_Shortcodes {
      */
     public static function render_single_licence( $licence_id, $readonly = false ) {
         $readonly = filter_var( $readonly, FILTER_VALIDATE_BOOLEAN );
-        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/css/ufsc-front.css' ) : UFSC_CL_VERSION );
 
         $club_id = self::get_user_club_id( get_current_user_id() );
         if ( ! $club_id ) {
@@ -1519,7 +1521,7 @@ class UFSC_Frontend_Shortcodes {
      * @return string HTML output
      */
     public static function render_club_profile( $atts = array() ) {
-        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/css/ufsc-front.css' ) : UFSC_CL_VERSION );
         $atts = shortcode_atts( array(
             'club_id'    => 0,
             'licence_id' => 0,
@@ -2493,8 +2495,8 @@ class UFSC_Frontend_Shortcodes {
         $action     = isset( $_GET['ufsc_action'] ) ? sanitize_key( $_GET['ufsc_action'] ) : '';
         $licence_id = isset( $_GET['licence_id'] ) ? intval( $_GET['licence_id'] ) : 0;
 
-        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
-        wp_enqueue_script( 'ufsc-licences', UFSC_CL_URL . 'assets/js/ufsc-licences.js', array( 'jquery' ), UFSC_CL_VERSION, true );
+        wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/css/ufsc-front.css' ) : UFSC_CL_VERSION );
+        wp_enqueue_script( 'ufsc-licences', UFSC_CL_URL . 'assets/js/ufsc-licences.js', array( 'jquery' ), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/js/ufsc-licences.js' ) : UFSC_CL_VERSION, true );
 
         ob_start();
         if ( in_array( $action, array( 'edit', 'new' ), true ) ) {

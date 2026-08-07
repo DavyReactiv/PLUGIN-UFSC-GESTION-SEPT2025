@@ -252,9 +252,9 @@ final class UFSC_CL_Bootstrap {
             $dashboard_css = UFSC_CL_DIR . 'assets/css/ufsc-front.css';
             $js_version    = file_exists( $dashboard_js ) ? (string) filemtime( $dashboard_js ) : UFSC_CL_VERSION;
             $css_version   = file_exists( $dashboard_css ) ? (string) filemtime( $dashboard_css ) : UFSC_CL_VERSION;
-            wp_enqueue_style('ufsc-frontend', UFSC_CL_URL . 'assets/frontend/css/frontend.css', array(), UFSC_CL_VERSION );
+            wp_enqueue_style('ufsc-frontend', UFSC_CL_URL . 'assets/frontend/css/frontend.css', array(), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/frontend/css/frontend.css' ) : UFSC_CL_VERSION );
             wp_enqueue_style( 'ufsc-renewal-runtime', UFSC_CL_URL . 'assets/css/ufsc-front.css', array( 'ufsc-frontend' ), $css_version );
-            wp_enqueue_script('ufsc-frontend', UFSC_CL_URL . 'assets/frontend/js/frontend.js', array('jquery'), UFSC_CL_VERSION, true );
+            wp_enqueue_script('ufsc-frontend', UFSC_CL_URL . 'assets/frontend/js/frontend.js', array('jquery'), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/frontend/js/frontend.js' ) : UFSC_CL_VERSION, true );
             wp_enqueue_script( 'ufsc-renewal-runtime', UFSC_CL_URL . 'assets/js/frontend-dashboard.js', array( 'jquery', 'ufsc-frontend' ), $js_version, true );
             if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
                 error_log( sprintf( '[UFSC Gestion] renewal assets js=%s css=%s', $js_version, $css_version ) );
