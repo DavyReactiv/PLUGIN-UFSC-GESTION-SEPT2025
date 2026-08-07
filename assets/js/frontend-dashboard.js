@@ -651,11 +651,11 @@
             
             this.showToast('Export en cours...', 'info');
             
-            var form = $('<form method="post" action="' + this.config.ajax_url + '">');
-            form.append('<input type="hidden" name="action" value="ufsc_export_stats">');
-            form.append('<input type="hidden" name="nonce" value="' + this.config.nonce + '">');
-            form.append('<input type="hidden" name="club_id" value="' + this.config.club_id + '">');
-            form.append('<input type="hidden" name="filters" value="' + JSON.stringify(filters) + '">');
+            var form = $('<form/>', { method: 'post', action: this.config.ajax_url });
+            form.append($('<input/>', { type: 'hidden', name: 'action', value: 'ufsc_export_stats' }));
+            form.append($('<input/>', { type: 'hidden', name: 'nonce', value: this.config.nonce }));
+            form.append($('<input/>', { type: 'hidden', name: 'club_id', value: this.config.club_id }));
+            form.append($('<input/>', { type: 'hidden', name: 'filters', value: JSON.stringify(filters) }));
             
             $('body').append(form);
             form.submit();
