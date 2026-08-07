@@ -63,6 +63,11 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
             $renew_open_label = $renew_start_ts > 0 ? wp_date( 'd/m/Y', $renew_start_ts ) : __( '30/07', 'ufsc-clubs' );
 
             $can_renew = $renew_open && ! $renew_done && ! $is_locked && ! empty( $current_season ) && $season_label === $current_season;
+            $missing_cart_fields = array();
+            if ( empty( trim( (string) ( $licence->fighter_level ?? '' ) ) ) ) { $missing_cart_fields[] = __( 'niveau sportif', 'ufsc-clubs' ); }
+            if ( empty( trim( (string) ( $licence->poids ?? '' ) ) ) ) { $missing_cart_fields[] = __( 'poids', 'ufsc-clubs' ); }
+            if ( empty( trim( (string) ( $licence->email ?? '' ) ) ) ) { $missing_cart_fields[] = __( 'adresse e-mail', 'ufsc-clubs' ); }
+            $cart_complete = empty( $missing_cart_fields );
             $is_in_cart = false;
             if ( function_exists( 'WC' ) && WC() && WC()->cart ) {
                 foreach ( WC()->cart->get_cart() as $cart_item ) {
@@ -115,7 +120,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                     <?php endif; ?>
 
                     <?php if ( ! $is_locked ) : ?>
-                        <?php if ( ! empty( $wc_settings['product_license_id'] ) ) : ?>
+                        <?php if ( ! empty( $wc_settings['product_license_id'] ) && $cart_complete ) : ?>
                             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-action-form">
                                 <?php wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' ); ?>
                                 <input type="hidden" name="action" value="ufsc_add_to_cart">
@@ -126,6 +131,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
                                     <?php echo $is_in_cart ? esc_html__( 'Payer maintenant / Voir panier', 'ufsc-clubs' ) : esc_html__( 'Ajouter au panier', 'ufsc-clubs' ); ?>
                                 </button>
                             </form>
+                        <?php elseif ( ! $cart_complete ) : ?>
+                            <span class="ufsc-message ufsc-warning ufsc-cart-block-reason"><?php echo esc_html( sprintf( __( 'À compléter avant le panier : %s.', 'ufsc-clubs' ), implode( ', ', $missing_cart_fields ) ) ); ?></span>
+                        <?php else : ?>
+                            <span class="ufsc-message ufsc-warning ufsc-cart-block-reason"><?php esc_html_e( 'Produit de licence indisponible.', 'ufsc-clubs' ); ?></span>
                         <?php endif; ?>
 
                         <a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_action' => 'edit', 'licence_id' => $licence->id ) ) ); ?>">

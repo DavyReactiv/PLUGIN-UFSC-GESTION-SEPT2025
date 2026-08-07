@@ -75,3 +75,15 @@
     .ufsc-final-buttons { flex-direction: column; }
     .ufsc-final-buttons .ufsc-btn { width: 100% !important; min-width: 0; }
 }
+
+/* Progressive assistant; content is hidden only after JS adds the enhanced class. */
+.ufsc-licence-wizard-progress ol{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;list-style:none;margin:0 0 20px;padding:0}
+.ufsc-licence-wizard-progress li{background:#eef2f7;border:2px solid transparent;border-radius:8px;color:#334155;cursor:pointer;font-size:.875rem;font-weight:700;min-height:44px;padding:10px;text-align:center}
+.ufsc-licence-wizard-progress li[aria-current="step"]{background:#e7f1ff;border-color:#173b67;color:#173b67}
+.ufsc-licence-wizard-enhanced> .ufsc-grid{display:block}
+.ufsc-licence-wizard-enhanced [data-wizard-step][hidden]{display:none!important}
+.ufsc-licence-wizard-navigation{align-items:center;display:flex;gap:12px;justify-content:space-between;margin:20px 0}
+.ufsc-licence-wizard-review{background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:20px}
+.ufsc-licence-wizard-review dl{display:grid;grid-template-columns:minmax(150px,1fr) 2fr;gap:8px 16px}.ufsc-licence-wizard-review dt{font-weight:700}.ufsc-licence-wizard-review dd{margin:0}
+.ufsc-add-licence-section{margin-inline:auto;max-width:1320px;width:min(100% - 24px,1320px)}
+@media(max-width:768px){.ufsc-licence-wizard-progress ol{display:flex;overflow-x:auto}.ufsc-licence-wizard-progress li{flex:0 0 135px}.ufsc-licence-wizard-review dl{grid-template-columns:1fr}.ufsc-licence-wizard-navigation .ufsc-btn{flex:1}}

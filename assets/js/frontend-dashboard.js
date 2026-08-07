@@ -936,6 +936,7 @@
                 var incomplete = renewalForm.find('.ufsc-renewal-source-row .ufsc-badge-warning').length;
                 var blocked = renewalForm.find('.ufsc-renewal-checkbox:disabled').length;
                 renewalForm.find('[data-ufsc-selection-count]').text(selected + ' sélectionnée(s), ' + incomplete + ' à compléter, ' + blocked + ' bloquée(s)');
+                renewalForm.find('[data-ufsc-next-step="2"]').prop('disabled', selected === 0).attr('aria-disabled', selected === 0 ? 'true' : 'false');
             };
             renewalForm.on('change', '.ufsc-renewal-checkbox', updateRenewalCount);
             renewalForm.on('click', '[data-ufsc-renew-one]', function(event) {
@@ -991,4 +992,43 @@
     // Expose to global scope for external access
     window.UfscDashboard = UfscDashboard;
 
+})(jQuery);
+
+// Club-logo preview is scoped to the profile upload controls only.
+(function($){
+    'use strict';
+    $(function(){
+        $('.ufsc-change-photo-form input[name="profile_photo"], .ufsc-upload-photo-form input[name="profile_photo"]').on('change', function(){
+            var file=this.files&&this.files[0]; if(!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
+            var form=$(this).closest('form'); var preview=form.siblings('.ufsc-club-logo').find('img');
+            if(!preview.length) preview=$('<figure class="ufsc-club-logo ufsc-logo-preview"><img alt="Aperçu du nouveau logo"></figure>').insertBefore(form).find('img');
+            var previous=preview.attr('src'); if(previous&&previous.indexOf('blob:')===0) URL.revokeObjectURL(previous);
+            preview.attr('src',URL.createObjectURL(file));
+        });
+    });
+})(jQuery);
+
+// Accessible Compte Club tabs: inactive panels are removed from layout after enhancement.
+(function($){
+    'use strict';
+    $(function(){
+        var account=$('.ufsc-club-profile').first(); if(!account.length) return;
+        var nav=account.find('.ufsc-club-account__nav').first();
+        var form=account.find('form').filter(function(){return $(this).find('.ufsc-club-account__savebar').length;}).first();
+        var panels={overview:account.find('.ufsc-profile-header, .ufsc-club-hero, .ufsc-profile-insight-band'),information:form.find('.ufsc-club-profile-main > .ufsc-card, #ufsc-club-information').not('#ufsc-club-officers, #ufsc-club-documents'),officers:form.find('#ufsc-club-officers'),documents:account.find('#ufsc-club-documents')};
+        var links=nav.find('a'); account.addClass('ufsc-account-tabs-enhanced'); nav.attr('role','tablist');
+        links.each(function(index){var key=['overview','information','officers','documents','archives','rules'][index]||'overview';$(this).attr({'role':'tab','data-account-tab':key,'aria-selected':'false'});});
+        function show(key){
+            if(!panels[key]||!panels[key].length) return false;
+            $.each(panels,function(name,panel){panel.prop('hidden',name!==key);});
+            links.attr({'aria-selected':'false'}).removeAttr('aria-current').filter('[data-account-tab="'+key+'"]').attr({'aria-selected':'true','aria-current':'page'});
+            return true;
+        }
+        nav.on('click','[data-account-tab]',function(e){var key=$(this).data('account-tab');if(show(key)){e.preventDefault();history.replaceState(null,'',location.pathname+location.search+'#ufsc-account-'+key);}});
+        var initial=(location.hash.match(/^#ufsc-account-(overview|information|officers|documents)$/)||[])[1]||'overview'; show(initial);
+        var savebar=form.find('.ufsc-club-account__savebar').prop('hidden',true); var dirty=false;
+        form.on('input change',':input',function(){dirty=true;savebar.prop('hidden',false);});
+        form.on('submit',function(){if(!dirty)return;savebar.find(':submit').prop('disabled',true).attr('aria-disabled','true');});
+        savebar.find('[data-ufsc-cancel]').on('click',function(){form[0].reset();dirty=false;savebar.prop('hidden',true);});
+    });
 })(jQuery);
