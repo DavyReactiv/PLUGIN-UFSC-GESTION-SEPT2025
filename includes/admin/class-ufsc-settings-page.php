@@ -5,13 +5,7 @@ class UFSC_Settings_Page {
     const OPTION_KEY = 'ufsc_woocommerce_settings';
 
     public static function get_default_settings() {
-        return array(
-            'product_license_id'     => 2934,
-            'product_affiliation_id' => 4823,
-            'included_licenses'      => 10,
-            'max_profile_photo_size' => 2,
-            'auto_consume_included'  => 1,
-        );
+		return function_exists( 'ufsc_get_default_woocommerce_settings' ) ? ufsc_get_default_woocommerce_settings() : array();
     }
 
     public static function get_settings() {
@@ -42,6 +36,10 @@ class UFSC_Settings_Page {
     }
 
     public static function render() {
+		if ( function_exists( 'ufsc_render_woocommerce_settings_page' ) ) {
+			ufsc_render_woocommerce_settings_page();
+			return;
+		}
         if ( isset( $_POST['ufsc_settings_save'] ) && check_admin_referer( 'ufsc_settings' ) ) {
             self::save_settings( wp_unslash( $_POST ) );
             echo '<div class="updated"><p>' . esc_html__( 'Paramètres enregistrés.', 'ufsc-clubs' ) . '</p></div>';

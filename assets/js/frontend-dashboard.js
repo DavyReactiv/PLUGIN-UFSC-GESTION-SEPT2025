@@ -1038,16 +1038,28 @@
 
 })(jQuery);
 
-// Club-logo preview is scoped to the profile upload controls only.
+// Accessible club-logo editor: local preview only, server remains authoritative.
 (function($){
     'use strict';
     $(function(){
-        $('.ufsc-change-photo-form input[name="profile_photo"], .ufsc-upload-photo-form input[name="profile_photo"]').on('change', function(){
-            var file=this.files&&this.files[0]; if(!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
-            var form=$(this).closest('form'); var preview=form.siblings('.ufsc-club-logo').find('img');
-            if(!preview.length) preview=$('<figure class="ufsc-club-logo ufsc-logo-preview"><img alt="Aperçu du nouveau logo"></figure>').insertBefore(form).find('img');
-            var previous=preview.attr('src'); if(previous&&previous.indexOf('blob:')===0) URL.revokeObjectURL(previous);
-            preview.attr('src',URL.createObjectURL(file));
+        $('[data-ufsc-logo-editor]').each(function(){
+            var editor=$(this), input=editor.find('.ufsc-logo-editor__file'), pending=editor.find('.ufsc-logo-editor__pending'), filename=editor.find('[data-ufsc-logo-filename]'), preview=editor.find('[data-ufsc-logo-preview]'), initial=preview.html(), objectUrl='';
+            input.on('change',function(){
+                var file=this.files&&this.files[0], max=Number(input.data('max-bytes'))||5242880;
+                filename.removeClass('ufsc-error').empty(); pending.prop('hidden',true);
+                if(!file){ return; }
+                if(!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size>max){
+                    input.val(''); filename.addClass('ufsc-error').text('Fichier refusé : utilisez un JPEG, PNG ou WebP de 5 Mo maximum.').attr('role','alert'); return;
+                }
+                if(objectUrl){ URL.revokeObjectURL(objectUrl); }
+                objectUrl=URL.createObjectURL(file);
+                preview.html($('<figure class="ufsc-club-logo ufsc-logo-preview"><img alt="Aperçu du nouveau logo"></figure>').find('img').attr('src',objectUrl).end());
+                filename.removeAttr('role').text(file.name); pending.prop('hidden',false);
+            });
+            editor.on('click','[data-ufsc-logo-cancel]',function(){
+                if(objectUrl){ URL.revokeObjectURL(objectUrl); objectUrl=''; }
+                input.val(''); preview.html(initial); filename.empty(); pending.prop('hidden',true); input.trigger('focus');
+            });
         });
     });
 })(jQuery);
