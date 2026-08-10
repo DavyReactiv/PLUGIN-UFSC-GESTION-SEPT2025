@@ -96,6 +96,64 @@ function ufsc_save_woocommerce_settings( $settings ) {
 }
 
 /**
+ * Process the exact payload posted by the WooCommerce settings form.
+ *
+ * The read-after-write comparison is authoritative: update_option() may
+ * legitimately return false when the stored value is unchanged.
+ *
+ * @param array $post Unslashed request payload.
+ * @return array{success:bool,message:string,settings:array,product_id:int}
+ */
+function ufsc_process_woocommerce_settings_submission( $post ) {
+    $failure = static function ( $message ) {
+        return array( 'success' => false, 'message' => $message, 'settings' => array(), 'product_id' => 0 );
+    };
+
+    if ( ! function_exists( 'ufsc_user_can' ) || ! ufsc_user_can( UFSC_Permissions::CAP_SETTINGS_MANAGE ) ) {
+        return $failure( __( 'Accès refusé.', 'ufsc-clubs' ) );
+    }
+
+    $nonce = isset( $post['_wpnonce'] ) && is_scalar( $post['_wpnonce'] ) ? sanitize_text_field( (string) $post['_wpnonce'] ) : '';
+    if ( ! $nonce || ! wp_verify_nonce( $nonce, 'ufsc_woocommerce_settings' ) ) {
+        return $failure( __( 'La vérification de sécurité a échoué. Rechargez la page puis réessayez.', 'ufsc-clubs' ) );
+    }
+
+    $payload = isset( $post['ufsc_woocommerce_settings'] ) && is_array( $post['ufsc_woocommerce_settings'] )
+        ? $post['ufsc_woocommerce_settings']
+        : array();
+    $payload = wp_unslash( $payload );
+    $settings = array();
+    foreach ( array( 'product_affiliation_id', 'product_license_id', 'included_licenses', 'renewal_window_day', 'renewal_window_month' ) as $key ) {
+        if ( isset( $payload[ $key ] ) && is_scalar( $payload[ $key ] ) ) {
+            $settings[ $key ] = absint( $payload[ $key ] );
+        }
+    }
+    if ( isset( $payload['season'] ) && is_scalar( $payload['season'] ) ) {
+        $settings['season'] = sanitize_text_field( (string) $payload['season'] );
+    }
+
+    ufsc_save_woocommerce_settings( $settings );
+    $stored = get_option( 'ufsc_woocommerce_settings', array() );
+    $stored = is_array( $stored ) ? $stored : array();
+    foreach ( $settings as $key => $value ) {
+        $actual = 'season' === $key ? sanitize_text_field( (string) ( $stored[ $key ] ?? '' ) ) : absint( $stored[ $key ] ?? 0 );
+        if ( $actual !== $value ) {
+            return $failure( __( 'Les paramètres n’ont pas pu être relus après leur enregistrement.', 'ufsc-clubs' ) );
+        }
+    }
+
+    $product_id = absint( $stored['product_license_id'] ?? 0 );
+    return array(
+        'success'    => true,
+        'message'    => $product_id
+            ? sprintf( __( 'Paramètres enregistrés. Le produit Licence UFSC #%d a été relu et confirmé.', 'ufsc-clubs' ), $product_id )
+            : __( 'Paramètres enregistrés. Aucun produit Licence UFSC n’est configuré.', 'ufsc-clubs' ),
+        'settings'   => wp_parse_args( $stored, ufsc_get_default_woocommerce_settings() ),
+        'product_id' => $product_id,
+    );
+}
+
+/**
  * Get configured affiliation renewal product ID.
  *
  * @return int
@@ -374,39 +432,9 @@ function ufsc_render_woocommerce_settings_page() {
         wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
     }
 
-    // Handle form submission
-    if ( isset( $_POST['ufsc_save_woocommerce_settings'] ) && check_admin_referer( 'ufsc_woocommerce_settings' ) ) {
-        $settings = array();
-
-        if ( isset( $_POST['product_affiliation_id'] ) ) {
-            $settings['product_affiliation_id'] = absint( $_POST['product_affiliation_id'] );
-        }
-
-        if ( isset( $_POST['product_license_id'] ) ) {
-            $settings['product_license_id'] = absint( $_POST['product_license_id'] );
-        }
-
-        if ( isset( $_POST['included_licenses'] ) ) {
-            $settings['included_licenses'] = absint( $_POST['included_licenses'] );
-        }
-
-        if ( isset( $_POST['season'] ) ) {
-            $settings['season'] = sanitize_text_field( wp_unslash( $_POST['season'] ) );
-        }
-
-        if ( isset( $_POST['renewal_window_day'] ) ) {
-            $settings['renewal_window_day'] = absint( $_POST['renewal_window_day'] );
-        }
-
-        if ( isset( $_POST['renewal_window_month'] ) ) {
-            $settings['renewal_window_month'] = absint( $_POST['renewal_window_month'] );
-        }
-
-        if ( ufsc_save_woocommerce_settings( $settings ) ) {
-            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Paramètres WooCommerce enregistrés avec succès.', 'ufsc-clubs' ) . '</p></div>';
-        } else {
-            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Erreur lors de l\'enregistrement des paramètres WooCommerce.', 'ufsc-clubs' ) . '</p></div>';
-        }
+    if ( isset( $_POST['ufsc_save_woocommerce_settings'] ) ) {
+        $result = ufsc_process_woocommerce_settings_submission( $_POST );
+        echo '<div class="notice ' . ( $result['success'] ? 'notice-success' : 'notice-error' ) . ' is-dismissible"><p>' . esc_html( $result['message'] ) . '</p></div>';
     }
 
     $current_settings   = ufsc_get_woocommerce_settings();
@@ -437,7 +465,7 @@ function ufsc_render_woocommerce_settings_page() {
                         <input
                             type="number"
                             id="product_affiliation_id"
-                            name="product_affiliation_id"
+                            name="ufsc_woocommerce_settings[product_affiliation_id]"
                             value="<?php echo esc_attr( $current_settings['product_affiliation_id'] ); ?>"
                             class="regular-text"
                             min="1"
@@ -462,7 +490,7 @@ function ufsc_render_woocommerce_settings_page() {
                     <td>
                         <select
                             id="product_license_id"
-                            name="product_license_id"
+                            name="ufsc_woocommerce_settings[product_license_id]"
                             class="regular-text"
                         >
                             <option value="0"><?php esc_html_e( '— Aucun produit configuré —', 'ufsc-clubs' ); ?></option>
@@ -494,7 +522,7 @@ function ufsc_render_woocommerce_settings_page() {
                         <input
                             type="number"
                             id="included_licenses"
-                            name="included_licenses"
+                            name="ufsc_woocommerce_settings[included_licenses]"
                             value="<?php echo esc_attr( $current_settings['included_licenses'] ); ?>"
                             class="regular-text"
                             min="0"
@@ -513,7 +541,7 @@ function ufsc_render_woocommerce_settings_page() {
                         <input
                             type="text"
                             id="season"
-                            name="season"
+                            name="ufsc_woocommerce_settings[season]"
                             value="<?php echo esc_attr( $current_settings['season'] ); ?>"
                             class="regular-text"
                         />
@@ -531,7 +559,7 @@ function ufsc_render_woocommerce_settings_page() {
                         <input
                             type="number"
                             id="renewal_window_day"
-                            name="renewal_window_day"
+                            name="ufsc_woocommerce_settings[renewal_window_day]"
                             value="<?php echo esc_attr( $current_settings['renewal_window_day'] ); ?>"
                             min="1"
                             max="31"
@@ -541,7 +569,7 @@ function ufsc_render_woocommerce_settings_page() {
                         <input
                             type="number"
                             id="renewal_window_month"
-                            name="renewal_window_month"
+                            name="ufsc_woocommerce_settings[renewal_window_month]"
                             value="<?php echo esc_attr( $current_settings['renewal_window_month'] ); ?>"
                             min="1"
                             max="12"
