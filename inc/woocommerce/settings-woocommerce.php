@@ -90,7 +90,9 @@ function ufsc_save_woocommerce_settings( $settings ) {
         $sanitized['renewal_window_month'] = max( 1, min( 12, absint( $settings['renewal_window_month'] ) ) );
     }
 
-    return update_option( 'ufsc_woocommerce_settings', $sanitized );
+    $existing = get_option( 'ufsc_woocommerce_settings', array() );
+    $existing = is_array( $existing ) ? $existing : array();
+    return update_option( 'ufsc_woocommerce_settings', array_merge( $existing, $sanitized ) );
 }
 
 /**

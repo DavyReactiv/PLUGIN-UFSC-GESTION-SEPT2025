@@ -35,4 +35,6 @@ $GLOBALS['products'][2934] = new Licence_Product('publish','25',true);
 $assert( 'Produit Licence UFSC configuré, publié et achetable.' === ufsc_get_licence_product_message(), 'valid runtime resolution' );
 unset($GLOBALS['opts']['product_license_id']);
 $assert( 2934 === ufsc_get_licence_product_id(), 'canonical saved value is idempotent' );
+ufsc_save_woocommerce_settings( array( 'included_licenses' => 12 ) );
+$assert( 2934 === ufsc_get_licence_product_id(), 'partial settings save cannot erase canonical product' );
 echo "Canonical licence product migration/runtime safeguards OK\n";
