@@ -3,7 +3,7 @@ $root=dirname(__DIR__);$front=file_get_contents($root.'/includes/frontend/class-
 $checks=array(
  'selection independent from completeness'=>strpos($front,"\$selectable = ! empty( \$context['renewal_allowed'] );")!==false&&strpos($front,'$complete = empty( $missing_fields )')!==false,
  'selectable profile rendered'=>strpos($front,'if ( $selectable ) : $prefix')!==false&&strpos($front,'if ( $eligible ) : $prefix')===false,
- 'incomplete badge'=>strpos($front,'Informations à compléter')!==false,
+ 'incomplete badge'=>strpos($front,'Dossier incomplet')!==false,
  'individual real link with fallback'=>strpos($front,'class="ufsc-renewal-button')!==false&&strpos($front,"'renew_source_id'")!==false&&strpos($front,"'target_season'")!==false,
  'three functional controls'=>strpos($front,'data-ufsc-next-step="2"')!==false&&strpos($front,'data-ufsc-next-step="3"')!==false&&strpos($front,'type="submit"')!==false,
  'server fallback'=>strpos($front,'admin-post.php')!==false&&strpos($front,'ufsc_bulk_renew_licences')!==false,

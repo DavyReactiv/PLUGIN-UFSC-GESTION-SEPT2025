@@ -1,0 +1,27 @@
+<?php
+$root = dirname(__DIR__);
+$front = file_get_contents($root . '/includes/frontend/class-frontend-shortcodes.php');
+$css = file_get_contents($root . '/assets/css/ufsc-front.css');
+$js = file_get_contents($root . '/assets/js/frontend-dashboard.js');
+$media = file_get_contents($root . '/includes/front/class-ufsc-media.php');
+$assert = static function($ok,$message){if(!$ok){fwrite(STDERR,"FAIL: $message\n");exit(1);}};
+foreach (array('save_draft','verify','add_to_cart','cancel','Précédent','Enregistrer en brouillon','Ajouter au panier','Annuler et revenir à la liste') as $needle) $assert(false!==strpos($front,$needle),"renewal action: $needle");
+$assert(substr_count($front,'data-ufsc-step-actions="1"')===1 && substr_count($front,'data-ufsc-step-actions="2"')===1 && substr_count($front,'data-ufsc-step-actions="3"')===1,'one action bar per step');
+$assert(false===strpos(substr($css,strpos($css,'/* Portal Club UI:')), '!important'),'replacement CSS has no important overrides');
+foreach(array('Dossier incomplet','À compléter à l’étape suivante','Champs manquants','data-label','ufsc-renewal-selection-control') as $needle) $assert(false!==strpos($front,$needle),"mobile renewal content: $needle");
+foreach(array('width: 100%','max-width: 100%','min-width: 0','box-sizing: border-box','@media (max-width: 780px)','@media (max-width: 600px)') as $needle) $assert(false!==strpos($css,$needle),"responsive rule: $needle");
+$assert(false!==strpos($front,'$total_pages > 6 && $total_rows > 60'),'top pagination is conditional');
+foreach(array('ufsc_section','ufsc_renew_per_page','ufsc_renew_search','ufsc_renew_sex','ufsc_renew_practice','ufsc_renew_birth_from','ufsc_renew_birth_to','ufsc_renew_state','ufsc_renew_page') as $needle) $assert(false!==strpos($front,$needle),"pagination parameter: $needle");
+$assert(false!==strpos($front,'Aucune licence trouvée') && substr_count($front,'Réinitialiser les filtres')>=2,'empty search recovery');
+foreach(array('data-ufsc-logo-editor','ufsc-logo-editor__preview','ufsc-logo-editor__file','ufsc-logo-editor__pending','Enregistrer le logo','data-ufsc-logo-cancel') as $needle) $assert(false!==strpos($front,$needle),"logo component: $needle");
+$assert(substr_count($front,'id="ufsc-club-logo-file"')===1 && false!==strpos($front,'ufsc_upload_profile_photo_nonce') && false!==strpos($front,'ufsc_remove_profile_photo_nonce'),'logo ids and nonces');
+foreach(array('wp_check_filetype_and_ext','allowed_mimes','MAX_SIZE','ufsc_user_can_edit_club') as $needle) $assert(false!==strpos($media,$needle),"server logo validation: $needle");
+$assert(false!==strpos($js,'/^image\\/(jpeg|png|webp)$/') && false!==strpos($js,'file.size>max') && false!==strpos($js,'URL.createObjectURL'),'client logo validation and preview');
+foreach(array('Identité du club','Coordonnées','Informations légales','Réseaux sociaux','Chiffres et dates','Distribution','Dirigeants') as $needle) $assert(false!==strpos($front,$needle),"account section: $needle");
+foreach(array("'president_email'","'secretaire_email'","'tresorier_email'","'entraineur_email'","autocomplete=\"email\"","autocomplete=\"tel\"") as $needle) $assert(false!==strpos($front,$needle),"officer field: $needle");
+$assert(substr_count($front,"render_field( 'num_affiliation'")===1,'duplicate affiliation field removed');
+$assert(false!==strpos($front,"Documents manquants uniquement sur les dossiers du club rattachés à %s"),'active-season KPI help');
+$assert(false!==strpos($front,'En cours de génération') && false!==strpos($front,'Attestation UFSC'),'pending status is useful, not empty');
+$assert(false!==strpos($front,'<noscript>') && false!==strpos($front,'data-ufsc-renew-one'),'no-JS fallback retained');
+$assert(substr_count($front,'data-ufsc-build=')>=3 && false!==strpos($css,'prefers-reduced-motion'),'build and reduced motion retained');
+echo "Final portal UI/UX static safeguards OK\n";

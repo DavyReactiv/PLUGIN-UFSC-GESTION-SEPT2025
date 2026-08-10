@@ -4,13 +4,17 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 /**
  * Whether a licence role is subject to the honorability workflow.
  *
- * Pratiquant is deliberately the sole built-in exemption. Integrations may
- * alter the decision without duplicating role lists in forms or handlers.
+ * Only explicitly listed leadership and coaching roles are built in. Integrations
+ * may extend the filtered list without duplicating role rules in callers.
  */
 function ufsc_role_requires_honorability( $role ) {
-	$normalized = sanitize_title( remove_accents( trim( (string) $role ) ) );
-	$required   = 'pratiquant' !== $normalized;
-
+	$normalized = sanitize_title( remove_accents( trim( preg_replace( '/\s+/', ' ', (string) $role ) ) ) );
+	$required_roles = array(
+		'president', 'secretaire', 'tresorier', 'membre-du-bureau', 'bureau', 'dirigeant',
+		'encadrant', 'entraineur', 'coach', 'educateur', 'responsable-technique',
+	);
+	$required_roles = (array) apply_filters( 'ufsc_honorability_required_roles', $required_roles );
+	$required = in_array( $normalized, array_map( 'sanitize_title', $required_roles ), true );
 	return (bool) apply_filters( 'ufsc_role_requires_honorability', $required, $normalized, $role );
 }
 
@@ -111,6 +115,9 @@ function ufsc_can_validate_licence( $licence_id, &$reasons = array() ) {
 function ufsc_get_honorability_document_kpis( $licences, $season ) {
 	$stats = array( 'required' => 0, 'validated' => 0, 'pending' => 0, 'rejected' => 0, 'correction_required' => 0, 'missing' => 0, 'complete' => 0, 'incomplete' => 0 );
 	foreach ( (array) $licences as $licence ) {
+		$licence_season = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $licence ) : ( is_object( $licence ) ? ( $licence->season ?? $licence->saison ?? '' ) : ( $licence['season'] ?? $licence['saison'] ?? '' ) );
+		$licence_season = str_replace( '/', '-', trim( (string) $licence_season ) );
+		if ( $licence_season && $season && $licence_season !== $season ) { continue; }
 		$role = is_object( $licence ) ? ( $licence->role ?? 'pratiquant' ) : ( $licence['role'] ?? 'pratiquant' );
 		$id = absint( is_object( $licence ) ? ( $licence->id ?? 0 ) : ( $licence['id'] ?? 0 ) );
 		if ( ! ufsc_role_requires_honorability( $role ) ) { continue; }
