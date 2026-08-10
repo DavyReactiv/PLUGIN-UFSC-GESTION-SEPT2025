@@ -160,7 +160,9 @@ if ( ! function_exists( 'ufsc_get_detected_season_column' ) ) {
 		}
 
 		$columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : array();
-		foreach ( array( 'season', 'saison', 'paid_season', 'season_end_year' ) as $col ) {
+		// paid_season is the canonical annual value on installations that still
+		// also carry an obsolete, sparsely populated `season` column.
+		foreach ( array( 'paid_season', 'season', 'saison', 'season_end_year' ) as $col ) {
 			if ( in_array( $col, $columns, true ) ) {
 				$cache[ $table ] = $col;
 				return $col;

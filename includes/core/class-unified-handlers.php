@@ -986,6 +986,11 @@ class UFSC_Unified_Handlers {
             self::redirect_with_error( $data->get_error_message() );
             return;
         }
+        if ( ! current_user_can( 'manage_options' ) ) {
+            // Club accounts may update only their public contact details. The
+            // target club was resolved from the authenticated user above.
+            $data = array_intersect_key( $data, array_flip( array( 'email', 'telephone' ) ) );
+        }
         
         // Handle required document uploads
         $upload_result = UFSC_Uploads::handle_required_docs( $club_id );
@@ -1238,13 +1243,12 @@ class UFSC_Unified_Handlers {
                 'category'        => isset( $data['categorie'] ) ? sanitize_text_field( $data['categorie'] ) : '',
             );
 
-            if ( ! function_exists( 'WC' ) || ! function_exists( 'wc_load_cart' ) ) {
-                self::store_form_and_redirect( $_POST, array( __( 'Panier indisponible, veuillez réessayer.', 'ufsc-clubs' ) ), $new_id );
+            if ( $product_id <= 0 ) {
+                self::store_form_and_redirect( $_POST, array( __( 'Aucun produit Licence UFSC n’est configuré.', 'ufsc-clubs' ) ), $new_id );
             }
-
-            wc_load_cart();
-            if ( ! WC() || ! WC()->cart || $product_id <= 0 ) {
-                self::store_form_and_redirect( $_POST, array( __( 'Panier indisponible, veuillez réessayer.', 'ufsc-clubs' ) ), $new_id );
+            $cart_ready = function_exists( 'ufsc_ensure_woocommerce_cart' ) ? ufsc_ensure_woocommerce_cart() : new WP_Error( 'ufsc_woocommerce_unavailable', __( 'WooCommerce n’est pas initialisé. Rechargez la page puis réessayez.', 'ufsc-clubs' ) );
+            if ( is_wp_error( $cart_ready ) ) {
+                self::store_form_and_redirect( $_POST, array( $cart_ready->get_error_message() ), $new_id );
             }
 
             if ( function_exists( 'ufsc_add_licence_ids_to_cart_idempotent' ) ) {
@@ -1279,13 +1283,12 @@ class UFSC_Unified_Handlers {
             $wc_settings = ufsc_get_woocommerce_settings();
             $product_id  = isset( $wc_settings['product_license_id'] ) ? absint( $wc_settings['product_license_id'] ) : 0;
 
-            if ( ! function_exists( 'WC' ) || ! function_exists( 'wc_load_cart' ) ) {
-                self::store_form_and_redirect( $_POST, array( __( 'Panier indisponible, veuillez réessayer.', 'ufsc-clubs' ) ), $new_id );
+            if ( $product_id <= 0 ) {
+                self::store_form_and_redirect( $_POST, array( __( 'Aucun produit Licence UFSC n’est configuré.', 'ufsc-clubs' ) ), $new_id );
             }
-
-            wc_load_cart();
-            if ( ! WC() || ! WC()->cart || $product_id <= 0 ) {
-                self::store_form_and_redirect( $_POST, array( __( 'Panier indisponible, veuillez réessayer.', 'ufsc-clubs' ) ), $new_id );
+            $cart_ready = function_exists( 'ufsc_ensure_woocommerce_cart' ) ? ufsc_ensure_woocommerce_cart() : new WP_Error( 'ufsc_woocommerce_unavailable', __( 'WooCommerce n’est pas initialisé. Rechargez la page puis réessayez.', 'ufsc-clubs' ) );
+            if ( is_wp_error( $cart_ready ) ) {
+                self::store_form_and_redirect( $_POST, array( $cart_ready->get_error_message() ), $new_id );
             }
 
             $cart_item_data = array(
@@ -1643,6 +1646,13 @@ class UFSC_Unified_Handlers {
         // Specific validations
         if ( ! empty( $data['email'] ) && ! is_email( $data['email'] ) ) {
             $errors[] = __( 'Adresse email invalide', 'ufsc-clubs' );
+        }
+        if ( isset( $data['telephone'] ) ) {
+            $data['telephone'] = preg_replace( '/[^0-9+(). -]/', '', $data['telephone'] );
+            $digits = preg_replace( '/\D+/', '', $data['telephone'] );
+            if ( '' !== $data['telephone'] && ( strlen( $digits ) < 10 || strlen( $digits ) > 15 ) ) {
+                $errors[] = __( 'Numéro de téléphone invalide', 'ufsc-clubs' );
+            }
         }
         
         if ( ! empty( $data['code_postal'] ) && ! preg_match( '/^\d{5}$/', $data['code_postal'] ) ) {

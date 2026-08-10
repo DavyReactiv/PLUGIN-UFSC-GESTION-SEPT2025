@@ -393,7 +393,7 @@ class UFSC_Frontend_Shortcodes {
 
                 <div class="ufsc-dashboard-mainpane">
                     <nav class="ufsc-club-account__nav ufsc-club-portal__nav" aria-label="<?php esc_attr_e( 'Navigation Compte Club', 'ufsc-clubs' ); ?>">
-                        <a href="<?php echo esc_url( self::get_club_portal_url( 'overview' ) ); ?>"><?php esc_html_e( 'Vue d’ensemble', 'ufsc-clubs' ); ?></a>
+                        <a aria-current="page" href="<?php echo esc_url( self::get_club_portal_url( 'overview' ) ); ?>"><?php esc_html_e( 'Vue d’ensemble', 'ufsc-clubs' ); ?></a>
                         <a href="<?php echo esc_url( self::get_club_portal_url( 'club-information' ) ); ?>"><?php esc_html_e( 'Informations du club', 'ufsc-clubs' ); ?></a>
                         <a href="<?php echo esc_url( self::get_club_portal_url( 'club-officers' ) ); ?>"><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></a>
                         <a href="<?php echo esc_url( self::get_club_portal_url( 'club-documents' ) ); ?>"><?php esc_html_e( 'Documents', 'ufsc-clubs' ); ?></a>
@@ -1108,7 +1108,7 @@ class UFSC_Frontend_Shortcodes {
                 <div class="ufsc-message ufsc-info"><?php echo esc_html( $affiliation_gate['message'] ); ?></div>
             <?php endif; ?>
 
-            <form method="get" class="ufsc-archive-filter-form">
+            <?php if ( $archive_seasons ) : ?><form method="get" class="ufsc-archive-filter-form">
                     <?php foreach ( array( 'ufsc_status', 'ufsc_search', 'ufsc_sort' ) as $param ) : ?>
                         <?php if ( isset( $_GET[ $param ] ) && ! is_array( $_GET[ $param ] ) ) : ?>
                             <input type="hidden" name="<?php echo esc_attr( $param ); ?>" value="<?php echo esc_attr( sanitize_text_field( wp_unslash( $_GET[ $param ] ) ) ); ?>">
@@ -1123,9 +1123,9 @@ class UFSC_Frontend_Shortcodes {
                     </select>
                     <button type="submit" class="ufsc-btn ufsc-btn-secondary"><?php esc_html_e( 'Consulter les archives', 'ufsc-clubs' ); ?></button>
                     <?php if ( '' !== $archive_filter ) : ?><a class="ufsc-btn ufsc-btn-secondary" href="<?php echo esc_url( remove_query_arg( array( 'ufsc_archive_season', 'ufsc_archive_page', 'ufsc_archive_per_page' ) ) ); ?>"><?php esc_html_e( 'Réinitialiser', 'ufsc-clubs' ); ?></a><?php endif; ?>
-                </form>
+                </form><?php else : ?><div class="ufsc-message ufsc-info"><strong><?php esc_html_e( 'Aucune archive disponible', 'ufsc-clubs' ); ?></strong><p><?php esc_html_e( 'Aucune licence d’une saison antérieure n’est enregistrée pour ce club.', 'ufsc-clubs' ); ?></p></div><?php endif; ?>
 
-            <?php if ( '' === $archive_filter ) : ?>
+            <?php if ( $archive_seasons && '' === $archive_filter ) : ?>
                 <div class="ufsc-message ufsc-info"><?php esc_html_e( 'Sélectionnez une saison pour consulter les licences archivées.', 'ufsc-clubs' ); ?></div>
             <?php elseif ( empty( $archive_licences ) ) : ?>
                 <div class="ufsc-message ufsc-info"><?php esc_html_e( 'Aucune licence archivée pour le filtre sélectionné.', 'ufsc-clubs' ); ?></div>
@@ -1669,7 +1669,7 @@ class UFSC_Frontend_Shortcodes {
                 </div>
                 <nav class="ufsc-club-account__nav ufsc-club-portal__nav" aria-label="<?php esc_attr_e( 'Navigation Compte Club', 'ufsc-clubs' ); ?>">
                     <a href="<?php echo esc_url( self::get_club_portal_url( 'overview' ) ); ?>"><?php esc_html_e( 'Vue d’ensemble', 'ufsc-clubs' ); ?></a>
-                    <a href="<?php echo esc_url( self::get_club_portal_url( 'club-information' ) ); ?>"><?php esc_html_e( 'Informations du club', 'ufsc-clubs' ); ?></a>
+                    <a aria-current="page" href="<?php echo esc_url( self::get_club_portal_url( 'club-information' ) ); ?>"><?php esc_html_e( 'Informations du club', 'ufsc-clubs' ); ?></a>
                     <a href="<?php echo esc_url( self::get_club_portal_url( 'club-officers' ) ); ?>"><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></a>
                     <a href="<?php echo esc_url( self::get_club_portal_url( 'club-documents' ) ); ?>"><?php esc_html_e( 'Documents', 'ufsc-clubs' ); ?></a>
                     <a href="<?php echo esc_url( self::get_club_portal_url( 'licences-archives' ) ); ?>"><?php esc_html_e( 'Archives licences', 'ufsc-clubs' ); ?></a>
@@ -2682,6 +2682,32 @@ class UFSC_Frontend_Shortcodes {
     /**
      * Get club licences with pagination and filters
      */
+    private static function append_strict_season_clause( &$clauses, &$values, $table, $columns, $season ) {
+        $season = str_replace( '/', '-', sanitize_text_field( (string) $season ) );
+        if ( '' === $season ) {
+            return;
+        }
+
+        $column = function_exists( 'ufsc_get_detected_season_column' ) ? ufsc_get_detected_season_column( $table ) : '';
+        if ( '' === $column || ! in_array( $column, (array) $columns, true ) ) {
+            // A requested season must never degrade to an unfiltered query.
+            $clauses[] = '1 = 0';
+            return;
+        }
+
+        if ( 'season_end_year' === $column ) {
+            $end_year = preg_match( '/^\d{4}-(\d{4})$/', $season, $matches ) ? absint( $matches[1] ) : 0;
+            $clauses[] = $end_year ? "`{$column}` = %d" : '1 = 0';
+            if ( $end_year ) {
+                $values[] = $end_year;
+            }
+            return;
+        }
+
+        $clauses[] = "REPLACE(TRIM(`{$column}`), '/', '-') = %s";
+        $values[]  = $season;
+    }
+
     private static function get_club_licences( $club_id, $args ) {
         global $wpdb;
 
@@ -2743,16 +2769,7 @@ class UFSC_Frontend_Shortcodes {
         }
 
         // Saison
-        if ( ! empty( $args['season'] ) ) {
-            $season_col = null;
-            foreach ( array( 'season', 'saison', 'paid_season' ) as $col ) {
-                if ( in_array( $col, $columns, true ) ) { $season_col = $col; break; }
-            }
-            if ( $season_col ) {
-                $clauses[] = "`{$season_col}` = %s";
-                $values[]  = $args['season'];
-            }
-        }
+        self::append_strict_season_clause( $clauses, $values, $licences_table, $columns, $args['season'] );
 
 
         // Renewal filters are applied in SQL before LIMIT/OFFSET.
@@ -2929,15 +2946,15 @@ class UFSC_Frontend_Shortcodes {
         if ( ! function_exists( 'ufsc_get_licences_table' ) ) { return array(); }
         $table = ufsc_get_licences_table();
         $columns = function_exists( 'ufsc_table_columns' ) ? ufsc_table_columns( $table ) : $wpdb->get_col( "DESCRIBE `{$table}`" );
-        $season_col = '';
-        foreach ( array( 'season', 'saison', 'paid_season' ) as $candidate ) {
-            if ( in_array( $candidate, $columns, true ) ) { $season_col = $candidate; break; }
-        }
+        $season_col = function_exists( 'ufsc_get_detected_season_column' ) ? ufsc_get_detected_season_column( $table ) : '';
         if ( '' === $season_col ) { return array(); }
-        $where = array( 'club_id = %d', "`{$season_col}` <> ''", "`{$season_col}` < %s" );
-        $values = array( absint( $club_id ), (string) $active_season );
+        $season_expression = 'season_end_year' === $season_col
+            ? "CONCAT(CAST(`{$season_col}` AS UNSIGNED) - 1, '-', CAST(`{$season_col}` AS UNSIGNED))"
+            : "REPLACE(TRIM(`{$season_col}`), '/', '-')";
+        $where = array( 'club_id = %d', "`{$season_col}` IS NOT NULL", "TRIM(CAST(`{$season_col}` AS CHAR)) <> ''", "{$season_expression} <> %s" );
+        $values = array( absint( $club_id ), str_replace( '/', '-', (string) $active_season ) );
         if ( in_array( 'deleted_at', $columns, true ) ) { $where[] = "(deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')"; }
-        $sql = "SELECT DISTINCT `{$season_col}` FROM `{$table}` WHERE " . implode( ' AND ', $where ) . " ORDER BY `{$season_col}` DESC";
+        $sql = "SELECT DISTINCT {$season_expression} FROM `{$table}` WHERE " . implode( ' AND ', $where ) . " ORDER BY {$season_expression} DESC";
         $seasons = $wpdb->get_col( $wpdb->prepare( $sql, $values ) );
         return array_values( array_filter( array_map( static function ( $season ) {
             $season = str_replace( '/', '-', sanitize_text_field( (string) $season ) );
@@ -3001,16 +3018,7 @@ class UFSC_Frontend_Shortcodes {
         }
 
         // Saison
-        if ( ! empty( $args['season'] ) ) {
-            $season_col = null;
-            foreach ( array( 'season', 'saison', 'paid_season' ) as $col ) {
-                if ( in_array( $col, $columns, true ) ) { $season_col = $col; break; }
-            }
-            if ( $season_col ) {
-                $clauses[] = "`{$season_col}` = %s";
-                $values[]  = $args['season'];
-            }
-        }
+        self::append_strict_season_clause( $clauses, $values, $licences_table, $columns, $args['season'] );
 
 
         // Renewal filters are applied in SQL before LIMIT/OFFSET.
