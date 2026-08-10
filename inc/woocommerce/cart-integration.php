@@ -109,8 +109,14 @@ function ufsc_handle_bulk_renew_licences() {
 	$ids = array_values( array_unique( array_filter( array_map( 'absint', $ids ) ) ) );
 	$profiles = isset( $_POST['renewal_profiles'] ) && is_array( $_POST['renewal_profiles'] ) ? wp_unslash( $_POST['renewal_profiles'] ) : array();
 	$intent = isset( $_POST['ufsc_renew_intent'] ) && ! is_array( $_POST['ufsc_renew_intent'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_renew_intent'] ) ) : 'verify';
+	$state_key = 'ufsc_renewal_front_' . get_current_user_id() . '_' . $club_id;
+	if ( 'cancel' === $intent ) {
+		delete_transient( $state_key );
+		$return_url = remove_query_arg( array( 'ufsc_renew_step', 'renew_source_id', 'target_season', 'ufsc_error' ), wp_get_referer() );
+		wp_safe_redirect( $return_url ); exit;
+	}
 	if ( in_array( $intent, array( 'save_draft', 'verify' ), true ) ) {
-		set_transient( 'ufsc_renewal_front_' . get_current_user_id() . '_' . $club_id, array( 'ids' => $ids, 'profiles' => $profiles ), 30 * 60 );
+		set_transient( $state_key, array( 'ids' => $ids, 'profiles' => $profiles, 'state' => $intent, 'saved_at' => time() ), 30 * 60 );
 		$return_url = wp_get_referer();
 		if ( 'verify' === $intent && $ids ) { $return_url = add_query_arg( 'ufsc_renew_step', 2, $return_url ); }
 		if ( function_exists( 'wc_add_notice' ) ) { wc_add_notice( 'save_draft' === $intent ? __( 'Brouillon enregistré. Le panier n’a pas été modifié.', 'ufsc-clubs' ) : __( 'Sélection enregistrée. Vérifiez et complétez les informations.', 'ufsc-clubs' ), 'success' ); }

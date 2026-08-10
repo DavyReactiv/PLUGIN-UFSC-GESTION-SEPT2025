@@ -952,6 +952,7 @@
                 notice.text(message).focus();
             };
             var showRenewalStep = function(step, focusId) {
+                renewalForm.find('.ufsc-renewal-client-notice').remove();
                 renewalForm.attr('data-current-step', step);
                 $('[data-ufsc-step-indicator]').removeAttr('aria-current').filter('[data-ufsc-step-indicator="' + step + '"]').attr('aria-current', 'step');
                 $('[data-ufsc-step-actions], [data-ufsc-step-review]').prop('hidden', true).addClass('ufsc-is-hidden');
@@ -965,11 +966,16 @@
                 renewalForm.find('.ufsc-renewal-table thead').prop('hidden', step !== 1).toggleClass('ufsc-is-hidden', step !== 1);
                 renewalForm.find('.ufsc-front-table-scroll').prop('hidden', step === 3).toggleClass('ufsc-is-hidden', step === 3);
                 if (step === 3) {
-                    var review = renewalForm.find('[data-ufsc-step-review="3"] ul').empty();
+                    var reviewPanel = renewalForm.find('[data-ufsc-step-review="3"]'), review = reviewPanel.find('ul').empty(), ready = 0;
                     renewalForm.find('.ufsc-renewal-checkbox:checked').each(function() {
                         var source = renewalForm.find('.ufsc-renewal-source-row[data-source-id="' + this.value + '"]');
-                        $('<li>').text(source.find('td').eq(1).text().trim() + ' — quantité 1').appendTo(review);
+                        if (source.attr('data-complete') === '1') { $('<li>').text(source.find('td').eq(1).text().trim() + ' — quantité 1').appendTo(review); ready++; }
                     });
+                    reviewPanel.find('[data-ufsc-review-title]').text(ready ? 'Dossiers prêts pour le panier' : 'Aucun dossier prêt pour le panier');
+                    reviewPanel.find('[data-ufsc-review-status]').text(ready ? ready + ' dossier(s) complet(s), quantité 1 par licence.' : 'Revenez à la vérification pour compléter les informations obligatoires.');
+                    var productReady = renewalForm.find('[data-ufsc-product-ready]').attr('data-ufsc-product-ready') === '1', canAdd = ready > 0 && ready === renewalForm.find('.ufsc-renewal-checkbox:checked').length && productReady;
+                    renewalForm.find('[data-ufsc-product-ready]').prop('disabled', !canAdd).attr('aria-disabled', canAdd ? 'false' : 'true');
+                    renewalForm.find('#ufsc-cart-readiness').text(canAdd ? 'Tous les dossiers sont complets. Vous pouvez les ajouter au panier.' : (productReady ? 'Un ou plusieurs dossiers restent incomplets.' : 'Le produit Licence UFSC est indisponible.'));
                 }
                 var focus = focusId ? document.getElementById(focusId) : renewalForm.find('[data-ufsc-step-indicator="' + step + '"]')[0];
                 if (focus) { focus.setAttribute('tabindex', '-1'); focus.focus(); focus.scrollIntoView({behavior: 'smooth', block: 'start'}); }
@@ -1007,10 +1013,19 @@
                                 if (!Number.isFinite(weight) || weight < 20 || weight > 300) { input.attr('aria-invalid', 'true').after('<span class="ufsc-renewal-field-error" role="alert">Le poids doit être compris entre 20 et 300 kg.</span>'); firstInvalid = firstInvalid || input[0]; }
                             }
                         });
+                        var complete = profile.find('[aria-invalid="true"]').length === 0;
+                        renewalForm.find('.ufsc-renewal-source-row[data-source-id="' + this.value + '"]').attr('data-complete', complete ? '1' : '0').attr('data-cart-eligible', complete ? '1' : '0');
+                        profile.find('[data-ufsc-completeness]').toggleClass('ufsc-success', complete).toggleClass('ufsc-warning', !complete).find('strong').text(complete ? 'Dossier complet' : 'Dossier incomplet');
                     });
-                    if (firstInvalid) { firstInvalid.focus(); renewalError('Complétez les informations obligatoires avant de continuer.'); return; }
+                    if (firstInvalid) { renewalForm.find('[data-ufsc-step-review="3"]').prop('hidden', true).addClass('ufsc-is-hidden'); firstInvalid.focus(); renewalError('Complétez les informations obligatoires avant de continuer.'); return; }
                 }
                 showRenewalStep(step);
+            });
+            renewalForm.on('submit', function(event) {
+                var submitter = event.originalEvent && event.originalEvent.submitter;
+                if (!submitter || submitter.value !== 'add_to_cart') { return; }
+                if (renewalForm.data('ufsc-cart-submitting')) { event.preventDefault(); return; }
+                renewalForm.data('ufsc-cart-submitting', true); $(submitter).prop('disabled', true).attr('aria-disabled', 'true');
             });
             renewalForm.on('toggle', 'details', function() { $(this).attr('aria-expanded', this.open ? 'true' : 'false'); });
             updateRenewalCount(); showRenewalStep(Number(renewalForm.attr('data-initial-step')) === 2 ? 2 : 1);
@@ -1038,16 +1053,28 @@
 
 })(jQuery);
 
-// Club-logo preview is scoped to the profile upload controls only.
+// Accessible club-logo editor: local preview only, server remains authoritative.
 (function($){
     'use strict';
     $(function(){
-        $('.ufsc-change-photo-form input[name="profile_photo"], .ufsc-upload-photo-form input[name="profile_photo"]').on('change', function(){
-            var file=this.files&&this.files[0]; if(!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return;
-            var form=$(this).closest('form'); var preview=form.siblings('.ufsc-club-logo').find('img');
-            if(!preview.length) preview=$('<figure class="ufsc-club-logo ufsc-logo-preview"><img alt="Aperçu du nouveau logo"></figure>').insertBefore(form).find('img');
-            var previous=preview.attr('src'); if(previous&&previous.indexOf('blob:')===0) URL.revokeObjectURL(previous);
-            preview.attr('src',URL.createObjectURL(file));
+        $('[data-ufsc-logo-editor]').each(function(){
+            var editor=$(this), input=editor.find('.ufsc-logo-editor__file'), pending=editor.find('.ufsc-logo-editor__pending'), filename=editor.find('[data-ufsc-logo-filename]'), preview=editor.find('[data-ufsc-logo-preview]'), initial=preview.html(), objectUrl='';
+            input.on('change',function(){
+                var file=this.files&&this.files[0], max=Number(input.data('max-bytes'))||5242880;
+                filename.removeClass('ufsc-error').empty(); pending.prop('hidden',true);
+                if(!file){ return; }
+                if(!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size>max){
+                    input.val(''); filename.addClass('ufsc-error').text('Fichier refusé : utilisez un JPEG, PNG ou WebP de 5 Mo maximum.').attr('role','alert'); return;
+                }
+                if(objectUrl){ URL.revokeObjectURL(objectUrl); }
+                objectUrl=URL.createObjectURL(file);
+                preview.html($('<figure class="ufsc-club-logo ufsc-logo-preview"><img alt="Aperçu du nouveau logo"></figure>').find('img').attr('src',objectUrl).end());
+                filename.removeAttr('role').text(file.name); pending.prop('hidden',false);
+            });
+            editor.on('click','[data-ufsc-logo-cancel]',function(){
+                if(objectUrl){ URL.revokeObjectURL(objectUrl); objectUrl=''; }
+                input.val(''); preview.html(initial); filename.empty(); pending.prop('hidden',true); input.trigger('focus');
+            });
         });
     });
 })(jQuery);

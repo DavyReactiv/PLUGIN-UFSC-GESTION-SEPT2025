@@ -34,6 +34,17 @@ function ufsc_get_default_woocommerce_settings() {
 function ufsc_get_woocommerce_settings() {
     $defaults = ufsc_get_default_woocommerce_settings();
     $saved    = get_option( 'ufsc_woocommerce_settings', array() );
+	$saved    = is_array( $saved ) ? $saved : array();
+	if ( empty( $saved['product_license_id'] ) ) {
+		foreach ( array( 'product_license_id', 'ufsc_product_license_id', 'ufsc_license_product_id' ) as $legacy_key ) {
+			$legacy_id = absint( get_option( $legacy_key, 0 ) );
+			if ( $legacy_id > 0 ) {
+				$saved['product_license_id'] = $legacy_id;
+				update_option( 'ufsc_woocommerce_settings', $saved );
+				break;
+			}
+		}
+	}
 
     return wp_parse_args( $saved, $defaults );
 }
@@ -79,7 +90,67 @@ function ufsc_save_woocommerce_settings( $settings ) {
         $sanitized['renewal_window_month'] = max( 1, min( 12, absint( $settings['renewal_window_month'] ) ) );
     }
 
-    return update_option( 'ufsc_woocommerce_settings', $sanitized );
+    $existing = get_option( 'ufsc_woocommerce_settings', array() );
+    $existing = is_array( $existing ) ? $existing : array();
+    return update_option( 'ufsc_woocommerce_settings', array_merge( $existing, $sanitized ) );
+}
+
+/**
+ * Process the exact payload posted by the WooCommerce settings form.
+ *
+ * The read-after-write comparison is authoritative: update_option() may
+ * legitimately return false when the stored value is unchanged.
+ *
+ * @param array $post Unslashed request payload.
+ * @return array{success:bool,message:string,settings:array,product_id:int}
+ */
+function ufsc_process_woocommerce_settings_submission( $post ) {
+    $failure = static function ( $message ) {
+        return array( 'success' => false, 'message' => $message, 'settings' => array(), 'product_id' => 0 );
+    };
+
+    if ( ! function_exists( 'ufsc_user_can' ) || ! ufsc_user_can( UFSC_Permissions::CAP_SETTINGS_MANAGE ) ) {
+        return $failure( __( 'Accès refusé.', 'ufsc-clubs' ) );
+    }
+
+    $nonce = isset( $post['_wpnonce'] ) && is_scalar( $post['_wpnonce'] ) ? sanitize_text_field( (string) $post['_wpnonce'] ) : '';
+    if ( ! $nonce || ! wp_verify_nonce( $nonce, 'ufsc_woocommerce_settings' ) ) {
+        return $failure( __( 'La vérification de sécurité a échoué. Rechargez la page puis réessayez.', 'ufsc-clubs' ) );
+    }
+
+    $payload = isset( $post['ufsc_woocommerce_settings'] ) && is_array( $post['ufsc_woocommerce_settings'] )
+        ? $post['ufsc_woocommerce_settings']
+        : array();
+    $payload = wp_unslash( $payload );
+    $settings = array();
+    foreach ( array( 'product_affiliation_id', 'product_license_id', 'included_licenses', 'renewal_window_day', 'renewal_window_month' ) as $key ) {
+        if ( isset( $payload[ $key ] ) && is_scalar( $payload[ $key ] ) ) {
+            $settings[ $key ] = absint( $payload[ $key ] );
+        }
+    }
+    if ( isset( $payload['season'] ) && is_scalar( $payload['season'] ) ) {
+        $settings['season'] = sanitize_text_field( (string) $payload['season'] );
+    }
+
+    ufsc_save_woocommerce_settings( $settings );
+    $stored = get_option( 'ufsc_woocommerce_settings', array() );
+    $stored = is_array( $stored ) ? $stored : array();
+    foreach ( $settings as $key => $value ) {
+        $actual = 'season' === $key ? sanitize_text_field( (string) ( $stored[ $key ] ?? '' ) ) : absint( $stored[ $key ] ?? 0 );
+        if ( $actual !== $value ) {
+            return $failure( __( 'Les paramètres n’ont pas pu être relus après leur enregistrement.', 'ufsc-clubs' ) );
+        }
+    }
+
+    $product_id = absint( $stored['product_license_id'] ?? 0 );
+    return array(
+        'success'    => true,
+        'message'    => $product_id
+            ? sprintf( __( 'Paramètres enregistrés. Le produit Licence UFSC #%d a été relu et confirmé.', 'ufsc-clubs' ), $product_id )
+            : __( 'Paramètres enregistrés. Aucun produit Licence UFSC n’est configuré.', 'ufsc-clubs' ),
+        'settings'   => wp_parse_args( $stored, ufsc_get_default_woocommerce_settings() ),
+        'product_id' => $product_id,
+    );
 }
 
 /**
@@ -242,6 +313,18 @@ function ufsc_get_woocommerce_product_diagnostic_message( $product_id ) {
 	);
 }
 
+/** Concise canonical licence-product result for both admin and front-end. */
+function ufsc_get_licence_product_message( $resolution = null ) {
+	$d  = is_array( $resolution ) ? $resolution : ufsc_get_licence_product_resolution();
+	$id = absint( $d['configured_id'] ?? $d['product_id'] ?? 0 );
+	if ( ! $id ) { return __( 'Aucun produit Licence UFSC n’est configuré.', 'ufsc-clubs' ); }
+	if ( empty( $d['product_found'] ) ) { return sprintf( __( 'Le produit #%d est introuvable.', 'ufsc-clubs' ), $id ); }
+	if ( 'publish' !== ( $d['product_status'] ?? '' ) ) { return sprintf( __( 'Le produit #%d est configuré mais n’est pas publié.', 'ufsc-clubs' ), $id ); }
+	if ( '' === (string) ( $d['product_price'] ?? '' ) ) { return sprintf( __( 'Le produit #%d est configuré mais ne possède pas de prix.', 'ufsc-clubs' ), $id ); }
+	if ( ! empty( $d['valid'] ) ) { return __( 'Produit Licence UFSC configuré, publié et achetable.', 'ufsc-clubs' ); }
+	return sprintf( __( 'Le produit #%d est configuré mais n’est pas achetable.', 'ufsc-clubs' ), $id );
+}
+
 /** Front-safe affiliation product unavailability message. */
 function ufsc_get_affiliation_product_unavailable_message( $reason ) {
     $messages = array(
@@ -349,48 +432,19 @@ function ufsc_render_woocommerce_settings_page() {
         wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
     }
 
-    // Handle form submission
-    if ( isset( $_POST['ufsc_save_woocommerce_settings'] ) && check_admin_referer( 'ufsc_woocommerce_settings' ) ) {
-        $settings = array();
-
-        if ( isset( $_POST['product_affiliation_id'] ) ) {
-            $settings['product_affiliation_id'] = absint( $_POST['product_affiliation_id'] );
-        }
-
-        if ( isset( $_POST['product_license_id'] ) ) {
-            $settings['product_license_id'] = absint( $_POST['product_license_id'] );
-        }
-
-        if ( isset( $_POST['included_licenses'] ) ) {
-            $settings['included_licenses'] = absint( $_POST['included_licenses'] );
-        }
-
-        if ( isset( $_POST['season'] ) ) {
-            $settings['season'] = sanitize_text_field( wp_unslash( $_POST['season'] ) );
-        }
-
-        if ( isset( $_POST['renewal_window_day'] ) ) {
-            $settings['renewal_window_day'] = absint( $_POST['renewal_window_day'] );
-        }
-
-        if ( isset( $_POST['renewal_window_month'] ) ) {
-            $settings['renewal_window_month'] = absint( $_POST['renewal_window_month'] );
-        }
-
-        if ( ufsc_save_woocommerce_settings( $settings ) ) {
-            echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Paramètres WooCommerce enregistrés avec succès.', 'ufsc-clubs' ) . '</p></div>';
-        } else {
-            echo '<div class="notice notice-error is-dismissible"><p>' . esc_html__( 'Erreur lors de l\'enregistrement des paramètres WooCommerce.', 'ufsc-clubs' ) . '</p></div>';
-        }
+    if ( isset( $_POST['ufsc_save_woocommerce_settings'] ) ) {
+        $result = ufsc_process_woocommerce_settings_submission( $_POST );
+        echo '<div class="notice ' . ( $result['success'] ? 'notice-success' : 'notice-error' ) . ' is-dismissible"><p>' . esc_html( $result['message'] ) . '</p></div>';
     }
 
     $current_settings   = ufsc_get_woocommerce_settings();
     $woocommerce_active = ufsc_is_woocommerce_active();
     $licence_resolution = ufsc_get_licence_product_resolution();
     ?>
-    <div class="wrap">
+    <div class="wrap" data-ufsc-admin-build="<?php echo esc_attr( function_exists( 'ufsc_get_build_id' ) ? ufsc_get_build_id() : UFSC_CL_VERSION ); ?>">
         <?php if ( class_exists( 'UFSC_SQL_Admin' ) ) { UFSC_SQL_Admin::render_admin_quick_nav(); } ?>
         <h1><?php esc_html_e( 'Paramètres WooCommerce - UFSC Gestion', 'ufsc-clubs' ); ?></h1>
+		<p class="description"><?php echo esc_html( sprintf( __( 'Build installé : %s', 'ufsc-clubs' ), function_exists( 'ufsc_get_build_id' ) ? ufsc_get_build_id() : UFSC_CL_VERSION ) ); ?></p>
 
         <?php if ( ! $woocommerce_active ) : ?>
             <div class="notice notice-warning">
@@ -411,7 +465,7 @@ function ufsc_render_woocommerce_settings_page() {
                         <input
                             type="number"
                             id="product_affiliation_id"
-                            name="product_affiliation_id"
+                            name="ufsc_woocommerce_settings[product_affiliation_id]"
                             value="<?php echo esc_attr( $current_settings['product_affiliation_id'] ); ?>"
                             class="regular-text"
                             min="1"
@@ -436,23 +490,24 @@ function ufsc_render_woocommerce_settings_page() {
                     <td>
                         <select
                             id="product_license_id"
-                            name="product_license_id"
+                            name="ufsc_woocommerce_settings[product_license_id]"
                             class="regular-text"
                         >
                             <option value="0"><?php esc_html_e( '— Aucun produit configuré —', 'ufsc-clubs' ); ?></option>
-                            <?php if ( function_exists( 'wc_get_products' ) ) : foreach ( wc_get_products( array( 'status' => array( 'publish', 'draft', 'private' ), 'limit' => -1, 'orderby' => 'name', 'order' => 'ASC' ) ) as $candidate ) : ?>
+                            <?php if ( function_exists( 'wc_get_products' ) ) : foreach ( wc_get_products( array( 'status' => array( 'publish', 'draft', 'private' ), 'type' => array( 'simple', 'variation' ), 'limit' => -1, 'orderby' => 'name', 'order' => 'ASC' ) ) as $candidate ) : ?>
                                 <option value="<?php echo esc_attr( $candidate->get_id() ); ?>" <?php selected( $current_settings['product_license_id'], $candidate->get_id() ); ?>><?php echo esc_html( $candidate->get_name() . ' (#' . $candidate->get_id() . ', ' . $candidate->get_status() . ')' ); ?></option>
                             <?php endforeach; endif; ?>
                         </select>
                         <p class="description">
-                            <?php esc_html_e( 'ID du produit "Licence UFSC/ASPTT" dans WooCommerce (par défaut: 2934)', 'ufsc-clubs' ); ?>
+                            <?php esc_html_e( 'Sélection explicite du produit simple ou de la variation utilisée pour les licences UFSC.', 'ufsc-clubs' ); ?>
                             <?php if ( ! empty( $licence_resolution['valid'] ) ) : ?>
                                 <span style="color: green;">✓ <?php esc_html_e( 'Produit publié et achetable', 'ufsc-clubs' ); ?></span>
                             <?php elseif ( $woocommerce_active ) : ?>
                                 <span style="color: #b32d2e;">✗ <?php esc_html_e( 'Le produit Licence UFSC est absent, non publié ou non achetable.', 'ufsc-clubs' ); ?></span>
                             <?php endif; ?>
                         </p>
-                        <p><strong><?php echo esc_html( ufsc_get_woocommerce_product_diagnostic_message( $current_settings['product_license_id'] ) ); ?></strong></p>
+                        <p><strong><?php echo esc_html( ufsc_get_licence_product_message( $licence_resolution ) ); ?></strong></p>
+						<dl class="ufsc-product-diagnostic"><dt><?php esc_html_e( 'ID', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $licence_resolution['configured_id'] ?: '—' ); ?></dd><dt><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $licence_resolution['product_name'] ?: '—' ); ?></dd><dt><?php esc_html_e( 'Type', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $licence_resolution['product_type'] ?: '—' ); ?></dd><dt><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $licence_resolution['product_status'] ?: '—' ); ?></dd><dt><?php esc_html_e( 'Prix', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( '' !== $licence_resolution['product_price'] ? $licence_resolution['product_price'] : '—' ); ?></dd><dt><?php esc_html_e( 'Publié', 'ufsc-clubs' ); ?></dt><dd><?php echo 'publish' === $licence_resolution['product_status'] ? esc_html__( 'oui', 'ufsc-clubs' ) : esc_html__( 'non', 'ufsc-clubs' ); ?></dd><dt><?php esc_html_e( 'Achetable', 'ufsc-clubs' ); ?></dt><dd><?php echo ! empty( $licence_resolution['product_purchasable'] ) ? esc_html__( 'oui', 'ufsc-clubs' ) : esc_html__( 'non', 'ufsc-clubs' ); ?></dd></dl>
                     </td>
                 </tr>
             </table>
@@ -467,7 +522,7 @@ function ufsc_render_woocommerce_settings_page() {
                         <input
                             type="number"
                             id="included_licenses"
-                            name="included_licenses"
+                            name="ufsc_woocommerce_settings[included_licenses]"
                             value="<?php echo esc_attr( $current_settings['included_licenses'] ); ?>"
                             class="regular-text"
                             min="0"
@@ -486,7 +541,7 @@ function ufsc_render_woocommerce_settings_page() {
                         <input
                             type="text"
                             id="season"
-                            name="season"
+                            name="ufsc_woocommerce_settings[season]"
                             value="<?php echo esc_attr( $current_settings['season'] ); ?>"
                             class="regular-text"
                         />
@@ -504,7 +559,7 @@ function ufsc_render_woocommerce_settings_page() {
                         <input
                             type="number"
                             id="renewal_window_day"
-                            name="renewal_window_day"
+                            name="ufsc_woocommerce_settings[renewal_window_day]"
                             value="<?php echo esc_attr( $current_settings['renewal_window_day'] ); ?>"
                             min="1"
                             max="31"
@@ -514,7 +569,7 @@ function ufsc_render_woocommerce_settings_page() {
                         <input
                             type="number"
                             id="renewal_window_month"
-                            name="renewal_window_month"
+                            name="ufsc_woocommerce_settings[renewal_window_month]"
                             value="<?php echo esc_attr( $current_settings['renewal_window_month'] ); ?>"
                             min="1"
                             max="12"
