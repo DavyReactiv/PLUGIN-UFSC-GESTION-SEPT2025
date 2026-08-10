@@ -16,7 +16,7 @@ foreach ( array( '#ufsc-overview', '#ufsc-club-information', '#ufsc-club-officer
 $assert( strpos( $front, 'id="ufsc-club-licences"' ) !== false, 'Licence-list anchor target is present.' );
 $assert( substr_count( $front, 'id="ufsc-club-documents"' ) === 1, 'Documents ID is unique.' );
 $assert( substr_count( $front, 'id="ufsc-club-officers"' ) === 1, 'Officers ID is unique.' );
-$assert( strpos( $front, 'ufsc-club-logo' ) !== false && strpos( $css, 'aspect-ratio:1/1' ) !== false && strpos( $css, 'object-fit:contain' ) !== false, 'Reusable logos are square and non-cropping.' );
+$assert( strpos( $front, 'ufsc-club-logo' ) !== false && preg_match( '/aspect-ratio:\s*1\s*\/\s*1/', $css ) && preg_match( '/object-fit:\s*contain/', $css ), 'Reusable logos are square and non-cropping.' );
 $assert( strpos( $front, "\$renewal_affiliation_done = ! empty( \$licence_affiliation_gate['allowed'] )" ) !== false, 'The canonical annual affiliation gate suppresses the renewal CTA.' );
 $assert( strpos( $front, 'Affiliation %s active' ) !== false, 'Active affiliation message is explicit.' );
 $assert( strpos( $front, 'Finaliser mon paiement' ) !== false && strpos( $front, 'En attente de validation' ) !== false && strpos( $front, 'Renouveler mon affiliation %s' ) !== false, 'Annual affiliation states render expected CTAs/messages.' );

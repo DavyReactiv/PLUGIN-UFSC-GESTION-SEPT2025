@@ -109,8 +109,14 @@ function ufsc_handle_bulk_renew_licences() {
 	$ids = array_values( array_unique( array_filter( array_map( 'absint', $ids ) ) ) );
 	$profiles = isset( $_POST['renewal_profiles'] ) && is_array( $_POST['renewal_profiles'] ) ? wp_unslash( $_POST['renewal_profiles'] ) : array();
 	$intent = isset( $_POST['ufsc_renew_intent'] ) && ! is_array( $_POST['ufsc_renew_intent'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_renew_intent'] ) ) : 'verify';
+	$state_key = 'ufsc_renewal_front_' . get_current_user_id() . '_' . $club_id;
+	if ( 'cancel' === $intent ) {
+		delete_transient( $state_key );
+		$return_url = remove_query_arg( array( 'ufsc_renew_step', 'renew_source_id', 'target_season', 'ufsc_error' ), wp_get_referer() );
+		wp_safe_redirect( $return_url ); exit;
+	}
 	if ( in_array( $intent, array( 'save_draft', 'verify' ), true ) ) {
-		set_transient( 'ufsc_renewal_front_' . get_current_user_id() . '_' . $club_id, array( 'ids' => $ids, 'profiles' => $profiles ), 30 * 60 );
+		set_transient( $state_key, array( 'ids' => $ids, 'profiles' => $profiles, 'state' => $intent, 'saved_at' => time() ), 30 * 60 );
 		$return_url = wp_get_referer();
 		if ( 'verify' === $intent && $ids ) { $return_url = add_query_arg( 'ufsc_renew_step', 2, $return_url ); }
 		if ( function_exists( 'wc_add_notice' ) ) { wc_add_notice( 'save_draft' === $intent ? __( 'Brouillon enregistré. Le panier n’a pas été modifié.', 'ufsc-clubs' ) : __( 'Sélection enregistrée. Vérifiez et complétez les informations.', 'ufsc-clubs' ), 'success' ); }
@@ -781,6 +787,31 @@ function ufsc_maybe_revert_licences_from_cart_item( $cart_item ) {
 /**
  * Handle secure add to cart requests posted via admin-post.php
  */
+function ufsc_ensure_woocommerce_cart() {
+	if ( ! function_exists( 'WC' ) || ! WC() ) {
+		return new WP_Error( 'ufsc_woocommerce_unavailable', __( 'WooCommerce n’est pas initialisé. Rechargez la page puis réessayez.', 'ufsc-clubs' ) );
+	}
+
+	if ( WC()->cart ) {
+		return true;
+	}
+
+	// admin-post.php does not execute the normal shop-page bootstrap. Use the
+	// public WooCommerce initializers so session, customer and cart stay native.
+	if ( method_exists( WC(), 'initialize_session' ) && ! WC()->session ) {
+		WC()->initialize_session();
+	}
+	if ( method_exists( WC(), 'initialize_cart' ) && ! WC()->cart ) {
+		WC()->initialize_cart();
+	} elseif ( function_exists( 'wc_load_cart' ) && ! WC()->cart ) {
+		wc_load_cart();
+	}
+
+	return WC()->cart
+		? true
+		: new WP_Error( 'ufsc_cart_initialization_failed', __( 'La session WooCommerce n’a pas pu initialiser le panier. Autorisez les cookies puis rechargez la page.', 'ufsc-clubs' ) );
+}
+
 function ufsc_handle_add_to_cart_secure() {
 	$log_warning = static function( $event, $context = array() ) {
 		if ( function_exists( 'ufsc_wc_log' ) ) {
@@ -1105,19 +1136,15 @@ function ufsc_handle_add_to_cart_secure() {
 
 	$cart_item_data['ufsc_club_id'] = $club_id;
 
-	// Ensure cart is ready
-	if ( function_exists( 'wc_load_cart' ) ) {
-		wc_load_cart();
-	}
-
-	if ( ! function_exists( 'WC' ) || ! WC() || ! WC()->cart ) {
+	$cart_ready = ufsc_ensure_woocommerce_cart();
+	if ( is_wp_error( $cart_ready ) ) {
 		$log_warning( 'ufsc_add_to_cart_cart_unavailable', array(
 			'user_id'    => $current_user_id,
 			'club_id'    => $club_id,
 			'product_id' => $product_id,
 		) );
 
-		wc_add_notice( __( 'Panier indisponible, veuillez réessayer.', 'ufsc-clubs' ), 'error' );
+		wc_add_notice( $cart_ready->get_error_message(), 'error' );
 		wp_safe_redirect( wp_get_referer() ? wp_get_referer() : home_url() );
 		exit;
 	}
@@ -1275,8 +1302,9 @@ function ufsc_add_licence_ids_to_cart_idempotent( $product_id, $club_id, $licenc
 		return new WP_Error( 'ufsc_invalid_add_to_cart_payload', __( 'Paramètres d\'ajout au panier invalides.', 'ufsc-clubs' ) );
 	}
 
-	if ( ! function_exists( 'WC' ) || ! WC() || ! WC()->cart ) {
-		return new WP_Error( 'ufsc_cart_unavailable', __( 'Panier indisponible, veuillez réessayer.', 'ufsc-clubs' ) );
+	$cart_ready = ufsc_ensure_woocommerce_cart();
+	if ( is_wp_error( $cart_ready ) ) {
+		return $cart_ready;
 	}
 
 	$season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );

@@ -23,6 +23,9 @@ if(!preg_match('/href="([^"]*renew_source_id=42[^"]*target_season=2026-2027[^"]*
 $_GET=array('renew_source_id'=>'42','target_season'=>'2026-2027'); $fallback=$method->invoke(null,array($row),array('club_id'=>9));
 if(strpos($fallback,'data-initial-step="2"')===false || strpos($fallback,'ufsc-renewal-profile-title-42')===false || !preg_match('/data-ufsc-step-actions="2"/', $fallback))exit("FAIL server step two\n");
 if(strpos($fallback,'name="ufsc_renew_ids[]"')===false || strpos($fallback,'name="action" value="ufsc_bulk_renew_licences"')===false)exit("FAIL cart form\n");
+foreach(array('renewal_profiles[42][email]','renewal_profiles[42][telephone]','renewal_profiles[42][adresse]','renewal_profiles[42][code_postal]','renewal_profiles[42][ville]','renewal_profiles[42][date_naissance]','renewal_profiles[42][sexe]','renewal_profiles[42][poids]','renewal_profiles[42][fighter_level]','renewal_profiles[42][pratique]','renewal_profiles[42][role]') as $field){ if(strpos($fallback,'name="'.$field.'"')===false)exit("FAIL editable field $field\n"); }
+if(strpos($fallback,'Saison d’origine')===false || strpos($fallback,'Saison cible')===false || strpos($fallback,'ufsc_renew_source_season')===false)exit("FAIL source/target season context\n");
+if(strpos($fallback,'data-ufsc-completeness')===false || strpos($fallback,'data-ufsc-product-ready')===false || strpos($fallback,'ufsc-cart-readiness')===false)exit("FAIL completeness/cart runtime UI\n");
 $rows=array(); for($id=1;$id<=25;$id++){ $rows[]=(object)array('id'=>$id,'club_id'=>9,'season'=>'2025-2026','nom'=>'Personne '.$id,'prenom'=>'Test','fighter_level'=>'','poids'=>''); }
 $_GET=array('ufsc_renew_per_page'=>'10','ufsc_renew_page'=>'2'); $page_two=$method->invoke(null,array_slice($rows,10,10),array('club_id'=>9),25,2,10,array());
 if(substr_count($page_two,'class="ufsc-renewal-source-row')!==10)exit("FAIL controlled pagination row count\n");

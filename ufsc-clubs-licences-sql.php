@@ -12,6 +12,29 @@ define( 'UFSC_CL_VERSION', '042026' );
 define( 'UFSC_CL_DIR', plugin_dir_path( __FILE__ ) );
 define( 'UFSC_CL_URL', plugin_dir_url( __FILE__ ) );
 
+/* Expanded by `git archive` for release ZIPs (see .gitattributes). */
+define( 'UFSC_CL_BUILD_ARCHIVE', '$Format:%h$' );
+if ( ! function_exists( 'ufsc_get_build_id' ) ) {
+	function ufsc_get_build_id() {
+		$archive_id = UFSC_CL_BUILD_ARCHIVE;
+		if ( preg_match( '/^[0-9a-f]{7,40}$/i', $archive_id ) ) {
+			return substr( strtolower( $archive_id ), 0, 12 );
+		}
+		$head_file = UFSC_CL_DIR . '.git/HEAD';
+		if ( is_readable( $head_file ) ) {
+			$head = trim( (string) file_get_contents( $head_file ) );
+			if ( 0 === strpos( $head, 'ref: ' ) ) {
+				$ref_file = UFSC_CL_DIR . '.git/' . substr( $head, 5 );
+				$head = is_readable( $ref_file ) ? trim( (string) file_get_contents( $ref_file ) ) : '';
+			}
+			if ( preg_match( '/^[0-9a-f]{7,40}$/i', $head ) ) {
+				return substr( strtolower( $head ), 0, 12 );
+			}
+		}
+		return UFSC_CL_VERSION;
+	}
+}
+
 require_once UFSC_CL_DIR . 'vendor/autoload.php';
 require_once UFSC_CL_DIR.'includes/core/class-utils.php';
 require_once UFSC_CL_DIR.'includes/core/column-map.php';

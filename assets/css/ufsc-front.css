@@ -2407,11 +2407,11 @@ body .wp-block-post-content > .ufsc-club-account {
 }
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-dashboard-logo {
-    width: 74px;
-    height: 74px;
-    flex: 0 0 74px;
+    width: 112px;
+    height: 112px;
+    flex: 0 0 112px;
     border-radius: 22px;
-    padding: 10px;
+    padding: 4px;
     background: rgba(255, 255, 255, .96);
     box-shadow: 0 14px 30px rgba(3, 21, 37, .28);
     object-fit: contain;
@@ -2497,17 +2497,19 @@ body .wp-block-post-content > .ufsc-club-account {
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-btn-primary,
 .ufsc-club-account.ufsc-premium-v3 button.ufsc-btn-primary {
-    background: #ffffff;
-    color: var(--ufsc-front-primary-strong);
-    border-color: rgba(255, 255, 255, .78);
+    background: #0b4f86;
+    color: #ffffff;
+    -webkit-text-fill-color: #ffffff;
+    border: 2px solid #0b4f86;
     box-shadow: 0 16px 32px rgba(2, 20, 36, .24);
 }
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-btn-secondary,
 .ufsc-club-account.ufsc-premium-v3 .ufsc-dashboard-actions .ufsc-btn-secondary {
-    background: rgba(255, 255, 255, .14);
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, .46);
+    background: #f8fafc;
+    color: #173b67;
+    -webkit-text-fill-color: #173b67;
+    border: 2px solid #173b67;
 }
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-hero-kpi-grid,
@@ -2809,34 +2811,233 @@ body .wp-block-post-content > .ufsc-club-account {
     width: 24px;
 }
 .ufsc-club-portal .ufsc-renewal-selection-control .ufsc-renewal-checkbox:disabled { cursor: not-allowed; }
-.ufsc-archive-results { font-weight: 700; }
+.ufsc-club-portal .ufsc-archive-results { font-weight: 700; }
 
-/* Shared club logo: square and non-cropping on dashboard and account screens. */
-.ufsc-club-logo{align-items:center;aspect-ratio:1/1;background:#fff;border:1px solid #d6dee8;border-radius:12px;display:flex;flex:0 0 96px;justify-content:center;margin:0;overflow:hidden;padding:8px;width:96px}
-.ufsc-club-logo img{display:block;height:100%!important;max-height:100%;max-width:100%;object-fit:contain!important;object-position:center;width:100%!important}
-.ufsc-club-logo--fallback{background:#eef2f7;color:#173b67;font-size:1.75rem;font-weight:800}
-.ufsc-club-profile .photo-club-front{width:140px;flex-basis:140px}
-/* Compact the cockpit header: secondary contact data stays available on the account page. */
-.ufsc-club-dashboard .ufsc-dashboard-header--premium{padding:20px!important}
-.ufsc-club-dashboard .ufsc-dashboard-hero-layout{align-items:start;gap:16px;grid-template-columns:minmax(0,1.4fr) minmax(320px,1fr)}
-.ufsc-club-dashboard .ufsc-dashboard-brand{align-items:start;gap:14px}
-.ufsc-club-dashboard .ufsc-dashboard-header .ufsc-club-account__identity{display:none}
-.ufsc-club-dashboard .ufsc-hero-kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.ufsc-club-dashboard .ufsc-priority-tile{display:none}
-.ufsc-club-dashboard .ufsc-hero-kpi-grid .ufsc-kpi-tile{min-height:74px;padding:10px}
-.ufsc-club-dashboard .ufsc-dashboard-actions--primary{display:flex!important;height:auto!important;margin:12px 0 0!important;overflow:visible!important;clip:auto!important;white-space:normal!important;gap:8px;flex-wrap:wrap}
-@media(max-width:900px){.ufsc-club-dashboard .ufsc-dashboard-hero-layout{grid-template-columns:1fr}.ufsc-club-dashboard .ufsc-hero-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Portal Club UI: compact, responsive and isolated from the active theme. */
+.ufsc-club-portal,
+.ufsc-club-portal * { box-sizing: border-box; }
+.ufsc-club-portal { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+.ufsc-club-portal .ufsc-btn { align-items: center; background: #fff; border: 2px solid #173b67; border-radius: 7px; color: #173b67; display: inline-flex; font-weight: 700; justify-content: center; line-height: 1.2; min-height: 44px; padding: 9px 15px; text-align: center; text-decoration: none; }
+.ufsc-club-portal .ufsc-btn-primary { background: #173b67; color: #fff; }
+.ufsc-club-portal .ufsc-btn-secondary { background: #fff; color: #173b67; }
+.ufsc-club-portal .ufsc-btn-link { background: transparent; border-color: transparent; color: #9f1239; padding-inline: 8px; }
+.ufsc-club-portal .ufsc-btn:hover { background: #0f2f55; border-color: #0f2f55; color: #fff; }
+.ufsc-club-portal .ufsc-btn:active { transform: translateY(1px); }
+.ufsc-club-portal .ufsc-btn:focus-visible,
+.ufsc-club-portal :is(input,select,textarea,a,button):focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+.ufsc-club-portal .ufsc-btn:disabled,
+.ufsc-club-portal .ufsc-btn-disabled { background: #e5e7eb; border-color: #6b7280; color: #374151; cursor: not-allowed; }
 
-/* Final DEV corrections: full-width renewal filters, pagination and account tabs. */
-.ufsc-renewal-wizard{max-width:1400px;width:100%}
-.ufsc-renewal-filters{display:grid;grid-template-columns:repeat(6,minmax(140px,1fr));gap:12px;margin:16px 0;align-items:end}
-.ufsc-renewal-filters label{display:grid;gap:5px;font-weight:700}.ufsc-renewal-filters input,.ufsc-renewal-filters select{min-height:44px;width:100%}
-.ufsc-renewal-pagination{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.ufsc-renewal-pagination .ufsc-btn{align-items:center;display:inline-flex;justify-content:center;min-height:44px;min-width:44px;text-decoration:none}.ufsc-renewal-pagination [aria-current=page]{background:#173b67;color:#fff}
-.ufsc-hero-kpi-card{text-decoration:none!important}.ufsc-attestation-card{align-items:center;display:flex;gap:12px;margin-top:12px;padding:12px}.ufsc-dashboard-actions--primary .ufsc-btn{flex:1 1 190px;min-height:48px;text-decoration:none!important}
-.ufsc-account-tabs-enhanced [hidden]{display:none!important}.ufsc-club-profile .ufsc-club-account__nav{display:flex;flex-wrap:nowrap;gap:4px;overflow-x:auto;position:static}.ufsc-club-profile .ufsc-club-account__nav a{flex:0 0 auto;min-height:44px;white-space:nowrap}.ufsc-club-profile .ufsc-field input,.ufsc-club-profile .ufsc-field select,.ufsc-club-profile .ufsc-field textarea{min-height:44px;min-width:0;width:100%}.ufsc-club-profile dd,.ufsc-club-profile a{overflow-wrap:anywhere}.ufsc-club-profile .ufsc-document-card{min-height:0!important;padding:12px!important}.ufsc-club-profile .ufsc-club-account__savebar[hidden]{display:none!important}
-@media(max-width:1024px){.ufsc-renewal-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:600px){.ufsc-renewal-filters{grid-template-columns:1fr}.ufsc-dashboard-actions--primary{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))}.ufsc-dashboard-actions--primary .ufsc-btn{width:100%}}
+.ufsc-club-portal .ufsc-message { border: 1px solid #94a3b8; border-left-width: 4px; border-radius: 8px; margin-block: 12px; padding: 12px 14px; }
+.ufsc-club-portal .ufsc-info { background: #eff6ff; border-color: #2563eb; color: #172554; }
+.ufsc-club-portal .ufsc-warning { background: #fffbeb; border-color: #b45309; color: #451a03; }
+.ufsc-club-portal .ufsc-error { background: #fff1f2; border-color: #be123c; color: #4c0519; }
+.ufsc-club-portal .ufsc-success { background: #ecfdf5; border-color: #047857; color: #022c22; }
 
-/* Action contract: scoped against theme button/link rules, including pagination. */
-.ufsc-club-portal :is(.ufsc-renewal-actions,.ufsc-renewal-pagination,.ufsc-renewal-source-row,.ufsc-licences-archives) :is(.ufsc-btn,.ufsc-action){background:#173b67!important;border:2px solid #173b67!important;border-radius:6px!important;color:#fff!important;display:inline-flex!important;align-items:center;justify-content:center;min-height:44px!important;opacity:1!important;padding:9px 16px!important;text-decoration:none!important;visibility:visible!important}
-.ufsc-club-portal :is(.ufsc-renewal-actions,.ufsc-renewal-pagination,.ufsc-renewal-source-row,.ufsc-licences-archives) :is(.ufsc-btn,.ufsc-action):focus-visible{outline:3px solid #f59e0b!important;outline-offset:3px!important}
-.ufsc-club-portal .ufsc-renewal-pagination .ufsc-btn-disabled,.ufsc-club-portal .ufsc-renewal-actions .ufsc-btn:disabled{background:#e5e7eb!important;border-color:#6b7280!important;color:#374151!important;cursor:not-allowed!important}
+.ufsc-club-portal .ufsc-renewal-wizard { max-width: 1400px; width: 100%; }
+.ufsc-club-portal .ufsc-renewal-filters { align-items: end; display: grid; gap: 10px; grid-template-columns: minmax(190px,1.5fr) repeat(5,minmax(130px,1fr)) auto auto; margin: 14px 0; }
+.ufsc-club-portal .ufsc-renewal-filters label { display: grid; font-weight: 700; gap: 5px; min-width: 0; }
+.ufsc-club-portal .ufsc-renewal-filters :is(input,select) { min-height: 44px; min-width: 0; width: 100%; }
+.ufsc-club-portal .ufsc-renewal-list-tools { margin: 10px 0; }
+.ufsc-club-portal .ufsc-renewal-table { table-layout: fixed; width: 100%; }
+.ufsc-club-portal .ufsc-renewal-table th,
+.ufsc-club-portal .ufsc-renewal-table td { overflow-wrap: anywhere; padding: 8px 10px; vertical-align: middle; }
+.ufsc-club-portal .ufsc-renewal-table th:first-child { width: 7%; }
+.ufsc-club-portal .ufsc-renewal-table th:nth-child(2) { width: 19%; }
+.ufsc-club-portal .ufsc-renewal-table th:nth-child(3) { width: 13%; }
+.ufsc-club-portal .ufsc-renewal-table th:nth-child(4) { width: 14%; }
+.ufsc-club-portal .ufsc-renewal-table th:nth-child(5) { width: 11%; }
+.ufsc-club-portal .ufsc-renewal-table th:last-child { width: 36%; }
+.ufsc-club-portal .ufsc-renewal-selection-control { align-items: center; display: flex; justify-content: center; min-height: 44px; }
+.ufsc-club-portal .ufsc-renewal-checkbox { accent-color: #173b67; height: 24px; margin: 0; width: 24px; }
+.ufsc-club-portal .ufsc-renewal-source-row .ufsc-badge { display: inline-flex; font-size: .78rem; line-height: 1.2; padding: 4px 8px; }
+.ufsc-club-portal .ufsc-renewal-reason { color: #334155; font-size: .86rem; line-height: 1.35; margin-top: 5px; }
+.ufsc-club-portal .ufsc-renewal-missing { display: block; margin-top: 3px; }
+.ufsc-club-portal .ufsc-renewal-button { gap: 3px; margin-top: 7px; min-width: 132px; }
+.ufsc-club-portal .ufsc-renewal-button small { font-size: .72rem; margin-left: 4px; }
+.ufsc-club-portal .ufsc-renewal-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.ufsc-club-portal .ufsc-renewal-pagination { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin: 14px 0; }
+.ufsc-club-portal .ufsc-renewal-pagination .ufsc-btn { min-height: 44px; min-width: 44px; padding-inline: 11px; }
+.ufsc-club-portal .ufsc-renewal-pagination [aria-current="page"] { background: #173b67; color: #fff; }
+
+.ufsc-club-portal .ufsc-club-logo { align-items: center; aspect-ratio: 1/1; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; display: flex; justify-content: center; margin: 0; overflow: hidden; padding: 8px; width: 140px; }
+.ufsc-club-portal .ufsc-club-logo img { display: block; height: 100%; max-height: 100%; max-width: 100%; object-fit: contain; object-position: center; width: 100%; }
+.ufsc-club-portal .ufsc-club-logo--fallback { color: #173b67; font-size: 1.75rem; font-weight: 800; }
+.ufsc-club-portal .ufsc-logo-editor { align-items: center; display: flex; flex-direction: column; gap: 8px; max-width: 260px; }
+.ufsc-club-portal .ufsc-logo-editor__upload { align-items: center; display: flex; flex-direction: column; gap: 7px; width: 100%; }
+.ufsc-club-portal .ufsc-logo-editor__file { max-width: 100%; width: 100%; }
+.ufsc-club-portal .ufsc-logo-editor__help,
+.ufsc-club-portal .ufsc-logo-editor__filename { font-size: .82rem; margin: 0; text-align: center; }
+.ufsc-club-portal .ufsc-logo-editor__pending { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+.ufsc-club-portal .ufsc-logo-editor__pending[hidden] { display: none; }
+
+.ufsc-club-portal .ufsc-profile-cards { align-items: start; display: grid; gap: 16px; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; }
+.ufsc-club-portal .ufsc-profile-cards > .ufsc-card { height: auto; margin: 0; min-width: 0; width: 100%; }
+.ufsc-club-portal .ufsc-club-portal__section--full { grid-column: 1/-1; }
+.ufsc-club-portal .ufsc-grid { display: grid; gap: 12px; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.ufsc-club-portal .ufsc-field { min-width: 0; }
+.ufsc-club-portal .ufsc-field :is(input,select,textarea) { min-height: 44px; min-width: 0; width: 100%; }
+.ufsc-club-portal .ufsc-field textarea { min-height: 110px; resize: vertical; }
+.ufsc-club-portal .ufsc-board-columns { display: grid; gap: 14px; grid-template-columns: repeat(3,minmax(250px,1fr)); }
+.ufsc-club-portal .ufsc-board-role-card { background: #f8fafc; border: 1px solid #dbe3ed; border-radius: 10px; min-width: 0; padding: 14px; }
+.ufsc-club-portal .ufsc-board-role-card .ufsc-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.ufsc-club-portal .ufsc-board-role-card .ufsc-field:has(input[type="email"]),
+.ufsc-club-portal .ufsc-board-role-card .ufsc-field:has(input[type="tel"]) { grid-column: 1/-1; }
+.ufsc-club-portal .ufsc-board-role-card--coach { grid-column: 1/-1; max-width: none; }
+.ufsc-club-portal .ufsc-club-account__nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.ufsc-club-portal .ufsc-club-account__nav a { align-items: center; border: 1px solid #94a3b8; border-radius: 6px; color: #173b67; display: inline-flex; min-height: 44px; padding: 8px 12px; text-decoration: none; }
+.ufsc-club-portal .ufsc-club-account__nav a[aria-current="page"] { background: #173b67; color: #fff; }
+
+@media (max-width: 1100px) {
+ .ufsc-club-portal .ufsc-renewal-filters { grid-template-columns: repeat(3,minmax(0,1fr)); }
+ .ufsc-club-portal .ufsc-board-columns { grid-template-columns: repeat(2,minmax(250px,1fr)); }
+}
+@media (max-width: 780px) {
+ .ufsc-club-portal .ufsc-front-table-scroll { overflow: visible; }
+ .ufsc-club-portal .ufsc-renewal-table,
+ .ufsc-club-portal .ufsc-renewal-table tbody { display: block; width: 100%; }
+ .ufsc-club-portal .ufsc-renewal-table thead { display: none; }
+ .ufsc-club-portal .ufsc-renewal-source-row { background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; display: grid; gap: 0; margin-bottom: 12px; max-width: 100%; min-width: 0; padding: 10px 12px; width: 100%; }
+ .ufsc-club-portal .ufsc-renewal-source-row td { border: 0; display: grid; gap: 8px; grid-template-columns: minmax(105px,35%) minmax(0,1fr); max-width: 100%; min-width: 0; padding: 6px 0; width: 100%; }
+ .ufsc-club-portal .ufsc-renewal-source-row td::before { content: attr(data-label); font-weight: 700; }
+ .ufsc-club-portal .ufsc-renewal-source-row td:first-child { align-items: center; }
+ .ufsc-club-portal .ufsc-renewal-source-row td:last-child { display: block; }
+ .ufsc-club-portal .ufsc-renewal-button { width: 100%; }
+ .ufsc-club-portal .ufsc-renewal-profile-row { display: block; width: 100%; }
+ .ufsc-club-portal .ufsc-renewal-profile-row td { display: block; width: 100%; }
+ .ufsc-club-portal .ufsc-profile-cards { grid-template-columns: 1fr; }
+ .ufsc-club-portal .ufsc-board-columns { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 600px) {
+ .ufsc-club-portal .ufsc-renewal-filters,
+ .ufsc-club-portal .ufsc-grid,
+ .ufsc-club-portal .ufsc-board-columns { grid-template-columns: 1fr; }
+ .ufsc-club-portal .ufsc-renewal-actions { align-items: stretch; flex-direction: column; }
+ .ufsc-club-portal .ufsc-renewal-actions .ufsc-btn { width: 100%; }
+ .ufsc-club-portal .ufsc-renewal-pagination { justify-content: flex-start; }
+ .ufsc-club-portal .ufsc-club-hero { grid-template-columns: 1fr; }
+ .ufsc-club-portal .ufsc-logo-editor { max-width: 100%; width: 100%; }
+ .ufsc-club-portal .ufsc-club-account__nav { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+ .ufsc-club-portal *, .ufsc-club-portal *::before, .ufsc-club-portal *::after { scroll-behavior: auto; transition-duration: .01ms; }
+}
+
+/* Final DEV corrective contract: visible without hover and resistant to narrow grid tracks. */
+.ufsc-club-portal .ufsc-btn {
+ min-width: max-content;
+ opacity: 1;
+ overflow: visible;
+ padding-inline: 18px;
+ pointer-events: auto;
+ visibility: visible;
+ white-space: nowrap;
+}
+.ufsc-club-portal .ufsc-renewal-filters { grid-template-columns: repeat(4,minmax(150px,1fr)); }
+.ufsc-club-portal .ufsc-renewal-filters > .ufsc-btn { min-width: 160px; width: 100%; }
+.ufsc-club-portal .ufsc-renewal-season-context { background: #eff6ff; border-radius: 7px; color: #172554; padding: 10px 12px; }
+.ufsc-club-portal .ufsc-renewal-completeness { border: 1px solid currentColor; border-radius: 7px; display: flex; flex-wrap: wrap; gap: 8px; margin-block: 10px; padding: 10px 12px; }
+.ufsc-club-portal .ufsc-cart-readiness { flex-basis: 100%; font-size: .9rem; }
+.ufsc-club-portal .ufsc-renewal-pagination a.ufsc-btn { background: #f8fafc; border-color: #173b67; color: #173b67; opacity: 1; visibility: visible; }
+.ufsc-club-portal .ufsc-renewal-pagination a.ufsc-btn:hover,
+.ufsc-club-portal .ufsc-renewal-pagination a.ufsc-btn:focus-visible { background: #173b67; color: #fff; }
+.ufsc-club-portal .ufsc-renewal-pagination [aria-current="page"] { background: #173b67; border: 2px solid #173b67; color: #fff; }
+.ufsc-club-portal .ufsc-renewal-pagination [aria-disabled="true"] { background: #e5e7eb; border: 2px solid #6b7280; color: #374151; }
+.ufsc-club-portal .ufsc-archive-filter-form { align-items: end; display: grid; gap: 10px; grid-template-columns: minmax(220px,1fr) auto auto; }
+.ufsc-club-portal .ufsc-archive-filter-form label { display: grid; font-weight: 700; gap: 5px; }
+.ufsc-club-portal .ufsc-archive-filter-form select { min-height: 44px; width: 100%; }
+.ufsc-club-portal .ufsc-dashboard-logo { padding: 4px; width: 96px; }
+.ufsc-club-portal .ufsc-dashboard-actions--primary { display: grid; gap: 10px; grid-template-columns: repeat(2,minmax(0,1fr)); }
+.ufsc-club-portal .ufsc-dashboard-actions--primary .ufsc-btn { min-width: 0; width: 100%; }
+.ufsc-club-portal .ufsc-attestation-card { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 8px; min-height: 0; padding: 12px; }
+.ufsc-club-portal .ufsc-attestation-card small { flex-basis: 100%; }
+.ufsc-club-portal .ufsc-club-account__nav { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); width: 100%; }
+.ufsc-club-portal .ufsc-club-account__nav a { justify-content: center; min-width: 0; text-align: center; }
+.ufsc-club-portal .ufsc-logo-editor__file {
+ clip: rect(0 0 0 0);
+ clip-path: inset(50%);
+ height: 1px;
+ overflow: hidden;
+ position: absolute;
+ white-space: nowrap;
+ width: 1px;
+}
+.ufsc-club-portal .ufsc-logo-editor__filename { max-width: 100%; overflow-wrap: anywhere; }
+.ufsc-club-portal .ufsc-current-licence-filters .ufsc-filter-actions { align-items: end; display: flex; flex-wrap: wrap; gap: 8px; grid-column: span 2; }
+.ufsc-club-portal .ufsc-current-licences { scroll-margin-top: 96px; }
+.ufsc-club-portal .ufsc-licence-table--current td:last-child { display: flex; flex-wrap: wrap; gap: 8px; }
+.ufsc-club-portal .ufsc-pagination-wrapper { display: flex; flex-wrap: wrap; gap: 6px; margin-block: 16px; }
+.ufsc-club-portal .ufsc-page-link { align-items: center; background: #f8fafc; border: 2px solid #173b67; border-radius: 7px; color: #173b67; display: inline-flex; justify-content: center; min-height: 44px; min-width: 44px; padding: 8px 12px; text-decoration: none; }
+.ufsc-club-portal .ufsc-page-link.current { background: #173b67; color: #fff; }
+.ufsc-club-portal .ufsc-page-link.disabled { background: #e5e7eb; border-color: #6b7280; color: #374151; }
+.ufsc-club-portal .ufsc-page-link[href]:hover,
+.ufsc-club-portal .ufsc-page-link[href]:focus-visible { background: #173b67; color: #fff; outline: 3px solid #f59e0b; outline-offset: 2px; }
+@media (max-width: 900px) {
+ .ufsc-club-portal .ufsc-renewal-filters { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .ufsc-club-portal .ufsc-club-account__nav { grid-template-columns: repeat(3,minmax(0,1fr)); }
+ .ufsc-club-portal .ufsc-licence-table--current thead { display: none; }
+ .ufsc-club-portal .ufsc-licence-table--current,
+ .ufsc-club-portal .ufsc-licence-table--current tbody { display: block; width: 100%; }
+ .ufsc-club-portal .ufsc-licence-table--current tr { border: 1px solid #cbd5e1; border-radius: 10px; display: block; margin-bottom: 12px; padding: 10px; width: 100%; }
+ .ufsc-club-portal .ufsc-licence-table--current td { border: 0; display: grid; gap: 8px; grid-template-columns: minmax(110px,35%) minmax(0,1fr); overflow-wrap: anywhere; padding: 6px 0; width: 100%; }
+ .ufsc-club-portal .ufsc-licence-table--current td::before { content: attr(data-label); font-weight: 700; }
+ .ufsc-club-portal .ufsc-licence-table--current td:last-child { display: flex; }
+}
+@media (max-width: 600px) {
+ .ufsc-club-portal .ufsc-btn { min-width: 0; white-space: normal; width: 100%; }
+ .ufsc-club-portal .ufsc-renewal-filters,
+ .ufsc-club-portal .ufsc-archive-filter-form,
+ .ufsc-club-portal .ufsc-dashboard-actions--primary { grid-template-columns: 1fr; }
+ .ufsc-club-portal .ufsc-club-account__nav { display: flex; }
+ .ufsc-club-portal .ufsc-dashboard-logo { width: 72px; }
+ .ufsc-club-portal .ufsc-current-licence-filters .ufsc-filter-actions { display: grid; grid-column: auto; grid-template-columns: 1fr; }
+ .ufsc-club-portal .ufsc-licence-table--current td { grid-template-columns: 1fr; }
+ .ufsc-club-portal .ufsc-licence-table--current td:last-child { align-items: stretch; flex-direction: column; }
+}
+
+/* Canonical portal controls. These selectors intentionally outrank the legacy
+   premium skin while remaining strictly scoped to the authenticated portal. */
+.ufsc-club-portal.ufsc-club-account .ufsc-btn,
+.ufsc-club-portal.ufsc-club-account button.ufsc-btn,
+.ufsc-club-portal.ufsc-club-account input[type="submit"].ufsc-btn {
+ align-items: center;
+ background: #f8fafc;
+ border: 2px solid #173b67;
+ border-radius: 8px;
+ color: #173b67;
+ -webkit-text-fill-color: #173b67;
+ display: inline-flex;
+ font-weight: 750;
+ justify-content: center;
+ line-height: 1.25;
+ min-height: 44px;
+ opacity: 1;
+ padding: 10px 18px;
+ text-align: center;
+ text-decoration: none;
+ visibility: visible;
+ white-space: nowrap;
+}
+.ufsc-club-portal.ufsc-club-account .ufsc-btn-primary,
+.ufsc-club-portal.ufsc-club-account button.ufsc-btn-primary { background: #0b4f86; border-color: #0b4f86; color: #fff; -webkit-text-fill-color: #fff; }
+.ufsc-club-portal.ufsc-club-account .ufsc-btn-secondary { background: #f8fafc; border-color: #173b67; color: #173b67; -webkit-text-fill-color: #173b67; }
+.ufsc-club-portal.ufsc-club-account .ufsc-btn-danger { background: #fff; border-color: #b42318; color: #8f1d14; -webkit-text-fill-color: #8f1d14; }
+.ufsc-club-portal.ufsc-club-account .ufsc-btn:hover,
+.ufsc-club-portal.ufsc-club-account .ufsc-btn:active { background: #062f54; border-color: #062f54; color: #fff; -webkit-text-fill-color: #fff; }
+.ufsc-club-portal.ufsc-club-account .ufsc-btn:focus-visible { box-shadow: none; outline: 3px solid #f59e0b; outline-offset: 2px; }
+.ufsc-club-portal.ufsc-club-account .ufsc-btn[disabled],
+.ufsc-club-portal.ufsc-club-account .ufsc-btn-disabled,
+.ufsc-club-portal.ufsc-club-account [aria-disabled="true"].ufsc-btn { background: #e5e7eb; border-color: #6b7280; color: #374151; -webkit-text-fill-color: #374151; cursor: not-allowed; opacity: 1; }
+.ufsc-club-portal .ufsc-attestation-card { background: #fff; border: 1px solid #cbd5e1; color: #172554; }
+.ufsc-club-portal .ufsc-attestation-card strong,
+.ufsc-club-portal .ufsc-attestation-card small { color: #172554; -webkit-text-fill-color: #172554; }
+.ufsc-club-portal .ufsc-attestation-card .ufsc-badge { -webkit-text-fill-color: currentColor; }
+.ufsc-club-portal.ufsc-club-account .ufsc-club-account__nav a { align-items: center; background: #f8fafc; border: 1px solid #94a3b8; color: #173b67; -webkit-text-fill-color: #173b67; display: flex; justify-content: center; min-height: 44px; padding: 9px 12px; text-align: center; }
+.ufsc-club-portal.ufsc-club-account .ufsc-club-account__nav a[aria-current="page"] { background: #173b67; border-color: #173b67; color: #fff; -webkit-text-fill-color: #fff; }
+.ufsc-club-portal.ufsc-club-account .ufsc-club-account__nav a:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+.ufsc-club-portal.ufsc-club-account .ufsc-dashboard-logo { height: 112px; padding: 4px; width: 112px; }
+@media (max-width: 600px) {
+ .ufsc-club-portal.ufsc-club-account .ufsc-btn { white-space: normal; width: 100%; }
+ .ufsc-club-portal.ufsc-club-account .ufsc-club-account__nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); overflow: visible; }
+ .ufsc-club-portal.ufsc-club-account .ufsc-dashboard-logo { height: 76px; width: 76px; }
+}
