@@ -216,6 +216,7 @@ class UFSC_Frontend_Shortcodes {
         $season_start_year = (int) substr( $season, 0, 4 );
         $previous_season = $season_start_year ? ( $season_start_year - 1 ) . '-' . $season_start_year : '';
         $renewable_licences = $previous_season ? self::get_club_licences_count( $club_id, array( 'season' => $previous_season ) ) : 0;
+		$pack_usage = function_exists( 'ufsc_get_pack_usage' ) ? ufsc_get_pack_usage( $club_id, $season ) : array( 'total' => 0, 'bureau' => 0, 'libres' => 0, 'payantes' => 0, 'roles' => array() );
         $licence_stats_labels = array(
             esc_html__( 'Total', 'ufsc-clubs' ),
             esc_html__( 'Payées', 'ufsc-clubs' ),
@@ -386,6 +387,12 @@ class UFSC_Frontend_Shortcodes {
                             array( sprintf( __( 'Documents manquants %s', 'ufsc-clubs' ), $season ), (int) $honorability_kpis['incomplete'], add_query_arg( 'ufsc_renew_state', 'incomplete', self::get_club_portal_url( 'licences-renouvellement' ) ), sprintf( __( 'Documents manquants uniquement sur les dossiers du club rattachés à %s.', 'ufsc-clubs' ), $season ) ),
                         ); foreach ( $kpis as $kpi ) : ?><a class="ufsc-card ufsc-kpi-tile ufsc-hero-kpi-card" href="<?php echo esc_url( $kpi[2] ); ?>" title="<?php echo esc_attr( $kpi[3] ); ?>" aria-label="<?php echo esc_attr( $kpi[0] . ' — ' . $kpi[1] . '. ' . $kpi[3] ); ?>"><span class="ufsc-kpi-tile-label"><?php echo esc_html( $kpi[0] ); ?></span><strong class="ufsc-kpi-tile-value"><?php echo esc_html( $kpi[1] ); ?></strong></a><?php endforeach; ?>
                     </div></div>
+					<section class="ufsc-pack-summary" aria-labelledby="ufsc-pack-title">
+						<h3 id="ufsc-pack-title"><?php esc_html_e( 'Pack d’affiliation', 'ufsc-clubs' ); ?> — <?php echo esc_html( sprintf( '%d/10', $pack_usage['total'] ) ); ?></h3>
+						<a href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'bureau', self::get_club_portal_url( 'licences' ) ) ); ?>"><strong><?php echo esc_html( sprintf( __( 'Bureau : %d/3', 'ufsc-clubs' ), $pack_usage['bureau'] ) ); ?></strong><span><?php foreach ( array( 'president' => __( 'Président', 'ufsc-clubs' ), 'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ), 'tresorier' => __( 'Trésorier', 'ufsc-clubs' ) ) as $role_key => $role_label ) { echo esc_html( $role_label . ' : ' . ( ! empty( $pack_usage['roles'][ $role_key ] ) ? __( 'renseigné', 'ufsc-clubs' ) : __( 'manquant', 'ufsc-clubs' ) ) . ' · ' ); } ?></span></a>
+						<a href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'libre', self::get_club_portal_url( 'licences' ) ) ); ?>"><strong><?php echo esc_html( sprintf( __( 'Licences libres : %d/7', 'ufsc-clubs' ), $pack_usage['libres'] ) ); ?></strong></a>
+						<a href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'payante', self::get_club_portal_url( 'licences' ) ) ); ?>"><strong><?php echo esc_html( sprintf( __( 'Licences supplémentaires payantes : %d', 'ufsc-clubs' ), $pack_usage['payantes'] ) ); ?></strong></a>
+					</section>
 
 
                     </div>
@@ -2274,7 +2281,7 @@ class UFSC_Frontend_Shortcodes {
 
                         <div class="ufsc-field">
                             <label for="role"><?php esc_html_e( 'Rôle dans le club', 'ufsc-clubs' ); ?></label>
-                            <select id="role" name="role">
+                            <select id="role" name="role" required>
                                 <option value=""><?php esc_html_e( 'Sélectionner', 'ufsc-clubs' ); ?></option>
                                 <option value="president" <?php selected( $form_data['role'] ?? '', 'president' ); ?>><?php esc_html_e( 'Président', 'ufsc-clubs' ); ?></option>
                                 <option value="secretaire" <?php selected( $form_data['role'] ?? '', 'secretaire' ); ?>><?php esc_html_e( 'Secrétaire', 'ufsc-clubs' ); ?></option>
@@ -2286,6 +2293,8 @@ class UFSC_Frontend_Shortcodes {
 								<option value="encadrant" <?php selected( $form_data['role'] ?? '', 'encadrant' ); ?>><?php esc_html_e( 'Encadrant', 'ufsc-clubs' ); ?></option>
 								<option value="responsable_technique" <?php selected( $form_data['role'] ?? '', 'responsable_technique' ); ?>><?php esc_html_e( 'Responsable technique', 'ufsc-clubs' ); ?></option>
                                 <option value="adherent" <?php selected( $form_data['role'] ?? '', 'adherent' ); ?>><?php esc_html_e( 'Adhérent', 'ufsc-clubs' ); ?></option>
+								<option value="arbitre" <?php selected( $form_data['role'] ?? '', 'arbitre' ); ?>><?php esc_html_e( 'Arbitre / officiel', 'ufsc-clubs' ); ?></option>
+								<option value="autre" <?php selected( $form_data['role'] ?? '', 'autre' ); ?>><?php esc_html_e( 'Autre rôle concerné', 'ufsc-clubs' ); ?></option>
                             </select>
                         </div>
 
@@ -2436,24 +2445,24 @@ class UFSC_Frontend_Shortcodes {
 				<section class="ufsc-card ufsc-form-section ufsc-compliance-section" aria-labelledby="ufsc-health-title">
 					<h4 id="ufsc-health-title"><?php esc_html_e( 'Santé et conformité', 'ufsc-clubs' ); ?></h4>
 					<div class="ufsc-compliance-document-links">
-						<a class="ufsc-btn ufsc-btn-secondary ufsc-health-document-link ufsc-document-button" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2024-08-28-QUESTIONNAIRE-SANTE-MAJEUR.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Consulter / télécharger le questionnaire majeur', 'ufsc-clubs' ); ?></a>
-						<a class="ufsc-btn ufsc-btn-secondary ufsc-health-document-link ufsc-document-button" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2021-06-02-5-ANNEXE-4-QUESTIONNAIRE-SANTE-MINEUR.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Consulter / télécharger le questionnaire mineur', 'ufsc-clubs' ); ?></a>
+						<a data-ufsc-health-document="adult" class="ufsc-btn ufsc-btn-secondary ufsc-health-document-link ufsc-document-button" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2024-08-28-QUESTIONNAIRE-SANTE-MAJEUR.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Consulter / télécharger le questionnaire majeur', 'ufsc-clubs' ); ?></a>
+						<a data-ufsc-health-document="minor" hidden class="ufsc-btn ufsc-btn-secondary ufsc-health-document-link ufsc-document-button" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2021-06-02-5-ANNEXE-4-QUESTIONNAIRE-SANTE-MINEUR.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Consulter / télécharger le questionnaire mineur', 'ufsc-clubs' ); ?></a>
 					</div>
 					<div id="ufsc-health-adult" class="ufsc-compliance-panel">
 						<h5><?php esc_html_e( 'Questionnaire de santé majeur', 'ufsc-clubs' ); ?></h5>
-						<label class="ufsc-checkbox-label"><input type="checkbox" name="health_questionnaire_confirmed" value="1" required <?php checked( ! empty( $form_data['health_questionnaire_confirmed'] ) ); ?>> <?php esc_html_e( 'Je confirme que l’adhérent, ou son représentant légal s’il est mineur, a pris connaissance du questionnaire de santé applicable et a répondu à l’ensemble des questions. En fonction des réponses apportées, les démarches médicales nécessaires ont été effectuées.', 'ufsc-clubs' ); ?></label>
+						<label class="ufsc-checkbox-label" for="ufsc-health-confirm-adult"><input id="ufsc-health-confirm-adult" type="checkbox" name="health_questionnaire_confirmed" value="1" required <?php checked( ! empty( $form_data['health_questionnaire_confirmed'] ) ); ?>> <?php esc_html_e( 'Je confirme avoir pris connaissance du questionnaire de santé majeur.', 'ufsc-clubs' ); ?></label>
 					</div>
 					<div id="ufsc-health-minor" class="ufsc-compliance-panel" hidden>
 						<h5><?php esc_html_e( 'Questionnaire de santé mineur', 'ufsc-clubs' ); ?></h5>
 						<label for="legal_representative_name"><?php esc_html_e( 'Identité du représentant légal', 'ufsc-clubs' ); ?></label>
 						<input type="text" id="legal_representative_name" name="legal_representative_name" value="<?php echo esc_attr( $form_data['legal_representative_name'] ?? '' ); ?>">
-						<label class="ufsc-checkbox-label"><input type="checkbox" name="health_questionnaire_confirmed" value="1" required disabled <?php checked( ! empty( $form_data['health_questionnaire_confirmed'] ) ); ?>> <?php esc_html_e( 'Je confirme que l’adhérent, ou son représentant légal s’il est mineur, a pris connaissance du questionnaire de santé applicable et a répondu à l’ensemble des questions. En fonction des réponses apportées, les démarches médicales nécessaires ont été effectuées.', 'ufsc-clubs' ); ?></label>
+						<label class="ufsc-checkbox-label" for="ufsc-health-confirm-minor"><input id="ufsc-health-confirm-minor" type="checkbox" name="health_questionnaire_confirmed" value="1" required disabled <?php checked( ! empty( $form_data['health_questionnaire_confirmed'] ) ); ?>> <?php esc_html_e( 'Le représentant légal confirme avoir pris connaissance du questionnaire de santé mineur.', 'ufsc-clubs' ); ?></label>
 					</div>
 					<div id="ufsc-honorability" class="ufsc-compliance-panel" hidden>
 						<h5><?php esc_html_e( 'Contrôle de l’honorabilité', 'ufsc-clubs' ); ?></h5>
 						<p><?php esc_html_e( 'Les dirigeants, éducateurs, entraîneurs, coachs, encadrants et responsables du club sont soumis aux obligations de contrôle de l’honorabilité applicables à leur fonction.', 'ufsc-clubs' ); ?></p>
 						<a class="ufsc-btn ufsc-btn-secondary ufsc-document-button" href="https://ufsc-france.fr/wp-content/uploads/2026/08/2021-06-02-2-ANNEXE-1-NOTE-SUR-LE-CONTROLE-DE-LHONORABILITE.pdf" target="_blank" rel="noopener"><?php esc_html_e( 'Lire la note sur le contrôle de l’honorabilité', 'ufsc-clubs' ); ?></a>
-						<label class="ufsc-checkbox-label"><input type="checkbox" name="honorability_confirmed" value="1" <?php checked( ! empty( $form_data['honorability_confirmed'] ) ); ?>> <?php esc_html_e( 'Je certifie avoir lu la note relative au contrôle de l’honorabilité et confirme l’exactitude des informations déclarées.', 'ufsc-clubs' ); ?></label>
+						<label class="ufsc-checkbox-label" for="ufsc-honorability-confirmed"><input id="ufsc-honorability-confirmed" type="checkbox" name="honorability_confirmed" value="1" <?php checked( ! empty( $form_data['honorability_confirmed'] ) ); ?>> <?php esc_html_e( 'Je certifie avoir lu la note relative au contrôle de l’honorabilité et confirme l’exactitude des informations déclarées.', 'ufsc-clubs' ); ?></label>
 						<div class="ufsc-message ufsc-warning"><strong><?php esc_html_e( 'Attestation d’honorabilité — Document obligatoire à transmettre pour finaliser le dossier.', 'ufsc-clubs' ); ?></strong><br><?php esc_html_e( 'Le dépôt reste recommandé avant finalisation et ne bloque ni le brouillon, ni le panier, ni le paiement.', 'ufsc-clubs' ); ?></div>
 					</div>
 				</section>

@@ -1206,123 +1206,49 @@ class UFSC_Unified_Handlers {
         $wc_settings = ufsc_get_woocommerce_settings();
         $wants_cart = self::should_add_licence_to_cart( $submit_action );
 
-        if ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) {
-            $included_quota   = isset( $wc_settings['included_licenses'] ) ? (int) $wc_settings['included_licenses'] : 10;
-            $current_included = UFSC_SQL::count_included_licences( $club_id );
-
-            $auto_consume = ! empty( $wc_settings['auto_consume_included'] );
-            if ( $auto_consume && $current_included < $included_quota ) {
-                UFSC_SQL::mark_licence_as_included( $new_id );
-                $redirect_url = esc_url_raw( add_query_arg(
-                    array(
-                        'licence_included' => 1,
-                        'licence_id'       => $new_id,
-                    ),
-                    wp_get_referer()
-                ) );
-               // wp_safe_redirect( $redirect_url );
-                //exit;
-            }
-
-            // A draft is persisted but must never enter a payable cart implicitly.
-            if ( ! $wants_cart ) {
-                $redirect_url = add_query_arg( array( 'licence_saved' => 1, 'licence_id' => $new_id ), wp_get_referer() );
-                self::maybe_redirect( esc_url_raw( $redirect_url ) );
-                return;
-            }
-
-            // Quota exceeded: add licence product to cart only after explicit verification.
-            $product_id     = isset( $wc_settings['product_license_id'] ) ? absint( $wc_settings['product_license_id'] ) : 0;
-            $cart_item_data = array(
-                'ufsc_licence_id' => $new_id,
-                'ufsc_club_id'    => $club_id,
-                'ufsc_nom'        => isset( $data['nom'] ) ? sanitize_text_field( $data['nom'] ) : '',
-                'ufsc_prenom'     => isset( $data['prenom'] ) ? sanitize_text_field( $data['prenom'] ) : '',
-                'ufsc_date_naissance' => isset( $data['date_naissance'] ) ? sanitize_text_field( $data['date_naissance'] ) : '',
-                'season'          => class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ),
-                'category'        => isset( $data['categorie'] ) ? sanitize_text_field( $data['categorie'] ) : '',
-            );
-
-            if ( $product_id <= 0 ) {
-                self::store_form_and_redirect( $_POST, array( __( 'Aucun produit Licence UFSC n’est configuré.', 'ufsc-clubs' ) ), $new_id );
-            }
-            $cart_ready = function_exists( 'ufsc_ensure_woocommerce_cart' ) ? ufsc_ensure_woocommerce_cart() : new WP_Error( 'ufsc_woocommerce_unavailable', __( 'WooCommerce n’est pas initialisé. Rechargez la page puis réessayez.', 'ufsc-clubs' ) );
-            if ( is_wp_error( $cart_ready ) ) {
-                self::store_form_and_redirect( $_POST, array( $cart_ready->get_error_message() ), $new_id );
-            }
-
-            if ( function_exists( 'ufsc_add_licence_ids_to_cart_idempotent' ) ) {
-                $add_result = ufsc_add_licence_ids_to_cart_idempotent(
-                    $product_id,
-                    $club_id,
-                    array( $new_id ),
-                    $cart_item_data
-                );
-                if ( is_wp_error( $add_result ) ) {
-                    self::store_form_and_redirect( $_POST, array( $add_result->get_error_message() ), $new_id );
-                }
-            } else {
-                $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
-                if ( ! $added ) {
-                    self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
-                }
-            }
-
-            self::update_licence_status_db( $new_id, 'en_attente' );
-            if ( function_exists( 'wc_add_notice' ) ) {
-                wc_add_notice( __( 'Quota de licences dépassé : licence ajoutée au panier.', 'ufsc-clubs' ), 'notice' );
-            }
-            if ( function_exists( 'wc_get_cart_url' ) ) {
-                self::maybe_redirect( wc_get_cart_url() );
-                return;
+        $season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+        $allocation = array( 'included' => false, 'bucket' => 'payante' );
+        if ( ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) && ! empty( $wc_settings['auto_consume_included'] ) && function_exists( 'ufsc_allocate_pack_credit' ) ) {
+            $allocation = ufsc_allocate_pack_credit( $new_id, $club_id, $season, $data['role'] ?? '' );
+            if ( is_wp_error( $allocation ) ) {
+                self::store_form_and_redirect( $_POST, array( $allocation->get_error_message() ), $new_id );
             }
         }
 
-        if ( $wants_cart ) {
-
-            $wc_settings = ufsc_get_woocommerce_settings();
-            $product_id  = isset( $wc_settings['product_license_id'] ) ? absint( $wc_settings['product_license_id'] ) : 0;
-
-            if ( $product_id <= 0 ) {
-                self::store_form_and_redirect( $_POST, array( __( 'Aucun produit Licence UFSC n’est configuré.', 'ufsc-clubs' ) ), $new_id );
-            }
-            $cart_ready = function_exists( 'ufsc_ensure_woocommerce_cart' ) ? ufsc_ensure_woocommerce_cart() : new WP_Error( 'ufsc_woocommerce_unavailable', __( 'WooCommerce n’est pas initialisé. Rechargez la page puis réessayez.', 'ufsc-clubs' ) );
-            if ( is_wp_error( $cart_ready ) ) {
-                self::store_form_and_redirect( $_POST, array( $cart_ready->get_error_message() ), $new_id );
-            }
-
-            $cart_item_data = array(
-                'ufsc_licence_id'     => $new_id,
-                'ufsc_club_id'        => $club_id,
-                'ufsc_nom'            => isset( $data['nom'] ) ? sanitize_text_field( $data['nom'] ) : '',
-                'ufsc_prenom'         => isset( $data['prenom'] ) ? sanitize_text_field( $data['prenom'] ) : '',
-                'ufsc_date_naissance' => isset( $data['date_naissance'] ) ? sanitize_text_field( $data['date_naissance'] ) : '',
-                'season'              => class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ),
-                'category'            => isset( $data['categorie'] ) ? sanitize_text_field( $data['categorie'] ) : '',
-            );
-            if ( function_exists( 'ufsc_add_licence_ids_to_cart_idempotent' ) ) {
-                $add_result = ufsc_add_licence_ids_to_cart_idempotent(
-                    $product_id,
-                    $club_id,
-                    array( $new_id ),
-                    $cart_item_data
-                );
-                if ( is_wp_error( $add_result ) ) {
-                    self::store_form_and_redirect( $_POST, array( $add_result->get_error_message() ), $new_id );
-                }
-            } else {
-                $added = WC()->cart->add_to_cart( $product_id, 1, 0, array(), $cart_item_data );
-                if ( ! $added ) {
-                    self::store_form_and_redirect( $_POST, array( __( 'Impossible d\'ajouter le produit au panier', 'ufsc-clubs' ) ), $new_id );
-                }
-            }
-
+        if ( ! empty( $allocation['included'] ) ) {
             self::update_licence_status_db( $new_id, 'en_attente' );
-            if ( function_exists( 'wc_get_cart_url' ) ) {
-                self::maybe_redirect( wc_get_cart_url() );
-                return;
-            }
+            $message = __( 'Cette licence est comprise dans votre pack d’affiliation. Aucun paiement supplémentaire n’est nécessaire.', 'ufsc-clubs' );
+            if ( function_exists( 'wc_add_notice' ) ) { wc_add_notice( $message, 'success' ); }
+            $redirect_url = add_query_arg( array( 'licence_included' => 1, 'licence_id' => $new_id, 'pack_bucket' => $allocation['bucket'] ), wp_get_referer() );
+            self::maybe_redirect( esc_url_raw( $redirect_url ) );
+            return;
         }
+
+        // Saving without checkout never creates a payable line.
+        if ( ! $wants_cart ) {
+            $redirect_url = add_query_arg( array( 'licence_saved' => 1, 'licence_id' => $new_id ), wp_get_referer() );
+            self::maybe_redirect( esc_url_raw( $redirect_url ) );
+            return;
+        }
+
+        $product_id = isset( $wc_settings['product_license_id'] ) ? absint( $wc_settings['product_license_id'] ) : 0;
+        $product = $product_id && function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : false;
+        if ( ! $product || ! $product->is_purchasable() ) {
+            self::store_form_and_redirect( $_POST, array( __( 'Le produit Licence UFSC est introuvable ou non achetable.', 'ufsc-clubs' ) ), $new_id );
+        }
+        $cart_ready = function_exists( 'ufsc_ensure_woocommerce_cart' ) ? ufsc_ensure_woocommerce_cart() : new WP_Error( 'ufsc_woocommerce_unavailable', __( 'WooCommerce n’est pas initialisé.', 'ufsc-clubs' ) );
+        if ( is_wp_error( $cart_ready ) ) { self::store_form_and_redirect( $_POST, array( $cart_ready->get_error_message() ), $new_id ); }
+        $cart_item_data = array(
+            'ufsc_licence_id' => $new_id, 'ufsc_club_id' => $club_id,
+            'ufsc_nom' => $data['nom'] ?? '', 'ufsc_prenom' => $data['prenom'] ?? '',
+            'ufsc_date_naissance' => $data['date_naissance'] ?? '', 'ufsc_role' => $data['role'] ?? '',
+            'ufsc_season' => $season, 'quantity' => 1,
+        );
+        $add_result = ufsc_add_licence_ids_to_cart_idempotent( $product_id, $club_id, array( $new_id ), $cart_item_data );
+        if ( is_wp_error( $add_result ) ) { self::store_form_and_redirect( $_POST, array( $add_result->get_error_message() ), $new_id ); }
+        self::update_licence_status_db( $new_id, 'en_attente' );
+        if ( function_exists( 'wc_add_notice' ) ) { wc_add_notice( __( 'Les licences incluses dans votre pack sont utilisées. Cette licence a été ajoutée au panier au tarif en vigueur.', 'ufsc-clubs' ), 'success' ); }
+        if ( function_exists( 'wc_get_cart_url' ) ) { self::maybe_redirect( wc_get_cart_url() ); return; }
 
         $redirect_url = esc_url_raw( add_query_arg(
             array(
@@ -1456,7 +1382,8 @@ class UFSC_Unified_Handlers {
         }
 
 		$strict_checkout = isset( $post_data['ufsc_submit_action'] ) && 'add_to_cart' === sanitize_key( (string) $post_data['ufsc_submit_action'] );
-		$role = isset( $post_data['role'] ) ? sanitize_key( (string) $post_data['role'] ) : '';
+		$role = function_exists( 'ufsc_normalize_club_role' ) ? ufsc_normalize_club_role( $post_data['role'] ?? '' ) : sanitize_key( (string) ( $post_data['role'] ?? '' ) );
+		if ( ! $is_draft && '' === $role ) { $errors[] = __( 'Le rôle dans le club est obligatoire.', 'ufsc-clubs' ); }
 		$is_minor = false;
 		if ( self::is_valid_birth_date( $date_naissance ) ) {
 			$birth = new DateTimeImmutable( $date_naissance );
@@ -1493,6 +1420,7 @@ class UFSC_Unified_Handlers {
                 $data[ $field ] = call_user_func( $sanitizer, $post_data[$field] );
             }
         }
+		if ( '' !== $role ) { $data['role'] = $role; }
 
 		if ( function_exists( 'ufsc_validate_fighter_level' ) && ( ! $is_draft || ! empty( $data['fighter_level'] ) ) ) {
 			$level_validation = ufsc_validate_fighter_level( $data['fighter_level'] ?? '', $date_naissance, true );

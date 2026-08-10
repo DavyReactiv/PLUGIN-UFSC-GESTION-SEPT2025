@@ -1,6 +1,78 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+/** Canonical club roles shared by forms, pack allocation and honorability. */
+function ufsc_normalize_club_role( $role ) {
+	$key = sanitize_title( remove_accents( trim( (string) $role ) ) );
+	$aliases = array(
+		'pratiquant' => 'adherent', 'adherent-pratiquant' => 'adherent',
+		'presidente' => 'president', 'secretaire-generale' => 'secretaire',
+		'tresoriere' => 'tresorier', 'entraineur-coach' => 'entraineur',
+		'responsable-technique' => 'responsable_technique', 'arbitre-officiel' => 'arbitre',
+	);
+	$key = $aliases[ $key ] ?? str_replace( '-', '_', $key );
+	$allowed = array( 'adherent', 'president', 'secretaire', 'tresorier', 'dirigeant', 'entraineur', 'coach', 'educateur', 'encadrant', 'responsable_technique', 'arbitre', 'officiel', 'autre' );
+	return in_array( $key, $allowed, true ) ? $key : '';
+}
+
+/** Pure 3-office/7-free allocation rule, also used by runtime tests. */
+function ufsc_resolve_pack_credit( $role, $included_roles ) {
+	$role = ufsc_normalize_club_role( $role );
+	$included_roles = array_map( 'ufsc_normalize_club_role', (array) $included_roles );
+	$office = array( 'president', 'secretaire', 'tresorier' );
+	if ( in_array( $role, $office, true ) && ! in_array( $role, $included_roles, true ) ) {
+		return array( 'included' => true, 'bucket' => 'bureau', 'role' => $role );
+	}
+	$filled_office_slots = count( array_intersect( $office, array_unique( $included_roles ) ) );
+	$free_used = max( 0, count( $included_roles ) - $filled_office_slots );
+	return $free_used < 7
+		? array( 'included' => true, 'bucket' => 'libre', 'role' => $role )
+		: array( 'included' => false, 'bucket' => 'payante', 'role' => $role );
+}
+
+/** Atomically reserve the season's appropriate pack credit for one licence. */
+function ufsc_allocate_pack_credit( $licence_id, $club_id, $season, $role ) {
+	global $wpdb;
+	$table = function_exists( 'ufsc_get_licences_table' ) ? ufsc_get_licences_table() : '';
+	if ( ! $table || ! $licence_id || ! $club_id || ! preg_match( '/^\d{4}-\d{4}$/', (string) $season ) ) {
+		return new WP_Error( 'ufsc_pack_context_invalid', __( 'Le quota du pack ne peut pas être déterminé pour cette saison.', 'ufsc-clubs' ) );
+	}
+	$columns = $wpdb->get_col( "DESC `{$table}`", 0 );
+	$season_column = in_array( 'season', $columns, true ) ? 'season' : ( in_array( 'saison', $columns, true ) ? 'saison' : '' );
+	if ( ! $season_column ) { return new WP_Error( 'ufsc_pack_season_missing', __( 'La saison canonique des licences est indisponible.', 'ufsc-clubs' ) ); }
+	$lock_name = 'ufsc_pack_' . absint( $club_id ) . '_' . sanitize_key( $season );
+	$locked = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock_name ) );
+	if ( 1 !== $locked ) { return new WP_Error( 'ufsc_pack_busy', __( 'Le pack est en cours de mise à jour. Réessayez dans quelques secondes.', 'ufsc-clubs' ) ); }
+	$roles = $wpdb->get_col( $wpdb->prepare( "SELECT role FROM `{$table}` WHERE club_id = %d AND `{$season_column}` = %s AND is_included = 1 AND id <> %d", $club_id, $season, $licence_id ) );
+	$allocation = ufsc_resolve_pack_credit( $role, $roles );
+	if ( empty( $allocation['included'] ) ) { $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); return $allocation; }
+	$updated = $wpdb->query( $wpdb->prepare( "UPDATE `{$table}` SET is_included = 1 WHERE id = %d AND club_id = %d AND `{$season_column}` = %s AND is_included = 0", $licence_id, $club_id, $season ) );
+	$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+	if ( false === $updated ) { return new WP_Error( 'ufsc_pack_reservation_failed', __( 'Le crédit inclus n’a pas pu être réservé.', 'ufsc-clubs' ) ); }
+	$allocation['reserved'] = 1 === (int) $updated;
+	return $allocation;
+}
+
+/** Season-scoped pack counters for the club dashboard. */
+function ufsc_get_pack_usage( $club_id, $season ) {
+	global $wpdb;
+	$empty = array( 'total' => 0, 'bureau' => 0, 'libres' => 0, 'payantes' => 0, 'roles' => array( 'president' => false, 'secretaire' => false, 'tresorier' => false ) );
+	$table = function_exists( 'ufsc_get_licences_table' ) ? ufsc_get_licences_table() : '';
+	if ( ! $table ) { return $empty; }
+	$columns = $wpdb->get_col( "DESC `{$table}`", 0 );
+	$season_column = in_array( 'season', $columns, true ) ? 'season' : ( in_array( 'saison', $columns, true ) ? 'saison' : '' );
+	if ( ! $season_column ) { return $empty; }
+	$rows = $wpdb->get_results( $wpdb->prepare( "SELECT role, is_included FROM `{$table}` WHERE club_id = %d AND `{$season_column}` = %s", absint( $club_id ), $season ) );
+	$included_roles = array();
+	foreach ( (array) $rows as $row ) { if ( ! empty( $row->is_included ) ) { $included_roles[] = ufsc_normalize_club_role( $row->role ?? '' ); } }
+	foreach ( array_keys( $empty['roles'] ) as $office_role ) { $empty['roles'][ $office_role ] = in_array( $office_role, $included_roles, true ); }
+	$empty['bureau'] = count( array_filter( $empty['roles'] ) );
+	$empty['total'] = count( $included_roles );
+	$empty['libres'] = max( 0, $empty['total'] - $empty['bureau'] );
+	$empty['payantes'] = max( 0, count( (array) $rows ) - $empty['total'] );
+	return $empty;
+}
+
 /**
  * Whether a licence role is subject to the honorability workflow.
  *
@@ -8,7 +80,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * may extend the filtered list without duplicating role rules in callers.
  */
 function ufsc_role_requires_honorability( $role ) {
-	$normalized = sanitize_title( remove_accents( trim( preg_replace( '/\s+/', ' ', (string) $role ) ) ) );
+	$normalized = str_replace( '_', '-', ufsc_normalize_club_role( $role ) );
 	$required_roles = array(
 		'president', 'secretaire', 'tresorier', 'membre-du-bureau', 'bureau', 'dirigeant',
 		'encadrant', 'entraineur', 'coach', 'educateur', 'responsable-technique',
