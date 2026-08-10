@@ -2179,7 +2179,10 @@ class UFSC_Frontend_Shortcodes {
 
                 <input type="hidden" name="action" value="ufsc_save_licence">
                 <?php wp_nonce_field( 'ufsc_save_licence' ); ?>
-                <input type="hidden" name="ufsc_submit_action" id="ufsc_submit_action" value="continue"><input type="hidden" name="ufsc_wizard_step" id="ufsc_wizard_step" value="<?php echo isset( $_GET['ufsc_wizard_step'] ) ? esc_attr( min( 6, max( 1, absint( $_GET['ufsc_wizard_step'] ) ) ) ) : '1'; ?>">
+                <!-- The clicked submit button is the authoritative business intent.  The
+                     previous hidden field depended on inline JavaScript and therefore
+                     posted "continue" when CSP blocked onclick handlers. -->
+                <input type="hidden" id="ufsc_submit_action" value="continue"><input type="hidden" name="ufsc_wizard_step" id="ufsc_wizard_step" value="<?php echo isset( $_GET['ufsc_wizard_step'] ) ? esc_attr( min( 6, max( 1, absint( $_GET['ufsc_wizard_step'] ) ) ) ) : '1'; ?>">
                 <input type="hidden" name="licence_id" value="<?php echo esc_attr( $edit_licence_id ); ?>">
 
                 <div class="ufsc-notices" aria-live="polite"></div>
@@ -2456,7 +2459,7 @@ class UFSC_Frontend_Shortcodes {
 				</section>
 
                 <div class="ufsc-licence-wizard-review" data-wizard-review hidden aria-live="polite"><h4><?php esc_html_e( 'Récapitulatif avant panier', 'ufsc-clubs' ); ?></h4><dl></dl></div>
-                <div class="ufsc-licence-wizard-navigation"><button type="button" class="ufsc-btn ufsc-btn-secondary" data-wizard-previous><?php esc_html_e( 'Précédent', 'ufsc-clubs' ); ?></button><button type="submit" class="ufsc-btn ufsc-btn-secondary" formnovalidate data-wizard-save-draft onclick="document.getElementById('ufsc_submit_action').value='save_draft';"><?php esc_html_e( 'Enregistrer en brouillon', 'ufsc-clubs' ); ?></button><button type="button" class="ufsc-btn ufsc-btn-primary" data-wizard-next><?php esc_html_e( 'Continuer', 'ufsc-clubs' ); ?></button></div>
+                <div class="ufsc-licence-wizard-navigation"><button type="button" class="ufsc-btn ufsc-btn-secondary" data-wizard-previous><?php esc_html_e( 'Précédent', 'ufsc-clubs' ); ?></button><button type="submit" name="ufsc_submit_action" value="save_draft" class="ufsc-btn ufsc-btn-secondary" formnovalidate data-wizard-save-draft><?php esc_html_e( 'Enregistrer en brouillon', 'ufsc-clubs' ); ?></button><button type="button" class="ufsc-btn ufsc-btn-primary" data-wizard-next><?php esc_html_e( 'Continuer', 'ufsc-clubs' ); ?></button></div>
 
 				<div class="ufsc-form-actions ufsc-licence-final-actions">
                     <?php if ( ! $is_locked_licence ) : ?>
@@ -2464,10 +2467,10 @@ class UFSC_Frontend_Shortcodes {
 						<p class="ufsc-final-help"><?php esc_html_e( 'Enregistrez un brouillon pour compléter la licence plus tard. Ajoutez au panier uniquement lorsque toutes les informations ont été vérifiées.', 'ufsc-clubs' ); ?></p>
 						<p class="ufsc-cart-confirmation"><?php esc_html_e( 'Le club confirme que les informations saisies sont exactes et que l’adhérent ou son représentant légal a accompli les démarches nécessaires relatives au questionnaire de santé.', 'ufsc-clubs' ); ?></p>
 						<div class="ufsc-final-buttons">
-                        <button type="submit" class="ufsc-btn ufsc-btn-primary" onclick="document.getElementById('ufsc_submit_action').value='save_draft';">
+                        <button type="submit" name="ufsc_submit_action" value="save_draft" formnovalidate class="ufsc-btn ufsc-btn-secondary">
 							<?php esc_html_e( 'Enregistrer comme brouillon', 'ufsc-clubs' ); ?>
                         </button>
-                        <button type="submit" class="ufsc-btn ufsc-btn-secondary" onclick="document.getElementById('ufsc_submit_action').value='add_to_cart';">
+                        <button type="submit" name="ufsc_submit_action" value="add_to_cart" class="ufsc-btn ufsc-btn-primary">
 							<?php esc_html_e( 'Vérifier et ajouter au panier', 'ufsc-clubs' ); ?>
                         </button>
                         <?php if ( $is_edit_mode ) : ?>
