@@ -17,7 +17,7 @@ $check( false !== strpos( $front, "\$season_context['action_label']" ) && false 
 $check( false !== strpos( $front, "\$affiliation_gate['message']" ), 'Inactive affiliation must expose the central gate contextual explanation.' );
 $check( 2 === substr_count( $front, 'ufsc-health-document-link' ), 'Both health documents must be permanently consultable.' );
 $check( 2 === substr_count( $front, 'name="health_questionnaire_confirmed"' ), 'Exactly two mutually-exclusive confirmation controls are expected.' );
-$check( false !== strpos( $js, "role.val() !== 'pratiquant'" ), 'Only Pratiquant is exempt in the browser.' );
+$check( false !== strpos( $js, "honorabilityRoles.indexOf(role.val()) !== -1" ) && false === strpos( $js, "honorabilityRoles = ['adherent'" ), 'Only explicitly regulated roles require honorability in the browser.' );
 $check( false !== strpos( $handler, 'ufsc_role_requires_honorability( $role )' ), 'Server-side honorability must use the central rule.' );
 $check( false !== strpos( $front, 'Attestation d’honorabilité manquante' ) && false !== strpos( $front, 'ne bloque ni le brouillon, ni le panier, ni le paiement' ), 'Missing attestation must be explicit and non-blocking at checkout.' );
 $check( false === strpos( $handler, 'medical_answer' ) && false === strpos( $handler, 'questionnaire_response' ), 'Medical answers must never be stored.' );

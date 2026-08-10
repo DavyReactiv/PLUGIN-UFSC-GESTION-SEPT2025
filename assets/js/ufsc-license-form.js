@@ -41,6 +41,8 @@
 		const adult = $('#ufsc-health-adult');
 		const minor = $('#ufsc-health-minor');
 		const honorability = $('#ufsc-honorability');
+		const adultDocument = $('[data-ufsc-health-document="adult"]');
+		const minorDocument = $('[data-ufsc-health-document="minor"]');
 		function refresh() {
 			const value = birth.val();
 			const date = value ? new Date(value + 'T00:00:00') : null;
@@ -50,8 +52,10 @@
 			const isMinor = age < 18;
 			adult.prop('hidden', isMinor).find(':input').prop('disabled', isMinor);
 			minor.prop('hidden', !isMinor).find(':input').prop('disabled', !isMinor);
-			// Mirrors the server rule: Pratiquant is the sole built-in exemption.
-			const needsHonorability = Boolean(role.val()) && role.val() !== 'pratiquant';
+			adultDocument.prop('hidden', isMinor);
+			minorDocument.prop('hidden', !isMinor);
+			const honorabilityRoles = ['president','secretaire','tresorier','dirigeant','entraineur','coach','educateur','encadrant','responsable_technique'];
+			const needsHonorability = honorabilityRoles.indexOf(role.val()) !== -1;
 			honorability.prop('hidden', !needsHonorability).find(':input').prop('disabled', !needsHonorability);
 		}
 		birth.on('change input', refresh);
@@ -380,7 +384,13 @@
             if (target < current || validateStep()) show(target);
         });
         form.on('submit', function(event) {
-            var action = form.find('#ufsc_submit_action').val();
+            // Submit-button name/value is the no-JavaScript contract and remains
+            // reliable under strict CSP. `originalEvent.submitter` also prevents a
+            // stale hidden value from turning an add-to-cart click into a save.
+            var submitter = event.originalEvent && event.originalEvent.submitter;
+            var action = submitter && submitter.name === 'ufsc_submit_action'
+                ? submitter.value
+                : form.find('#ufsc_submit_action').val();
             if (action === 'save_draft') {
                 var nom=form.find('[name="nom"]')[0], prenom=form.find('[name="prenom"]')[0];
                 if (!nom.value.trim() || !prenom.value.trim()) { event.preventDefault(); show(1); (!nom.value.trim() ? nom : prenom).focus(); return false; }

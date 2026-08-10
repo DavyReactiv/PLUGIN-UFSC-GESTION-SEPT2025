@@ -40,8 +40,10 @@ $kpi=ufsc_get_honorability_document_kpis(array($wpdb->rows[1],$wpdb->rows[2]),'2
 function add_action(){} function add_filter(){} function is_user_logged_in(){return true;} function ufsc_is_club_affiliated_for_season(){return true;}
 function ufsc_club_can_manage_licences_for_season(){return array('allowed'=>true,'message'=>'');}
 function ufsc_get_renewed_licence_marker($id){return 3===$id?99:0;} function ufsc_wc_log(){} function ufsc_get_user_club_id(){return 9;}
-class FakeCart { public $items=array(); function add_to_cart($p,$q,$v,$a,$d){$this->items[]=array('product_id'=>$p,'quantity'=>$q)+$d;return 'k'.count($this->items);} function get_cart(){return $this->items;} }
-class FakeWC { public $cart; function __construct(){ $this->cart=new FakeCart(); } } $GLOBALS['wc']=new FakeWC(); function WC(){return $GLOBALS['wc'];}
+class FakeCart { public $items=array(); function add_to_cart($p,$q,$v,$a,$d){$this->items[]=array('product_id'=>$p,'quantity'=>$q)+$d;return 'k'.count($this->items);} function get_cart(){return $this->items;} function calculate_totals(){} function set_session(){} }
+class FakeSession { function set_customer_session_cookie($set){} function save_data(){} }
+class FakeProduct { function is_purchasable(){return true;} } function wc_get_product(){return new FakeProduct();}
+class FakeWC { public $cart,$session; function __construct(){ $this->cart=new FakeCart();$this->session=new FakeSession(); } } $GLOBALS['wc']=new FakeWC(); function WC(){return $GLOBALS['wc'];}
 $wpdb->rows[3]=(object)array('id'=>3,'club_id'=>9,'role'=>'coach','nom'=>'Old','prenom'=>'Done','date_naissance'=>'1980-01-01','fighter_level'=>'veteran','poids'=>'82');
 require dirname(__DIR__) . '/inc/woocommerce/cart-integration.php';
 require dirname(__DIR__) . '/inc/common/fighter-level.php';
