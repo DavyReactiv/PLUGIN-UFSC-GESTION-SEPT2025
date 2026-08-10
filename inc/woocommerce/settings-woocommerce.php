@@ -34,6 +34,17 @@ function ufsc_get_default_woocommerce_settings() {
 function ufsc_get_woocommerce_settings() {
     $defaults = ufsc_get_default_woocommerce_settings();
     $saved    = get_option( 'ufsc_woocommerce_settings', array() );
+	$saved    = is_array( $saved ) ? $saved : array();
+	if ( empty( $saved['product_license_id'] ) ) {
+		foreach ( array( 'product_license_id', 'ufsc_product_license_id', 'ufsc_license_product_id' ) as $legacy_key ) {
+			$legacy_id = absint( get_option( $legacy_key, 0 ) );
+			if ( $legacy_id > 0 ) {
+				$saved['product_license_id'] = $legacy_id;
+				update_option( 'ufsc_woocommerce_settings', $saved );
+				break;
+			}
+		}
+	}
 
     return wp_parse_args( $saved, $defaults );
 }
@@ -79,7 +90,9 @@ function ufsc_save_woocommerce_settings( $settings ) {
         $sanitized['renewal_window_month'] = max( 1, min( 12, absint( $settings['renewal_window_month'] ) ) );
     }
 
-    return update_option( 'ufsc_woocommerce_settings', $sanitized );
+    $existing = get_option( 'ufsc_woocommerce_settings', array() );
+    $existing = is_array( $existing ) ? $existing : array();
+    return update_option( 'ufsc_woocommerce_settings', array_merge( $existing, $sanitized ) );
 }
 
 /**
@@ -242,6 +255,18 @@ function ufsc_get_woocommerce_product_diagnostic_message( $product_id ) {
 	);
 }
 
+/** Concise canonical licence-product result for both admin and front-end. */
+function ufsc_get_licence_product_message( $resolution = null ) {
+	$d  = is_array( $resolution ) ? $resolution : ufsc_get_licence_product_resolution();
+	$id = absint( $d['configured_id'] ?? $d['product_id'] ?? 0 );
+	if ( ! $id ) { return __( 'Aucun produit Licence UFSC n’est configuré.', 'ufsc-clubs' ); }
+	if ( empty( $d['product_found'] ) ) { return sprintf( __( 'Le produit #%d est introuvable.', 'ufsc-clubs' ), $id ); }
+	if ( 'publish' !== ( $d['product_status'] ?? '' ) ) { return sprintf( __( 'Le produit #%d est configuré mais n’est pas publié.', 'ufsc-clubs' ), $id ); }
+	if ( '' === (string) ( $d['product_price'] ?? '' ) ) { return sprintf( __( 'Le produit #%d est configuré mais ne possède pas de prix.', 'ufsc-clubs' ), $id ); }
+	if ( ! empty( $d['valid'] ) ) { return __( 'Produit Licence UFSC configuré, publié et achetable.', 'ufsc-clubs' ); }
+	return sprintf( __( 'Le produit #%d est configuré mais n’est pas achetable.', 'ufsc-clubs' ), $id );
+}
+
 /** Front-safe affiliation product unavailability message. */
 function ufsc_get_affiliation_product_unavailable_message( $reason ) {
     $messages = array(
@@ -388,9 +413,10 @@ function ufsc_render_woocommerce_settings_page() {
     $woocommerce_active = ufsc_is_woocommerce_active();
     $licence_resolution = ufsc_get_licence_product_resolution();
     ?>
-    <div class="wrap">
+    <div class="wrap" data-ufsc-admin-build="<?php echo esc_attr( function_exists( 'ufsc_get_build_id' ) ? ufsc_get_build_id() : UFSC_CL_VERSION ); ?>">
         <?php if ( class_exists( 'UFSC_SQL_Admin' ) ) { UFSC_SQL_Admin::render_admin_quick_nav(); } ?>
         <h1><?php esc_html_e( 'Paramètres WooCommerce - UFSC Gestion', 'ufsc-clubs' ); ?></h1>
+		<p class="description"><?php echo esc_html( sprintf( __( 'Build installé : %s', 'ufsc-clubs' ), function_exists( 'ufsc_get_build_id' ) ? ufsc_get_build_id() : UFSC_CL_VERSION ) ); ?></p>
 
         <?php if ( ! $woocommerce_active ) : ?>
             <div class="notice notice-warning">
@@ -440,19 +466,20 @@ function ufsc_render_woocommerce_settings_page() {
                             class="regular-text"
                         >
                             <option value="0"><?php esc_html_e( '— Aucun produit configuré —', 'ufsc-clubs' ); ?></option>
-                            <?php if ( function_exists( 'wc_get_products' ) ) : foreach ( wc_get_products( array( 'status' => array( 'publish', 'draft', 'private' ), 'limit' => -1, 'orderby' => 'name', 'order' => 'ASC' ) ) as $candidate ) : ?>
+                            <?php if ( function_exists( 'wc_get_products' ) ) : foreach ( wc_get_products( array( 'status' => array( 'publish', 'draft', 'private' ), 'type' => array( 'simple', 'variation' ), 'limit' => -1, 'orderby' => 'name', 'order' => 'ASC' ) ) as $candidate ) : ?>
                                 <option value="<?php echo esc_attr( $candidate->get_id() ); ?>" <?php selected( $current_settings['product_license_id'], $candidate->get_id() ); ?>><?php echo esc_html( $candidate->get_name() . ' (#' . $candidate->get_id() . ', ' . $candidate->get_status() . ')' ); ?></option>
                             <?php endforeach; endif; ?>
                         </select>
                         <p class="description">
-                            <?php esc_html_e( 'ID du produit "Licence UFSC/ASPTT" dans WooCommerce (par défaut: 2934)', 'ufsc-clubs' ); ?>
+                            <?php esc_html_e( 'Sélection explicite du produit simple ou de la variation utilisée pour les licences UFSC.', 'ufsc-clubs' ); ?>
                             <?php if ( ! empty( $licence_resolution['valid'] ) ) : ?>
                                 <span style="color: green;">✓ <?php esc_html_e( 'Produit publié et achetable', 'ufsc-clubs' ); ?></span>
                             <?php elseif ( $woocommerce_active ) : ?>
                                 <span style="color: #b32d2e;">✗ <?php esc_html_e( 'Le produit Licence UFSC est absent, non publié ou non achetable.', 'ufsc-clubs' ); ?></span>
                             <?php endif; ?>
                         </p>
-                        <p><strong><?php echo esc_html( ufsc_get_woocommerce_product_diagnostic_message( $current_settings['product_license_id'] ) ); ?></strong></p>
+                        <p><strong><?php echo esc_html( ufsc_get_licence_product_message( $licence_resolution ) ); ?></strong></p>
+						<dl class="ufsc-product-diagnostic"><dt><?php esc_html_e( 'ID', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $licence_resolution['configured_id'] ?: '—' ); ?></dd><dt><?php esc_html_e( 'Nom', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $licence_resolution['product_name'] ?: '—' ); ?></dd><dt><?php esc_html_e( 'Type', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $licence_resolution['product_type'] ?: '—' ); ?></dd><dt><?php esc_html_e( 'Statut', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $licence_resolution['product_status'] ?: '—' ); ?></dd><dt><?php esc_html_e( 'Prix', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( '' !== $licence_resolution['product_price'] ? $licence_resolution['product_price'] : '—' ); ?></dd><dt><?php esc_html_e( 'Publié', 'ufsc-clubs' ); ?></dt><dd><?php echo 'publish' === $licence_resolution['product_status'] ? esc_html__( 'oui', 'ufsc-clubs' ) : esc_html__( 'non', 'ufsc-clubs' ); ?></dd><dt><?php esc_html_e( 'Achetable', 'ufsc-clubs' ); ?></dt><dd><?php echo ! empty( $licence_resolution['product_purchasable'] ) ? esc_html__( 'oui', 'ufsc-clubs' ) : esc_html__( 'non', 'ufsc-clubs' ); ?></dd></dl>
                     </td>
                 </tr>
             </table>
