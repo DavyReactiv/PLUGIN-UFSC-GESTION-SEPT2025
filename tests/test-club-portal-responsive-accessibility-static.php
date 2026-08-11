@@ -104,8 +104,8 @@ foreach ( array(
     'max-block-size: none',
     'min-block-size: 0',
     'a.ufsc-kpi-tile, .ufsc-pack-summary a, summary',
-    'block-size: clamp(80px, 9vw, 112px)',
-    'inline-size: clamp(80px, 9vw, 112px)',
+    'block-size: clamp(76px, 8vw, 96px)',
+    'inline-size: clamp(76px, 8vw, 96px)',
     'object-fit: contain',
 ) as $fluid_rule ) {
     $assert( false !== strpos( $contract, $fluid_rule ), "Missing fluid height/logo rule: {$fluid_rule}" );
