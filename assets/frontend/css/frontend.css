@@ -1241,9 +1241,9 @@
 /* Accessibility improvements */
 .ufsc-btn:focus,
 .ufsc-nav-btn:focus,
-input:focus,
-select:focus,
-textarea:focus {
+.ufsc-club-portal input:focus,
+.ufsc-club-portal select:focus,
+.ufsc-club-portal textarea:focus {
     outline: 2px solid #3498db;
     outline-offset: 2px;
 }

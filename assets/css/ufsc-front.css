@@ -47,7 +47,7 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
 }
 .ufsc-club-portal *, .ufsc-club-portal *::before, .ufsc-club-portal *::after { box-sizing: border-box; min-width: 0; }
 .ufsc-club-portal [id] { scroll-margin-top: 120px; }
-.ufsc-club-portal a { overflow-wrap: anywhere; }
+.ufsc-club-portal a { overflow-wrap: normal; word-break: normal; }
 .ufsc-club-portal .ufsc-dashboard-shell,
 .ufsc-club-portal .ufsc-club-profile-shell,
 .ufsc-club-portal .ufsc-dashboard-mainpane,
@@ -58,7 +58,7 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
 .ufsc-club-portal .ufsc-dashboard-header,
 .ufsc-club-portal .ufsc-club-hero,
 .ufsc-club-portal__hero { background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%); border: 1px solid var(--ufsc-border); border-radius: var(--ufsc-radius); box-shadow: var(--ufsc-shadow); padding: clamp(20px, 3vw, 36px); }
-.ufsc-club-portal .ufsc-dashboard-hero-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: clamp(20px, 3vw, 36px); align-items: stretch; }
+.ufsc-club-portal .ufsc-dashboard-hero-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); gap: clamp(20px, 3vw, 32px); align-items: start; }
 .ufsc-club-portal .ufsc-club-hero { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: clamp(20px, 3vw, 34px); align-items: start; }
 .ufsc-club-portal .ufsc-dashboard-brand { align-items: flex-start; flex-wrap: nowrap; }
 .ufsc-club-portal .ufsc-dashboard-logo { width: 96px; height: 96px; aspect-ratio: 1 / 1; object-fit: contain; flex: 0 0 96px; }
@@ -66,12 +66,12 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
 .ufsc-club-portal .ufsc-club-hero-media img,
 .ufsc-club-portal .photo-club-front { width: min(100%, 280px); height: auto; max-height: 220px; aspect-ratio: 14 / 11; object-fit: contain; border-radius: 16px; background: var(--ufsc-surface); border: 1px solid var(--ufsc-border); padding: 10px; }
 .ufsc-club-portal .ufsc-hero-kpi-grid,
-.ufsc-club-portal__kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; width: 100%; }
+.ufsc-club-portal__kpis { display: grid; grid-template-columns: repeat(2, minmax(150px, 1fr)); gap: 12px; width: 100%; }
 .ufsc-club-portal .ufsc-profile-insight-band { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .ufsc-club-portal .ufsc-kpi-tile-value,
-.ufsc-club-portal .ufsc-profile-insight strong { display: block; font-size: clamp(1.65rem, 3vw, 2.45rem); line-height: 1; color: var(--ufsc-primary-dark); overflow-wrap: anywhere; }
+.ufsc-club-portal .ufsc-profile-insight strong { display: block; font-size: clamp(1.65rem, 3vw, 2.45rem); line-height: 1; color: var(--ufsc-primary-dark); overflow-wrap: normal; }
 .ufsc-club-portal .ufsc-kpi-tile-label,
-.ufsc-club-portal .ufsc-profile-insight span { display: block; font-size: clamp(.78rem, 1vw, .95rem); line-height: 1.35; color: var(--ufsc-muted); overflow-wrap: anywhere; }
+.ufsc-club-portal .ufsc-profile-insight span { display: block; font-size: clamp(.78rem, 1vw, .95rem); line-height: 1.35; color: var(--ufsc-muted); overflow-wrap: normal; word-break: normal; }
 .ufsc-club-portal .ufsc-card { border-color: var(--ufsc-border); border-radius: var(--ufsc-radius); box-shadow: 0 8px 24px rgba(15,23,42,.06); overflow: visible; }
 .ufsc-club-portal .ufsc-club-account__identity { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; }
 .ufsc-club-portal .ufsc-club-account__identity dd { margin: 0; overflow-wrap: anywhere; }
@@ -294,7 +294,7 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
     }
 }
 .ufsc-profile-cards .ufsc-card {
-    height: 100%;
+    height: auto;
 }
 .ufsc-board-columns {
     display: grid;
@@ -557,10 +557,17 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
 	width: 22px;
 }
 .ufsc-club-portal .ufsc-checkbox-label input[type="checkbox"]:focus-visible { outline: 3px solid #f59e0b; outline-offset: 3px; }
-.ufsc-club-portal .ufsc-pack-summary { align-items: stretch; display: grid; gap: 12px; grid-column: 1 / -1; grid-template-columns: repeat(3,minmax(0,1fr)); }
-.ufsc-club-portal .ufsc-pack-summary h3 { grid-column: 1 / -1; margin: 0 0 2px; }
-.ufsc-club-portal .ufsc-pack-summary a { background: #fff; border: 1px solid #cbdff3; border-radius: 18px; color: #173b67; display: flex; flex-direction: column; gap: 6px; min-height: 0; padding: 14px 16px; text-decoration: none; }
-@media (max-width: 768px) { .ufsc-club-portal .ufsc-pack-summary { grid-template-columns: 1fr; } }
+.ufsc-club-portal .ufsc-pack-summary { align-items: stretch; display: grid; gap: 12px; grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(220px, 1fr)); width: 100%; }
+.ufsc-club-portal .ufsc-pack-summary__heading { align-items: baseline; display: flex; flex-wrap: wrap; gap: 4px 12px; grid-column: 1 / -1; justify-content: space-between; }
+.ufsc-club-portal .ufsc-pack-summary__heading h3,
+.ufsc-club-portal .ufsc-pack-summary__heading > span { margin: 0; }
+.ufsc-club-portal .ufsc-pack-summary__heading > span { color: rgba(255, 255, 255, .88); font-weight: 700; }
+.ufsc-club-portal .ufsc-pack-summary a { background: #fff; border: 1px solid #cbdff3; border-radius: 16px; color: #173b67; display: grid; gap: 6px; min-width: 220px; padding: 16px; text-decoration: none; overflow-wrap: normal; word-break: normal; }
+.ufsc-club-portal .ufsc-pack-card__label { color: #475569; font-size: .78rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.ufsc-club-portal .ufsc-pack-card__value { color: #0f172a; font-size: 1.65rem; line-height: 1.1; }
+.ufsc-club-portal .ufsc-pack-card__detail { color: #475569; line-height: 1.45; }
+@media (max-width: 1199px) { .ufsc-club-portal .ufsc-pack-summary { grid-template-columns: repeat(2, minmax(220px, 1fr)); } }
+@media (max-width: 767px) { .ufsc-club-portal .ufsc-pack-summary { grid-template-columns: minmax(0, 1fr); } .ufsc-club-portal .ufsc-pack-summary a { min-width: 0; } }
 
 @media (max-width: 768px) {
     .ufsc-club-portal .ufsc-renewal-button { width: 100%; }
@@ -1256,7 +1263,7 @@ button#upload_btn {
     border: 1px solid rgba(255, 255, 255, 0.24);
     box-shadow: none;
     backdrop-filter: blur(2px);
-    min-height: 112px;
+    min-height: 0;
 }
 
 .ufsc-premium-v3 .ufsc-hero-kpi-card {
@@ -1269,7 +1276,7 @@ button#upload_btn {
 }
 
 .ufsc-premium-v3 .ufsc-priority-tile {
-    min-height: 128px;
+    min-height: 0;
 }
 
 .ufsc-premium-v3 .ufsc-priority-detail {
@@ -1804,7 +1811,6 @@ button#upload_btn {
     max-width: 100%;
     min-width: 0;
     box-sizing: border-box;
-    overflow-x: hidden;
 }
 
 .ufsc-club-dashboard.ufsc-premium-v3 *,
@@ -1857,7 +1863,8 @@ button#upload_btn {
 .ufsc-club-dashboard.ufsc-premium-v3 .ufsc-priority-detail,
 .ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-hero-side-meta {
     min-width: 0;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
+    word-break: normal;
 }
 
 .ufsc-club-dashboard.ufsc-premium-v3 .ufsc-hero-kpi-grid {
@@ -2012,7 +2019,6 @@ button#upload_btn {
     margin-top: 2rem;
     padding-top: 1rem;
     border-top: 1px solid rgba(15, 23, 42, 0.12);
-    overflow-x: hidden;
 }
 
 .ufsc-section-header--compact {
@@ -2061,7 +2067,6 @@ button#upload_btn {
     margin-top: 1.5rem;
     padding-top: 1rem;
     border-top: 1px dashed rgba(15, 23, 42, 0.18);
-    overflow-x: hidden;
 }
 
 .ufsc-licence-table--future {
@@ -2239,7 +2244,7 @@ body .wp-block-post-content > .ufsc-club-account {
 
 .ufsc-club-account .ufsc-profile-insight,
 .ufsc-club-account .ufsc-kpi-tile {
-    min-height: 126px;
+    min-height: 0;
     border-radius: var(--ufsc-radius);
     border: 1px solid var(--ufsc-border);
     box-shadow: 0 10px 24px rgba(15, 39, 74, 0.06);
@@ -2328,9 +2333,6 @@ body .wp-block-post-content > .ufsc-club-account {
     .ufsc-club-account .ufsc-hero-right,
     .ufsc-club-account .ufsc-club-hero-content,
     .ufsc-club-account .ufsc-affiliation-state-card { grid-column: 1; }
-    .ufsc-club-account .ufsc-club-profile-layout,
-    .ufsc-club-account .ufsc-club-profile-main,
-    .ufsc-club-account .ufsc-profile-cards { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
@@ -2393,12 +2395,14 @@ body .wp-block-post-content > .ufsc-club-account {
         radial-gradient(circle at 88% 12%, rgba(15, 159, 186, .46), transparent 34%),
         linear-gradient(135deg, #062f54 0%, #0b4f86 47%, #0f6ea6 100%);
     box-shadow: var(--ufsc-front-shadow-lg);
-    padding: clamp(22px, 3vw, 36px);
+    padding: clamp(20px, 2.4vw, 30px);
 }
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-dashboard-hero-layout {
+    display: grid;
     grid-template-columns: minmax(0, 1fr) 300px;
     gap: clamp(20px, 2.5vw, 32px);
+    align-items: start;
 }
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-dashboard-brand {
@@ -2424,6 +2428,22 @@ body .wp-block-post-content > .ufsc-club-account {
     font-size: clamp(2rem, 4vw, 3.45rem);
     font-weight: 850;
     letter-spacing: -.04em;
+}
+
+.ufsc-club-account.ufsc-club-profile.ufsc-premium-v3 .ufsc-profile-header {
+    align-items: flex-start;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+}
+
+.ufsc-club-account.ufsc-club-profile.ufsc-premium-v3 .ufsc-profile-header h3 {
+    font-size: clamp(1.75rem, 3vw, 2.35rem);
+}
+
+.ufsc-club-account.ufsc-club-profile.ufsc-premium-v3 .ufsc-profile-header .ufsc-permission-notice {
+    margin: 0;
+    max-width: 520px;
 }
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-dashboard-subtitle {
@@ -2601,10 +2621,11 @@ body .wp-block-post-content > .ufsc-club-account {
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-club-hero {
     display: grid;
-    grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
     gap: clamp(18px, 2.6vw, 34px);
     padding: clamp(18px, 2.4vw, 32px);
     background: linear-gradient(135deg, #ffffff 0%, #f5f9fe 100%);
+    align-items: start;
 }
 
 .ufsc-club-account.ufsc-premium-v3 .ufsc-club-hero-content h4 {
@@ -2731,7 +2752,6 @@ body .wp-block-post-content > .ufsc-club-account {
 }
 
 @media (max-width: 1180px) {
-    .ufsc-club-account.ufsc-premium-v3 .ufsc-dashboard-hero-layout,
     .ufsc-club-account.ufsc-premium-v3 .ufsc-club-hero,
     .ufsc-club-account.ufsc-premium-v3 .ufsc-club-profile-main {
         grid-template-columns: 1fr;
@@ -2743,7 +2763,7 @@ body .wp-block-post-content > .ufsc-club-account {
     }
 }
 
-@media (max-width: 780px) {
+@media (max-width: 767px) {
     .ufsc-club-account.ufsc-premium-v3 {
         padding-inline: 12px;
     }
@@ -2805,7 +2825,7 @@ body .wp-block-post-content > .ufsc-club-account {
 /* Portal Club UI: compact, responsive and isolated from the active theme. */
 .ufsc-club-portal,
 .ufsc-club-portal * { box-sizing: border-box; }
-.ufsc-club-portal { max-width: 100%; min-width: 0; overflow-wrap: anywhere; }
+.ufsc-club-portal { max-width: 100%; min-width: 0; overflow-wrap: normal; }
 .ufsc-club-portal .ufsc-btn { align-items: center; background: #fff; border: 2px solid #173b67; border-radius: 7px; color: #173b67; display: inline-flex; font-weight: 700; justify-content: center; line-height: 1.2; min-height: 44px; padding: 9px 15px; text-align: center; text-decoration: none; }
 .ufsc-club-portal .ufsc-btn-primary { background: #173b67; color: #fff; }
 .ufsc-club-portal .ufsc-btn-secondary { background: #fff; color: #173b67; }
@@ -2852,13 +2872,16 @@ body .wp-block-post-content > .ufsc-club-account {
 .ufsc-club-portal .ufsc-club-logo { align-items: center; aspect-ratio: 1/1; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; display: flex; justify-content: center; margin: 0; overflow: hidden; padding: 8px; width: 140px; }
 .ufsc-club-portal .ufsc-club-logo img { display: block; height: 100%; max-height: 100%; max-width: 100%; object-fit: contain; object-position: center; width: 100%; }
 .ufsc-club-portal .ufsc-club-logo--fallback { color: #173b67; font-size: 1.75rem; font-weight: 800; }
-.ufsc-club-portal .ufsc-logo-editor { align-items: center; display: flex; flex-direction: column; gap: 8px; max-width: 260px; }
-.ufsc-club-portal .ufsc-logo-editor__upload { align-items: center; display: flex; flex-direction: column; gap: 7px; width: 100%; }
+.ufsc-club-portal .ufsc-logo-editor { align-items: center; display: grid; gap: 8px 12px; grid-template-columns: 112px minmax(0, 1fr); max-width: none; width: 100%; }
+.ufsc-club-portal .ufsc-logo-editor__title { grid-column: 1 / -1; margin: 0; }
+.ufsc-club-portal .ufsc-logo-editor__preview { grid-row: span 2; }
+.ufsc-club-portal .ufsc-logo-editor__upload { align-items: start; display: grid; gap: 6px; justify-items: start; width: 100%; }
 .ufsc-club-portal .ufsc-logo-editor__file { max-width: 100%; width: 100%; }
 .ufsc-club-portal .ufsc-logo-editor__help,
-.ufsc-club-portal .ufsc-logo-editor__filename { font-size: .82rem; margin: 0; text-align: center; }
-.ufsc-club-portal .ufsc-logo-editor__pending { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; }
+.ufsc-club-portal .ufsc-logo-editor__filename { font-size: .82rem; margin: 0; text-align: left; }
+.ufsc-club-portal .ufsc-logo-editor__pending { display: flex; flex-wrap: wrap; gap: 7px; justify-content: flex-start; }
 .ufsc-club-portal .ufsc-logo-editor__pending[hidden] { display: none; }
+.ufsc-club-portal .ufsc-logo-editor__remove { grid-column: 2; margin: 0; }
 
 .ufsc-club-portal .ufsc-profile-cards { align-items: start; display: grid; gap: 16px; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; }
 .ufsc-club-portal .ufsc-profile-cards > .ufsc-card { height: auto; margin: 0; min-width: 0; width: 100%; }
@@ -3171,18 +3194,13 @@ body .wp-block-post-content > .ufsc-club-account {
     align-items: start;
     grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
 }
-.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-hero-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-hero-kpi-grid { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
 .ufsc-club-dashboard.ufsc-premium-v3 .ufsc-pack-summary { grid-column: 1 / -1; width: 100%; }
 
 /* Astra-safe visible controls: scoped to the portal, never global links. */
 .ufsc-club-portal :is(.ufsc-btn,.button,button,input[type="submit"]):not(:disabled) {
     opacity: 1;
     visibility: visible;
-    -webkit-text-fill-color: currentColor;
-}
-.ufsc-club-portal :is(.ufsc-btn,.button,button,input[type="submit"]):focus-visible {
-    outline: 3px solid #f59e0b;
-    outline-offset: 2px;
 }
 @media (max-width: 1199px) {
     .ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-hero-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -3482,12 +3500,17 @@ body .wp-block-post-content > .ufsc-club-account {
 }
 
 .ufsc-club-portal .ufsc-club-logo {
- block-size: clamp(96px, 12vw, 140px);
- inline-size: clamp(96px, 12vw, 140px);
+ block-size: clamp(96px, 10vw, 120px);
+ inline-size: clamp(96px, 10vw, 120px);
  max-inline-size: 100%;
 }
 
-@media (min-width: 768px) and (max-width: 1023px) {
+.ufsc-club-portal .ufsc-logo-editor .ufsc-club-logo {
+ block-size: 112px;
+ inline-size: 112px;
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
  .ufsc-club-portal .ufsc-dashboard-nav {
   grid-template-columns: repeat(2, minmax(0, 1fr));
  }
@@ -3500,7 +3523,7 @@ body .wp-block-post-content > .ufsc-club-account {
   grid-template-columns: repeat(2, minmax(0, 1fr));
  }
 
- .ufsc-club-portal :is(.ufsc-profile-insight-band, .ufsc-board-columns, .ufsc-documents-grid) {
+ .ufsc-club-portal :is(.ufsc-profile-cards, .ufsc-profile-insight-band, .ufsc-board-columns, .ufsc-documents-grid) {
   grid-template-columns: repeat(2, minmax(0, 1fr));
  }
 }
@@ -3571,6 +3594,19 @@ body .wp-block-post-content > .ufsc-club-account {
   align-items: start;
   grid-template-columns: minmax(0, 1fr);
  }
+
+ .ufsc-club-account.ufsc-club-profile.ufsc-premium-v3 .ufsc-profile-header {
+  flex-direction: column;
+ }
+
+ .ufsc-club-portal .ufsc-logo-editor {
+  grid-template-columns: 96px minmax(0, 1fr);
+ }
+
+ .ufsc-club-portal .ufsc-logo-editor .ufsc-club-logo {
+  block-size: 96px;
+  inline-size: 96px;
+ }
 }
 
 @media (max-width: 479px) {
@@ -3592,7 +3628,7 @@ body .wp-block-post-content > .ufsc-club-account {
  }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1200px) {
  .ufsc-club-portal .ufsc-club-account__nav {
   grid-template-columns: repeat(6, minmax(0, 1fr));
  }

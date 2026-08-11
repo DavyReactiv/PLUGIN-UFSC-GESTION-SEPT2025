@@ -28,8 +28,8 @@ foreach ( array( '.ufsc-club-portal', '.ufsc-licences-section', '.ufsc-licence-d
 foreach ( array(
     '@media (max-width: 479px)',
     '@media (max-width: 767px)',
-    '@media (min-width: 768px) and (max-width: 1023px)',
-    '@media (min-width: 1024px)',
+    '@media (min-width: 768px) and (max-width: 1199px)',
+    '@media (min-width: 1200px)',
     '@media (min-width: 1440px)',
     '@media (pointer: coarse)',
 ) as $query ) {
