@@ -526,9 +526,9 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
     justify-content: center;
     flex-direction: column;
     gap: 2px;
-    border: 2px solid #123f6d !important;
+    border: 2px solid #0b4f86 !important;
     border-radius: 8px;
-    background: #123f6d !important;
+    background: #0b4f86 !important;
     color: #fff !important;
 	-webkit-text-fill-color: #fff !important;
     line-height: 1.25;
@@ -537,9 +537,9 @@ body.ufsc-club-portal-page .elementor-widget-shortcode:has(.ufsc-club-portal) {
     cursor: pointer;
 }
 .ufsc-club-portal .ufsc-renewal-button:hover,
-.ufsc-club-portal .ufsc-document-button:hover { background: #092d50 !important; color: #fff !important; }
+.ufsc-club-portal .ufsc-document-button:hover { background: #073b66 !important; color: #fff !important; }
 .ufsc-club-portal .ufsc-renewal-button:focus-visible,
-.ufsc-club-portal .ufsc-document-button:focus-visible { outline: 3px solid #ffbf47 !important; outline-offset: 3px; }
+.ufsc-club-portal .ufsc-document-button:focus-visible { outline: 3px solid #f59e0b !important; outline-offset: 3px; }
 .ufsc-club-portal .ufsc-renewal-button small { color: inherit; font-size: .78rem; }
 .ufsc-club-portal .ufsc-renewal-checkbox { position: relative; z-index: 2; pointer-events: auto; min-width: 22px; min-height: 22px; }
 .ufsc-club-portal .ufsc-checkbox-label {
@@ -3015,17 +3015,30 @@ body .wp-block-post-content > .ufsc-club-account {
  .ufsc-club-portal .ufsc-licence-table--current td:last-child { align-items: stretch; flex-direction: column; }
 }
 
-/* Canonical portal controls. These selectors intentionally outrank the legacy
-   premium skin while remaining strictly scoped to the authenticated portal. */
-.ufsc-club-portal.ufsc-club-account .ufsc-btn,
-.ufsc-club-portal.ufsc-club-account button.ufsc-btn,
-.ufsc-club-portal.ufsc-club-account input[type="submit"].ufsc-btn {
+/* Canonical Club portal color contract. It closes the cascade left open by
+   Astra, Elementor, WooCommerce and the legacy UFSC layers without global selectors. */
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) {
+ --ufsc-control-primary: #0b4f86;
+ --ufsc-control-primary-hover: #073b66;
+ --ufsc-control-surface: #f8fafc;
+ --ufsc-control-text: #0f172a;
+ --ufsc-control-muted: #475569;
+ --ufsc-control-border: #0b4f86;
+ --ufsc-control-danger: #b91c1c;
+ --ufsc-control-disabled-bg: #e5e7eb;
+ --ufsc-control-disabled-text: #374151;
+ --ufsc-control-disabled-border: #6b7280;
+ --ufsc-control-focus: #073b66;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-btn, .ufsc-page-link, .ufsc-action),
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) .ufsc-licence-actions .ufsc-action {
  align-items: center;
- background: #f8fafc;
- border: 2px solid #173b67;
+ background: var(--ufsc-control-surface);
+ border: 2px solid var(--ufsc-control-border);
  border-radius: 8px;
- color: #173b67;
- -webkit-text-fill-color: #173b67;
+ color: var(--ufsc-control-primary);
+ -webkit-text-fill-color: var(--ufsc-control-primary);
  display: inline-flex;
  font-weight: 750;
  justify-content: center;
@@ -3036,25 +3049,145 @@ body .wp-block-post-content > .ufsc-club-account {
  text-align: center;
  text-decoration: none;
  visibility: visible;
- white-space: nowrap;
 }
-.ufsc-club-portal.ufsc-club-account .ufsc-btn-primary,
-.ufsc-club-portal.ufsc-club-account button.ufsc-btn-primary { background: #0b4f86; border-color: #0b4f86; color: #fff; -webkit-text-fill-color: #fff; }
-.ufsc-club-portal.ufsc-club-account .ufsc-btn-secondary { background: #f8fafc; border-color: #173b67; color: #173b67; -webkit-text-fill-color: #173b67; }
-.ufsc-club-portal.ufsc-club-account .ufsc-btn-danger { background: #fff; border-color: #b42318; color: #8f1d14; -webkit-text-fill-color: #8f1d14; }
-.ufsc-club-portal.ufsc-club-account .ufsc-btn:hover,
-.ufsc-club-portal.ufsc-club-account .ufsc-btn:active { background: #062f54; border-color: #062f54; color: #fff; -webkit-text-fill-color: #fff; }
-.ufsc-club-portal.ufsc-club-account .ufsc-btn:focus-visible { box-shadow: none; outline: 3px solid #f59e0b; outline-offset: 2px; }
-.ufsc-club-portal.ufsc-club-account .ufsc-btn[disabled],
-.ufsc-club-portal.ufsc-club-account .ufsc-btn-disabled,
-.ufsc-club-portal.ufsc-club-account [aria-disabled="true"].ufsc-btn { background: #e5e7eb; border-color: #6b7280; color: #374151; -webkit-text-fill-color: #374151; cursor: not-allowed; opacity: 1; }
-.ufsc-club-portal .ufsc-attestation-card { background: #fff; border: 1px solid #cbd5e1; color: #172554; }
-.ufsc-club-portal .ufsc-attestation-card strong,
-.ufsc-club-portal .ufsc-attestation-card small { color: #172554; -webkit-text-fill-color: #172554; }
-.ufsc-club-portal .ufsc-attestation-card .ufsc-badge { -webkit-text-fill-color: currentColor; }
-.ufsc-club-portal.ufsc-club-account .ufsc-club-account__nav a { align-items: center; background: #f8fafc; border: 1px solid #94a3b8; color: #173b67; -webkit-text-fill-color: #173b67; display: flex; justify-content: center; min-height: 44px; padding: 9px 12px; text-align: center; }
-.ufsc-club-portal.ufsc-club-account .ufsc-club-account__nav a[aria-current="page"] { background: #173b67; border-color: #173b67; color: #fff; -webkit-text-fill-color: #fff; }
-.ufsc-club-portal.ufsc-club-account .ufsc-club-account__nav a:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-btn-primary, .ufsc-action-primary),
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) .ufsc-licence-actions .ufsc-action-primary {
+ background: var(--ufsc-control-primary);
+ border-color: var(--ufsc-control-primary);
+ color: #fff;
+ -webkit-text-fill-color: #fff;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-btn, .ufsc-page-link, .ufsc-action):is(:hover, :active),
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) .ufsc-licence-actions .ufsc-action:is(:hover, :active) {
+ background: var(--ufsc-control-primary-hover);
+ border-color: var(--ufsc-control-primary-hover);
+ color: #fff;
+ -webkit-text-fill-color: #fff;
+ opacity: 1;
+ visibility: visible;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-btn-danger, .ufsc-btn-link, .ufsc-action-danger, .ufsc-action[href*="delete_licence"]) {
+ background: #fff;
+ border-color: var(--ufsc-control-danger);
+ color: var(--ufsc-control-danger);
+ -webkit-text-fill-color: var(--ufsc-control-danger);
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-btn-danger, .ufsc-btn-link, .ufsc-action-danger, .ufsc-action[href*="delete_licence"]):is(:hover, :active) {
+ background: var(--ufsc-control-danger);
+ border-color: var(--ufsc-control-danger);
+ color: #fff;
+ -webkit-text-fill-color: #fff;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-btn, .ufsc-page-link, .ufsc-action):focus-visible,
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) .ufsc-page-link[href]:focus-visible,
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) .ufsc-licence-actions .ufsc-action:focus-visible {
+ box-shadow: 0 0 0 3px #fff;
+ outline: 3px solid var(--ufsc-control-focus);
+ outline-offset: 3px;
+ opacity: 1;
+ visibility: visible;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-btn, .ufsc-page-link, .ufsc-action):is(:disabled, [disabled], [aria-disabled="true"], .ufsc-btn-disabled, .disabled) {
+ background: var(--ufsc-control-disabled-bg);
+ border-color: var(--ufsc-control-disabled-border);
+ color: var(--ufsc-control-disabled-text);
+ -webkit-text-fill-color: var(--ufsc-control-disabled-text);
+ cursor: not-allowed;
+ opacity: 1;
+ transform: none;
+ visibility: visible;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section) .ufsc-renewal-pagination [aria-current="page"],
+:is(.ufsc-club-portal, .ufsc-licences-section) .ufsc-page-link.current {
+ background: var(--ufsc-control-primary);
+ border-color: var(--ufsc-control-primary);
+ color: #fff;
+ -webkit-text-fill-color: #fff;
+ opacity: 1;
+ visibility: visible;
+}
+
+.ufsc-club-portal .ufsc-club-account__nav a {
+ align-items: center;
+ background: var(--ufsc-control-surface);
+ border: 1px solid var(--ufsc-control-border);
+ color: var(--ufsc-control-primary);
+ -webkit-text-fill-color: var(--ufsc-control-primary);
+ display: flex;
+ justify-content: center;
+ min-height: 44px;
+ opacity: 1;
+ padding: 9px 12px;
+ text-align: center;
+ text-decoration: none;
+ visibility: visible;
+}
+
+.ufsc-club-portal .ufsc-club-account__nav a:is(:hover, :active),
+.ufsc-club-portal .ufsc-club-account__nav a[aria-current="page"] {
+ background: var(--ufsc-control-primary-hover);
+ border-color: var(--ufsc-control-primary-hover);
+ color: #fff;
+ -webkit-text-fill-color: #fff;
+}
+
+.ufsc-club-portal .ufsc-club-account__nav a:focus-visible {
+ box-shadow: 0 0 0 3px #fff;
+ outline: 3px solid var(--ufsc-control-focus);
+ outline-offset: 3px;
+}
+
+.ufsc-club-portal .ufsc-attestation-card {
+ background: #fff;
+ border: 1px solid #cbd5e1;
+ color: var(--ufsc-control-text);
+ -webkit-text-fill-color: var(--ufsc-control-text);
+ opacity: 1;
+ visibility: visible;
+}
+
+.ufsc-club-portal .ufsc-attestation-card strong {
+ color: var(--ufsc-control-text);
+ -webkit-text-fill-color: var(--ufsc-control-text);
+}
+
+.ufsc-club-portal .ufsc-attestation-card small {
+ color: var(--ufsc-control-muted);
+ -webkit-text-fill-color: var(--ufsc-control-muted);
+}
+
+.ufsc-club-portal .ufsc-attestation-card .ufsc-badge {
+ opacity: 1;
+ visibility: visible;
+ -webkit-text-fill-color: currentColor;
+}
+
+.ufsc-add-licence-section .ufsc-honorability-document-card a:not(.ufsc-btn) {
+ color: var(--ufsc-control-primary);
+ -webkit-text-fill-color: var(--ufsc-control-primary);
+ font-weight: 700;
+ opacity: 1;
+ text-decoration: underline;
+ visibility: visible;
+}
+
+.ufsc-add-licence-section .ufsc-honorability-document-card a:not(.ufsc-btn):is(:hover, :active) {
+ color: var(--ufsc-control-primary-hover);
+ -webkit-text-fill-color: var(--ufsc-control-primary-hover);
+}
+
+.ufsc-add-licence-section .ufsc-honorability-document-card a:not(.ufsc-btn):focus-visible {
+ box-shadow: 0 0 0 3px #fff;
+ outline: 3px solid var(--ufsc-control-focus);
+ outline-offset: 3px;
+}
 .ufsc-club-portal.ufsc-club-account .ufsc-dashboard-logo { height: 112px; padding: 4px; width: 112px; }
 
 /* Final runtime layout: content, never a viewport-sized blue placeholder, owns height. */
