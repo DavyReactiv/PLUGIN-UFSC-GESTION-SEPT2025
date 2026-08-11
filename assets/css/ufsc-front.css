@@ -3227,3 +3227,423 @@ body .wp-block-post-content > .ufsc-club-account {
  .ufsc-club-portal.ufsc-club-account .ufsc-club-account__nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); overflow: visible; }
  .ufsc-club-portal.ufsc-club-account .ufsc-dashboard-logo { height: 76px; width: 76px; }
 }
+
+/* Canonical responsive adaptation contract. The four roots cover the Club
+   dashboard, licence lists, licence detail and add/edit journey without
+   changing Astra, Elementor or WooCommerce outside UFSC surfaces. */
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section),
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) *,
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) *::before,
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) *::after {
+ box-sizing: border-box;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) {
+ inline-size: min(calc(100% - 32px), 1280px);
+ margin-inline: auto;
+ max-inline-size: 100%;
+ min-inline-size: 0;
+}
+
+.ufsc-club-portal :is(.ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) {
+ inline-size: 100%;
+ margin-inline: 0;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(
+ .ufsc-dashboard-shell,
+ .ufsc-dashboard-mainpane,
+ .ufsc-licences-workspace,
+ .ufsc-renewal-wizard,
+ .ufsc-profile-cards,
+ .ufsc-licence-form,
+ .ufsc-form-section,
+ fieldset
+) {
+ max-inline-size: 100%;
+ min-inline-size: 0;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(img, svg, video, canvas) {
+ block-size: auto;
+ max-inline-size: 100%;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-btn, .ufsc-page-link, .ufsc-action) {
+ hyphens: none;
+ max-inline-size: 100%;
+ min-block-size: 44px;
+ min-inline-size: 44px;
+ overflow-wrap: normal;
+ white-space: normal;
+ word-break: normal;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+ select,
+ textarea
+) {
+ max-inline-size: 100%;
+ min-block-size: 44px;
+ min-inline-size: 0;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) label:has(> input:is([type="checkbox"], [type="radio"])),
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-checkbox-label, .ufsc-renewal-selection-control) {
+ align-items: center;
+ cursor: pointer;
+ display: flex;
+ gap: 10px;
+ inline-size: fit-content;
+ max-inline-size: 100%;
+ min-block-size: 44px;
+ padding-block: 6px;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) label:has(> input:is([type="checkbox"], [type="radio"])) > input,
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-checkbox-label, .ufsc-renewal-selection-control) input:is([type="checkbox"], [type="radio"]) {
+ accent-color: var(--ufsc-control-primary);
+ block-size: 24px;
+ cursor: pointer;
+ flex: 0 0 24px;
+ inline-size: 24px;
+ margin: 0;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) td > input:is([type="checkbox"], [type="radio"]):not(.ufsc-renewal-selection-control input) {
+ accent-color: var(--ufsc-control-primary);
+ block-size: 44px;
+ cursor: pointer;
+ inline-size: 44px;
+ margin: 0;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) label:has(> input:is([type="checkbox"], [type="radio"])):focus-within,
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-checkbox-label, .ufsc-renewal-selection-control):focus-within {
+ border-radius: 8px;
+ outline: 3px solid var(--ufsc-control-focus);
+ outline-offset: 3px;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(
+ .ufsc-renewal-actions,
+ .ufsc-club-portal__actions,
+ .ufsc-licence-wizard-navigation,
+ .ufsc-form-actions,
+ .ufsc-final-buttons,
+ .ufsc-document-actions,
+ .ufsc-hero-media-actions,
+ .ufsc-filter-actions
+) {
+ align-items: stretch;
+ display: flex;
+ flex-wrap: wrap;
+ gap: 8px;
+ justify-content: flex-start;
+ max-inline-size: 100%;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(
+ .ufsc-renewal-actions,
+ .ufsc-club-portal__actions,
+ .ufsc-licence-wizard-navigation,
+ .ufsc-form-actions,
+ .ufsc-final-buttons,
+ .ufsc-document-actions,
+ .ufsc-hero-media-actions,
+ .ufsc-filter-actions
+) > :is(.ufsc-btn, .ufsc-action) {
+ flex: 0 1 auto;
+}
+
+.ufsc-club-portal .ufsc-dashboard-actions--primary {
+ align-items: stretch;
+ display: grid;
+ gap: 10px;
+ grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+}
+
+.ufsc-club-portal .ufsc-dashboard-actions--primary > .ufsc-btn {
+ inline-size: 100%;
+ min-inline-size: 0;
+}
+
+.ufsc-club-portal .ufsc-dashboard-nav {
+ align-items: stretch;
+ display: grid;
+ gap: 8px;
+ grid-template-columns: repeat(4, minmax(0, 1fr));
+ inline-size: 100%;
+ overflow: visible;
+}
+
+.ufsc-club-portal .ufsc-dashboard-nav .ufsc-nav-btn {
+ background: var(--ufsc-control-surface);
+ border: 1px solid var(--ufsc-control-border);
+ border-radius: 8px;
+ color: var(--ufsc-control-primary);
+ -webkit-text-fill-color: var(--ufsc-control-primary);
+ inline-size: 100%;
+ min-block-size: 44px;
+ min-inline-size: 0;
+ overflow-wrap: normal;
+ padding: 9px 12px;
+ white-space: normal;
+ word-break: normal;
+}
+
+.ufsc-club-portal .ufsc-dashboard-nav .ufsc-nav-btn:is(:hover, :active, .active) {
+ background: var(--ufsc-control-primary-hover);
+ border-color: var(--ufsc-control-primary-hover);
+ color: #fff;
+ -webkit-text-fill-color: #fff;
+}
+
+.ufsc-club-portal .ufsc-dashboard-nav .ufsc-nav-btn:focus-visible {
+ box-shadow: 0 0 0 3px #fff;
+ outline: 3px solid var(--ufsc-control-focus);
+ outline-offset: 3px;
+}
+
+.ufsc-club-portal .ufsc-club-account__nav {
+ align-items: stretch;
+ display: grid;
+ gap: 8px;
+ grid-template-columns: repeat(6, minmax(0, 1fr));
+ inline-size: 100%;
+ overflow: visible;
+}
+
+.ufsc-club-portal .ufsc-club-account__nav a {
+ block-size: auto;
+ inline-size: 100%;
+ min-inline-size: 0;
+ overflow-wrap: normal;
+ word-break: normal;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section) :is(.ufsc-renewal-filters, .ufsc-archive-filter-form) {
+ align-items: end;
+ display: grid;
+ gap: 12px;
+ grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+ inline-size: 100%;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section) :is(.ufsc-renewal-filters, .ufsc-archive-filter-form) > :is(label, .ufsc-filter-actions, .ufsc-btn) {
+ margin: 0;
+ min-inline-size: 0;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section) .ufsc-current-licence-filters .ufsc-filter-actions {
+ grid-column: 1 / -1;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section) .ufsc-front-table-scroll {
+ inline-size: 100%;
+ max-inline-size: 100%;
+ overflow-x: auto;
+ overflow-y: visible;
+ overscroll-behavior-inline: contain;
+ scrollbar-gutter: stable;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section) .ufsc-front-table-scroll > table {
+ max-inline-size: none;
+}
+
+.ufsc-licence-detail .ufsc-table {
+ inline-size: 100%;
+ max-inline-size: 100%;
+ table-layout: fixed;
+}
+
+.ufsc-licence-detail .ufsc-table :is(th, td) {
+ overflow-wrap: anywhere;
+ word-break: normal;
+}
+
+.ufsc-licence-detail .ufsc-table th {
+ inline-size: min(38%, 220px);
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section) :is(.ufsc-renewal-pagination, .ufsc-pagination-wrapper) {
+ align-items: stretch;
+ display: flex;
+ flex-wrap: wrap;
+ gap: 8px;
+ inline-size: 100%;
+ justify-content: center;
+ max-inline-size: 100%;
+ overflow: visible;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section) :is(.ufsc-renewal-pagination, .ufsc-pagination-wrapper) :is(.ufsc-btn, .ufsc-page-link) {
+ flex: 0 1 auto;
+ margin: 0;
+ min-inline-size: 44px;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(
+ .ufsc-card,
+ .ufsc-kpi-tile,
+ .ufsc-profile-insight,
+ .ufsc-season-card,
+ .ufsc-attestation-card,
+ .ufsc-dashboard-header,
+ .ufsc-club-hero
+) {
+ block-size: auto;
+ max-block-size: none;
+ min-block-size: 0;
+}
+
+:is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(a.ufsc-kpi-tile, .ufsc-pack-summary a, summary) {
+ min-block-size: 44px;
+}
+
+.ufsc-club-portal.ufsc-club-account .ufsc-dashboard-logo {
+ aspect-ratio: 1;
+ block-size: clamp(80px, 9vw, 112px);
+ flex: 0 0 auto;
+ inline-size: clamp(80px, 9vw, 112px);
+ max-inline-size: 24vw;
+ object-fit: contain;
+ object-position: center;
+}
+
+.ufsc-club-portal .ufsc-club-logo {
+ block-size: clamp(96px, 12vw, 140px);
+ inline-size: clamp(96px, 12vw, 140px);
+ max-inline-size: 100%;
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+ .ufsc-club-portal .ufsc-dashboard-nav {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+
+ .ufsc-club-portal .ufsc-club-account__nav {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+ }
+
+ :is(.ufsc-club-portal, .ufsc-licences-section) :is(.ufsc-renewal-filters, .ufsc-archive-filter-form) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+
+ .ufsc-club-portal :is(.ufsc-profile-insight-band, .ufsc-board-columns, .ufsc-documents-grid) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+}
+
+@media (max-width: 767px) {
+ :is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) {
+  inline-size: min(calc(100% - 20px), 1280px);
+ }
+
+ .ufsc-club-portal .ufsc-dashboard-nav,
+ .ufsc-club-portal .ufsc-club-account__nav {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+
+ :is(.ufsc-club-portal, .ufsc-licences-section) :is(.ufsc-renewal-filters, .ufsc-archive-filter-form),
+ .ufsc-club-portal :is(.ufsc-grid, .ufsc-profile-cards, .ufsc-board-columns, .ufsc-documents-grid),
+ .ufsc-add-licence-section :is(.ufsc-form-grid, .ufsc-form-row) {
+  grid-template-columns: minmax(0, 1fr);
+ }
+
+ :is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(
+  .ufsc-renewal-actions,
+  .ufsc-club-portal__actions,
+  .ufsc-licence-wizard-navigation,
+  .ufsc-form-actions,
+  .ufsc-final-buttons,
+  .ufsc-document-actions,
+  .ufsc-hero-media-actions,
+  .ufsc-filter-actions
+ ) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+ }
+
+ :is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(
+  .ufsc-renewal-actions,
+  .ufsc-club-portal__actions,
+  .ufsc-licence-wizard-navigation,
+  .ufsc-form-actions,
+  .ufsc-final-buttons,
+  .ufsc-document-actions,
+  .ufsc-hero-media-actions,
+  .ufsc-filter-actions
+ ) > :is(.ufsc-btn, .ufsc-action) {
+  inline-size: 100%;
+ }
+
+ :is(.ufsc-club-portal, .ufsc-licences-section) .ufsc-front-table-scroll:has(:is(.ufsc-renewal-table, .ufsc-licence-table--current)) {
+  overflow-x: visible;
+  scrollbar-gutter: auto;
+ }
+
+ :is(.ufsc-club-portal, .ufsc-licences-section) :is(.ufsc-renewal-table, .ufsc-licence-table--current) {
+  inline-size: 100%;
+  min-inline-size: 0;
+ }
+
+ :is(.ufsc-club-portal, .ufsc-licences-section) :is(.ufsc-renewal-pagination, .ufsc-pagination-wrapper) :is(.ufsc-btn, .ufsc-page-link) {
+  flex: 1 1 132px;
+ }
+
+ :is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) label:has(> input:is([type="checkbox"], [type="radio"])),
+ :is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(.ufsc-checkbox-label, .ufsc-renewal-selection-control) {
+  inline-size: 100%;
+ }
+
+ .ufsc-club-portal .ufsc-dashboard-brand {
+  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+ }
+}
+
+@media (max-width: 479px) {
+ :is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) {
+  inline-size: min(calc(100% - 16px), 1280px);
+ }
+
+ .ufsc-club-portal .ufsc-dashboard-nav,
+ .ufsc-club-portal .ufsc-club-account__nav {
+  grid-template-columns: minmax(0, 1fr);
+ }
+
+ .ufsc-club-portal .ufsc-dashboard-actions--primary {
+  grid-template-columns: minmax(0, 1fr);
+ }
+
+ :is(.ufsc-club-portal, .ufsc-licences-section) :is(.ufsc-renewal-pagination, .ufsc-pagination-wrapper) {
+  justify-content: stretch;
+ }
+}
+
+@media (min-width: 1024px) {
+ .ufsc-club-portal .ufsc-club-account__nav {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+ }
+}
+
+@media (min-width: 1440px) {
+ :is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) {
+  max-inline-size: 1280px;
+ }
+}
+
+@media (pointer: coarse) {
+ :is(.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section) :is(
+  .ufsc-btn,
+  .ufsc-page-link,
+  .ufsc-action,
+  input,
+  select,
+  summary
+ ) {
+  min-block-size: 44px;
+ }
+}
