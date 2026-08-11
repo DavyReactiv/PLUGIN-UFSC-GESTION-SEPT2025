@@ -131,23 +131,23 @@
 .ufsc-kpi-card {
     text-align: center;
     position: relative;
-    border-left: 4px solid #bdc3c7;
+    border: 1px solid #bdc3c7;
 }
 
 .ufsc-kpi-card.-validees {
-    border-left-color: #27ae60;
+    border-color: #27ae60;
 }
 
 .ufsc-kpi-card.-payees {
-    border-left-color: #f39c12;
+    border-color: #f39c12;
 }
 
 .ufsc-kpi-card.-attente {
-    border-left-color: #e74c3c;
+    border-color: #e74c3c;
 }
 
 .ufsc-kpi-card.-rejected {
-    border-left-color: #95a5a6;
+    border-color: #95a5a6;
 }
 
 .ufsc-kpi-value {
@@ -484,8 +484,8 @@
     gap: 0.75rem;
     padding: 0.75rem;
     margin-bottom: 0.5rem;
-    border-radius: 6px;
-    border-left: 4px solid;
+    border: 1px solid #94a3b8;
+    border-radius: 8px;
 }
 
 .ufsc-alert:last-child {
@@ -494,13 +494,13 @@
 
 .ufsc-alert-warning {
     background: #fff3cd;
-    border-left-color: #ffc107;
+    border-color: #ffc107;
     color: #856404;
 }
 
 .ufsc-alert-info {
     background: #d1ecf1;
-    border-left-color: #17a2b8;
+    border-color: #17a2b8;
     color: #0c5460;
 }
 
@@ -685,46 +685,7 @@
     }
 }
 
-/* Navigation */
-.ufsc-dashboard-nav {
-    background: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0;
-}
-
-.ufsc-nav-btn {
-    background: transparent;
-    border: none;
-    padding: 1rem 1.5rem;
-    cursor: pointer;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: #495057;
-    border-bottom: 3px solid transparent;
-    transition: all 0.3s ease;
-}
-
-.ufsc-nav-btn:hover {
-    background: #e9ecef;
-    color: #2c3e50;
-}
-
-.ufsc-nav-btn.active {
-    color: #2c3e50;
-    border-bottom-color: #3498db;
-    background: white;
-}
-
 /* Content Sections */
-.ufsc-dashboard-content {
-    background: white;
-    border: 1px solid #dee2e6;
-    border-top: none;
-    border-radius: 0 0 8px 8px;
-}
-
 .ufsc-dashboard-section {
     display: none;
     padding: 2rem;
@@ -732,16 +693,6 @@
 
 .ufsc-dashboard-section.active {
     display: block;
-}
-
-/* Section Headers */
-.ufsc-section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid #f8f9fa;
 }
 
 .ufsc-section-header h3 {
@@ -956,13 +907,6 @@
     transform: translateY(-2px);
 }
 
-.ufsc-kpi-value {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #2c3e50;
-    margin-bottom: 0.5rem;
-}
-
 .ufsc-kpi-label {
     font-size: 0.9rem;
     color: #6c757d;
@@ -1143,37 +1087,12 @@
 }
 
 /* Quota info */
-.ufsc-quota-info {
-    background: #e3f2fd;
-    padding: 1rem;
-    border-radius: 4px;
-    border-left: 4px solid #2196f3;
-}
-
-.ufsc-quota-info p {
-    margin: 0;
-    font-weight: 500;
-    color: #1565c0;
-}
-
-/* Validation notice */
-.ufsc-validation-notice {
-    background: #fff3e0;
-    padding: 0.75rem 1rem;
-    border-radius: 4px;
-    border-left: 4px solid #ff9800;
-    margin: 0;
-    font-size: 0.9rem;
-    color: #e65100;
-    font-weight: 500;
-}
-
 /* Season info */
 .ufsc-season-info {
     background: #f3e5f5;
     padding: 0.75rem 1rem;
-    border-radius: 4px;
-    border-left: 4px solid #9c27b0;
+    border: 1px solid #9c27b0;
+    border-radius: 8px;
     margin: 0;
     font-size: 0.9rem;
     color: #6a1b9a;
@@ -1278,11 +1197,6 @@
     
     .ufsc-nav-btn.active {
         border-bottom-color: #dee2e6;
-        border-left: 3px solid #3498db;
-    }
-    
-    .ufsc-dashboard-section {
-        padding: 1rem;
     }
     
     .ufsc-section-header {
@@ -1303,25 +1217,6 @@
         grid-template-columns: 1fr;
     }
 
-    .ufsc-table {
-        font-size: var(--ufsc-font-size-base);
-    }
-
-    .ufsc-table th,
-    .ufsc-table td {
-        padding: 0.5rem;
-    }
-
-    .ufsc-table--spacious th,
-    .ufsc-table--spacious td {
-        padding-top: 0.75rem;
-        padding-bottom: 0.75rem;
-    }
-
-    .ufsc-section-header--tight {
-        margin-bottom: 0.5rem;
-        padding-bottom: 0.25rem;
-    }
 }
 
 @media (max-width: 480px) {
@@ -1590,11 +1485,6 @@ textarea:focus {
     color: #2c3e50;
 }
 
-.ufsc-document-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
 .ufsc-document-upload .ufsc-file-input {
     display: none;
 }
@@ -1609,17 +1499,6 @@ textarea:focus {
     font-size: 0.9rem;
     font-weight: 500;
     transition: background 0.3s ease;
-}
-
-.ufsc-upload-label:hover {
-    background: #2980b9;
-}
-
-.ufsc-help-text {
-    margin: 0.5rem 0 0 0;
-    font-size: 0.8rem;
-    color: #6c757d;
-    font-style: italic;
 }
 
 /* // UFSC: Club Profile Sections */

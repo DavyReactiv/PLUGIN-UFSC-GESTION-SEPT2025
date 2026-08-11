@@ -8,7 +8,9 @@ const vm = require('vm');
 const source = fs.readFileSync(__dirname + '/../assets/js/frontend-dashboard.js', 'utf8');
 const registered = [];
 const ajaxRequests = [];
+const intervalCallbacks = [];
 const ui = { selected: 0, count: '', verifyDisabled: true, renewed: false };
+let dashboardPresent = false;
 
 // Use a stable proxy implementation so chained jQuery calls behave like an
 // empty, rendered page rather than throwing before initialization completes.
@@ -34,7 +36,7 @@ function emptyCollection(length = 0, selector = '') {
     return proxy;
 }
 
-const document = { hidden: false, title: 'Portail', getElementById: () => null };
+const document = { hidden: false, title: 'Portail', getElementById: id => id === 'ufsc-dashboard' && dashboardPresent ? {} : null };
 const warnings = [];
 const window = { location: { search: '', hash: '', pathname: '/portail/' }, history: { replaceState() {} }, ufsc_frontend_vars: {} };
 function jQuery(selector) {
@@ -51,12 +53,18 @@ jQuery.ajax = options => { ajaxRequests.push(options); return {}; };
 vm.runInNewContext(source, {
     window, document, jQuery, $: jQuery, URLSearchParams, URL: { revokeObjectURL() {}, createObjectURL() { return 'blob:test'; } },
     location: window.location, history: window.history, console: { warn: message => warnings.push(message), error() {}, log() {} },
-    setTimeout() {}, clearTimeout() {}, setInterval() {}, confirm: () => true, Number, String, Object, Array, JSON, Date, Math
+    setTimeout() {}, clearTimeout() {}, setInterval(callback) { intervalCallbacks.push(callback); return intervalCallbacks.length; }, confirm: () => true, Number, String, Object, Array, JSON, Date, Math
 }, { filename: 'frontend-dashboard.js' });
 
 if (warnings.some(message => String(message).includes('No club ID provided'))) throw new Error('club-id warning still emitted');
 if (!window.UfscDashboard || !window.UfscDashboard.initialized) throw new Error('dashboard initializer did not run');
 if (!registered.some(item => String(item.events).includes('submit') && item.selector === '.ufsc-delete-licence-form')) throw new Error('club-independent handlers were not initialized');
+
+// Returning to a visible tab must not trigger REST refreshes on pages where
+// the dashboard component is absent.
+const visibilityHandler = registered.find(item => item.events === 'visibilitychange').callback;
+visibilityHandler();
+if (ajaxRequests.length !== 0) throw new Error('visibility refresh ran without a dashboard component');
 
 // Exercise the real AJAX contract, including all optional/invalid callback
 // combinations which previously raised "errorCallback is not a function".
@@ -106,4 +114,23 @@ if (!ui.renewed) throw new Error('direct renew action did not select its licence
 const bindings = registered.length;
 window.UfscDashboard.init();
 if (registered.length !== bindings) throw new Error('dashboard initialized twice');
+
+// The periodic refresh is unique and pauses both in a hidden tab and after the
+// dashboard component has left the DOM.
+let refreshes = 0;
+dashboardPresent = true;
+window.UfscDashboard.refresh_timer = null;
+window.UfscDashboard.refreshData = () => { refreshes += 1; };
+window.UfscDashboard.startRefreshTimer();
+window.UfscDashboard.startRefreshTimer();
+if (intervalCallbacks.length !== 1) throw new Error('dashboard refresh interval initialized twice');
+document.hidden = true;
+intervalCallbacks[0]();
+if (refreshes !== 0) throw new Error('dashboard refreshed while page was hidden');
+document.hidden = false;
+intervalCallbacks[0]();
+if (refreshes !== 1) throw new Error('visible dashboard did not refresh');
+dashboardPresent = false;
+intervalCallbacks[0]();
+if (refreshes !== 1) throw new Error('detached dashboard continued to refresh');
 console.log('Frontend dashboard DOM runtime initialization OK');

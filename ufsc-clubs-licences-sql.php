@@ -246,37 +246,66 @@ final class UFSC_CL_Bootstrap {
      */
     public function enqueue_frontend_assets() {
         global $post;
-        $should_enqueue = false;
+        $needs_portal_styles  = false;
+        $needs_portal_runtime = false;
 
         // Guard against early execution before the main query is available.
         if ( ! did_action( 'wp' ) ) {
             return;
         }
 
-        if ( $post && has_shortcode( $post->post_content, 'ufsc_club_dashboard' ) ) {
-            $should_enqueue = true;
-        } elseif ( $post && (
-            has_shortcode( $post->post_content, 'ufsc_club_licences' ) ||
-            has_shortcode( $post->post_content, 'ufsc_club_stats' ) ||
-            has_shortcode( $post->post_content, 'ufsc_club_profile' ) ||
-            has_shortcode( $post->post_content, 'ufsc_add_licence' )
-        ) ) { $should_enqueue = true; }
+        if ( $post ) {
+            $style_shortcodes = array(
+                'ufsc_club_dashboard',
+                'ufsc_club_licences',
+                'ufsc_club_stats',
+                'ufsc_club_profile',
+                'ufsc_add_licence',
+            );
+            $runtime_shortcodes = array(
+                'ufsc_club_dashboard',
+                'ufsc_club_licences',
+                'ufsc_club_profile',
+            );
 
-        if ( ! $should_enqueue && is_user_logged_in() ) {
-            if ( function_exists('is_account_page') && is_account_page() ) {
-                $should_enqueue = true;
-            } else {
-                $should_enqueue = is_page( array( 'tableau-de-bord', 'club-dashboard', 'mon-club', 'mon-compte', 'my-account' ) );
+            foreach ( $style_shortcodes as $shortcode ) {
+                if ( has_shortcode( $post->post_content, $shortcode ) ) {
+                    $needs_portal_styles = true;
+                    break;
+                }
+            }
+            foreach ( $runtime_shortcodes as $shortcode ) {
+                if ( has_shortcode( $post->post_content, $shortcode ) ) {
+                    $needs_portal_runtime = true;
+                    break;
+                }
             }
         }
 
-        if ( $should_enqueue ) {
-            $dashboard_js  = UFSC_CL_DIR . 'assets/js/frontend-dashboard.js';
+        // Elementor may render the shortcode outside post_content. Restrict the
+        // fallback to the canonical portal pages and their documented aliases;
+        // a generic WooCommerce account page is not an asset consumer.
+        if ( ! $needs_portal_styles && is_user_logged_in() && is_page( array(
+            'tableau-de-bord-club',
+            'compte-club',
+            'tableau-de-bord',
+            'club-dashboard',
+            'mon-club',
+        ) ) ) {
+            $needs_portal_styles  = true;
+            $needs_portal_runtime = true;
+        }
+
+        if ( $needs_portal_styles ) {
             $dashboard_css = UFSC_CL_DIR . 'assets/css/ufsc-front.css';
-            $js_version    = file_exists( $dashboard_js ) ? (string) filemtime( $dashboard_js ) : UFSC_CL_VERSION;
             $css_version   = file_exists( $dashboard_css ) ? (string) filemtime( $dashboard_css ) : UFSC_CL_VERSION;
             wp_enqueue_style('ufsc-frontend', UFSC_CL_URL . 'assets/frontend/css/frontend.css', array(), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/frontend/css/frontend.css' ) : UFSC_CL_VERSION );
             wp_enqueue_style( 'ufsc-renewal-runtime', UFSC_CL_URL . 'assets/css/ufsc-front.css', array( 'ufsc-frontend' ), $css_version );
+        }
+
+        if ( $needs_portal_runtime ) {
+            $dashboard_js = UFSC_CL_DIR . 'assets/js/frontend-dashboard.js';
+            $js_version   = file_exists( $dashboard_js ) ? (string) filemtime( $dashboard_js ) : UFSC_CL_VERSION;
             wp_enqueue_script('ufsc-frontend', UFSC_CL_URL . 'assets/frontend/js/frontend.js', array('jquery'), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/frontend/js/frontend.js' ) : UFSC_CL_VERSION, true );
             wp_enqueue_script( 'ufsc-renewal-runtime', UFSC_CL_URL . 'assets/js/frontend-dashboard.js', array( 'jquery', 'ufsc-frontend' ), $js_version, true );
             if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {

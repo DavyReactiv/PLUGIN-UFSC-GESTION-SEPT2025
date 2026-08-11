@@ -28,6 +28,8 @@
 
         initialized: false,
 
+        refresh_timer: null,
+
         // Initialize dashboard
         init: function() {
             if (this.initialized) {
@@ -125,6 +127,13 @@
                 $(this).closest('.ufsc-toast').fadeOut(300, function() {
                     $(this).remove();
                 });
+            });
+
+            // Refresh only a rendered dashboard when the page becomes visible.
+            $(document).on( 'visibilitychange', function() {
+                if (!document.hidden && document.getElementById('ufsc-dashboard')) {
+                    self.refreshData();
+                }
             });
 
         },
@@ -903,6 +912,19 @@
             this.loadInitialData();
         },
 
+        startRefreshTimer: function() {
+            var self = this;
+            if (this.refresh_timer) {
+                return;
+            }
+            this.refresh_timer = setInterval(function () {
+                if (document.hidden || !document.getElementById('ufsc-dashboard')) {
+                    return;
+                }
+                self.refreshData();
+            }, this.config.refresh_interval);
+        },
+
         showToast: function(message, type) {
             type = type || 'info';
             var toast = $('<div class="ufsc-toast ' + type + '">' + message + '</div>');
@@ -937,12 +959,11 @@
                 if (title) { title.setAttribute('tabindex', '-1'); title.focus({preventScroll: true}); }
             }
         }
-        $('[data-ufsc-select-all]').on('click', function() { $('#ufsc-renewal-assistant-form .ufsc-renewal-checkbox:not(:disabled)').prop('checked', true).trigger('change'); });
-        $('[data-ufsc-select-none]').on('click', function() { $('#ufsc-renewal-assistant-form .ufsc-renewal-checkbox').prop('checked', false).trigger('change'); });
         var renewalForm = $('#ufsc-renewal-assistant-form');
-        if (renewalForm.length) {
-            if (renewalForm.data('ufsc-renewal-initialized')) { return; }
+        if (renewalForm.length && !renewalForm.data('ufsc-renewal-initialized')) {
             renewalForm.data('ufsc-renewal-initialized', true);
+            $('[data-ufsc-select-all]').on('click', function() { $('#ufsc-renewal-assistant-form .ufsc-renewal-checkbox:not(:disabled)').prop('checked', true).trigger('change'); });
+            $('[data-ufsc-select-none]').on('click', function() { $('#ufsc-renewal-assistant-form .ufsc-renewal-checkbox').prop('checked', false).trigger('change'); });
             renewalForm.addClass('ufsc-renewal-enhanced');
             var renewalError = function(message) {
                 var notice = renewalForm.find('.ufsc-renewal-client-notice');
@@ -1030,6 +1051,8 @@
         }
         $('.ufsc-renewal-profile').each(function() {
             var profile = this;
+            if ($(profile).data('ufsc-renewal-profile-initialized')) { return; }
+            $(profile).data('ufsc-renewal-profile-initialized', true);
             $(profile).find(':input').each(function() { $(this).data('ufsc-initial', this.type === 'checkbox' ? this.checked : this.value); });
             $(profile).on('input change', ':input', function() {
                 var list = $(profile).find('.ufsc-renewal-change-summary ul').empty();
@@ -1056,7 +1079,8 @@
     'use strict';
     $(function(){
         $('[data-ufsc-logo-editor]').each(function(){
-            var editor=$(this), input=editor.find('.ufsc-logo-editor__file'), pending=editor.find('.ufsc-logo-editor__pending'), filename=editor.find('[data-ufsc-logo-filename]'), preview=editor.find('[data-ufsc-logo-preview]'), initial=preview.html(), objectUrl='';
+            var editor=$(this); if(editor.data('ufsc-logo-editor-initialized')) return; editor.data('ufsc-logo-editor-initialized',true);
+            var input=editor.find('.ufsc-logo-editor__file'), pending=editor.find('.ufsc-logo-editor__pending'), filename=editor.find('[data-ufsc-logo-filename]'), preview=editor.find('[data-ufsc-logo-preview]'), initial=preview.html(), objectUrl='';
             input.on('change',function(){
                 var file=this.files&&this.files[0], max=Number(input.data('max-bytes'))||5242880;
                 filename.removeClass('ufsc-error').empty(); pending.prop('hidden',true);
@@ -1082,6 +1106,7 @@
     'use strict';
     $(function(){
         var account=$('.ufsc-club-profile').first(); if(!account.length) return;
+        if(account.data('ufsc-account-tabs-initialized')) return; account.data('ufsc-account-tabs-initialized',true);
         var nav=account.find('.ufsc-club-account__nav').first();
         var form=account.find('form').filter(function(){return $(this).find('.ufsc-club-account__savebar').length;}).first();
         var panels={overview:account.find('.ufsc-profile-header, .ufsc-club-hero, .ufsc-profile-insight-band'),information:form.find('.ufsc-club-profile-main > .ufsc-card, #ufsc-club-information').not('#ufsc-club-officers, #ufsc-club-documents'),officers:form.find('#ufsc-club-officers'),documents:account.find('#ufsc-club-documents')};
