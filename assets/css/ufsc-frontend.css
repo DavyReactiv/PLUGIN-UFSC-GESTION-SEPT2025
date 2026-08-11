@@ -4,25 +4,25 @@
  */
 
 /* Accessibility focus styles for interactive elements */
-a:focus,
-button:focus,
-input:focus,
-select:focus,
-textarea:focus,
-[tabindex]:focus {
+.ufsc-add-licence-section a:focus,
+.ufsc-add-licence-section button:focus,
+.ufsc-add-licence-section input:focus,
+.ufsc-add-licence-section select:focus,
+.ufsc-add-licence-section textarea:focus,
+.ufsc-add-licence-section [tabindex]:focus {
     outline: 2px solid var(--ufsc-primary);
     outline-offset: 2px;
 }
 
 /* Smooth transitions on interactive elements */
-a,
-button,
-.ufsc-btn,
-table tr {
+.ufsc-add-licence-section a,
+.ufsc-add-licence-section button,
+.ufsc-add-licence-section .ufsc-btn,
+.ufsc-add-licence-section table tr {
     transition: 150ms ease;
+}
 
-
-:root {
+.ufsc-add-licence-section {
     --ufsc-primary: #3498db;
     --ufsc-bg: #fff;
     --ufsc-text: #2c3e50;
@@ -206,36 +206,36 @@ table tr {
 /* Frontend button variants */
 .ufsc-btn-primary {
     background: var(--ufsc-primary);
-
+}
 
 /* Interactive elements */
-a,
-button,
-.ufsc-btn {
+.ufsc-add-licence-section a,
+.ufsc-add-licence-section button,
+.ufsc-add-licence-section .ufsc-btn {
     transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
 
-a {
+.ufsc-add-licence-section a {
     color: #177bbe;
     text-decoration: underline;
 }
 
-a:hover,
-a:focus {
+.ufsc-add-licence-section a:hover,
+.ufsc-add-licence-section a:focus {
     color: #125f96;
 }
 
-a:active {
+.ufsc-add-licence-section a:active {
     color: #0f5180;
 }
 
-a:focus {
+.ufsc-add-licence-section a:focus {
     outline: 2px solid currentColor;
     outline-offset: 2px;
 }
 
-button:focus,
-.ufsc-btn:focus {
+.ufsc-add-licence-section button:focus,
+.ufsc-add-licence-section .ufsc-btn:focus {
     outline: 2px solid #000;
     outline-offset: 2px;
 }
@@ -553,7 +553,7 @@ button:focus,
     padding: 15px 20px;
     border-bottom: 1px solid #e9ecef;
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
     gap: 15px;
 }
