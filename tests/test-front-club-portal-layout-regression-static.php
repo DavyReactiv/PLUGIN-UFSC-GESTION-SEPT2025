@@ -1,6 +1,7 @@
 <?php
 $root = dirname( __DIR__ );
 $css = file_get_contents( $root . '/assets/css/ufsc-front.css' );
+$css = str_replace( array( "\r\n", "\r" ), "\n", $css );
 $front = file_get_contents( $root . '/includes/frontend/class-frontend-shortcodes.php' );
 $assert = static function ( $condition, $message ) { if ( ! $condition ) { fwrite( STDERR, "FAIL: {$message}\n" ); exit( 1 ); } };
 

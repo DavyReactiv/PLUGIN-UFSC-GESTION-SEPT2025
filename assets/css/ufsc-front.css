@@ -2925,7 +2925,6 @@ body .wp-block-post-content > .ufsc-club-account {
  .ufsc-club-portal .ufsc-renewal-button { width: 100%; }
  .ufsc-club-portal .ufsc-renewal-profile-row { display: block; width: 100%; }
  .ufsc-club-portal .ufsc-renewal-profile-row td { display: block; width: 100%; }
- .ufsc-club-portal .ufsc-profile-cards { grid-template-columns: 1fr; }
  .ufsc-club-portal .ufsc-board-columns { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 @media (max-width: 600px) {
