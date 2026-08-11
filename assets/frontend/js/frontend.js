@@ -2,6 +2,11 @@
 
 let importData = null;
 jQuery(document).ready(function($) {
+    var $portalRoot = $('.ufsc-club-portal, .ufsc-licences-section, .ufsc-licence-detail').first();
+    if (!$portalRoot.length || $portalRoot.data('ufsc-frontend-initialized')) {
+        return;
+    }
+    $portalRoot.data('ufsc-frontend-initialized', true);
 
     // Dashboard navigation
     initDashboardNavigation();
@@ -628,6 +633,9 @@ window.confirmImport = function() {
 
 // CSS for field errors and other dynamic styles
 jQuery(document).ready(function($) {
+    if (document.getElementById('ufsc-dynamic-styles')) {
+        return;
+    }
     var dynamicCSS = `
         .ufsc-field-error {
             border-color: #dc3545 !important;
@@ -697,5 +705,5 @@ jQuery(document).ready(function($) {
         }
     `;
 
-    $('<style>').prop('type', 'text/css').html(dynamicCSS).appendTo('head');
+    $('<style>').attr('id', 'ufsc-dynamic-styles').prop('type', 'text/css').html(dynamicCSS).appendTo('head');
 });
