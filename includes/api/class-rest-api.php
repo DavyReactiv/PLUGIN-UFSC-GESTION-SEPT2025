@@ -121,19 +121,50 @@ class UFSC_REST_API {
 			return new WP_Error( 'rest_forbidden', __( 'Vous devez être connecté.', 'ufsc-clubs' ), array( 'status' => 401 ) );
 		}
 
-		$user_id = get_current_user_id();
-		$club_id = ufsc_get_user_club_id( $user_id );
+		$club_id = self::resolve_authorized_club_id( $request );
+		if ( is_wp_error( $club_id ) ) { return $club_id; }
+		$method = is_object( $request ) && is_callable( array( $request, 'get_method' ) ) ? strtoupper( (string) $request->get_method() ) : 'GET';
+		$user_club_id = absint( ufsc_get_user_club_id( get_current_user_id() ) );
+		if ( 'GET' !== $method && 0 === $user_club_id && ! user_can( get_current_user_id(), 'manage_options' )
+			&& ( ! class_exists( 'UFSC_Permissions' ) || ! user_can( get_current_user_id(), UFSC_Permissions::CAP_GESTION_MANAGE ) ) ) {
+			return new WP_Error( 'rest_forbidden', __( 'Vous ne pouvez pas modifier ce club.', 'ufsc-clubs' ), array( 'status' => 403 ) );
+		}
+		return true;
+	}
 
-		if ( ! $club_id ) {
-			return new WP_Error( 'rest_forbidden', __( 'Aucun club associé à votre compte.', 'ufsc-clubs' ), array( 'status' => 403 ) );
+	/**
+	 * Resolve the REST club scope exclusively from the authenticated user.
+	 *
+	 * A club account is always pinned to its linked club (a forged club_id is
+	 * rejected). Regional and global operators may select a club, but that ID is
+	 * accepted only after its database region has been checked server-side.
+	 *
+	 * @return int|WP_Error
+	 */
+	public static function resolve_authorized_club_id( $request ) {
+		$user_id       = get_current_user_id();
+		$user_club_id  = function_exists( 'ufsc_get_user_club_id' ) ? absint( ufsc_get_user_club_id( $user_id ) ) : 0;
+		$requested_id  = is_object( $request ) && is_callable( array( $request, 'get_param' ) ) ? absint( $request->get_param( 'club_id' ) ) : 0;
+
+		if ( $user_club_id > 0 ) {
+			if ( $requested_id > 0 && $requested_id !== $user_club_id ) {
+				return new WP_Error( 'rest_forbidden', __( 'Vous n\'avez pas accès à ce club.', 'ufsc-clubs' ), array( 'status' => 403 ) );
+			}
+			// A club owns its own data; a regional assignment must never revoke it.
+			return $user_club_id;
 		}
 
-		$club_region = UFSC_Scope::get_club_region( $club_id );
-		if ( ! UFSC_Scope::is_in_scope( $club_region ) ) {
+		$can_read = user_can( $user_id, 'manage_options' )
+			|| ( class_exists( 'UFSC_Permissions' ) && user_can( $user_id, UFSC_Permissions::CAP_GESTION_READ ) );
+		if ( ! $can_read || $requested_id <= 0 ) {
+			return new WP_Error( 'rest_forbidden', __( 'Aucun club autorisé n\'a été sélectionné.', 'ufsc-clubs' ), array( 'status' => 403 ) );
+		}
+
+		$region = UFSC_Scope::get_club_region( $requested_id );
+		if ( ! $region || ! UFSC_Scope::is_in_scope( $region ) ) {
 			return new WP_Error( 'rest_forbidden', __( 'Accès refusé (hors région).', 'ufsc-clubs' ), array( 'status' => 403 ) );
 		}
-
-		return true;
+		return $requested_id;
 	}
 
 	/**
@@ -147,11 +178,13 @@ class UFSC_REST_API {
 
 		$licence_id = $request->get_param( 'id' );
 
-		$user_id         = get_current_user_id();
-		$user_club_id    = ufsc_get_user_club_id( $user_id );
 		$licence_club_id = self::get_licence_club_id( $licence_id );
-
-		if ( $user_club_id !== $licence_club_id ) {
+		$user_id = get_current_user_id();
+		$user_club_id = absint( ufsc_get_user_club_id( $user_id ) );
+		$operator_allowed = 0 === $user_club_id
+			&& ( user_can( $user_id, 'manage_options' ) || ( class_exists( 'UFSC_Permissions' ) && user_can( $user_id, UFSC_Permissions::CAP_LICENCES_MANAGE ) ) )
+			&& UFSC_Scope::is_in_scope( UFSC_Scope::get_club_region( $licence_club_id ) );
+		if ( ( $user_club_id > 0 && $user_club_id !== absint( $licence_club_id ) ) || ( 0 === $user_club_id && ! $operator_allowed ) ) {
 			return new WP_Error( 'rest_forbidden', __( 'Vous n\'avez pas accès à cette licence.', 'ufsc-clubs' ), array( 'status' => 403 ) );
 		}
 
@@ -181,8 +214,8 @@ class UFSC_REST_API {
 	 */
 	public static function handle_licences( $request ) {
 		$method  = $request->get_method();
-		$user_id = get_current_user_id();
-		$club_id = ufsc_get_user_club_id( $user_id );
+		$club_id = self::resolve_authorized_club_id( $request );
+		if ( is_wp_error( $club_id ) ) { return $club_id; }
 
 		if ( 'GET' === $method ) {
 			return self::get_licences( $club_id, $request );
@@ -198,8 +231,8 @@ class UFSC_REST_API {
 	 */
 	public static function handle_club( $request ) {
 		$method  = $request->get_method();
-		$user_id = get_current_user_id();
-		$club_id = ufsc_get_user_club_id( $user_id );
+		$club_id = self::resolve_authorized_club_id( $request );
+		if ( is_wp_error( $club_id ) ) { return $club_id; }
 
 		if ( 'GET' === $method ) {
 			return self::get_club_info( $club_id, $request );
@@ -214,8 +247,8 @@ class UFSC_REST_API {
 	 * Handle stats endpoint
 	 */
 	public static function handle_stats( $request ) {
-		$user_id = get_current_user_id();
-		$club_id = ufsc_get_user_club_id( $user_id );
+		$club_id = self::resolve_authorized_club_id( $request );
+		if ( is_wp_error( $club_id ) ) { return $club_id; }
 		$season  = $request->get_param( 'season' );
 
 		if ( ! $season ) {
@@ -238,8 +271,8 @@ class UFSC_REST_API {
 	 * Returns season_label + alias saison for stable front rendering.
 	 */
 	public static function handle_recent_licences( $request ) {
-		$user_id = get_current_user_id();
-		$club_id = ufsc_get_user_club_id( $user_id );
+		$club_id = self::resolve_authorized_club_id( $request );
+		if ( is_wp_error( $club_id ) ) { return $club_id; }
 
 		$filters = (array) $request->get_param( 'filters' );
 		$limit   = max( 1, min( 50, absint( $request->get_param( 'limit' ) ) ) );
@@ -278,6 +311,53 @@ class UFSC_REST_API {
 		}
 
 		return new WP_REST_Response( $licences, 200 );
+	}
+
+	/** Dashboard KPI endpoint; deliberately reuses the canonical stats/quota sources. */
+	public static function handle_dashboard_kpis( $request ) {
+		$club_id = self::resolve_authorized_club_id( $request );
+		if ( is_wp_error( $club_id ) ) { return $club_id; }
+		$season = sanitize_text_field( (string) $request->get_param( 'season' ) );
+		if ( '' === $season ) {
+			$settings = ufsc_get_woocommerce_settings();
+			$season = sanitize_text_field( (string) ( $settings['season'] ?? '' ) );
+		}
+		return new WP_REST_Response( array(
+			'club_id' => $club_id,
+			'season'  => $season,
+			'stats'   => self::get_cached_club_stats( $club_id, $season ),
+			'quota'   => self::get_club_quota( $club_id ),
+		), 200 );
+	}
+
+	/** Club document endpoint with a stable JSON response even without the optional module. */
+	public static function handle_club_documents( $request ) {
+		$club_id = self::resolve_authorized_club_id( $request );
+		if ( is_wp_error( $club_id ) ) { return $club_id; }
+		$documents = class_exists( 'UFSC_Documents' ) && is_callable( array( 'UFSC_Documents', 'get_club_documents' ) )
+			? UFSC_Documents::get_club_documents( $club_id )
+			: array();
+		return new WP_REST_Response( array( 'club_id' => $club_id, 'documents' => (array) $documents ), 200 );
+	}
+
+	/** Detailed dashboard statistics, scoped and sourced identically to /stats. */
+	public static function handle_detailed_stats( $request ) {
+		return self::handle_stats( $request );
+	}
+
+	/** Export is intentionally explicit until a streaming REST exporter is configured. */
+	public static function handle_export( $request ) {
+		return new WP_Error( 'rest_not_implemented', __( 'L’export REST n’est pas disponible ; utilisez l’export administratif sécurisé.', 'ufsc-clubs' ), array( 'status' => 501 ) );
+	}
+
+	/** Import preview placeholder: callable routes must never produce rest_invalid_handler. */
+	public static function handle_import_preview( $request ) {
+		return new WP_Error( 'rest_not_implemented', __( 'L’import REST n’est pas disponible.', 'ufsc-clubs' ), array( 'status' => 501 ) );
+	}
+
+	/** Import commit placeholder matching the preview contract. */
+	public static function handle_import_commit( $request ) {
+		return self::handle_import_preview( $request );
 	}
 
 	/**
@@ -561,6 +641,27 @@ class UFSC_REST_API {
 			'message'        => __( 'Licence mise à jour avec succès.', 'ufsc-clubs' ),
 			'updated_fields' => array_keys( $sanitized ),
 		), 200 );
+	}
+
+	/** Delete a licence after the route permission callback has scoped its club. */
+	public static function handle_licence_delete( $request ) {
+		$licence_id = absint( $request->get_param( 'id' ) );
+		$permission = self::check_licence_permissions( $request );
+		if ( is_wp_error( $permission ) ) { return $permission; }
+		if ( $licence_id <= 0 ) {
+			return new WP_Error( 'invalid_licence', __( 'Licence invalide.', 'ufsc-clubs' ), array( 'status' => 400 ) );
+		}
+
+		global $wpdb;
+		$settings = UFSC_SQL::get_settings();
+		$table = $settings['table_licences'];
+		$club_id = self::get_licence_club_id( $licence_id );
+		$deleted = $wpdb->delete( $table, array( 'id' => $licence_id, 'club_id' => $club_id ), array( '%d', '%d' ) );
+		if ( false === $deleted ) {
+			return new WP_Error( 'delete_failed', __( 'La suppression de la licence a échoué.', 'ufsc-clubs' ), array( 'status' => 500 ) );
+		}
+		ufsc_invalidate_stats_cache( $club_id );
+		return new WP_REST_Response( array( 'deleted' => (bool) $deleted, 'licence_id' => $licence_id ), 200 );
 	}
 
 	/**
