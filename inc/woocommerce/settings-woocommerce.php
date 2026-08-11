@@ -1,6 +1,10 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+if ( function_exists( 'add_action' ) ) {
+	add_action( 'admin_post_ufsc_save_woocommerce_settings', 'ufsc_handle_woocommerce_settings_post' );
+}
+
 /**
  * WooCommerce settings module for UFSC Gestion
  * Handles WooCommerce product IDs, quota, and season settings (quota season only)
@@ -151,6 +155,19 @@ function ufsc_process_woocommerce_settings_submission( $post ) {
         'settings'   => wp_parse_args( $stored, ufsc_get_default_woocommerce_settings() ),
         'product_id' => $product_id,
     );
+}
+
+/** Persist the real settings form through admin-post.php, then reload it. */
+function ufsc_handle_woocommerce_settings_post() {
+	$result = ufsc_process_woocommerce_settings_submission( $_POST );
+	$user_id = get_current_user_id();
+	set_transient( 'ufsc_wc_settings_notice_' . $user_id, array(
+		'success' => ! empty( $result['success'] ),
+		'message' => (string) ( $result['message'] ?? __( 'Enregistrement impossible.', 'ufsc-clubs' ) ),
+	), MINUTE_IN_SECONDS );
+	$target = add_query_arg( array( 'page' => 'ufsc-woocommerce-settings' ), admin_url( 'admin.php' ) );
+	wp_safe_redirect( $target );
+	exit;
 }
 
 /**
@@ -436,6 +453,12 @@ function ufsc_render_woocommerce_settings_page() {
         $result = ufsc_process_woocommerce_settings_submission( $_POST );
         echo '<div class="notice ' . ( $result['success'] ? 'notice-success' : 'notice-error' ) . ' is-dismissible"><p>' . esc_html( $result['message'] ) . '</p></div>';
     }
+	$notice_key = 'ufsc_wc_settings_notice_' . get_current_user_id();
+	$notice = get_transient( $notice_key );
+	if ( is_array( $notice ) ) {
+		delete_transient( $notice_key );
+		echo '<div class="notice ' . ( ! empty( $notice['success'] ) ? 'notice-success' : 'notice-error' ) . ' is-dismissible"><p>' . esc_html( $notice['message'] ?? '' ) . '</p></div>';
+	}
 
     $current_settings   = ufsc_get_woocommerce_settings();
     $woocommerce_active = ufsc_is_woocommerce_active();
@@ -452,7 +475,8 @@ function ufsc_render_woocommerce_settings_page() {
             </div>
         <?php endif; ?>
 
-        <form method="post" action="">
+        <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="ufsc_save_woocommerce_settings">
             <?php wp_nonce_field( 'ufsc_woocommerce_settings' ); ?>
 
             <h2><?php esc_html_e( 'Produits WooCommerce', 'ufsc-clubs' ); ?></h2>

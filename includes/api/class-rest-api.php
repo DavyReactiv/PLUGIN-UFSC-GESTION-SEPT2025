@@ -56,24 +56,6 @@ class UFSC_REST_API {
 			'permission_callback' => array( __CLASS__, 'check_club_permissions' ),
 		) );
 
-		register_rest_route( 'ufsc/v1', '/export/(?P<format>csv|xlsx)', array(
-			'methods'             => 'GET',
-			'callback'            => array( __CLASS__, 'handle_export' ),
-			'permission_callback' => array( __CLASS__, 'check_club_permissions' ),
-		) );
-
-		register_rest_route( 'ufsc/v1', '/import', array(
-			'methods'             => 'POST',
-			'callback'            => array( __CLASS__, 'handle_import_preview' ),
-			'permission_callback' => array( __CLASS__, 'check_club_permissions' ),
-		) );
-
-		register_rest_route( 'ufsc/v1', '/import/commit', array(
-			'methods'             => 'POST',
-			'callback'            => array( __CLASS__, 'handle_import_commit' ),
-			'permission_callback' => array( __CLASS__, 'check_club_permissions' ),
-		) );
-
 		// Attestation download route with nonce security
 		register_rest_route( 'ufsc/v1', '/attestation/(?P<type>[a-z_]+)/(?P<nonce>[a-z0-9]+)', array(
 			'methods'             => 'GET',
@@ -343,21 +325,6 @@ class UFSC_REST_API {
 	/** Detailed dashboard statistics, scoped and sourced identically to /stats. */
 	public static function handle_detailed_stats( $request ) {
 		return self::handle_stats( $request );
-	}
-
-	/** Export is intentionally explicit until a streaming REST exporter is configured. */
-	public static function handle_export( $request ) {
-		return new WP_Error( 'rest_not_implemented', __( 'L’export REST n’est pas disponible ; utilisez l’export administratif sécurisé.', 'ufsc-clubs' ), array( 'status' => 501 ) );
-	}
-
-	/** Import preview placeholder: callable routes must never produce rest_invalid_handler. */
-	public static function handle_import_preview( $request ) {
-		return new WP_Error( 'rest_not_implemented', __( 'L’import REST n’est pas disponible.', 'ufsc-clubs' ), array( 'status' => 501 ) );
-	}
-
-	/** Import commit placeholder matching the preview contract. */
-	public static function handle_import_commit( $request ) {
-		return self::handle_import_preview( $request );
 	}
 
 	/**

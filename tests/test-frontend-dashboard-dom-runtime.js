@@ -75,6 +75,21 @@ ajaxRequests.pop().error({ responseJSON: { message: 'invalide' } });
 if (internalErrors !== 2) throw new Error('missing internal fallback for absent/invalid error callbacks');
 if (validError !== 'refusée') throw new Error('valid error callback was not called');
 
+// A duplicated request is coalesced while in flight. Definitive 403/500 and
+// the historical admin-ajax bare "0" response never schedule another cycle.
+const beforeDuplicate = ajaxRequests.length;
+window.UfscDashboard.restRequest('same-endpoint', { page: 1 });
+window.UfscDashboard.restRequest('same-endpoint', { page: 1 });
+if (ajaxRequests.length !== beforeDuplicate + 1) throw new Error('identical in-flight REST request was duplicated');
+ajaxRequests[ajaxRequests.length - 1].error({ status: 403, responseJSON: { message: 'refusé' } });
+window.UfscDashboard.restRequest('server-error', {});
+ajaxRequests[ajaxRequests.length - 1].error({ status: 500, responseJSON: { message: 'erreur serveur' } });
+const beforeZero = ajaxRequests.length;
+window.UfscDashboard.apiRequest('missing-action', {});
+ajaxRequests[ajaxRequests.length - 1].success('0');
+if (ajaxRequests.length !== beforeZero + 1) throw new Error('bare AJAX 0 triggered another request');
+if (source.includes('setInterval(function()') || source.includes("on('visibilitychange'")) throw new Error('automatic dashboard request loop remains');
+
 // A rejected secondary request must not remove the independently registered
 // selection and direct-renewal handlers from the rendered-page runtime.
 if (!registered.some(item => item.events === 'change' && item.selector === '.ufsc-renewal-checkbox')) throw new Error('selection handler unavailable after AJAX failure');

@@ -1,7 +1,8 @@
 <?php
 $source=file_get_contents(dirname(__DIR__).'/inc/woocommerce/settings-woocommerce.php');
 $assert=function($ok,$message){if(!$ok){fwrite(STDERR,"FAIL: $message\n");exit(1);}};
-$assert(strpos($source,'<form method="post" action="">')!==false,'settings parent form is POST');
+$assert(strpos($source,'<form method="post" action="<?php echo esc_url( admin_url( \'admin-post.php\' ) ); ?>">')!==false,'settings parent form posts to admin-post');
+$assert(strpos($source,'name="action" value="ufsc_save_woocommerce_settings"')!==false,'settings form declares registered action');
 $assert(strpos($source,"wp_nonce_field( 'ufsc_woocommerce_settings' )")!==false,'settings nonce rendered');
 $assert(strpos($source,'id="product_license_id"')!==false && strpos($source,'name="ufsc_woocommerce_settings[product_license_id]"')!==false,'select posts canonical nested field');
 $assert(strpos($source,'value="<?php echo esc_attr( $candidate->get_id() ); ?>"')!==false,'each option value is numeric product ID');

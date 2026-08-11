@@ -2209,7 +2209,6 @@ class UFSC_SQL_Admin
         $type          = $conf[1];
         $readonly_attr = $readonly ? 'readonly disabled' : '';
         $disabled_attr = $readonly ? 'disabled' : '';
-
         echo '<div class="ufsc-field"><label>' . esc_html($label) . '</label>';
         if ($type === 'textarea') {
             echo '<textarea name="' . esc_attr($k) . '" rows="3" ' . $readonly_attr . '>' . esc_textarea($val) . '</textarea>';
@@ -4445,8 +4444,10 @@ class UFSC_SQL_Admin
         $type          = $conf[1];
         $readonly_attr = $readonly ? 'readonly disabled' : '';
         $disabled_attr = $readonly ? 'disabled' : '';
+		$field_id     = 'ufsc-licence-' . sanitize_html_class( $k );
+		$semantic_id  = in_array( $k, array( 'email', 'telephone', 'tel', 'prenom', 'nom', 'adresse', 'code_postal', 'ville' ), true );
 
-        echo '<div class="ufsc-field"><label>' . esc_html($label) . '</label>';
+        echo '<div class="ufsc-field"><label' . ( $semantic_id ? ' for="' . esc_attr( $field_id ) . '"' : '' ) . '>' . esc_html($label) . '</label>';
 
         if ($k === 'club_id') {
             // Special handling for club selector
@@ -4541,9 +4542,9 @@ class UFSC_SQL_Admin
                 echo '<p class="description"><a href="' . esc_url($val) . '" target="_blank">' . esc_html__('Voir le certificat', 'ufsc-clubs') . '</a></p>';
             }
         } elseif ($k === 'email') {
-            echo '<input type="email" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" placeholder="' . esc_attr__('exemple@email.com', 'ufsc-clubs') . '" required ' . $readonly_attr . ' />';
+            echo '<input id="' . esc_attr( $field_id ) . '" type="email" autocomplete="email" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" placeholder="' . esc_attr__('exemple@email.com', 'ufsc-clubs') . '" required ' . $readonly_attr . ' />';
         } elseif ($k === 'telephone' || $k === 'tel') {
-            echo '<input type="tel" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" placeholder="' . esc_attr__('01 23 45 67 89', 'ufsc-clubs') . '" ' . $readonly_attr . ' />';
+            echo '<input id="' . esc_attr( $field_id ) . '" type="tel" autocomplete="tel" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" placeholder="' . esc_attr__('01 23 45 67 89', 'ufsc-clubs') . '" ' . $readonly_attr . ' />';
         } elseif ($k === 'role') {
             $role_options = array(
                 ''           => __( 'Sélectionner', 'ufsc-clubs' ),
@@ -4562,9 +4563,9 @@ class UFSC_SQL_Admin
             $val = self::normalize_date_value( $val );
             echo '<input type="date" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
         } elseif ($k === 'prenom') {
-            echo '<input type="text" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" placeholder="' . esc_attr__('Prénom', 'ufsc-clubs') . '" required ' . $readonly_attr . ' />';
+            echo '<input id="' . esc_attr( $field_id ) . '" type="text" autocomplete="given-name" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" placeholder="' . esc_attr__('Prénom', 'ufsc-clubs') . '" required ' . $readonly_attr . ' />';
         } elseif ($k === 'nom') {
-            echo '<input type="text" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" placeholder="' . esc_attr__('Nom de famille', 'ufsc-clubs') . '" required ' . $readonly_attr . ' />';
+            echo '<input id="' . esc_attr( $field_id ) . '" type="text" autocomplete="family-name" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" placeholder="' . esc_attr__('Nom de famille', 'ufsc-clubs') . '" required ' . $readonly_attr . ' />';
         } else {
             // Default text input
             $placeholder = '';
@@ -4576,7 +4577,8 @@ class UFSC_SQL_Admin
                 $placeholder = __('Ville', 'ufsc-clubs');
             }
 
-            echo '<input type="text" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . ($placeholder ? 'placeholder="' . esc_attr($placeholder) . '"' : '') . ' ' . $readonly_attr . ' />';
+			$autocomplete = array( 'adresse' => 'street-address', 'code_postal' => 'postal-code', 'ville' => 'address-level2' );
+            echo '<input id="' . esc_attr( $field_id ) . '" type="text"' . ( isset( $autocomplete[ $k ] ) ? ' autocomplete="' . esc_attr( $autocomplete[ $k ] ) . '"' : '' ) . ' name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . ($placeholder ? 'placeholder="' . esc_attr($placeholder) . '"' : '') . ' ' . $readonly_attr . ' />';
         }
         echo '</div>';
     }

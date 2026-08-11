@@ -22,6 +22,10 @@
         // Charts instances
         charts: {},
 
+        // One request per endpoint/key. Entries are removed on completion and
+        // never retried automatically after a definitive HTTP/AJAX failure.
+        inFlight: {},
+
         initialized: false,
 
         // Initialize dashboard
@@ -52,7 +56,6 @@
             }
             this.loadInitialData();
             this.initializeCharts();
-            this.startRefreshTimer();
         },
 
         // Setup event handlers
@@ -124,23 +127,17 @@
                 });
             });
 
-            // Auto-refresh on page visibility change
-            $(document).on('visibilitychange', function() {
-                if (!document.hidden) {
-                    self.refreshData();
-                }
-            });
         },
 
         // Load initial dashboard data
         loadInitialData: function() {
-            this.loadKPIs();
-            this.loadRecentLicences();
-            this.loadDocumentsStatus();
-            this.loadStatistics();
-            this.loadNotifications();
-            this.loadAuditLog();
-            this.loadChartsData();
+			// Server-rendered sections are authoritative. Fetch only widgets that
+			// actually exist; the former notification/audit/chart AJAX calls had no
+			// registered WordPress action and therefore returned the bare value 0.
+            if ($('#ufsc-kpi-grid').length) { this.loadKPIs(); }
+            if ($('#ufsc-recent-licences').length) { this.loadRecentLicences(); }
+            if ($('.ufsc-document-item').length) { this.loadDocumentsStatus(); }
+            if ($('#stats-alerts, #stats-sexe, #stats-age').length) { this.loadStatistics(); }
         },
 
         // Load KPI data with enhanced status tracking
@@ -794,17 +791,20 @@
                 nonce: this.config.nonce
             }, data);
 
-            $.ajax({
+			var requestKey = 'ajax:' + action + ':' + JSON.stringify(data || {});
+			if (this.inFlight[requestKey]) { return this.inFlight[requestKey]; }
+            this.inFlight[requestKey] = $.ajax({
                 url: this.config.ajax_url,
                 type: 'POST',
                 data: requestData,
+				complete: function() { delete self.inFlight[requestKey]; },
                 success: function(response) {
-                    if (response.success) {
+                    if (response && response !== '0' && response.success === true) {
                         if (typeof successCallback === 'function') {
                             successCallback(response.data);
                         }
                     } else {
-                        var message = response.data || 'Erreur inconnue';
+						var message = response === '0' || response === 0 ? 'Action AJAX non enregistrée.' : ((response && response.data) || 'Réponse AJAX invalide.');
                         if (typeof errorCallback === 'function') {
                             errorCallback(message);
                         } else {
@@ -820,7 +820,8 @@
                         self.showError(message);
                     }
                 }
-            });
+			});
+			return this.inFlight[requestKey];
         },
 
         // // UFSC: REST API request method
@@ -832,13 +833,16 @@
                 url += '?' + params;
             }
 
-            $.ajax({
+			var requestKey = 'rest:' + url;
+			if (this.inFlight[requestKey]) { return this.inFlight[requestKey]; }
+            this.inFlight[requestKey] = $.ajax({
                 url: url,
                 type: 'GET',
                 beforeSend: function(xhr) {
                     var nonce = window.ufsc_frontend_vars && window.ufsc_frontend_vars.rest_nonce ? window.ufsc_frontend_vars.rest_nonce : '';
                     xhr.setRequestHeader('X-WP-Nonce', nonce);
                 },
+				complete: function() { delete self.inFlight[requestKey]; },
                 success: function(response) {
                     if (typeof successCallback === 'function') {
                         successCallback(response);
@@ -855,7 +859,8 @@
                         self.showError(message);
                     }
                 }
-            });
+			});
+			return this.inFlight[requestKey];
         },
 
         // // UFSC: DELETE request for license deletion
@@ -896,13 +901,6 @@
             // Clear cache to force refresh
             this.cache = {};
             this.loadInitialData();
-        },
-
-        startRefreshTimer: function() {
-            var self = this;
-            setInterval(function() {
-                self.refreshData();
-            }, this.config.refresh_interval);
         },
 
         showToast: function(message, type) {

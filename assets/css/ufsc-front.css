@@ -3056,6 +3056,39 @@ body .wp-block-post-content > .ufsc-club-account {
 .ufsc-club-portal.ufsc-club-account .ufsc-club-account__nav a[aria-current="page"] { background: #173b67; border-color: #173b67; color: #fff; -webkit-text-fill-color: #fff; }
 .ufsc-club-portal.ufsc-club-account .ufsc-club-account__nav a:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
 .ufsc-club-portal.ufsc-club-account .ufsc-dashboard-logo { height: 112px; padding: 4px; width: 112px; }
+
+/* Final runtime layout: content, never a viewport-sized blue placeholder, owns height. */
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-header--premium,
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-hero-layout,
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-mainpane,
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-content {
+    height: auto;
+    min-height: 0;
+}
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-hero-layout {
+    align-items: start;
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+}
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-hero-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-pack-summary { grid-column: 1 / -1; width: 100%; }
+
+/* Astra-safe visible controls: scoped to the portal, never global links. */
+.ufsc-club-portal :is(.ufsc-btn,.button,button,input[type="submit"]):not(:disabled) {
+    opacity: 1;
+    visibility: visible;
+    -webkit-text-fill-color: currentColor;
+}
+.ufsc-club-portal :is(.ufsc-btn,.button,button,input[type="submit"]):focus-visible {
+    outline: 3px solid #f59e0b;
+    outline-offset: 2px;
+}
+@media (max-width: 1199px) {
+    .ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-hero-layout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ufsc-club-dashboard.ufsc-premium-v3 .ufsc-hero-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+    .ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-hero-layout { grid-template-columns: 1fr; }
+}
 @media (max-width: 600px) {
  .ufsc-club-portal.ufsc-club-account .ufsc-btn { white-space: normal; width: 100%; }
  .ufsc-club-portal.ufsc-club-account .ufsc-club-account__nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); overflow: visible; }
