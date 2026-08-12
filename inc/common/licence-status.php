@@ -13,11 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 function ufsc_get_licence_status_raw( $licence ) {
 	if ( is_array( $licence ) ) {
-		return (string) ( $licence['statut'] ?? '' );
+		$statut = trim( (string) ( $licence['statut'] ?? '' ) );
+		return '' !== $statut ? $statut : (string) ( $licence['status'] ?? '' );
 	}
 
 	if ( is_object( $licence ) ) {
-		return (string) ( $licence->statut ?? '' );
+		$statut = trim( (string) ( $licence->statut ?? '' ) );
+		return '' !== $statut ? $statut : (string) ( $licence->status ?? '' );
 	}
 
 	return '';
@@ -224,6 +226,50 @@ function ufsc_get_licence_status_from_record( $licence ) {
 	return ufsc_get_licence_status_norm( $raw );
 }
 
+/** Resolve dossier, payment, validation, visibility and season independently. */
+function ufsc_resolve_licence_business_state( $licence ) {
+	$row = is_object( $licence ) ? get_object_vars( $licence ) : ( is_array( $licence ) ? $licence : array() );
+	$dossier = ufsc_get_licence_status_from_record( $row );
+	$payment_raw = sanitize_key( (string) ( $row['payment_link_status'] ?? ( $row['payment_status'] ?? '' ) ) );
+	$payment_source = sanitize_key( (string) ( $row['payment_source'] ?? '' ) );
+	$order_id = absint( $row['wc_order_id'] ?? ( $row['order_id'] ?? 0 ) );
+	$manual_paid = 'manuel' === $payment_source && in_array( $payment_raw, array( 'paid', 'paye', 'paye_manuellement', 'exonere' ), true );
+	$woo_paid = false;
+	$woo_status = '';
+	if ( $order_id && function_exists( 'wc_get_order' ) ) {
+		$order = wc_get_order( $order_id );
+		if ( $order ) {
+			$woo_status = is_callable( array( $order, 'get_status' ) ) ? sanitize_key( (string) $order->get_status() ) : '';
+			$woo_paid = is_callable( array( $order, 'is_paid' ) ) ? (bool) $order->is_paid() : in_array( $woo_status, array( 'processing', 'completed' ), true );
+		}
+	}
+	$payment_received = $manual_paid || $woo_paid;
+	if ( in_array( $woo_status, array( 'refunded', 'cancelled', 'failed', 'trash' ), true ) || in_array( $payment_raw, array( 'refunded', 'rembourse', 'cancelled', 'annule' ), true ) ) {
+		$payment = 'rembourse';
+		$payment_received = false;
+	} elseif ( $payment_received ) {
+		$payment = $manual_paid ? 'valide_manuellement' : 'recu';
+	} elseif ( $order_id || in_array( $payment_raw, array( 'pending', 'pending_payment', 'awaiting_transfer', 'on_hold' ), true ) ) {
+		$payment = 'requis';
+	} elseif ( ! empty( $row['is_included'] ) ) {
+		$payment = 'inclus';
+	} else {
+		$payment = 'non_recu';
+	}
+	$validation = 'valide' === $dossier ? 'valide' : ( 'refuse' === $dossier ? 'refuse' : 'en_attente' );
+	$visible = empty( $row['deleted_at'] ) && ! in_array( $dossier, array( 'desactive', 'expire' ), true );
+	return array(
+		'dossier' => $dossier,
+		'payment' => $payment,
+		'payment_received' => $payment_received,
+		'validation' => $validation,
+		'visible' => $visible,
+		'official' => $visible && 'valide' === $validation,
+		'season' => function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( (object) $row ) : (string) ( $row['season'] ?? ( $row['saison'] ?? '' ) ),
+		'order_id' => $order_id,
+	);
+}
+
 /**
  * Licence status helpers for normalization, labels, and syncing.
  */
@@ -379,40 +425,8 @@ function ufsc_is_editable_licence_status( $status ) {
  * @return bool
  */
 function ufsc_is_licence_paid( $licence ) {
-	$payment_status = '';
-
-	if ( is_array( $licence ) ) {
-		$payment_status = strtolower( (string) ( $licence['payment_status'] ?? '' ) );
-	} elseif ( is_object( $licence ) ) {
-		$payment_status = strtolower( (string) ( $licence->payment_status ?? '' ) );
-	}
-
-	if ( in_array( $payment_status, array( 'paid', 'completed', 'processing' ), true ) ) {
-		return true;
-	}
-
-	foreach ( array( 'paid', 'payee', 'is_paid' ) as $key ) {
-		$value = 0;
-
-		if ( is_array( $licence ) ) {
-			$value = (int) ( $licence[ $key ] ?? 0 );
-		} elseif ( is_object( $licence ) ) {
-			$value = (int) ( $licence->{$key} ?? 0 );
-		}
-
-		if ( 1 === $value ) {
-			return true;
-		}
-	}
-
-	$order_id = 0;
-	if ( is_array( $licence ) ) {
-		$order_id = absint( $licence['order_id'] ?? 0 );
-	} elseif ( is_object( $licence ) ) {
-		$order_id = absint( $licence->order_id ?? 0 );
-	}
-
-	return $order_id > 0;
+	$state = ufsc_resolve_licence_business_state( $licence );
+	return ! empty( $state['payment_received'] );
 }
 
 /**

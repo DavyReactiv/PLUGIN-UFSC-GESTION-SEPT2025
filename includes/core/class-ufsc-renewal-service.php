@@ -72,8 +72,14 @@ final class UFSC_Renewal_Service {
 
     public static function can_renew( $source, $club_id, $target_season ) {
         if ( ! $source || ! absint( $club_id ) || ! $target_season ) { return new WP_Error( 'invalid_renewal', __( 'Demande de renouvellement incomplète.', 'ufsc-clubs' ) ); }
-        $source_status = sanitize_key( (string) ( is_array( $source ) ? ( $source['statut'] ?? $source['status'] ?? '' ) : ( $source->statut ?? $source->status ?? '' ) ) );
-        if ( in_array( $source_status, array( 'suspended', 'suspendu', 'rejected', 'refused', 'refuse' ), true ) ) { return new WP_Error( 'source_status_blocked', __( 'Le statut de cette licence interdit son renouvellement.', 'ufsc-clubs' ) ); }
+        $source_row = is_array( $source ) ? (object) $source : $source;
+        if ( absint( $source_row->club_id ?? 0 ) !== absint( $club_id ) ) { return new WP_Error( 'source_club_mismatch', __( 'Cette licence n’appartient pas au club connecté.', 'ufsc-clubs' ) ); }
+        $source_status = function_exists( 'ufsc_get_licence_status_from_record' ) ? ufsc_get_licence_status_from_record( $source_row ) : sanitize_key( (string) ( ! empty( $source_row->statut ) ? $source_row->statut : ( $source_row->status ?? '' ) ) );
+        if ( in_array( $source_status, array( 'validated', 'valid', 'active', 'approved' ), true ) ) { $source_status = 'valide'; }
+        if ( 'valide' !== $source_status ) { return new WP_Error( 'source_status_blocked', __( 'Seule une licence validée de la saison précédente peut être renouvelée.', 'ufsc-clubs' ) ); }
+        $target_start = self::season_start_year( $target_season );
+        $expected_source_season = $target_start ? ( $target_start - 1 ) . '-' . $target_start : '';
+        if ( ! $expected_source_season || self::licence_season( $source_row ) !== $expected_source_season ) { return new WP_Error( 'source_season_mismatch', __( 'La licence source doit appartenir exactement à la saison précédente.', 'ufsc-clubs' ) ); }
         $gate = function_exists( 'ufsc_club_can_manage_licences_for_season' ) ? ufsc_club_can_manage_licences_for_season( $club_id, $target_season ) : array( 'allowed' => false );
         if ( empty( $gate['allowed'] ) ) { return new WP_Error( 'inactive_affiliation', __( 'L’affiliation du club doit être active ou validée pour cette saison.', 'ufsc-clubs' ) ); }
         $key = self::person_key( $source, $club_id );
@@ -203,6 +209,84 @@ final class UFSC_Renewal_Service {
         $payload['season'] = $season; $payload['saison'] = $season; $payload['paid_season'] = $season;
         if ( function_exists( 'ufsc_get_season_end_year_from_label' ) ) { $payload['season_end_year'] = ufsc_get_season_end_year_from_label( $season ); }
         return $payload;
+    }
+
+    /**
+     * Create the target-season draft before checkout, without mutating history.
+     *
+     * A database advisory lock makes the source/season pair idempotent across
+     * concurrent requests. The returned row is therefore the single canonical
+     * open renewal request used by the cart and by the renewal counter.
+     *
+     * @return array|WP_Error {licence_id:int, created:bool}
+     */
+    public static function create_target_draft( $source, $club_id, $season, $updates = array() ) {
+        global $wpdb;
+
+        $source = is_object( $source ) ? $source : (object) $source;
+        $source_id = absint( $source->id ?? 0 );
+        $club_id = absint( $club_id );
+        if ( ! $source_id || ! $club_id || ! preg_match( '/^\d{4}-\d{4}$/', (string) $season ) ) {
+            return new WP_Error( 'invalid_renewal_target', __( 'La demande de renouvellement est incomplete.', 'ufsc-clubs' ) );
+        }
+
+        $table = UFSC_SQL::get_settings()['table_licences'];
+        $columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : (array) $wpdb->get_col( "SHOW COLUMNS FROM `{$table}`", 0 );
+        if ( ! $columns ) {
+            return new WP_Error( 'renewal_schema_unavailable', __( 'Le schema des licences est indisponible.', 'ufsc-clubs' ) );
+        }
+
+        $lock_name = 'ufsc_renew_' . $club_id . '_' . $source_id . '_' . sanitize_key( $season );
+        if ( 1 !== (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock_name ) ) ) {
+            return new WP_Error( 'renewal_busy', __( 'Ce renouvellement est deja en cours. Reessayez dans quelques secondes.', 'ufsc-clubs' ) );
+        }
+
+        try {
+            $person_key = self::person_key( $source, $club_id );
+            $existing_id = $person_key ? self::find_annual( $person_key, $club_id, $season ) : 0;
+            if ( $existing_id ) {
+                return array( 'licence_id' => $existing_id, 'created' => false );
+            }
+
+            $allowed = self::can_renew( $source, $club_id, $season );
+            if ( is_wp_error( $allowed ) ) {
+                return $allowed;
+            }
+
+            $data = self::renewal_payload( $source, $club_id, $season );
+            $copy_fields = function_exists( 'ufsc_get_renewal_copy_fields' )
+                ? (array) ufsc_get_renewal_copy_fields()
+                : self::editable_renewal_fields();
+            foreach ( array_unique( array_merge( $copy_fields, self::editable_renewal_fields() ) ) as $field ) {
+                if ( in_array( $field, $columns, true ) && isset( $source->{$field} ) ) {
+                    $data[ $field ] = $source->{$field};
+                }
+            }
+            foreach ( (array) $updates as $field => $value ) {
+                if ( in_array( $field, self::editable_renewal_fields(), true ) && in_array( $field, $columns, true ) ) {
+                    $data[ $field ] = $value;
+                }
+            }
+
+            if ( in_array( 'status', $columns, true ) ) { $data['status'] = 'pending_payment'; }
+            if ( in_array( 'statut', $columns, true ) ) { $data['statut'] = 'pending_payment'; }
+            if ( in_array( 'renewed_from_licence_id', $columns, true ) ) { $data['renewed_from_licence_id'] = $source_id; }
+            if ( in_array( 'renewal_status', $columns, true ) ) { $data['renewal_status'] = 'renouvellement_en_attente'; }
+            if ( in_array( 'is_included', $columns, true ) ) { $data['is_included'] = 0; }
+            foreach ( array( 'date_creation', 'date_modification', 'date_inscription' ) as $date_column ) {
+                if ( in_array( $date_column, $columns, true ) ) { $data[ $date_column ] = current_time( 'mysql' ); }
+            }
+            $data = array_intersect_key( $data, array_flip( $columns ) );
+            if ( false === $wpdb->insert( $table, $data ) ) {
+                return new WP_Error( 'renewal_insert_failed', __( 'La licence de la nouvelle saison n a pas pu etre creee.', 'ufsc-clubs' ) );
+            }
+
+            $new_id = absint( $wpdb->insert_id );
+            if ( $new_id && function_exists( 'ufsc_set_licence_season' ) ) { ufsc_set_licence_season( $new_id, $season ); }
+            return array( 'licence_id' => $new_id, 'created' => true );
+        } finally {
+            $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+        }
     }
 
     public static function cart_metadata( $source, $club_id, $season, $draft_id = 0 ) {

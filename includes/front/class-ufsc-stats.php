@@ -76,25 +76,27 @@ class UFSC_Stats {
         $age_ranges = array( 'under_12' => 0, '12_17' => 0, '18_40' => 0, '41_plus' => 0 );
         $birth_year_counts = array();
         $paid_licences = 0;
+		$pending_payments = 0;
         $validated_licences = 0;
         $unknown_profiles = 0;
         $today = function_exists( 'current_time' ) ? current_time( 'Y-m-d' ) : date( 'Y-m-d' );
         $reference = new DateTimeImmutable( $today );
 
         foreach ( $rows as $row ) {
-            $raw_status = isset( $row->statut ) ? $row->statut : ( $row->status ?? '' );
-            $status = function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $raw_status ) : strtolower( trim( (string) $raw_status ) );
+            $business_state = function_exists( 'ufsc_resolve_licence_business_state' ) ? ufsc_resolve_licence_business_state( $row ) : array();
+            $raw_status = function_exists( 'ufsc_get_licence_status_raw' ) ? ufsc_get_licence_status_raw( $row ) : ( isset( $row->statut ) ? $row->statut : ( $row->status ?? '' ) );
+            $status = $business_state['dossier'] ?? ( function_exists( 'ufsc_get_licence_status_norm' ) ? ufsc_get_licence_status_norm( $raw_status ) : strtolower( trim( (string) $raw_status ) ) );
             $status = '' !== $status ? $status : 'brouillon';
             $status_counts[ $status ] = ( $status_counts[ $status ] ?? 0 ) + 1;
-            if ( 'valide' === $status || in_array( $status, array( 'validated', 'approved', 'active' ), true ) ) { $validated_licences++; }
+            $official = ! empty( $business_state['official'] ) || ( empty( $business_state ) && 'valide' === $status );
+            if ( $official ) { $validated_licences++; }
 
-            $paid = 0;
-            foreach ( array( 'paid', 'payee', 'is_paid' ) as $paid_key ) {
-                if ( isset( $row->{$paid_key} ) && 1 === (int) $row->{$paid_key} ) { $paid = 1; break; }
-            }
-            if ( isset( $row->payment_status ) && in_array( sanitize_key( (string) $row->payment_status ), array( 'paid', 'completed', 'processing' ), true ) ) { $paid = 1; }
+            $paid = ! empty( $business_state['payment_received'] ) ? 1 : 0;
+			if ( 'requis' === ( $business_state['payment'] ?? '' ) ) { $pending_payments++; }
             $paid_counts[ $paid ] = ( $paid_counts[ $paid ] ?? 0 ) + 1;
             $paid_licences += $paid;
+
+			if ( ! $official ) { continue; }
 
             $gender = strtoupper( trim( (string) ( $row->sexe ?? '' ) ) );
             $gender = in_array( $gender, array( 'F', 'FEMME' ), true ) ? 'F' : ( in_array( $gender, array( 'M', 'H', 'HOMME' ), true ) ? 'M' : 'unknown' );
@@ -121,6 +123,7 @@ class UFSC_Stats {
         return array(
             'total_licences'     => $total,
             'paid_licences'      => $paid_licences,
+			'pending_payments'    => $pending_payments,
             'validated_licences' => $validated_licences,
             'draft_licences'     => $drafts,
             'other_statuses'     => max( 0, $total - $validated_licences - $drafts ),

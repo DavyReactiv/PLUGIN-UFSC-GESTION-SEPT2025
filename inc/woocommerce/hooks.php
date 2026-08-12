@@ -82,6 +82,7 @@ function ufsc_init_woocommerce_hooks() {
 	// UFSC PATCH: Retry payment handling on failed/cancelled orders.
 	add_action( 'woocommerce_order_status_failed', 'ufsc_handle_order_failed_or_cancelled' );
 	add_action( 'woocommerce_order_status_cancelled', 'ufsc_handle_order_failed_or_cancelled' );
+	add_action( 'woocommerce_order_status_refunded', 'ufsc_handle_order_failed_or_cancelled' );
 
 	add_filter( 'woocommerce_order_item_display_meta_value', 'ufsc_wc_format_order_item_meta_display', 10, 3 );
 	add_action( 'woocommerce_after_order_itemmeta', 'ufsc_wc_render_missing_ids_hint', 10, 3 );
@@ -123,7 +124,7 @@ function ufsc_wc_email_bacs_instructions( $order, $sent_to_admin, $plain_text, $
 		return;
 	}
 	if ( $plain_text ) {
-		echo wp_strip_all_tags( ufsc_wc_bacs_instructions_html() ) . "\n";
+		echo esc_html( wp_strip_all_tags( ufsc_wc_bacs_instructions_html() ) ) . "\n";
 	} else {
 		echo wp_kses_post( ufsc_wc_bacs_instructions_html() );
 	}
@@ -257,7 +258,7 @@ function ufsc_handle_woocommerce_payment_confirmed( $order_id ) {
 		}
 
 		// Promote editable/unpaid statuses to "en_attente" after payment.
-		if ( in_array( $current_status, array( 'brouillon', 'non_payee', 'a_regler' ), true ) ) {
+		if ( in_array( $current_status, array( 'brouillon', 'non_payee', 'a_regler', 'pending_payment', 'payment_required', 'paiement_requis' ), true ) ) {
 			if ( in_array( 'statut', $columns, true ) && (string) ( $current->statut ?? '' ) !== 'en_attente' ) {
 				$data['statut'] = 'en_attente';
 				$formats[]      = '%s';
@@ -1506,9 +1507,6 @@ function ufsc_handle_order_failed_or_cancelled( $order_id ) {
 	}
 
 	foreach ( $licence_ids as $licence_id ) {
-		if ( function_exists( 'ufsc_is_validated_licence' ) && ufsc_is_validated_licence( $licence_id ) ) {
-			continue;
-		}
 		ufsc_update_licence_payment_status( $licence_id, 'non_payee', $order_status );
 	}
 }
