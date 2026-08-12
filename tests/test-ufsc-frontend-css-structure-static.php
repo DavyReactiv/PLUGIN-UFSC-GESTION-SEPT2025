@@ -6,6 +6,7 @@
 $root = dirname( __DIR__ );
 $path = $root . '/assets/css/ufsc-frontend.css';
 $css  = file_get_contents( $path );
+$css  = false === $css ? false : str_replace( array( "\r\n", "\r" ), "\n", $css );
 
 $assert = static function ( $condition, $message ) {
     if ( ! $condition ) {

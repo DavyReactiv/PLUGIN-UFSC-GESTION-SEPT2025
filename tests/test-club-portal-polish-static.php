@@ -34,7 +34,7 @@ $assert( 0 === preg_match( '/raconte\s*[- ]?\s*nous/i', $production_sources ), '
 foreach ( array(
     '.ufsc-club-portal .ufsc-renewal-summary{margin:16px 0;padding:12px 14px;background:#eef6ff;border:1px solid #173b67;border-radius:8px}',
     '.ufsc-club-portal .ufsc-renewal-change-summary{margin:18px 0;padding:12px 14px;background:#ecfdf5;border:1px solid #047857;border-radius:8px}',
-    '.ufsc-club-portal .ufsc-pack-summary a { background: #fff; border: 1px solid #cbdff3; border-radius: 18px;',
+    '.ufsc-club-portal .ufsc-pack-summary a { background: #fff; border: 1px solid #cbdff3; border-radius: 16px;',
     'block-size: clamp(76px, 8vw, 96px)',
     'inline-size: clamp(76px, 8vw, 96px)',
     '.ufsc-club-portal .ufsc-message { border: 1px solid #94a3b8; border-radius: 8px;',

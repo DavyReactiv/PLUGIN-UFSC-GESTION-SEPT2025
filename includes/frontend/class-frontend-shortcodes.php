@@ -388,10 +388,25 @@ class UFSC_Frontend_Shortcodes {
                         ); foreach ( $kpis as $kpi ) : ?><a class="ufsc-card ufsc-kpi-tile ufsc-hero-kpi-card" href="<?php echo esc_url( $kpi[2] ); ?>" title="<?php echo esc_attr( $kpi[3] ); ?>" aria-label="<?php echo esc_attr( $kpi[0] . ' — ' . $kpi[1] . '. ' . $kpi[3] ); ?>"><span class="ufsc-kpi-tile-label"><?php echo esc_html( $kpi[0] ); ?></span><strong class="ufsc-kpi-tile-value"><?php echo esc_html( $kpi[1] ); ?></strong></a><?php endforeach; ?>
                     </div></div>
 					<section class="ufsc-pack-summary" aria-labelledby="ufsc-pack-title">
-						<h3 id="ufsc-pack-title"><?php esc_html_e( 'Pack d’affiliation', 'ufsc-clubs' ); ?> — <?php echo esc_html( sprintf( '%d/10', $pack_usage['total'] ) ); ?></h3>
-						<a href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'bureau', self::get_club_portal_url( 'licences' ) ) ); ?>"><strong><?php echo esc_html( sprintf( __( 'Bureau : %d/3', 'ufsc-clubs' ), $pack_usage['bureau'] ) ); ?></strong><span><?php foreach ( array( 'president' => __( 'Président', 'ufsc-clubs' ), 'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ), 'tresorier' => __( 'Trésorier', 'ufsc-clubs' ) ) as $role_key => $role_label ) { echo esc_html( $role_label . ' : ' . ( ! empty( $pack_usage['roles'][ $role_key ] ) ? __( 'renseigné', 'ufsc-clubs' ) : __( 'manquant', 'ufsc-clubs' ) ) . ' · ' ); } ?></span></a>
-						<a href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'libre', self::get_club_portal_url( 'licences' ) ) ); ?>"><strong><?php echo esc_html( sprintf( __( 'Licences libres : %d/7', 'ufsc-clubs' ), $pack_usage['libres'] ) ); ?></strong></a>
-						<a href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'payante', self::get_club_portal_url( 'licences' ) ) ); ?>"><strong><?php echo esc_html( sprintf( __( 'Licences supplémentaires payantes : %d', 'ufsc-clubs' ), $pack_usage['payantes'] ) ); ?></strong></a>
+						<div class="ufsc-pack-summary__heading">
+							<h3 id="ufsc-pack-title"><?php esc_html_e( 'Pack d’affiliation', 'ufsc-clubs' ); ?></h3>
+							<span><?php echo esc_html( sprintf( __( '%d licence(s) utilisée(s) sur 10', 'ufsc-clubs' ), $pack_usage['total'] ) ); ?></span>
+						</div>
+						<a class="ufsc-pack-card" href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'bureau', self::get_club_portal_url( 'licences' ) ) ); ?>">
+							<span class="ufsc-pack-card__label"><?php esc_html_e( 'Bureau', 'ufsc-clubs' ); ?></span>
+							<strong class="ufsc-pack-card__value"><?php echo esc_html( sprintf( __( '%d/3', 'ufsc-clubs' ), $pack_usage['bureau'] ) ); ?></strong>
+							<span class="ufsc-pack-card__detail"><?php foreach ( array( 'president' => __( 'Président', 'ufsc-clubs' ), 'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ), 'tresorier' => __( 'Trésorier', 'ufsc-clubs' ) ) as $role_key => $role_label ) { echo esc_html( $role_label . ' : ' . ( ! empty( $pack_usage['roles'][ $role_key ] ) ? __( 'renseigné', 'ufsc-clubs' ) : __( 'manquant', 'ufsc-clubs' ) ) . '. ' ); } ?></span>
+						</a>
+						<a class="ufsc-pack-card" href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'libre', self::get_club_portal_url( 'licences' ) ) ); ?>">
+							<span class="ufsc-pack-card__label"><?php esc_html_e( 'Licences libres', 'ufsc-clubs' ); ?></span>
+							<strong class="ufsc-pack-card__value"><?php echo esc_html( sprintf( __( '%d/7', 'ufsc-clubs' ), $pack_usage['libres'] ) ); ?></strong>
+							<span class="ufsc-pack-card__detail"><?php esc_html_e( 'Incluses dans le pack après les trois licences du Bureau.', 'ufsc-clubs' ); ?></span>
+						</a>
+						<a class="ufsc-pack-card" href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'payante', self::get_club_portal_url( 'licences' ) ) ); ?>">
+							<span class="ufsc-pack-card__label"><?php esc_html_e( 'Licences supplémentaires', 'ufsc-clubs' ); ?></span>
+							<strong class="ufsc-pack-card__value"><?php echo esc_html( (int) $pack_usage['payantes'] ); ?></strong>
+							<span class="ufsc-pack-card__detail"><?php esc_html_e( 'Licences payantes au-delà des dix licences du pack.', 'ufsc-clubs' ); ?></span>
+						</a>
 					</section>
 
 
@@ -1692,6 +1707,7 @@ class UFSC_Frontend_Shortcodes {
                 <div class="ufsc-card ufsc-club-hero">
                     <div class="ufsc-club-hero-media">
                         <div class="ufsc-logo-editor" data-ufsc-logo-editor>
+                            <h5 class="ufsc-logo-editor__title"><?php esc_html_e( 'Logo du club', 'ufsc-clubs' ); ?></h5>
                             <div class="ufsc-logo-editor__preview" data-ufsc-logo-preview><?php echo self::render_club_logo( $profile_logo, $profile_name, 'photo-club-front' ); ?></div>
                             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" enctype="multipart/form-data" class="ufsc-logo-editor__upload">
                                 <?php wp_nonce_field( 'ufsc_upload_profile_photo', 'ufsc_upload_profile_photo_nonce' ); ?>
