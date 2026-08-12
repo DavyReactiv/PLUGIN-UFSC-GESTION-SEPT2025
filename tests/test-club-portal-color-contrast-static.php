@@ -65,7 +65,7 @@ foreach ( array(
     'Continuer',
     'Enregistrer en brouillon',
     'Ajouter au panier',
-    'Vérifier et ajouter au panier',
+    'Vérifier les informations',
     'Rechercher',
     'Réinitialiser les filtres',
     'Première',

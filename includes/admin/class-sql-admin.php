@@ -3432,7 +3432,7 @@ class UFSC_SQL_Admin
         // Pagination
         $requested_per_page = isset( $_GET['per_page'] ) ? absint( wp_unslash( $_GET['per_page'] ) ) : 25;
         $per_page = min( 50, max( 1, $requested_per_page ) );
-        $page     = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
+        $page     = isset($_GET['paged']) ? max(1, absint(wp_unslash($_GET['paged']))) : 1;
         $offset   = ($page - 1) * $per_page;
 
         // Build WHERE conditions
@@ -4006,30 +4006,21 @@ class UFSC_SQL_Admin
 
         // Pagination
         if ($total_pages > 1) {
-            echo '<div class="ufsc-pagination" style="margin: 20px 0; text-align: center;">';
+            echo '<nav class="ufsc-pagination" aria-label="' . esc_attr__( 'Pagination des licences', 'ufsc-clubs' ) . '">';
 
-            $pagination_base = $licences_page_url;
-            if (! empty($search)) {
-                $pagination_base .= '&search=' . urlencode($search);
-            }
-            if (! empty($filter_region)) {
-                $pagination_base .= '&filter_region=' . urlencode($filter_region);
-            }
-            if (! empty($filter_club)) {
-                $pagination_base .= '&filter_club=' . $filter_club;
-            }
-            if (! empty($filter_status)) {
-                $pagination_base .= '&filter_status=' . urlencode($filter_status);
-            }
-            if (! empty($filter_payment)) {
-                $pagination_base .= '&filter_payment=' . urlencode($filter_payment);
-            }
-            if (! empty($filter_duplicate)) {
-                $pagination_base .= '&filter_duplicate=' . urlencode($filter_duplicate);
-            }
-            if ( ! empty( $filter_visibility ) && 'active' !== $filter_visibility ) {
-                $pagination_base .= '&filter_visibility=' . urlencode( $filter_visibility );
-            }
+            $pagination_args = array_filter( array(
+                'search' => $search,
+                'filter_region' => $filter_region,
+                'filter_club' => $filter_club,
+                'filter_status' => $filter_status,
+                'filter_payment' => $filter_payment,
+                'filter_duplicate' => $filter_duplicate,
+                'filter_level' => $filter_level,
+                'filter_season' => $filter_season,
+                'filter_visibility' => $filter_visibility,
+                'per_page' => $per_page,
+            ), static function ( $value ) { return '' !== (string) $value; } );
+            $pagination_base = add_query_arg( $pagination_args, $licences_page_url );
 
             // Previous page
             if ($page > 1) {
@@ -4037,15 +4028,17 @@ class UFSC_SQL_Admin
             }
 
             // Page numbers
-            $start_page = max(1, $page - 2);
-            $end_page   = min($total_pages, $page + 2);
-
-            for ($i = $start_page; $i <= $end_page; $i++) {
+            $visible_pages = array_unique( array_filter( array( 1, 2, 3, 4, $page - 1, $page, $page + 1, (int) $total_pages ), static function ( $candidate ) use ( $total_pages ) { return $candidate >= 1 && $candidate <= $total_pages; } ) );
+            sort( $visible_pages, SORT_NUMERIC );
+            $previous_visible = 0;
+            foreach ( $visible_pages as $i ) {
+                if ( $previous_visible && $i > $previous_visible + 1 ) { echo '<span class="ufsc-pagination__ellipsis" aria-hidden="true">…</span>'; }
                 if ($i == $page) {
-                    echo '<span class="button button-primary">' . $i . '</span> ';
+                    echo '<span class="button button-primary" aria-current="page">' . $i . '</span> ';
                 } else {
                     echo '<a href="' . esc_url($pagination_base . '&paged=' . $i) . '" class="button">' . $i . '</a> ';
                 }
+                $previous_visible = $i;
             }
 
             // Next page
@@ -4053,8 +4046,8 @@ class UFSC_SQL_Admin
                 echo '<a href="' . esc_url($pagination_base . '&paged=' . ($page + 1)) . '" class="button">' . esc_html__('Suivant', 'ufsc-clubs') . ' »</a>';
             }
 
-            echo '<p style="margin-top: 10px;">' . sprintf(esc_html__('Page %d sur %d', 'ufsc-clubs'), $page, $total_pages) . '</p>';
-            echo '</div>';
+            echo '<p class="ufsc-pagination__summary">' . sprintf(esc_html__('Page %d sur %d', 'ufsc-clubs'), $page, $total_pages) . '</p>';
+            echo '</nav>';
         }
 
         echo '</div>';

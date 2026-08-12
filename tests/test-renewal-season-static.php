@@ -61,7 +61,7 @@ $assert( strpos( $shortcodes, '$renewal_affiliation_season = $current_season' ) 
 $assert( strpos( $admin_dashboard, "REPLACE(`{\$season_column}`, '/', '-') = %s" ) !== false, 'Dashboard counters must use an explicit licence season predicate.' );
 $assert( strpos( $admin_dashboard, 'ufsc_affiliations_seasons' ) !== false && strpos( $clubs_list, 'UFSC_Season_Archive_Manager::get_affiliation' ) !== false, 'Admin affiliation counts and rows must use annual affiliation storage.' );
 $assert( strpos( $shortcodes, '0 === $comparison || null === $comparison' ) === false, 'Ambiguous licence seasons must never be treated as current.' );
-$assert( strpos( $stats, "REPLACE(`{\$season_column}`, '/', '-') = %s" ) !== false && strpos( $stats, 'AND 0 = 1' ) !== false, 'Frontend statistics must use an explicit fail-closed season predicate.' );
+$assert( strpos( $stats, "REPLACE(TRIM(`{\$season_column}`), '/', '-') = %s" ) !== false && strpos( $stats, 'AND 0 = 1' ) !== false, 'Frontend statistics must use an explicit normalized fail-closed season predicate.' );
 $assert( strpos( $shortcodes, "echo self::render_add_licence" ) !== false, 'Shortcode and dashboard licence forms must share one renderer.' );
 $assert( strpos( $handlers, 'health_questionnaire_confirmed' ) !== false && strpos( $handlers, 'honorability_confirmed' ) !== false, 'Health and honorability confirmations need server-side validation.' );
 $assert( strpos( $handlers, 'medical_answer' ) === false && strpos( $handlers, 'questionnaire_response' ) === false, 'Medical questionnaire answers must not be stored.' );

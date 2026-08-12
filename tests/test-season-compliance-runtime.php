@@ -24,7 +24,7 @@ $method = new ReflectionMethod( 'UFSC_Unified_Handlers', 'process_licence_data' 
 $method->setAccessible( true );
 $base = array(
     'prenom' => 'Ada', 'nom' => 'Lovelace', 'email' => 'ada@example.test',
-    'adresse' => '1 rue UFSC', 'ville' => 'Paris', 'code_postal' => '75001',
+    'adresse' => '1 rue UFSC', 'ville' => 'Paris', 'code_postal' => '75001', 'pays' => 'France',
     'telephone' => '0102030405', 'sexe' => 'F', 'ufsc_submit_action' => 'add_to_cart',
 );
 $minor = $base + array( 'date_naissance' => '2012-03-10', 'role' => 'pratiquant' );

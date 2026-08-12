@@ -303,16 +303,36 @@
      * Enhance save buttons with loading states
      */
     function enhanceSaveButtons() {
-        $('form').on('submit', function() {
-            const form = $(this);
-            const buttons = form.find('button[type="submit"]');
-            
-            buttons.prop('disabled', true).each(function() {
-                const btn = $(this);
-                const originalText = btn.text();
-                btn.data('original-text', originalText);
-                btn.html('<span class="ufsc-spinner"></span> Enregistrement...');
+        function resetSubmitting(form) {
+            form.removeData('ufscSubmitting');
+            form.find('[aria-busy="true"]').each(function() {
+                const button = $(this);
+                const originalText = button.data('original-text');
+                if (typeof originalText === 'string') button.text(originalText);
+                button.removeAttr('aria-busy aria-disabled');
             });
+        }
+        $('.ufsc-licence-form')
+        .off('.ufscSingleSubmit')
+        .on('ufsc:resetSubmitting.ufscSingleSubmit', function() {
+            resetSubmitting($(this));
+        })
+        .on('submit.ufscSingleSubmit', function(event) {
+            const form = $(this);
+            if (form.data('ufscSubmitting')) {
+                event.preventDefault();
+                return false;
+            }
+            form.data('ufscSubmitting', true);
+            const submitter = event.originalEvent && event.originalEvent.submitter;
+            const button = submitter ? $(submitter) : $();
+            if (button.length) {
+                button.attr('aria-disabled', 'true').attr('aria-busy', 'true');
+                button.data('original-text', button.text()).append('…');
+            }
+            // Do not disable the clicked submitter: disabled controls are not
+            // successful controls and would drop ufsc_submit_action.
+            return true;
         });
     }
 
@@ -329,6 +349,10 @@
     $(function() {
         var form = $('.ufsc-licence-form').first();
         if (!form.length || !form.find('.ufsc-licence-wizard-progress').length) return;
+        if (form.data('ufscWizardInitialized')) return;
+        form.data('ufscWizardInitialized', true);
+        var formScope = form.closest('.ufsc-add-licence-section');
+        if (!formScope.length) formScope = form.parent();
         var cards = form.find('> .ufsc-grid > .ufsc-form-section');
         var compliance = form.find('.ufsc-compliance-section');
         var review = form.find('[data-wizard-review]');
@@ -393,11 +417,12 @@
                 : form.find('#ufsc_submit_action').val();
             if (action === 'save_draft') {
                 var nom=form.find('[name="nom"]')[0], prenom=form.find('[name="prenom"]')[0];
-                if (!nom.value.trim() || !prenom.value.trim()) { event.preventDefault(); show(1); (!nom.value.trim() ? nom : prenom).focus(); return false; }
+                if (!nom.value.trim() || !prenom.value.trim()) { event.preventDefault(); form.triggerHandler('ufsc:resetSubmitting'); show(1); (!nom.value.trim() ? nom : prenom).focus(); return false; }
                 return true; // Drafts intentionally accept all other incomplete data.
             }
             if (!this.checkValidity()) {
                 event.preventDefault();
+                form.triggerHandler('ufsc:resetSubmitting');
                 var first = form.find(':invalid').first();
                 var owner = Number(first.closest('[data-wizard-step]').attr('data-wizard-step')) || 1;
                 show(owner); first.focus();
@@ -413,5 +438,20 @@
         }
         previousToggle.on('change', syncPreviousNumber); syncPreviousNumber();
         show(current);
+        formScope.find('[data-ufsc-error-field]').on('click.ufscWizardErrors', function(event) {
+            var field = String($(this).data('ufsc-error-field') || '');
+            var step = Number($(this).data('ufsc-error-step')) || 1;
+            var input = field ? form.find('#' + field).first() : $();
+            if (!input.length) return;
+            event.preventDefault();
+            show(step);
+            input.attr('aria-invalid', 'true').focus();
+        });
+        var serverSummary = formScope.find('[data-ufsc-server-errors]').first();
+        if (serverSummary.length) {
+            serverSummary.focus();
+            var firstServerError = serverSummary.find('[data-ufsc-error-field]').first();
+            if (firstServerError.length) firstServerError.trigger('click');
+        }
     });
 })(jQuery);

@@ -62,6 +62,6 @@ $assert( 1 === ( $portal_rules[ $profile_key ] ?? 0 ), 'The mobile profile-card 
 
 $assert( false !== strpos( $layout_test, 'str_replace( array( "\\r\\n", "\\r" ), "\\n", $css )' ), 'The layout regression test must normalize LF/CRLF without changing its CSS assertion.' );
 $assert( false !== strpos( $layout_test, 'grid-template-columns: repeat(2, minmax(0, 1fr));\n    gap: 18px' ), 'The compact two-column layout assertion must remain exact after newline normalization.' );
-$assert( 35 === substr_count( $portal_css, '!important' ), 'Polish may remove obsolete overrides but must keep the new !important baseline exact.' );
+$assert( 35 >= substr_count( $portal_css, '!important' ), 'Polish may remove obsolete overrides but must never increase the !important baseline.' );
 
 echo "Portal CSS distillation safeguards OK — 16 redundant rule blocks consolidated with contracts preserved\n";
