@@ -1044,7 +1044,10 @@
                 var submitter = event.originalEvent && event.originalEvent.submitter;
                 if (!submitter || submitter.value !== 'add_to_cart') { return; }
                 if (renewalForm.data('ufsc-cart-submitting')) { event.preventDefault(); return; }
-                renewalForm.data('ufsc-cart-submitting', true); $(submitter).prop('disabled', true).attr('aria-disabled', 'true');
+                // Keep the successful submit control enabled until the browser has
+                // built the POST payload. Disabling it here drops its name/value
+                // pair in some browsers and turns "add_to_cart" into a no-op.
+                renewalForm.data('ufsc-cart-submitting', true); $(submitter).attr('aria-disabled', 'true').addClass('is-submitting');
             });
             renewalForm.on('toggle', 'details', function() { $(this).attr('aria-expanded', this.open ? 'true' : 'false'); });
             updateRenewalCount(); showRenewalStep(Number(renewalForm.attr('data-initial-step')) === 2 ? 2 : 1);
@@ -1090,7 +1093,14 @@
                 }
                 if(objectUrl){ URL.revokeObjectURL(objectUrl); }
                 objectUrl=URL.createObjectURL(file);
-                preview.html($('<figure class="ufsc-club-logo ufsc-logo-preview"><img alt="Aperçu du nouveau logo"></figure>').find('img').attr('src',objectUrl).end());
+                var logoPreview=document.createElement('img');
+                logoPreview.src=objectUrl;
+                logoPreview.alt='Aperçu du nouveau logo';
+                preview.empty().append(
+                    $('<figure class="ufsc-club-logo ufsc-logo-preview"></figure>').append(
+                        logoPreview
+                    )
+                );
                 filename.removeAttr('role').text(file.name); pending.prop('hidden',false);
             });
             editor.on('click','[data-ufsc-logo-cancel]',function(){

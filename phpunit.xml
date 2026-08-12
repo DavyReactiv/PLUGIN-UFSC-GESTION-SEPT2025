@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/phpunit-bootstrap.php" colors="true">
-  <testsuites><testsuite name="UFSC"><file>tests/test-affiliation-redirect.php</file><file>tests/test-frontend.php</file></testsuite></testsuites>
+<phpunit bootstrap="tests/phpunit-bootstrap.php" colors="true" cacheDirectory=".phpunit.cache">
+  <testsuites><testsuite name="UFSC"><directory suffix="Test.php">tests/phpunit</directory></testsuite></testsuites>
 </phpunit>

@@ -36,9 +36,9 @@ $assert = static function ( $condition, $message ) { if ( ! $condition ) { fwrit
 $total = $stats['total_licences'];
 $assert( 4 === $total && 3 === $stats['draft_licences'], 'three canonical statut drafts must reconcile with the four-row list' );
 $assert( $stats['validated_licences'] + $stats['draft_licences'] + $stats['other_statuses'] === $total, 'exclusive status partitions reconcile' );
-$assert( array_sum( $stats['by_gender'] ) === $total, 'women + men + unknown reconcile' );
-$assert( array_sum( $stats['by_age'] ) === $total, 'minor + adult + unknown reconcile' );
-$assert( $stats['by_practice']['leisure'] + $stats['by_practice']['competition'] + $stats['by_practice']['unknown'] === $total, 'leisure + competition + unknown reconcile' );
-$assert( 1 === $stats['unknown_profiles'], 'unknown profile counts people, not missing-field occurrences' );
+$assert( array_sum( $stats['by_gender'] ) === $stats['validated_licences'], 'official gender KPI reconciles only validated rows' );
+$assert( array_sum( $stats['by_age'] ) === $stats['validated_licences'], 'official age KPI reconciles only validated rows' );
+$assert( $stats['by_practice']['leisure'] + $stats['by_practice']['competition'] + $stats['by_practice']['unknown'] === $stats['validated_licences'], 'official practice KPI reconciles only validated rows' );
+$assert( 0 === $stats['unknown_profiles'], 'draft profile gaps never enter official demographics' );
 $assert( false !== strpos( $wpdb->query, 'club_id = 7' ) && false !== strpos( $wpdb->query, "2026-2027" ), 'club and season are bound into the canonical row query' );
 echo "Canonical KPI/list reconciliation runtime safeguards OK\n";

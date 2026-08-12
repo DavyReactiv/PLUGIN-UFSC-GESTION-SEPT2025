@@ -4141,7 +4141,6 @@ class UFSC_SQL_Admin
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         wp_nonce_field( 'ufsc_add_to_cart_action', '_ufsc_nonce' );
         echo '<input type="hidden" name="action" value="ufsc_add_to_cart">';
-        echo '<input type="hidden" name="product_id" value="' . esc_attr( function_exists( 'ufsc_get_licence_product_id' ) ? ufsc_get_licence_product_id() : 0 ) . '">';
         echo '<input type="hidden" name="ufsc_club_id" value="' . esc_attr( absint( $row->club_id ?? 0 ) ) . '"><input type="hidden" name="ufsc_action" value="renew_licence">';
         echo '<input type="hidden" name="ufsc_target_season" value="' . esc_attr( $target_season ) . '"><input type="hidden" name="ufsc_renew_from_licence_id" value="' . esc_attr( $id ) . '">';
         echo '<button type="submit" class="button button-primary">' . esc_html__( 'Ajouter au panier', 'ufsc-clubs' ) . '</button> <a class="button" href="' . esc_url( self::get_licences_admin_page_url() ) . '">' . esc_html__( 'Retour', 'ufsc-clubs' ) . '</a></form></section>';

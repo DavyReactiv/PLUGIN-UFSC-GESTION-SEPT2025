@@ -177,15 +177,11 @@ class UFSC_Licence_Payments {
 	}
 
 	public static function can_validate_licence( $licence_row, $exception_reason = '' ) {
-		$payment_status = strtolower( (string) ( $licence_row->payment_status ?? '' ) );
-		$link_status    = strtolower( (string) ( $licence_row->payment_link_status ?? '' ) );
-		if ( in_array( $payment_status, array( 'paid', 'completed', 'processing', 'paye', 'payee' ), true ) ) {
+		if ( ! empty( $licence_row->is_included ) ) {
 			return true;
 		}
-		if ( in_array( $link_status, array( 'paye', 'paid', 'paye_manuellement', 'exonere' ), true ) ) {
-			return true;
-		}
-		return '' !== trim( (string) $exception_reason );
+		$state = function_exists( 'ufsc_resolve_licence_business_state' ) ? ufsc_resolve_licence_business_state( $licence_row ) : array();
+		return ! empty( $state['payment_received'] );
 	}
 
 	public static function upsert_manual_payment( $licence_id, $data ) {
