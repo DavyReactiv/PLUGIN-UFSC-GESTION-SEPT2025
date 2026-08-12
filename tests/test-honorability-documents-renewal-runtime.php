@@ -15,10 +15,10 @@ function get_option( $key, $default = false ) { return $GLOBALS['options'][$key]
 function update_option( $key, $value ) { $GLOBALS['options'][$key] = $value; return true; }
 class WP_Error { private $c; private $m; function __construct($c,$m){$this->c=$c;$this->m=$m;} function get_error_message(){return $this->m;} }
 class UFSC_Category_Repository { const DEFAULT_DISCIPLINE='kickboxing'; public static function normalize_weight($v){ return is_numeric(str_replace(',','.',$v)) ? (float) str_replace(',','.',$v) : null; } public static function detect_for_athlete(){return array('age_category_label'=>'Senior','weight_category_label'=>'-65 kg');} }
-class UFSC_Renewal_Service { public static function person_key($row,$club){ return 'test:' . $club . ':' . $row->id; } public static function sanitize_renewal_updates($source,$raw){return array('data'=>array('fighter_level'=>$source->fighter_level,'poids'=>(float)$source->poids),'changes'=>array(),'errors'=>array(),'sensitive_identity_change'=>false);} }
+class UFSC_Renewal_Service { public static function person_key($row,$club){ return 'test:' . $club . ':' . $row->id; } public static function sanitize_renewal_updates($source,$raw){return array('data'=>array('fighter_level'=>$source->fighter_level,'poids'=>(float)$source->poids),'changes'=>array(),'errors'=>array(),'sensitive_identity_change'=>false);} public static function create_target_draft($source,$club,$season,$updates=array()){return array('licence_id'=>100+(int)$source->id,'created'=>true);} }
 class UFSC_Identifier_Resolver { public static function read(){return 'UFSC-TEST';} }
 function is_wp_error( $v ) { return $v instanceof WP_Error; }
-class FakeWpdb { public $rows=array(); function prepare($q,...$a){return end($a);} function get_row($id){return $this->rows[(int)$id]??null;} }
+class FakeWpdb { public $rows=array(); function prepare($q,...$a){return false!==strpos($q,'GET_LOCK')||false!==strpos($q,'RELEASE_LOCK')?$q:end($a);} function get_row($id){return $this->rows[(int)$id]??null;} function get_col($q=''){return false!==strpos($q,'DESC')?array('id','club_id','season','role','is_included'):array('president','secretaire','tresorier','adherent','adherent','adherent','adherent','adherent','adherent','adherent');} function get_var($q){return 1;} function query($q){return 0;} }
 $wpdb = new FakeWpdb(); $GLOBALS['wpdb'] = $wpdb;
 function ufsc_get_licences_table(){return 'licences';} function ufsc_get_licence_season($id){return is_object($id)?'2025-2026':'2026-2027';}
 require dirname(__DIR__) . '/inc/common/compliance.php';

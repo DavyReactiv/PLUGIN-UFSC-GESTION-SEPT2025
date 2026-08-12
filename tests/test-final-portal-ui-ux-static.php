@@ -18,7 +18,8 @@ $assert(substr_count($front,'id="ufsc-club-logo-file"')===1 && false!==strpos($f
 foreach(array('wp_check_filetype_and_ext','allowed_mimes','MAX_SIZE','ufsc_user_can_edit_club') as $needle) $assert(false!==strpos($media,$needle),"server logo validation: $needle");
 $assert(false!==strpos($js,'/^image\\/(jpeg|png|webp)$/') && false!==strpos($js,'file.size>max') && false!==strpos($js,'URL.createObjectURL'),'client logo validation and preview');
 foreach(array('Identité du club','Coordonnées','Informations légales','Réseaux sociaux','Chiffres et dates','Distribution','Dirigeants') as $needle) $assert(false!==strpos($front,$needle),"account section: $needle");
-foreach(array("render_officer_licence_card( 'president'","render_officer_licence_card( 'secretaire'","render_officer_licence_card( 'tresorier'","'entraineur_email'","Licence liée","Créer la licence du dirigeant") as $needle) $assert(false!==strpos($front,$needle),"canonical officer licence: $needle");
+foreach(array("render_officer_licence_card( 'president'","render_officer_licence_card( 'secretaire'","render_officer_licence_card( 'tresorier'",'render_coach_licence_cards','Ajouter un entraîneur','Licence liée','Créer la licence du dirigeant') as $needle) $assert(false!==strpos($front,$needle),"canonical officer licence: $needle");
+$assert(false===strpos($front,"render_field( 'entraineur_email'"),'legacy club trainer fields are not rendered');
 $assert(substr_count($front,"render_field( 'num_affiliation'")===1,'duplicate affiliation field removed');
 $assert(false!==strpos($front,"Documents manquants uniquement sur les dossiers du club rattachés à %s"),'active-season KPI help');
 $assert(false!==strpos($front,'En cours de génération') && false!==strpos($front,'Attestation UFSC'),'pending status is useful, not empty');

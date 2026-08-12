@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<ruleset name="UFSC touched-domain quality">
+    <description>Progressive WPCS security gate. Historical formatting debt is documented separately.</description>
+    <arg name="basepath" value="."/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+    <config name="ignore_warnings_on_exit" value="1"/>
+    <file>inc/common/licence-status.php</file>
+    <file>inc/woocommerce/cart-integration.php</file>
+    <file>inc/woocommerce/hooks.php</file>
+    <file>inc/woocommerce/settings-woocommerce.php</file>
+    <file>includes/core/class-ufsc-licence-payments.php</file>
+    <file>includes/core/class-ufsc-renewal-service.php</file>
+    <file>includes/front/class-ufsc-stats.php</file>
+    <rule ref="WordPress.Security"/>
+    <exclude-pattern>vendor/*</exclude-pattern>
+</ruleset>
