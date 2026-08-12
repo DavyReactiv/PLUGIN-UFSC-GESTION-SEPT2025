@@ -20,6 +20,6 @@ foreach ( array( 'given-name', 'family-name', 'email', 'tel', 'street-address', 
 	$assert( false !== strpos( $admin, $token ), "autocomplete {$token}" );
 }
 $assert( false !== strpos( $front_css, 'height: auto' ) && false !== strpos( $front_css, 'grid-template-columns: repeat(3' ), 'dashboard content-owned height and desktop KPI grid' );
-$assert( false !== strpos( $admin_css, 'max-width: 1440px' ) && false !== strpos( $admin_css, 'position: sticky' ), 'bounded admin sheet and visible actions' );
+$assert( false !== strpos( $admin_css, 'max-width: none' ) && false !== strpos( $admin_css, 'width: calc(100% - 20px)' ) && false !== strpos( $admin_css, 'position: sticky' ), 'fluid admin sheet and visible actions' );
 
 echo "Final reprise product, network, REST cleanup, layout and accessibility safeguards OK\n";

@@ -37,10 +37,8 @@ foreach ( array(
 }
 
 foreach ( array(
-    'inline-size: min(calc(100% - 32px), 1280px)',
-    'inline-size: min(calc(100% - 20px), 1280px)',
-    'inline-size: min(calc(100% - 16px), 1280px)',
-    'max-inline-size: 1280px',
+    'inline-size: min(1180px, calc(100% - 32px))',
+    'max-inline-size: 1180px',
     '.ufsc-club-portal :is(.ufsc-licences-section, .ufsc-licence-detail, .ufsc-add-licence-section)',
     'margin-inline: 0',
     'min-block-size: 44px',
@@ -136,4 +134,4 @@ foreach ( array(
     $assert( false !== strpos( $css, $color_contract ), "Colorize contract changed unexpectedly: {$color_contract}" );
 }
 
-echo "Club portal responsive contract OK — 360/768/1024/1440, 44px targets, labelled selections, fluid actions, filters, tables, pagination and logos\n";
+echo "Club portal responsive contract OK — 360/768/1024/1440/1920, 44px targets, labelled selections, fluid actions, filters, tables, pagination and logos\n";

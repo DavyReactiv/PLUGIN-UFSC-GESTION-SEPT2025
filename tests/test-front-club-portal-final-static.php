@@ -23,7 +23,7 @@ $assert( strpos( $front, 'Finaliser mon paiement' ) !== false && strpos( $front,
 $assert( strpos( $front, 'render_archived_licences_section( $archive_licences, $archive_seasons, $archive_filter, $atts, true, $archive_total, $archive_page, $archive_per_page )' ) !== false, 'Dashboard always renders read-only licence archives section.' );
 $assert( strpos( $front, 'get_club_archive_seasons' ) !== false && strpos( $front, "'per_page' => " . '$archive_per_page' ) !== false && strpos( $front, 'array_slice( $archive_licences' ) === false, 'Archives use season-scoped SQL pagination instead of loading every row.' );
 $assert( substr_count( $front, 'ufsc-club-account__savebar' ) === 1, 'Only one savebar is rendered.' );
-$assert( strpos( $css, '.ufsc-club-portal' ) !== false && strpos( $css, 'width: min(100% - 32px, 1280px)' ) !== false, 'Canonical portal width exists.' );
+$assert( strpos( $css, '.ufsc-club-portal' ) !== false && strpos( $css, 'width: min(1180px, calc(100% - 32px))' ) !== false, 'Canonical portal width exists.' );
 $assert( strpos( $css, 'grid-template-columns: repeat(2, minmax(0, 1fr))' ) !== false, 'KPI/document grids use safe minmax columns.' );
 $assert( strpos( $css, 'grid-template-columns: repeat(2, minmax(0, 1fr))' ) !== false, 'Account form grid uses the robust two-column desktop layout.' );
 $assert( strpos( $css, 'scroll-margin-top: 120px' ) !== false, 'Anchors account for sticky headers.' );

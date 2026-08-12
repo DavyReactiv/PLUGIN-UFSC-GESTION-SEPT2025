@@ -45,6 +45,6 @@ foreach ( array(
 
 $assert( false === strpos( $portal_css, '.ufsc-cockpit-priority .ufsc-priority-card' ), 'Unused cockpit priority side-tab rule must stay removed.' );
 $assert( false === strpos( $portal_css, '.ufsc-premium-v3 .ufsc-hero-kpi-card.-success' ), 'Unrendered premium KPI variants must stay removed.' );
-$assert( 35 === substr_count( $portal_css, '!important' ), 'Final polish must not add !important declarations.' );
+$assert( 35 >= substr_count( $portal_css, '!important' ), 'Final polish must not add !important declarations.' );
 
 echo "Club portal polish safeguards OK -- no side-tabs, no parasitic vertical copy, compact canonical cards, pack and logo\n";

@@ -1,5 +1,13 @@
 # UFSC Clubs & Licences Plugin - Changelog
 
+## Version 082026 - Portail Club et panier P0 (Août 2026)
+
+- Dossiers de licence canoniques et saisonniers pour le président, le secrétaire et le trésorier.
+- Confirmation d’honorabilité persistée et contrôlée côté serveur pour les seules fonctions réglementées.
+- Chaîne WooCommerce durcie : produit canonique, panier natif, métadonnées nominatives, persistance et anti-doublon.
+- Réconciliation des KPI avec la liste canonique par club, saison et statut.
+- Portail Club et administration rendus fluides, accessibles et adaptatifs.
+
 ## Version 042026 - Correctifs ciblés (Avril 2026)
 
 - Correctif des actions groupées sur listes licences/clubs (multi-sélection, scope, nonce, redirection stable).

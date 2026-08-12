@@ -28,7 +28,7 @@ $assert( strpos( $front, 'ufsc-document-summary' ) !== false && strpos( $front, 
 foreach ( array( '--ufsc-primary', '--ufsc-primary-dark', '--ufsc-surface', '--ufsc-border', '--ufsc-text', '--ufsc-muted', '--ufsc-success', '--ufsc-warning', '--ufsc-danger', '--ufsc-radius', '--ufsc-shadow' ) as $var ) {
     $assert( strpos( $css, $var ) !== false, 'Design-system variable exists: ' . $var );
 }
-$assert( strpos( $css, 'max-width: 1280px' ) !== false && strpos( $css, 'width: min(calc(100% - 32px), 1280px)' ) !== false, 'Desktop width target is enforced.' );
+$assert( strpos( $css, 'max-width: 1180px' ) !== false && strpos( $css, 'width: min(1180px, calc(100% - 32px))' ) !== false, 'Canonical 1180px desktop width is enforced.' );
 $assert( strpos( $css, '@media (max-width: 1024px)' ) !== false && strpos( $css, '@media (max-width: 768px)' ) !== false && strpos( $css, '@media (max-width: 420px)' ) !== false, 'Responsive breakpoints are present.' );
 $assert( strpos( $css, '.ufsc-club-account__savebar' ) !== false && strpos( $front, 'Mettre à jour le club' ) !== false, 'Compact save bar and save button are preserved.' );
 $assert( strpos( $bootstrap, "has_shortcode( \$post->post_content, 'ufsc_club_dashboard' )" ) !== false, 'Frontend assets remain scoped to shortcode pages.' );
