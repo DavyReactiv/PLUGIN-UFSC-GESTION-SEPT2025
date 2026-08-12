@@ -39,16 +39,6 @@ function ufsc_get_woocommerce_settings() {
     $defaults = ufsc_get_default_woocommerce_settings();
     $saved    = get_option( 'ufsc_woocommerce_settings', array() );
 	$saved    = is_array( $saved ) ? $saved : array();
-	if ( empty( $saved['product_license_id'] ) ) {
-		foreach ( array( 'product_license_id', 'ufsc_product_license_id', 'ufsc_license_product_id' ) as $legacy_key ) {
-			$legacy_id = absint( get_option( $legacy_key, 0 ) );
-			if ( $legacy_id > 0 ) {
-				$saved['product_license_id'] = $legacy_id;
-				update_option( 'ufsc_woocommerce_settings', $saved );
-				break;
-			}
-		}
-	}
 
     return wp_parse_args( $saved, $defaults );
 }
@@ -159,6 +149,7 @@ function ufsc_process_woocommerce_settings_submission( $post ) {
 
 /** Persist the real settings form through admin-post.php, then reload it. */
 function ufsc_handle_woocommerce_settings_post() {
+	// phpcs:ignore WordPress.Security.NonceVerification.Missing -- The processor validates the submitted nonce before reading settings.
 	$result = ufsc_process_woocommerce_settings_submission( $_POST );
 	$user_id = get_current_user_id();
 	set_transient( 'ufsc_wc_settings_notice_' . $user_id, array(
@@ -212,14 +203,7 @@ function ufsc_get_affiliation_product_url() {
  */
 function ufsc_get_licence_product_id() {
     $settings = ufsc_get_woocommerce_settings();
-    $configured_id = isset( $settings['product_license_id'] ) ? absint( $settings['product_license_id'] ) : 0;
-
-    /**
-     * Single, explicit extension point for installations that provision their
-     * product outside this settings screen. A filter may validate/migrate a
-     * known ID, but the resolver deliberately never guesses from the catalogue.
-     */
-    return function_exists( 'apply_filters' ) ? absint( apply_filters( 'ufsc_licence_product_id', $configured_id, $settings ) ) : $configured_id;
+    return isset( $settings['product_license_id'] ) ? absint( $settings['product_license_id'] ) : 0;
 }
 
 /** Return the canonical licence product diagnostic used by admin, UI and cart. */
@@ -280,10 +264,10 @@ function ufsc_get_woocommerce_product_diagnostic( $product_id ) {
 	$diagnostic['product_type']        = is_callable( array( $product, 'get_type' ) ) ? (string) $product->get_type() : '';
 	$diagnostic['product_price']       = is_callable( array( $product, 'get_price' ) ) ? (string) $product->get_price() : '';
 	$diagnostic['product_permalink']   = is_callable( array( $product, 'get_permalink' ) ) ? (string) $product->get_permalink() : '';
-	if ( 'publish' !== $diagnostic['product_status'] ) {
+	if ( ! in_array( $diagnostic['product_type'], array( 'simple', 'variation' ), true ) ) {
+		$diagnostic['unavailable_reason'] = 'product_type_not_allowed';
+	} elseif ( 'publish' !== $diagnostic['product_status'] ) {
 		$diagnostic['unavailable_reason'] = 'product_not_published';
-	} elseif ( '' === $diagnostic['product_permalink'] ) {
-		$diagnostic['unavailable_reason'] = 'permalink_unavailable';
 	} elseif ( '' === $diagnostic['product_price'] ) {
 		$diagnostic['unavailable_reason'] = 'product_without_price';
 	} elseif ( ! $diagnostic['product_purchasable'] ) {
@@ -306,9 +290,9 @@ function ufsc_is_woocommerce_product_available( $product_id ) {
         && ! empty( $diagnostic['wc_get_product_available'] )
         && ! empty( $diagnostic['product_id'] )
         && ! empty( $diagnostic['product_found'] )
+		&& in_array( $diagnostic['product_type'], array( 'simple', 'variation' ), true )
         && 'publish' === $diagnostic['product_status']
 		&& '' !== $diagnostic['product_price']
-		&& '' !== $diagnostic['product_permalink']
         && ! empty( $diagnostic['product_purchasable'] );
 }
 
@@ -334,6 +318,9 @@ function ufsc_get_woocommerce_product_diagnostic_message( $product_id ) {
 function ufsc_get_licence_product_message( $resolution = null ) {
 	$d  = is_array( $resolution ) ? $resolution : ufsc_get_licence_product_resolution();
 	$id = absint( $d['configured_id'] ?? $d['product_id'] ?? 0 );
+	if ( $id && ! empty( $d['product_found'] ) && ! in_array( (string) ( $d['product_type'] ?? '' ), array( 'simple', 'variation' ), true ) ) {
+		return sprintf( __( 'Le produit #%d doit etre un produit simple ou une variation.', 'ufsc-clubs' ), $id );
+	}
 	if ( ! $id ) { return __( 'Aucun produit Licence UFSC n’est configuré.', 'ufsc-clubs' ); }
 	if ( empty( $d['product_found'] ) ) { return sprintf( __( 'Le produit #%d est introuvable.', 'ufsc-clubs' ), $id ); }
 	if ( 'publish' !== ( $d['product_status'] ?? '' ) ) { return sprintf( __( 'Le produit #%d est configuré mais n’est pas publié.', 'ufsc-clubs' ), $id ); }
@@ -352,6 +339,7 @@ function ufsc_get_affiliation_product_unavailable_message( $reason ) {
         'product_without_price'    => __( 'Prix du produit d’affiliation absent.', 'ufsc-clubs' ),
         'product_not_purchasable'  => __( 'Produit d’affiliation non achetable.', 'ufsc-clubs' ),
         'product_api_unavailable'  => __( 'API produit WooCommerce indisponible.', 'ufsc-clubs' ),
+		'product_type_not_allowed' => __( 'Le produit doit etre simple ou une variation.', 'ufsc-clubs' ),
         'permalink_unavailable'    => __( 'Permalink du produit d’affiliation indisponible.', 'ufsc-clubs' ),
     );
 
@@ -449,10 +437,6 @@ function ufsc_render_woocommerce_settings_page() {
         wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
     }
 
-    if ( isset( $_POST['ufsc_save_woocommerce_settings'] ) ) {
-        $result = ufsc_process_woocommerce_settings_submission( $_POST );
-        echo '<div class="notice ' . ( $result['success'] ? 'notice-success' : 'notice-error' ) . ' is-dismissible"><p>' . esc_html( $result['message'] ) . '</p></div>';
-    }
 	$notice_key = 'ufsc_wc_settings_notice_' . get_current_user_id();
 	$notice = get_transient( $notice_key );
 	if ( is_array( $notice ) ) {
