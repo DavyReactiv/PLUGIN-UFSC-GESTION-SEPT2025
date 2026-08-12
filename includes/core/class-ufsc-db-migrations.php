@@ -10,7 +10,7 @@ class UFSC_DB_Migrations {
     /**
      * Current migration version
      */
-    const MIGRATION_VERSION = '1.4.0';
+    const MIGRATION_VERSION = '1.5.0';
 
     /**
      * Option key for tracking migration version
@@ -209,6 +209,10 @@ class UFSC_DB_Migrations {
             'categorie_poids_detectee' => 'varchar(50) NULL DEFAULT NULL',
             'categorie_updated_at'     => 'datetime NULL DEFAULT NULL',
             'fighter_level'             => 'varchar(20) NULL DEFAULT NULL',
+            'pays'                      => "varchar(100) NOT NULL DEFAULT 'France'",
+            'honorability_confirmed'    => 'tinyint(1) NOT NULL DEFAULT 0',
+            'honorability_confirmed_at' => 'datetime NULL DEFAULT NULL',
+            'honorability_confirmed_by' => 'bigint(20) unsigned NOT NULL DEFAULT 0',
         );
 
         foreach ( $expected_columns as $column => $definition ) {
