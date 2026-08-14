@@ -16,6 +16,8 @@ $assert(strpos($handlers,'ufsc_add_licence_ids_to_cart_idempotent')!==false,'pai
 $assert(strpos($renewal,'never applied to the source row')!==false,'historical renewal source remains immutable');
 $assert(strpos($front,'Niveau du boxeur')!==false,'front displays boxer level');
 $assert(strpos($front,'ufsc_get_sport_level_help()')!==false,'front displays explicit level guidance');
+$assert(strpos($front,'Licences incluses dans votre affiliation')!==false && strpos($front,'Quota atteint : toute nouvelle licence ou tout renouvellement supplémentaire sera ajouté au panier.')!==false,'dashboard explains 10 included then paid flow');
+$assert(strpos($front,"'%d/7'")===false,'dashboard no longer presents a contradictory seven-free quota');
 $assert(strpos($css,'Club account navigation final contract')!==false,'club navigation final alignment contract exists');
 $assert(substr_count($css,'!important')<=37,'navigation correction adds no important declarations');
 echo "Unified licence journey safeguards OK\n";

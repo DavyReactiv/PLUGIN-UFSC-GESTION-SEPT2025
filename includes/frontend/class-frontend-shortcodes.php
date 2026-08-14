@@ -439,26 +439,33 @@ class UFSC_Frontend_Shortcodes {
                         </div>
                     </section>
                     <section class="ufsc-pack-summary" aria-labelledby="ufsc-pack-title">
-						<div class="ufsc-pack-summary__heading">
-							<h3 id="ufsc-pack-title"><?php esc_html_e( 'Pack d’affiliation', 'ufsc-clubs' ); ?></h3>
-							<span><?php echo esc_html( sprintf( __( '%d licence(s) utilisée(s) sur 10', 'ufsc-clubs' ), $pack_usage['total'] ) ); ?></span>
-						</div>
-						<a class="ufsc-pack-card" href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'bureau', self::get_club_portal_url( 'licences' ) ) ); ?>">
-							<span class="ufsc-pack-card__label"><?php esc_html_e( 'Bureau', 'ufsc-clubs' ); ?></span>
-							<strong class="ufsc-pack-card__value"><?php echo esc_html( sprintf( __( '%d/3', 'ufsc-clubs' ), $pack_usage['bureau'] ) ); ?></strong>
-							<span class="ufsc-pack-card__detail"><?php foreach ( array( 'president' => __( 'Président', 'ufsc-clubs' ), 'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ), 'tresorier' => __( 'Trésorier', 'ufsc-clubs' ) ) as $role_key => $role_label ) { echo esc_html( $role_label . ' : ' . ( ! empty( $pack_usage['roles'][ $role_key ] ) ? __( 'renseigné', 'ufsc-clubs' ) : __( 'manquant', 'ufsc-clubs' ) ) . '. ' ); } ?></span>
-						</a>
-						<a class="ufsc-pack-card" href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'libre', self::get_club_portal_url( 'licences' ) ) ); ?>">
-							<span class="ufsc-pack-card__label"><?php esc_html_e( 'Licences libres', 'ufsc-clubs' ); ?></span>
-							<strong class="ufsc-pack-card__value"><?php echo esc_html( sprintf( __( '%d/7', 'ufsc-clubs' ), $pack_usage['libres'] ) ); ?></strong>
-							<span class="ufsc-pack-card__detail"><?php esc_html_e( 'Incluses dans le pack après les trois licences du Bureau.', 'ufsc-clubs' ); ?></span>
-						</a>
-						<a class="ufsc-pack-card" href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'payante', self::get_club_portal_url( 'licences' ) ) ); ?>">
-							<span class="ufsc-pack-card__label"><?php esc_html_e( 'Licences supplémentaires', 'ufsc-clubs' ); ?></span>
-							<strong class="ufsc-pack-card__value"><?php echo esc_html( (int) $pack_usage['payantes'] ); ?></strong>
-							<span class="ufsc-pack-card__detail"><?php esc_html_e( 'Licences payantes au-delà des dix licences du pack.', 'ufsc-clubs' ); ?></span>
-						</a>
-					</section>
+                        <?php
+                        $pack_limit = function_exists( 'ufsc_get_pack_included_limit' ) ? ufsc_get_pack_included_limit() : 10;
+                        $pack_used = min( $pack_limit, max( 0, (int) $pack_usage['total'] ) );
+                        $pack_remaining = max( 0, $pack_limit - $pack_used );
+                        ?>
+                        <div class="ufsc-pack-summary__heading">
+                            <h3 id="ufsc-pack-title"><?php esc_html_e( 'Licences incluses dans votre affiliation', 'ufsc-clubs' ); ?></h3>
+                            <span><?php echo esc_html( sprintf( __( '%1$d/%2$d utilisées — %3$d restante(s)', 'ufsc-clubs' ), $pack_used, $pack_limit, $pack_remaining ) ); ?></span>
+                        </div>
+                        <a class="ufsc-pack-card" href="<?php echo esc_url( self::get_club_portal_url( 'licences' ) ); ?>">
+                            <span class="ufsc-pack-card__label"><?php esc_html_e( 'Quota inclus', 'ufsc-clubs' ); ?></span>
+                            <strong class="ufsc-pack-card__value"><?php echo esc_html( sprintf( __( '%1$d/%2$d', 'ufsc-clubs' ), $pack_used, $pack_limit ) ); ?></strong>
+                            <span class="ufsc-pack-card__detail"><?php echo esc_html( $pack_remaining > 0
+                                ? sprintf( _n( 'Encore %d licence incluse sans paiement.', 'Encore %d licences incluses sans paiement.', $pack_remaining, 'ufsc-clubs' ), $pack_remaining )
+                                : __( 'Quota atteint : toute nouvelle licence ou tout renouvellement supplémentaire sera ajouté au panier.', 'ufsc-clubs' ) ); ?></span>
+                        </a>
+                        <div class="ufsc-pack-card" aria-label="<?php esc_attr_e( 'Dirigeants renseignés dans le pack', 'ufsc-clubs' ); ?>">
+                            <span class="ufsc-pack-card__label"><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></span>
+                            <strong class="ufsc-pack-card__value"><?php echo esc_html( (int) $pack_usage['bureau'] ); ?></strong>
+                            <span class="ufsc-pack-card__detail"><?php foreach ( array( 'president' => __( 'Président', 'ufsc-clubs' ), 'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ), 'tresorier' => __( 'Trésorier', 'ufsc-clubs' ) ) as $role_key => $role_label ) { echo esc_html( $role_label . ' : ' . ( ! empty( $pack_usage['roles'][ $role_key ] ) ? __( 'renseigné', 'ufsc-clubs' ) : __( 'manquant', 'ufsc-clubs' ) ) . '. ' ); } ?></span>
+                        </div>
+                        <a class="ufsc-pack-card" href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'payante', self::get_club_portal_url( 'licences' ) ) ); ?>">
+                            <span class="ufsc-pack-card__label"><?php esc_html_e( 'Licences supplémentaires payantes', 'ufsc-clubs' ); ?></span>
+                            <strong class="ufsc-pack-card__value"><?php echo esc_html( (int) $pack_usage['payantes'] ); ?></strong>
+                            <span class="ufsc-pack-card__detail"><?php esc_html_e( 'Uniquement au-delà des dix licences incluses dans l’affiliation.', 'ufsc-clubs' ); ?></span>
+                        </a>
+                    </section>
 
 
                     </div>
