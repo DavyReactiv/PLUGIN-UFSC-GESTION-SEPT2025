@@ -3764,7 +3764,7 @@ body .wp-block-post-content > .ufsc-club-account {
 
 /* Dashboard demographics: a compact, high-contrast panel inside the blue hero. */
 .ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-header--premium {
- height: auto !important;
+ height: auto;
  min-height: 0;
 }
 
@@ -3791,10 +3791,10 @@ body .wp-block-post-content > .ufsc-club-account {
 
 .ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-card {
  align-items: center;
- background: #f6f9fd !important;
+ background: #f6f9fd;
  border: 1px solid #d8e7f6;
  border-radius: 14px;
- color: #173b67 !important;
+ color: #173b67;
  display: grid;
  gap: 8px;
  grid-template-columns: minmax(0, 1fr) auto;
@@ -3802,32 +3802,32 @@ body .wp-block-post-content > .ufsc-club-account {
  min-block-size: 78px;
  padding: 12px 14px;
  text-align: left;
- text-decoration: none !important;
+ text-decoration: none;
 }
 
 .ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-card :is(span, small, p) {
- color: #173b67 !important;
+ color: #173b67;
  font-size: .9rem;
  font-weight: 750;
  line-height: 1.25;
  margin: 0;
  overflow-wrap: normal;
- text-decoration: none !important;
+ text-decoration: none;
  word-break: normal;
 }
 
 .ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-card strong {
- color: #0b5fa5 !important;
+ color: #0b5fa5;
  font-size: 2rem;
  line-height: 1;
- text-decoration: none !important;
+ text-decoration: none;
 }
 
 .ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-card:is(:hover, :focus-visible) {
- background: #eaf4ff !important;
+ background: #eaf4ff;
  border-color: #0b5fa5;
  box-shadow: 0 0 0 3px rgba(11, 95, 165, .16);
- color: #073b69 !important;
+ color: #073b69;
 }
 
 @media (max-width: 600px) {
@@ -3864,13 +3864,13 @@ body .wp-block-post-content > .ufsc-club-account {
 }
 
 .ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-group .ufsc-demographic-card {
- background: #ffffff !important;
+ background: #ffffff;
  min-block-size: 0;
  padding: 10px 12px;
 }
 
 .ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-card small {
- color: #5b7089 !important;
+ color: #5b7089;
  font-size: .76rem;
  font-weight: 700;
  grid-column: 1 / -1;
