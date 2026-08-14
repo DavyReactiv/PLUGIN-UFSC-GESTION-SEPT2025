@@ -3882,3 +3882,36 @@ body .wp-block-post-content > .ufsc-club-account {
  }
 }
 
+/* Club account navigation final contract — equal tabs, stable responsive grid. */
+.ufsc-club-portal .ufsc-club-account__nav.ufsc-club-portal__nav {
+ display: grid;
+ grid-template-columns: repeat(6, minmax(0, 1fr));
+ gap: 8px;
+ align-items: stretch;
+ inline-size: 100%;
+ max-inline-size: 100%;
+ overflow: visible;
+}
+.ufsc-club-portal .ufsc-club-account__nav.ufsc-club-portal__nav > a {
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ inline-size: 100%;
+ min-inline-size: 0;
+ min-block-size: 48px;
+ block-size: 100%;
+ padding: 10px 12px;
+ text-align: center;
+ line-height: 1.2;
+ white-space: normal;
+ overflow-wrap: anywhere;
+}
+@media (max-width: 899px) {
+ .ufsc-club-portal .ufsc-club-account__nav.ufsc-club-portal__nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 599px) {
+ .ufsc-club-portal .ufsc-club-account__nav.ufsc-club-portal__nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+ .ufsc-club-portal .ufsc-club-account__nav.ufsc-club-portal__nav { grid-template-columns: minmax(0, 1fr); }
+}

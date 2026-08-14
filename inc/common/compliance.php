@@ -15,19 +15,28 @@ function ufsc_normalize_club_role( $role ) {
 	return in_array( $key, $allowed, true ) ? $key : '';
 }
 
-/** Pure 3-office/7-free allocation rule, also used by runtime tests. */
+/** Canonical affiliation pack limit: ten included licences per club and season. */
+function ufsc_get_pack_included_limit() {
+	$settings = function_exists( 'ufsc_get_woocommerce_settings' ) ? (array) ufsc_get_woocommerce_settings() : array();
+	$limit = isset( $settings['included_licenses'] ) ? (int) $settings['included_licenses'] : 10;
+	return max( 0, (int) apply_filters( 'ufsc_pack_included_limit', $limit ) );
+}
+
+/**
+ * Pure pack allocation rule. The first ten licences are included regardless of
+ * creation order; the 11th and following licences are payable. Bureau/libre is
+ * retained only as a presentation bucket and never reduces the ten-place quota.
+ */
 function ufsc_resolve_pack_credit( $role, $included_roles ) {
 	$role = ufsc_normalize_club_role( $role );
 	$included_roles = array_map( 'ufsc_normalize_club_role', (array) $included_roles );
-	$office = array( 'president', 'secretaire', 'tresorier' );
-	if ( in_array( $role, $office, true ) && ! in_array( $role, $included_roles, true ) ) {
-		return array( 'included' => true, 'bucket' => 'bureau', 'role' => $role );
+	$limit = ufsc_get_pack_included_limit();
+	if ( count( $included_roles ) >= $limit ) {
+		return array( 'included' => false, 'bucket' => 'payante', 'role' => $role );
 	}
-	$filled_office_slots = count( array_intersect( $office, array_unique( $included_roles ) ) );
-	$free_used = max( 0, count( $included_roles ) - $filled_office_slots );
-	return $free_used < 7
-		? array( 'included' => true, 'bucket' => 'libre', 'role' => $role )
-		: array( 'included' => false, 'bucket' => 'payante', 'role' => $role );
+	$office = array( 'president', 'secretaire', 'tresorier' );
+	$bucket = in_array( $role, $office, true ) && ! in_array( $role, $included_roles, true ) ? 'bureau' : 'libre';
+	return array( 'included' => true, 'bucket' => $bucket, 'role' => $role );
 }
 
 /** Atomically reserve the season's appropriate pack credit for one licence. */

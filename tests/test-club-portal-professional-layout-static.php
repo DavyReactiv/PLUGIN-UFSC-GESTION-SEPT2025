@@ -51,12 +51,14 @@ foreach ( array(
     'class="ufsc-pack-card"',
     'class="ufsc-pack-card__label"',
     'class="ufsc-pack-card__value"',
-    'Licences libres',
-    'Licences supplémentaires',
+    'Licences incluses dans votre affiliation',
+    'Quota inclus',
+    'Licences supplémentaires payantes',
     'class="ufsc-logo-editor__title"',
 ) as $markup_contract ) {
     $assert( false !== strpos( $front, $markup_contract ), 'Missing professional portal markup: ' . $markup_contract );
 }
+$assert( false === strpos( $front, "'%d/7'" ), 'The portal must not present the obsolete seven-free quota.' );
 
 $assert( false !== strpos( $portal_css, '.ufsc-club-portal .ufsc-pack-summary a' ) && false !== strpos( $portal_css, 'min-width: 220px' ), 'Affiliation cards need a readable minimum width.' );
 $assert( false !== strpos( $portal_css, '.ufsc-club-portal .ufsc-club-account__nav a' ) && false !== strpos( $portal_css, 'min-height: 44px' ), 'Account tabs must preserve 44px targets.' );

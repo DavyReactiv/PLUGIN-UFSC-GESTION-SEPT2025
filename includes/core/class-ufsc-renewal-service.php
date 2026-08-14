@@ -39,8 +39,18 @@ final class UFSC_Renewal_Service {
             if ( ! $valid || $valid->format( 'Y-m-d' ) !== $value ) { $errors['date_naissance'] = __( 'Date de naissance invalide.', 'ufsc-clubs' ); }
             $data['date_naissance'] = $value;
         }
-        $level = function_exists( 'ufsc_normalize_fighter_level' ) ? ufsc_normalize_fighter_level( $raw['fighter_level'] ?? $source->fighter_level ?? '' ) : sanitize_key( (string) ( $raw['fighter_level'] ?? $source->fighter_level ?? '' ) );
-        if ( ! isset( ufsc_get_sport_level_options()[$level] ) ) { $errors['fighter_level'] = __( 'Le niveau sportif est obligatoire pour renouveler cette licence.', 'ufsc-clubs' ); }
+        $birth_for_level = $data['date_naissance'] ?? ( $source->date_naissance ?? '' );
+        $level_source = array_key_exists( 'fighter_level', $raw ) ? $raw['fighter_level'] : ( $source->fighter_level ?? '' );
+        $level = function_exists( 'ufsc_normalize_fighter_level' ) ? ufsc_normalize_fighter_level( $level_source ) : sanitize_key( (string) $level_source );
+        if ( function_exists( 'ufsc_is_selectable_fighter_level' ) && ! ufsc_is_selectable_fighter_level( $level ) && function_exists( 'ufsc_get_default_fighter_level' ) ) {
+            $level = ufsc_get_default_fighter_level( $birth_for_level );
+        }
+        if ( function_exists( 'ufsc_validate_fighter_level' ) ) {
+            $level_validation = ufsc_validate_fighter_level( $level, $birth_for_level, false );
+            if ( is_wp_error( $level_validation ) ) { $errors['fighter_level'] = $level_validation->get_error_message(); }
+        } elseif ( ! isset( ufsc_get_sport_level_options()[$level] ) ) {
+            $errors['fighter_level'] = __( 'Le niveau sportif est obligatoire pour renouveler cette licence.', 'ufsc-clubs' );
+        }
         $data['fighter_level'] = $level;
         $weight = UFSC_Category_Repository::normalize_weight( $raw['poids'] ?? $source->poids ?? '' );
         if ( null === $weight || $weight < 20 || $weight > 300 ) { $errors['poids'] = __( 'Le poids déclaré doit être compris entre 20 et 300 kg.', 'ufsc-clubs' ); }

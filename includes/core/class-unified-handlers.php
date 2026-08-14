@@ -1449,10 +1449,14 @@ class UFSC_Unified_Handlers {
         }
 		if ( '' !== $role ) { $data['role'] = $role; }
 
+		if ( ! $is_draft && empty( $data['fighter_level'] ) && function_exists( 'ufsc_get_default_fighter_level' ) ) {
+			$data['fighter_level'] = ufsc_get_default_fighter_level( $date_naissance );
+		}
 		if ( function_exists( 'ufsc_validate_fighter_level' ) && ( ! $is_draft || ! empty( $data['fighter_level'] ) ) ) {
-			$level_validation = ufsc_validate_fighter_level( $data['fighter_level'] ?? '', $date_naissance, true );
+			$level_validation = ufsc_validate_fighter_level( $data['fighter_level'] ?? '', $date_naissance, $is_draft );
 			if ( is_wp_error( $level_validation ) ) {
 				$errors[] = $level_validation->get_error_message();
+				$structured_errors[] = array( 'field' => 'fighter_level', 'label' => __( 'Niveau du boxeur', 'ufsc-clubs' ), 'step' => 2, 'message' => $level_validation->get_error_message() );
 			}
 		}
 

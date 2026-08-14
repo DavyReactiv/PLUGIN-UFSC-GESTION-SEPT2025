@@ -439,26 +439,33 @@ class UFSC_Frontend_Shortcodes {
                         </div>
                     </section>
                     <section class="ufsc-pack-summary" aria-labelledby="ufsc-pack-title">
-						<div class="ufsc-pack-summary__heading">
-							<h3 id="ufsc-pack-title"><?php esc_html_e( 'Pack d’affiliation', 'ufsc-clubs' ); ?></h3>
-							<span><?php echo esc_html( sprintf( __( '%d licence(s) utilisée(s) sur 10', 'ufsc-clubs' ), $pack_usage['total'] ) ); ?></span>
-						</div>
-						<a class="ufsc-pack-card" href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'bureau', self::get_club_portal_url( 'licences' ) ) ); ?>">
-							<span class="ufsc-pack-card__label"><?php esc_html_e( 'Bureau', 'ufsc-clubs' ); ?></span>
-							<strong class="ufsc-pack-card__value"><?php echo esc_html( sprintf( __( '%d/3', 'ufsc-clubs' ), $pack_usage['bureau'] ) ); ?></strong>
-							<span class="ufsc-pack-card__detail"><?php foreach ( array( 'president' => __( 'Président', 'ufsc-clubs' ), 'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ), 'tresorier' => __( 'Trésorier', 'ufsc-clubs' ) ) as $role_key => $role_label ) { echo esc_html( $role_label . ' : ' . ( ! empty( $pack_usage['roles'][ $role_key ] ) ? __( 'renseigné', 'ufsc-clubs' ) : __( 'manquant', 'ufsc-clubs' ) ) . '. ' ); } ?></span>
-						</a>
-						<a class="ufsc-pack-card" href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'libre', self::get_club_portal_url( 'licences' ) ) ); ?>">
-							<span class="ufsc-pack-card__label"><?php esc_html_e( 'Licences libres', 'ufsc-clubs' ); ?></span>
-							<strong class="ufsc-pack-card__value"><?php echo esc_html( sprintf( __( '%d/7', 'ufsc-clubs' ), $pack_usage['libres'] ) ); ?></strong>
-							<span class="ufsc-pack-card__detail"><?php esc_html_e( 'Incluses dans le pack après les trois licences du Bureau.', 'ufsc-clubs' ); ?></span>
-						</a>
-						<a class="ufsc-pack-card" href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'payante', self::get_club_portal_url( 'licences' ) ) ); ?>">
-							<span class="ufsc-pack-card__label"><?php esc_html_e( 'Licences supplémentaires', 'ufsc-clubs' ); ?></span>
-							<strong class="ufsc-pack-card__value"><?php echo esc_html( (int) $pack_usage['payantes'] ); ?></strong>
-							<span class="ufsc-pack-card__detail"><?php esc_html_e( 'Licences payantes au-delà des dix licences du pack.', 'ufsc-clubs' ); ?></span>
-						</a>
-					</section>
+                        <?php
+                        $pack_limit = function_exists( 'ufsc_get_pack_included_limit' ) ? ufsc_get_pack_included_limit() : 10;
+                        $pack_used = min( $pack_limit, max( 0, (int) $pack_usage['total'] ) );
+                        $pack_remaining = max( 0, $pack_limit - $pack_used );
+                        ?>
+                        <div class="ufsc-pack-summary__heading">
+                            <h3 id="ufsc-pack-title"><?php esc_html_e( 'Licences incluses dans votre affiliation', 'ufsc-clubs' ); ?></h3>
+                            <span><?php echo esc_html( sprintf( __( '%1$d/%2$d utilisées — %3$d restante(s)', 'ufsc-clubs' ), $pack_used, $pack_limit, $pack_remaining ) ); ?></span>
+                        </div>
+                        <a class="ufsc-pack-card" href="<?php echo esc_url( self::get_club_portal_url( 'licences' ) ); ?>">
+                            <span class="ufsc-pack-card__label"><?php esc_html_e( 'Quota inclus', 'ufsc-clubs' ); ?></span>
+                            <strong class="ufsc-pack-card__value"><?php echo esc_html( sprintf( __( '%1$d/%2$d', 'ufsc-clubs' ), $pack_used, $pack_limit ) ); ?></strong>
+                            <span class="ufsc-pack-card__detail"><?php echo esc_html( $pack_remaining > 0
+                                ? sprintf( _n( 'Encore %d licence incluse sans paiement.', 'Encore %d licences incluses sans paiement.', $pack_remaining, 'ufsc-clubs' ), $pack_remaining )
+                                : __( 'Quota atteint : toute nouvelle licence ou tout renouvellement supplémentaire sera ajouté au panier.', 'ufsc-clubs' ) ); ?></span>
+                        </a>
+                        <div class="ufsc-pack-card" aria-label="<?php esc_attr_e( 'Dirigeants renseignés dans le pack', 'ufsc-clubs' ); ?>">
+                            <span class="ufsc-pack-card__label"><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></span>
+                            <strong class="ufsc-pack-card__value"><?php echo esc_html( (int) $pack_usage['bureau'] ); ?></strong>
+                            <span class="ufsc-pack-card__detail"><?php foreach ( array( 'president' => __( 'Président', 'ufsc-clubs' ), 'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ), 'tresorier' => __( 'Trésorier', 'ufsc-clubs' ) ) as $role_key => $role_label ) { echo esc_html( $role_label . ' : ' . ( ! empty( $pack_usage['roles'][ $role_key ] ) ? __( 'renseigné', 'ufsc-clubs' ) : __( 'manquant', 'ufsc-clubs' ) ) . '. ' ); } ?></span>
+                        </div>
+                        <a class="ufsc-pack-card" href="<?php echo esc_url( add_query_arg( 'ufsc_pack', 'payante', self::get_club_portal_url( 'licences' ) ) ); ?>">
+                            <span class="ufsc-pack-card__label"><?php esc_html_e( 'Licences supplémentaires payantes', 'ufsc-clubs' ); ?></span>
+                            <strong class="ufsc-pack-card__value"><?php echo esc_html( (int) $pack_usage['payantes'] ); ?></strong>
+                            <span class="ufsc-pack-card__detail"><?php esc_html_e( 'Uniquement au-delà des dix licences incluses dans l’affiliation.', 'ufsc-clubs' ); ?></span>
+                        </a>
+                    </section>
 
 
                     </div>
@@ -984,14 +991,14 @@ class UFSC_Frontend_Shortcodes {
             <?php if ( 'save_draft' === ( $saved['state'] ?? '' ) && $saved_ids ) : ?><aside class="ufsc-message ufsc-info ufsc-renewal-draft-panel" aria-labelledby="ufsc-renewal-draft-title"><strong id="ufsc-renewal-draft-title"><?php esc_html_e( 'Un brouillon de renouvellement existe.', 'ufsc-clubs' ); ?></strong><p><a class="ufsc-btn ufsc-btn-primary" href="<?php echo esc_url( add_query_arg( 'ufsc_renew_step', 2, $pagination_url ) ); ?>"><?php esc_html_e( 'Reprendre le brouillon', 'ufsc-clubs' ); ?></a> <button form="ufsc-renewal-assistant-form" type="submit" name="ufsc_renew_intent" value="cancel" class="ufsc-btn ufsc-btn-secondary" onclick="return window.confirm('<?php echo esc_js( __( 'Supprimer ce brouillon ?', 'ufsc-clubs' ) ); ?>');"><?php esc_html_e( 'Supprimer le brouillon', 'ufsc-clubs' ); ?></button> <a class="ufsc-btn ufsc-btn-secondary" href="<?php echo esc_url( $pagination_url ); ?>"><?php esc_html_e( 'Retourner à la liste', 'ufsc-clubs' ); ?></a></p></aside><?php endif; ?>
             <form id="ufsc-renewal-assistant-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" data-initial-step="<?php echo 2 === $requested_step || $requested_source ? '2' : '1'; ?>">
                 <?php wp_nonce_field( 'ufsc_bulk_renew_licences_' . $club_id ); ?><input type="hidden" name="action" value="ufsc_bulk_renew_licences"><input type="hidden" name="ufsc_club_id" value="<?php echo esc_attr( $club_id ); ?>"><input type="hidden" name="ufsc_target_season" value="<?php echo esc_attr( $target ); ?>">
-                <div class="ufsc-front-table-scroll<?php echo $requested_source ? ' ufsc-is-hidden' : ''; ?>" <?php echo $requested_source ? 'hidden' : ''; ?> tabindex="0" role="region" aria-label="<?php esc_attr_e( 'Licences renouvelables', 'ufsc-clubs' ); ?>"><table class="ufsc-licence-table ufsc-renewal-table"><thead><tr><th><?php esc_html_e( 'Sélection', 'ufsc-clubs' ); ?></th><th><?php esc_html_e( 'Identité', 'ufsc-clubs' ); ?></th><th><?php esc_html_e( 'N° UFSC', 'ufsc-clubs' ); ?></th><th><?php esc_html_e( 'Niveau sportif', 'ufsc-clubs' ); ?></th><th><?php esc_html_e( 'Poids', 'ufsc-clubs' ); ?></th><th><?php esc_html_e( 'État et action', 'ufsc-clubs' ); ?></th></tr></thead><tbody>
+                <div class="ufsc-front-table-scroll<?php echo $requested_source ? ' ufsc-is-hidden' : ''; ?>" <?php echo $requested_source ? 'hidden' : ''; ?> tabindex="0" role="region" aria-label="<?php esc_attr_e( 'Licences renouvelables', 'ufsc-clubs' ); ?>"><table class="ufsc-licence-table ufsc-renewal-table"><thead><tr><th><?php esc_html_e( 'Sélection', 'ufsc-clubs' ); ?></th><th><?php esc_html_e( 'Identité', 'ufsc-clubs' ); ?></th><th><?php esc_html_e( 'N° UFSC', 'ufsc-clubs' ); ?></th><th><?php esc_html_e( 'Niveau du boxeur', 'ufsc-clubs' ); ?></th><th><?php esc_html_e( 'Poids', 'ufsc-clubs' ); ?></th><th><?php esc_html_e( 'État et action', 'ufsc-clubs' ); ?></th></tr></thead><tbody>
                 <?php foreach ( $rows as $row ) :
                     $context = ufsc_get_licence_season_context_status( $row, $target );
                     $source_row = $row; $row = clone $row;
                     foreach ( (array) ( $saved_profiles[absint( $row->id )] ?? array() ) as $saved_field => $saved_value ) { if ( in_array( $saved_field, UFSC_Renewal_Service::editable_renewal_fields(), true ) && ! is_array( $saved_value ) ) { $row->{$saved_field} = $saved_value; } }
                     $state = $context['renewal_state'] ?? 'blocked';
                     $counts[ isset( $counts[ $state ] ) ? $state : 'blocked' ]++;
-                    $level = function_exists( 'ufsc_normalize_fighter_level' ) ? ufsc_normalize_fighter_level( $row->fighter_level ?? '' ) : sanitize_key( (string) ( $row->fighter_level ?? '' ) );
+                    $level = function_exists( 'ufsc_normalize_fighter_level' ) ? ufsc_normalize_fighter_level( $row->fighter_level ?? '' ) : sanitize_key( (string) ( $row->fighter_level ?? '' ) ); if ( function_exists( 'ufsc_is_selectable_fighter_level' ) && ! ufsc_is_selectable_fighter_level( $level ) && function_exists( 'ufsc_get_default_fighter_level' ) ) { $level = ufsc_get_default_fighter_level( $row->date_naissance ?? '' ); }
                     $weight = trim( (string) ( $row->poids ?? '' ) );
                     $selectable = ! empty( $context['renewal_allowed'] );
                     $required_values = array( 'nom' => $row->nom ?? '', 'prenom' => $row->prenom ?? '', 'email' => $row->email ?? '', 'date_naissance' => $row->date_naissance ?? '', 'sexe' => $row->sexe ?? '', 'adresse' => $row->adresse ?? '', 'ville' => $row->ville ?? '', 'code_postal' => $row->code_postal ?? '', 'fighter_level' => $level, 'poids' => $weight );
@@ -1021,7 +1028,7 @@ class UFSC_Frontend_Shortcodes {
                         <label><?php esc_html_e( 'Téléphone principal', 'ufsc-clubs' ); ?><input type="tel" name="<?php echo esc_attr( $prefix . '[telephone]' ); ?>" value="<?php echo esc_attr( $row->telephone ?? '' ); ?>"></label>
                         <label><?php esc_html_e( 'Rôle dans le club', 'ufsc-clubs' ); ?><input type="text" name="<?php echo esc_attr( $prefix . '[role]' ); ?>" value="<?php echo esc_attr( $row->role ?? '' ); ?>"></label>
                         <label><?php esc_html_e( 'Type de pratique / discipline', 'ufsc-clubs' ); ?><input type="text" name="<?php echo esc_attr( $prefix . '[pratique]' ); ?>" value="<?php echo esc_attr( $row->pratique ?? $row->discipline ?? '' ); ?>"></label>
-                        <label><?php esc_html_e( 'Niveau sportif', 'ufsc-clubs' ); ?><select name="<?php echo esc_attr( $prefix . '[fighter_level]' ); ?>"><option value=""><?php esc_html_e( 'Non renseigné', 'ufsc-clubs' ); ?></option><?php foreach ( ufsc_get_sport_level_options() as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $level, $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><small><?php echo esc_html( ufsc_get_sport_level_help() ); ?></small></label>
+                        <label><?php esc_html_e( 'Niveau du boxeur', 'ufsc-clubs' ); ?><select name="<?php echo esc_attr( $prefix . '[fighter_level]' ); ?>"><option value=""><?php esc_html_e( 'Non renseigné', 'ufsc-clubs' ); ?></option><?php foreach ( ufsc_get_sport_level_options() as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $level, $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><small><?php echo esc_html( ufsc_get_sport_level_help() ); ?></small></label>
                         <label><?php esc_html_e( 'Poids déclaratif courant (kg)', 'ufsc-clubs' ); ?><input type="text" inputmode="decimal" pattern="[0-9]+([,.][0-9]+)?" name="<?php echo esc_attr( $prefix . '[poids]' ); ?>" value="<?php echo esc_attr( $weight ); ?>"><small><?php esc_html_e( 'La pesée officielle historique n’est jamais modifiée.', 'ufsc-clubs' ); ?></small></label>
                         <label><input type="checkbox" name="<?php echo esc_attr( $prefix . '[competition]' ); ?>" value="1" <?php checked( ! empty( $row->competition ) ); ?>> <?php esc_html_e( 'Pratique en compétition', 'ufsc-clubs' ); ?></label>
                         </div>
@@ -2292,14 +2299,14 @@ class UFSC_Frontend_Shortcodes {
 							<small><?php echo esc_html( sprintf( __( 'Utilisé pour détecter automatiquement la catégorie Kickboxing / Tatami / Assaut pour la saison %s.', 'ufsc-clubs' ), class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ) ) ); ?></small>
                         </div>
                         <div class="ufsc-field ufsc-field--full">
-                            <label for="fighter_level"><?php esc_html_e( 'Niveau sportif', 'ufsc-clubs' ); ?></label>
+                            <label for="fighter_level"><?php esc_html_e( 'Niveau du boxeur', 'ufsc-clubs' ); ?></label>
                             <select id="fighter_level" name="fighter_level" data-ufsc-fighter-level data-veteran-min-age="<?php echo esc_attr( ufsc_get_veteran_min_age() ); ?>">
                                 <option value=""><?php esc_html_e( 'Non renseigné', 'ufsc-clubs' ); ?></option>
                                 <?php foreach ( ufsc_get_fighter_levels() as $level_key => $level_label ) : ?>
                                     <option value="<?php echo esc_attr( $level_key ); ?>" <?php selected( $form_data['fighter_level'] ?? '', $level_key ); ?>><?php echo esc_html( $level_label ); ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <small data-ufsc-level-help><?php echo esc_html( sprintf( __( 'Mineur : Assaut. Majeur : Classe C, Classe B ou Classe A. Vétéran à partir de %d ans.', 'ufsc-clubs' ), ufsc_get_veteran_min_age() ) ); ?></small>
+                            <small data-ufsc-level-help><?php echo esc_html( ufsc_get_sport_level_help() ); ?></small>
                         </div>
                     </div>
 
