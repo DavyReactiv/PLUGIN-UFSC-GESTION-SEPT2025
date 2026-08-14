@@ -26,10 +26,10 @@ $assert(
 	&& false !== strpos( $level, "'classe_c'  =>" )
 	&& false !== strpos( $level, "'assaut'    =>" )
 	&& false !== strpos( $level, "'veteran'   =>" )
-	&& false !== strpos( $level, "return $age < 18 ? 'assaut' : 'classe_c';" ),
+	&& false !== strpos( $level, "return \$age < 18 ? 'assaut' : 'classe_c';" ),
 	'Les niveaux PRO/A/B/C/ASSAUT/VÉTÉRAN et les défauts mineur/majeur sont validés côté serveur.'
 );
-$assert( false !== strpos( $level, '$allow_empty' ) && false !== strpos( $level, "'debutant' === $key" ), 'Une ancienne licence vide ou Débutant reste compatible sans migration destructive.' );
+$assert( false !== strpos( $level, '$allow_empty' ) && false !== strpos( $level, "'debutant' === \$key" ), 'Une ancienne licence vide ou Débutant reste compatible sans migration destructive.' );
 $assert( false !== strpos( $front, 'data-ufsc-fighter-level' ), 'Le formulaire front expose le niveau sportif.' );
 $assert( false !== strpos( $admin, 'filter_level' ) && false !== strpos( $admin, 'ufsc_fighter_level_label' ), 'Le tableau admin filtre et affiche le niveau.' );
 $assert( false !== strpos( $woo, "'fighter_level'" ) && false !== strpos( $woo, "'previous_licence_id'" ), 'Le renouvellement conserve niveau et filiation sans modifier la source.' );
