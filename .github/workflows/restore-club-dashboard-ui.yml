@@ -1,0 +1,34 @@
+name: Restore club dashboard UI
+
+on:
+  push:
+    branches:
+      - agent/restore-club-dashboard-ui
+
+permissions:
+  contents: write
+
+jobs:
+  restore:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/restore-club-dashboard-ui
+          fetch-depth: 0
+      - name: Apply recovered dashboard corrections
+        run: python .github/scripts/restore-club-dashboard-ui.py
+      - name: Validate PHP syntax
+        run: php -l includes/frontend/class-frontend-shortcodes.php
+      - name: Remove temporary restoration helpers
+        run: |
+          rm .github/scripts/restore-club-dashboard-ui.py
+          rm .github/workflows/restore-club-dashboard-ui.yml
+      - name: Commit restored files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/css/ufsc-front.css includes/frontend/class-frontend-shortcodes.php .github/scripts/restore-club-dashboard-ui.py .github/workflows/restore-club-dashboard-ui.yml
+          git commit -m "Restore club dashboard UI corrections"
+          git push origin HEAD:agent/restore-club-dashboard-ui
