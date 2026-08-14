@@ -3719,3 +3719,166 @@ body .wp-block-post-content > .ufsc-club-account {
   min-block-size: 44px;
  }
 }
+
+/* Final portal layout precedence.
+ * Keep these rules last: this stylesheet contains older tablet breakpoints
+ * for the same selectors, while the dashboard and account navigation now
+ * use their own component layout contracts. */
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-header--premium {
+ display: block;
+ grid-template-columns: none;
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-hero-layout {
+ display: grid;
+ grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+ width: 100%;
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 :is(.ufsc-hero-left, .ufsc-hero-right) {
+ grid-column: auto;
+ min-width: 0;
+}
+
+@media (min-width: 900px) {
+ .ufsc-club-portal .ufsc-club-account__nav {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+ }
+}
+
+@media (min-width: 768px) and (max-width: 899px) {
+ .ufsc-club-portal .ufsc-club-account__nav {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+ }
+}
+
+@media (max-width: 767px) {
+ .ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-hero-layout {
+  grid-template-columns: minmax(0, 1fr);
+ }
+
+ .ufsc-club-portal .ufsc-club-account__nav {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+ }
+}
+
+/* Dashboard demographics: a compact, high-contrast panel inside the blue hero. */
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-dashboard-header--premium {
+ height: auto;
+ min-height: 0;
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-summary {
+ background: #ffffff;
+ border: 1px solid #cbdff3;
+ border-radius: 18px;
+ box-shadow: 0 14px 32px rgba(3, 27, 49, .18);
+ color: #0f172a;
+ margin: 0;
+ padding: 18px;
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-summary h3 {
+ color: #0b3b66;
+ font-size: 1.15rem;
+ margin: 0 0 14px;
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-grid {
+ gap: 12px;
+ grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-card {
+ align-items: center;
+ background: #f6f9fd;
+ border: 1px solid #d8e7f6;
+ border-radius: 14px;
+ color: #173b67;
+ display: grid;
+ gap: 8px;
+ grid-template-columns: minmax(0, 1fr) auto;
+ line-height: 1.25;
+ min-block-size: 78px;
+ padding: 12px 14px;
+ text-align: left;
+ text-decoration: none;
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-card :is(span, small, p) {
+ color: #173b67;
+ font-size: .9rem;
+ font-weight: 750;
+ line-height: 1.25;
+ margin: 0;
+ overflow-wrap: normal;
+ text-decoration: none;
+ word-break: normal;
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-card strong {
+ color: #0b5fa5;
+ font-size: 2rem;
+ line-height: 1;
+ text-decoration: none;
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-card:is(:hover, :focus-visible) {
+ background: #eaf4ff;
+ border-color: #0b5fa5;
+ box-shadow: 0 0 0 3px rgba(11, 95, 165, .16);
+ color: #073b69;
+}
+
+@media (max-width: 600px) {
+ .ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-grid {
+  grid-template-columns: minmax(0, 1fr);
+ }
+}
+
+/* Meaningful demographic breakdown: sex, age and practice. */
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-groups {
+ display: grid;
+ gap: 14px;
+ grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-group {
+ background: #f8fbff;
+ border: 1px solid #d8e7f6;
+ border-radius: 14px;
+ padding: 12px;
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-group h4 {
+ color: #0b3b66;
+ font-size: .82rem;
+ letter-spacing: .02em;
+ margin: 0 0 10px;
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-group .ufsc-demographic-grid {
+ display: grid;
+ gap: 8px;
+ grid-template-columns: minmax(0, 1fr);
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-group .ufsc-demographic-card {
+ background: #ffffff;
+ min-block-size: 0;
+ padding: 10px 12px;
+}
+
+.ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-card small {
+ color: #5b7089;
+ font-size: .76rem;
+ font-weight: 700;
+ grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+ .ufsc-club-account.ufsc-club-dashboard.ufsc-premium-v3 .ufsc-demographic-groups {
+  grid-template-columns: minmax(0, 1fr);
+ }
+}
+
