@@ -5503,7 +5503,7 @@ class UFSC_SQL_Admin
             'nom'                        => 'l.nom',
             'prenom'                     => 'l.prenom',
             'date_naissance'             => 'l.date_naissance',
-            'fighter_level'              => "CASE l.fighter_level WHEN 'assaut' THEN 'Assaut' WHEN 'classe_c' THEN 'Classe C' WHEN 'classe_b' THEN 'Classe B' WHEN 'classe_a' THEN 'Classe A' WHEN 'veteran' THEN 'Vétéran' ELSE 'Non renseigné' END AS fighter_level",
+            'fighter_level'              => "CASE l.fighter_level WHEN 'pro' THEN 'Pro' WHEN 'classe_a' THEN 'Classe A' WHEN 'classe_b' THEN 'Classe B' WHEN 'classe_c' THEN 'Classe C' WHEN 'assaut' THEN 'Assaut' WHEN 'veteran' THEN 'Vétéran' WHEN 'debutant' THEN 'Débutant' ELSE 'Non renseigné' END AS fighter_level",
             'sexe'                       => 'l.sexe',
             'email'                      => 'l.email',
             'adresse'                    => 'l.adresse',

@@ -18,20 +18,25 @@
 		const birth = $('#date_naissance');
 		const level = $('[data-ufsc-fighter-level]');
 		if (!birth.length || !level.length) return;
+		let userSelected = Boolean(level.val());
+		level.on('change', function() { userSelected = Boolean(level.val()); });
 		function refreshLevelOptions() {
 			const date = birth.val() ? new Date(birth.val() + 'T00:00:00') : null;
 			const now = new Date();
 			let age = date && !isNaN(date.getTime()) ? now.getFullYear() - date.getFullYear() : null;
 			if (date && (now.getMonth() < date.getMonth() || (now.getMonth() === date.getMonth() && now.getDate() < date.getDate()))) age--;
 			level.find('option').prop('hidden', false);
-			if (age === null) return;
-			level.find('option[value="assaut"]').prop('hidden', age >= 18);
-			level.find('option[value^="classe_"]').prop('hidden', age < 18);
+			if (age === null || age < 0) return;
+			level.find('option[value="pro"], option[value^="classe_"]').prop('hidden', age < 18);
 			const veteranMinAge = parseInt(level.attr('data-veteran-min-age'), 10) || 41;
 			level.find('option[value="veteran"]').prop('hidden', age < veteranMinAge);
-			if (level.find('option:selected').prop('hidden')) level.val('');
+			if (level.find('option:selected').prop('hidden')) { level.val(''); userSelected = false; }
+			if (!userSelected && !level.val()) {
+				level.val(age < 18 ? 'assaut' : 'classe_c').trigger('change.select2');
+			}
 		}
-		birth.on('change input', refreshLevelOptions);
+		birth.on('change input', function() { if (!level.data('ufsc-manual-level')) userSelected = false; refreshLevelOptions(); });
+		level.on('change', function() { if (document.activeElement === level[0]) level.data('ufsc-manual-level', true); });
 		refreshLevelOptions();
 	}
 
