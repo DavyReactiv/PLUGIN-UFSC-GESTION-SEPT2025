@@ -380,36 +380,65 @@ class UFSC_Frontend_Shortcodes {
                         <aside class="ufsc-attestation-card ufsc-card" aria-label="<?php esc_attr_e( 'Attestation UFSC', 'ufsc-clubs' ); ?>"><strong><?php esc_html_e( 'Attestation UFSC', 'ufsc-clubs' ); ?></strong><span class="ufsc-badge <?php echo ! empty( $attestation_dashboard['url'] ) ? 'ufsc-badge-success' : 'ufsc-badge-warning'; ?>"><?php echo ! empty( $attestation_dashboard['url'] ) ? esc_html__( 'Disponible', 'ufsc-clubs' ) : ( ! empty( $attestation_dashboard['can_view'] ) ? esc_html__( 'Génération en cours', 'ufsc-clubs' ) : esc_html__( 'Informations manquantes', 'ufsc-clubs' ) ); ?></span><small><?php echo ! empty( $attestation_dashboard['url'] ) ? esc_html__( 'Votre attestation est prête à être consultée et téléchargée.', 'ufsc-clubs' ) : ( ! empty( $attestation_dashboard['can_view'] ) ? esc_html__( 'Le document est en préparation. Aucune action n’est nécessaire.', 'ufsc-clubs' ) : esc_html__( 'Complétez les informations du club pour permettre sa génération.', 'ufsc-clubs' ) ); ?></small><?php if ( ! empty( $attestation_dashboard['url'] ) ) : ?><a class="ufsc-btn ufsc-btn-secondary" href="<?php echo esc_url( $attestation_dashboard['url'] ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'Consulter / Télécharger', 'ufsc-clubs' ); ?></a><?php endif; ?></aside>
                     </div>
 
-                    <div class="ufsc-hero-right"><div class="ufsc-hero-kpi-grid" aria-label="<?php esc_attr_e( 'Indicateurs de la saison active', 'ufsc-clubs' ); ?>">
-                        <?php $kpis = array(
-                            array( sprintf( __( 'Licences validées %s', 'ufsc-clubs' ), $season ), (int) $stats['validated_licences'], add_query_arg( array( 'ufsc_status' => 'valide', 'ufsc_season' => $season ), self::get_club_portal_url( 'licences' ) ), sprintf( __( 'Licences validées du club pour la saison active %s.', 'ufsc-clubs' ), $season ) ),
-                            array( __( 'En attente de validation', 'ufsc-clubs' ), (int) ( $status_counts['en_attente'] ?? 0 ), add_query_arg( array( 'ufsc_status' => 'en_attente', 'ufsc_season' => $season ), self::get_club_portal_url( 'licences' ) ), __( 'Dossiers soumis qui attendent une validation administrative.', 'ufsc-clubs' ) ),
+                    <div class="ufsc-hero-right"><div class="ufsc-hero-kpi-grid" aria-label="<?php esc_attr_e( 'Indicateurs de la saison active', 'ufsc-clubs' ); ?>">                        <?php $kpis = array(
+                            array( sprintf( __( 'Licences %s', 'ufsc-clubs' ), $season ), (int) $stats['total_licences'], add_query_arg( 'ufsc_season', $season, self::get_club_portal_url( 'licences' ) ), sprintf( __( 'Dossiers du club appartenant à la saison active %s.', 'ufsc-clubs' ), $season ) ),
+                            array( __( 'Licences validées', 'ufsc-clubs' ), (int) $stats['validated_licences'], add_query_arg( array( 'ufsc_status' => 'valide', 'ufsc_season' => $season ), self::get_club_portal_url( 'licences' ) ), __( 'Licences validées du club pour la saison active.', 'ufsc-clubs' ) ),
                             array( __( 'Brouillons / à compléter', 'ufsc-clubs' ), (int) $draft_licences, add_query_arg( array( 'ufsc_status' => 'brouillon', 'ufsc_season' => $season ), self::get_club_portal_url( 'licences' ) ), __( 'Brouillons explicitement enregistrés pour la saison active.', 'ufsc-clubs' ) ),
-                            array( sprintf( __( 'Licences %1$s à renouveler vers %2$s', 'ufsc-clubs' ), $previous_season, $season ), (int) $renewable_licences, self::get_club_portal_url( 'licences-renouvellement' ), __( 'Licences validées de la saison précédente encore éligibles au renouvellement.', 'ufsc-clubs' ) ),
+                            array( __( 'Licences à renouveler', 'ufsc-clubs' ), (int) $renewable_licences, self::get_club_portal_url( 'licences-renouvellement' ), __( 'Licences de la saison précédente encore éligibles au renouvellement.', 'ufsc-clubs' ) ),
                             array( __( 'Paiements à finaliser', 'ufsc-clubs' ), (int) $payable_licences, add_query_arg( 'ufsc_renew_state', 'payable', self::get_club_portal_url( 'licences-renouvellement' ) ), __( 'Demandes du club dont le règlement peut encore être finalisé.', 'ufsc-clubs' ) ),
                             array( sprintf( __( 'Documents manquants %s', 'ufsc-clubs' ), $season ), (int) $honorability_kpis['incomplete'], add_query_arg( 'ufsc_renew_state', 'incomplete', self::get_club_portal_url( 'licences-renouvellement' ) ), sprintf( __( 'Documents manquants uniquement sur les dossiers du club rattachés à %s.', 'ufsc-clubs' ), $season ) ),
                         ); foreach ( $kpis as $kpi ) : ?><a class="ufsc-card ufsc-kpi-tile ufsc-hero-kpi-card" href="<?php echo esc_url( $kpi[2] ); ?>" title="<?php echo esc_attr( $kpi[3] ); ?>" aria-label="<?php echo esc_attr( $kpi[0] . ' — ' . $kpi[1] . '. ' . $kpi[3] ); ?>"><span class="ufsc-kpi-tile-label"><?php echo esc_html( $kpi[0] ); ?></span><strong class="ufsc-kpi-tile-value"><?php echo esc_html( $kpi[1] ); ?></strong></a><?php endforeach; ?>
                     </div></div>
-					<section class="ufsc-demographic-summary" aria-labelledby="ufsc-demographic-title">
-						<h3 id="ufsc-demographic-title"><?php esc_html_e( 'Profil des licenciés', 'ufsc-clubs' ); ?></h3>
-						<div class="ufsc-demographic-grid">
-						<?php
-						$demographic_kpis = array(
-							array( __( 'Femmes', 'ufsc-clubs' ), (int) ( $stats['by_gender']['F'] ?? 0 ), array( 'ufsc_gender' => 'F' ) ),
-							array( __( 'Hommes', 'ufsc-clubs' ), (int) ( $stats['by_gender']['M'] ?? 0 ), array( 'ufsc_gender' => 'M' ) ),
-							array( __( 'Mineurs', 'ufsc-clubs' ), (int) ( $stats['by_age']['minor'] ?? 0 ), array( 'ufsc_age' => 'minor' ) ),
-							array( __( 'Majeurs', 'ufsc-clubs' ), (int) ( $stats['by_age']['adult'] ?? 0 ), array( 'ufsc_age' => 'adult' ) ),
-							array( __( 'Loisirs', 'ufsc-clubs' ), (int) ( $stats['by_practice']['leisure'] ?? 0 ), array( 'ufsc_practice' => 'leisure' ) ),
-							array( __( 'Compétiteurs', 'ufsc-clubs' ), (int) ( $stats['by_practice']['competition'] ?? 0 ), array( 'ufsc_practice' => 'competition' ) ),
-							array( __( 'Non renseigné', 'ufsc-clubs' ), (int) ( $stats['unknown_profiles'] ?? 0 ), array( 'ufsc_missing_profile' => '1' ) ),
-						);
-						foreach ( $demographic_kpis as $demographic ) :
-							$url = add_query_arg( array_merge( array( 'ufsc_season' => $season ), $demographic[2] ), self::get_club_portal_url( 'licences' ) );
-							$percentage = $stats['validated_licences'] > 0 ? round( 100 * $demographic[1] / $stats['validated_licences'] ) : 0;
-						?><a class="ufsc-card ufsc-demographic-card" href="<?php echo esc_url( $url ); ?>"><span><?php echo esc_html( $demographic[0] ); ?></span><strong><?php echo esc_html( $demographic[1] ); ?></strong><small><?php echo esc_html( sprintf( __( '%d %% des licences validées', 'ufsc-clubs' ), $percentage ) ); ?></small></a><?php endforeach; ?>
-						</div>
-					</section>
-					<section class="ufsc-pack-summary" aria-labelledby="ufsc-pack-title">
+                    <section class="ufsc-demographic-summary" aria-labelledby="ufsc-demographic-title">
+                        <h3 id="ufsc-demographic-title"><?php esc_html_e( 'Profil des licenciés', 'ufsc-clubs' ); ?></h3>
+                        <?php
+                        $profile_total = max( 0, (int) ( $stats['total_licences'] ?? 0 ) );
+                        $demographic_groups = array(
+                            array(
+                                'label' => __( 'Répartition par sexe', 'ufsc-clubs' ),
+                                'items' => array(
+                                    array( __( 'Femmes', 'ufsc-clubs' ), (int) ( $stats['by_gender']['F'] ?? 0 ), array( 'ufsc_gender' => 'F' ) ),
+                                    array( __( 'Hommes', 'ufsc-clubs' ), (int) ( $stats['by_gender']['M'] ?? 0 ), array( 'ufsc_gender' => 'M' ) ),
+                                ),
+                            ),
+                            array(
+                                'label' => __( 'Répartition par âge', 'ufsc-clubs' ),
+                                'items' => array(
+                                    array( __( 'Mineurs', 'ufsc-clubs' ), (int) ( $stats['by_age']['minor'] ?? 0 ), array( 'ufsc_age' => 'minor' ) ),
+                                    array( __( 'Majeurs', 'ufsc-clubs' ), (int) ( $stats['by_age']['adult'] ?? 0 ), array( 'ufsc_age' => 'adult' ) ),
+                                ),
+                            ),
+                            array(
+                                'label' => __( 'Répartition par pratique', 'ufsc-clubs' ),
+                                'items' => array(
+                                    array( __( 'Loisirs', 'ufsc-clubs' ), (int) ( $stats['by_practice']['leisure'] ?? 0 ), array( 'ufsc_practice' => 'leisure' ) ),
+                                    array( __( 'Compétiteurs', 'ufsc-clubs' ), (int) ( $stats['by_practice']['competition'] ?? 0 ), array( 'ufsc_practice' => 'competition' ) ),
+                                ),
+                            ),
+                        );
+                        ?>
+                        <div class="ufsc-demographic-groups">
+                            <?php foreach ( $demographic_groups as $group ) : ?>
+                                <section class="ufsc-demographic-group">
+                                    <h4><?php echo esc_html( $group['label'] ); ?></h4>
+                                    <div class="ufsc-demographic-grid">
+                                        <?php foreach ( $group['items'] as $demographic ) :
+                                            $count = max( 0, (int) $demographic[1] );
+                                            $percent = $profile_total > 0 ? (int) round( ( $count / $profile_total ) * 100 ) : 0;
+                                            $url = add_query_arg( array_merge( array( 'ufsc_season' => $season ), $demographic[2] ), self::get_club_portal_url( 'licences' ) );
+                                        ?>
+                                            <a class="ufsc-card ufsc-demographic-card" href="<?php echo esc_url( $url ); ?>" aria-label="<?php echo esc_attr( sprintf( __( '%1$s : %2$d licencié(s), soit %3$d %% du total.', 'ufsc-clubs' ), $demographic[0], $count, $percent ) ); ?>">
+                                                <span class="ufsc-demographic-card__label"><?php echo esc_html( $demographic[0] ); ?></span>
+                                                <strong><?php echo esc_html( $count ); ?></strong>
+                                                <small><?php echo esc_html( sprintf( __( '%d %% des licenciés', 'ufsc-clubs' ), $percent ) ); ?></small>
+                                            </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </section>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+                    <section class="ufsc-pack-summary" aria-labelledby="ufsc-pack-title">
 						<div class="ufsc-pack-summary__heading">
 							<h3 id="ufsc-pack-title"><?php esc_html_e( 'Pack d’affiliation', 'ufsc-clubs' ); ?></h3>
 							<span><?php echo esc_html( sprintf( __( '%d licence(s) utilisée(s) sur 10', 'ufsc-clubs' ), $pack_usage['total'] ) ); ?></span>
