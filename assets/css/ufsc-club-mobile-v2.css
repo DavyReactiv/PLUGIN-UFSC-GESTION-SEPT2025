@@ -1,0 +1,205 @@
+/* UFSC Compte Club — responsive mobile hardening. No !important. */
+.ufsc-club-portal,
+.ufsc-club-portal * {
+    box-sizing: border-box;
+}
+
+.ufsc-club-portal :is(
+    .ufsc-club-profile-shell,
+    .ufsc-club-profile-layout,
+    .ufsc-club-profile-main,
+    .ufsc-club-hero,
+    .ufsc-card,
+    .ufsc-field,
+    .ufsc-profile-insight-band,
+    .ufsc-section-header,
+    .ufsc-logo-editor,
+    .ufsc-logo-editor__upload,
+    .ufsc-officer-summary
+) {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+}
+
+.ufsc-club-portal :is(input, select, textarea, button, .ufsc-btn) {
+    max-inline-size: 100%;
+}
+
+.ufsc-club-portal :is(
+    .ufsc-permission-notice,
+    .ufsc-club-account__identity dd,
+    .ufsc-club-account__identity a,
+    .ufsc-officer-summary dd,
+    .ufsc-field input,
+    .ufsc-field textarea
+) {
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.ufsc-club-portal .ufsc-profile-actions,
+.ufsc-club-portal .ufsc-affiliation-trace {
+    display: grid;
+    gap: 14px;
+    margin-block: 16px;
+}
+
+.ufsc-club-portal .ufsc-profile-actions__heading :is(h4, p),
+.ufsc-club-portal .ufsc-affiliation-trace h4 {
+    margin: 0;
+}
+
+.ufsc-club-portal .ufsc-profile-actions ul {
+    display: grid;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.ufsc-club-portal .ufsc-profile-actions li {
+    align-items: center;
+    border-top: 1px solid #dbe3ed;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding-top: 10px;
+}
+
+.ufsc-club-portal .ufsc-affiliation-trace dl {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.ufsc-club-portal .ufsc-affiliation-trace dl > div {
+    display: grid;
+    gap: 4px;
+    grid-template-columns: minmax(110px, 0.45fr) minmax(0, 1fr);
+}
+
+.ufsc-club-portal .ufsc-affiliation-trace dt {
+    font-weight: 700;
+}
+
+.ufsc-club-portal .ufsc-affiliation-trace dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+    .ufsc-club-portal {
+        inline-size: calc(100% - 20px);
+        margin-inline: auto;
+        max-inline-size: 100%;
+        overflow-x: clip;
+    }
+
+    .ufsc-club-portal .ufsc-club-profile-shell {
+        inline-size: 100%;
+        overflow-x: clip;
+    }
+
+    .ufsc-club-portal .ufsc-section-header.ufsc-profile-header {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: minmax(0, 1fr);
+        padding: 22px 18px;
+    }
+
+    .ufsc-club-portal .ufsc-section-header.ufsc-profile-header :is(h3, p) {
+        max-inline-size: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .ufsc-club-portal .ufsc-permission-notice {
+        inline-size: 100%;
+        margin: 0;
+    }
+
+    .ufsc-club-portal .ufsc-club-account__nav.ufsc-club-portal__nav {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .ufsc-club-portal .ufsc-club-account__nav.ufsc-club-portal__nav a {
+        align-items: center;
+        display: flex;
+        inline-size: 100%;
+        justify-content: center;
+        min-inline-size: 0;
+        text-align: center;
+    }
+
+    .ufsc-club-portal .ufsc-club-hero {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 14px;
+    }
+
+    .ufsc-club-portal .ufsc-logo-editor {
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: stretch;
+    }
+
+    .ufsc-club-portal .ufsc-logo-editor__preview {
+        grid-row: auto;
+        justify-self: center;
+        max-inline-size: min(100%, 320px);
+    }
+
+    .ufsc-club-portal .ufsc-logo-editor__preview img {
+        block-size: auto;
+        max-inline-size: 100%;
+        object-fit: contain;
+    }
+
+    .ufsc-club-portal .ufsc-logo-editor__remove {
+        grid-column: auto;
+    }
+
+    .ufsc-club-portal .ufsc-logo-editor__upload :is(.ufsc-btn, .ufsc-logo-editor__file) {
+        inline-size: 100%;
+        min-inline-size: 0;
+    }
+
+    .ufsc-club-portal .ufsc-profile-insight-band {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .ufsc-club-portal .ufsc-profile-insight {
+        padding: 14px;
+    }
+
+    .ufsc-club-portal .ufsc-profile-cards > .ufsc-card {
+        padding: 18px 14px;
+    }
+
+    .ufsc-club-portal .ufsc-field :is(input, select, textarea) {
+        inline-size: 100%;
+        min-inline-size: 0;
+    }
+
+    .ufsc-club-portal .ufsc-profile-actions li {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ufsc-club-portal .ufsc-profile-actions .ufsc-btn {
+        inline-size: 100%;
+        min-inline-size: 0;
+    }
+
+    .ufsc-club-portal .ufsc-affiliation-trace dl > div {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 420px) {
+    .ufsc-club-portal .ufsc-profile-insight-band {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ufsc-club-portal .ufsc-club-account__nav.ufsc-club-portal__nav {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
