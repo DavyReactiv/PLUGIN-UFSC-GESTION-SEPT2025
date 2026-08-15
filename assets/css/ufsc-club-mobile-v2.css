@@ -1,4 +1,4 @@
-/* UFSC Compte Club — responsive mobile hardening. No !important. */
+/* UFSC Compte Club — responsive mobile hardening without priority overrides. */
 .ufsc-club-portal,
 .ufsc-club-portal * {
     box-sizing: border-box;
