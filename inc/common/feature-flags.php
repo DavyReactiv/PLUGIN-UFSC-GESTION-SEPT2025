@@ -5,6 +5,11 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Feature flags for UFSC Gestion.
  */
 
+$ufsc_club_dashboard_hardening = dirname( __FILE__ ) . '/club-dashboard-hardening.php';
+if ( file_exists( $ufsc_club_dashboard_hardening ) ) {
+    require_once $ufsc_club_dashboard_hardening;
+}
+
 /**
  * UFSC PATCH: Quotas disabled by default (feature flag).
  *
