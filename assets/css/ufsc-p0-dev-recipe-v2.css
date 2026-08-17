@@ -1,0 +1,172 @@
+/* DEV recipe v2 — compact, readable and resilient mobile account UI. */
+
+/* Do not let inherited Elementor/theme colours make business information vanish. */
+.ufsc-dashboard-wrap .ufsc-pack-status,
+.ufsc-dashboard-wrap .ufsc-pack-status *,
+.ufsc-dashboard-wrap .ufsc-pack-card,
+.ufsc-dashboard-wrap .ufsc-pack-card *,
+.ufsc-dashboard-wrap .ufsc-club-tabs,
+.ufsc-dashboard-wrap .ufsc-club-tabs * {
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.ufsc-dashboard-wrap .ufsc-pack-status > h2,
+.ufsc-dashboard-wrap .ufsc-pack-status > h3,
+.ufsc-dashboard-wrap .ufsc-pack-status > p,
+.ufsc-dashboard-wrap .ufsc-pack-status > div:not(.ufsc-pack-card):not(.ufsc-pack-grid) {
+    color: #fff;
+}
+
+.ufsc-dashboard-wrap .ufsc-pack-card,
+.ufsc-dashboard-wrap .ufsc-pack-card * {
+    color: #14233d;
+}
+
+/* Dirigeants status must remain readable on the blue panel. */
+.ufsc-dashboard-wrap .ufsc-pack-status .ufsc-pack-office,
+.ufsc-dashboard-wrap .ufsc-pack-status .ufsc-pack-office * {
+    color: #fff;
+    opacity: 1;
+}
+
+/* Account/profile actions: compact navigation rather than giant stacked cards. */
+.ufsc-dashboard-wrap .ufsc-club-tabs,
+.ufsc-club-profile .ufsc-club-tabs,
+.ufsc-club-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    margin: 14px 0 20px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.ufsc-dashboard-wrap .ufsc-club-tabs > *,
+.ufsc-club-profile .ufsc-club-tabs > *,
+.ufsc-club-tabs > * {
+    min-width: 0;
+    min-height: 48px;
+    height: auto;
+    margin: 0;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.2;
+    white-space: normal;
+}
+
+/* Profile form content follows navigation immediately and uses the full column. */
+.ufsc-club-profile,
+.ufsc-club-profile form,
+.ufsc-club-profile .ufsc-form-grid,
+.ufsc-club-profile .ufsc-form-section {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
+}
+
+.ufsc-club-profile form {
+    clear: both;
+}
+
+@media (max-width: 782px) {
+    .ufsc-dashboard-wrap,
+    .ufsc-club-profile,
+    .ufsc-club-profile form {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: clip;
+    }
+
+    .ufsc-dashboard-wrap .ufsc-pack-status {
+        padding: 18px 14px;
+        border-radius: 24px;
+    }
+
+    .ufsc-dashboard-wrap .ufsc-pack-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .ufsc-dashboard-wrap .ufsc-pack-card {
+        padding: 16px;
+        border-radius: 18px;
+    }
+
+    .ufsc-dashboard-wrap .ufsc-pack-status .ufsc-pack-office {
+        margin: 10px 0 4px;
+        font-size: 15px;
+        line-height: 1.45;
+    }
+
+    .ufsc-dashboard-wrap .ufsc-club-tabs,
+    .ufsc-club-profile .ufsc-club-tabs,
+    .ufsc-club-tabs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding: 8px;
+        margin: 10px 0 14px;
+    }
+
+    .ufsc-dashboard-wrap .ufsc-club-tabs > *,
+    .ufsc-club-profile .ufsc-club-tabs > *,
+    .ufsc-club-tabs > * {
+        min-height: 44px;
+        padding: 9px 8px;
+        border-radius: 12px;
+        font-size: clamp(14px, 3.7vw, 16px);
+    }
+
+    .ufsc-dashboard-wrap .ufsc-club-tabs > :first-child,
+    .ufsc-club-profile .ufsc-club-tabs > :first-child,
+    .ufsc-club-tabs > :first-child {
+        grid-column: 1 / -1;
+    }
+
+    .ufsc-club-profile .ufsc-form-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .ufsc-club-profile input,
+    .ufsc-club-profile select,
+    .ufsc-club-profile textarea,
+    .ufsc-club-profile button,
+    .ufsc-club-profile .button,
+    .ufsc-club-profile .ufsc-btn {
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .ufsc-p0-licence-decision {
+        margin: 14px 0;
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .ufsc-p0-licence-decision .ufsc-btn {
+        width: 100%;
+        min-height: 48px;
+        white-space: normal;
+        line-height: 1.25;
+    }
+}
+
+@media (max-width: 390px) {
+    .ufsc-dashboard-wrap .ufsc-club-tabs,
+    .ufsc-club-profile .ufsc-club-tabs,
+    .ufsc-club-tabs {
+        grid-template-columns: 1fr;
+    }
+
+    .ufsc-dashboard-wrap .ufsc-club-tabs > :first-child,
+    .ufsc-club-profile .ufsc-club-tabs > :first-child,
+    .ufsc-club-tabs > :first-child {
+        grid-column: auto;
+    }
+}
