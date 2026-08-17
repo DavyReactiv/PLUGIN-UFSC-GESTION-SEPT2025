@@ -20,7 +20,7 @@ $assert( false !== strpos( $p0, 'ufsc_allocate_pack_credit' ), 'server-side pack
 $assert( false !== strpos( $p0, 'Envoyer pour validation — inclus dans votre affiliation' ), 'included licence has a non-payment CTA' );
 $assert( false !== strpos( $p0, 'Ajouter au panier — licence payante' ), 'paid licence has the WooCommerce CTA' );
 $assert( false !== strpos( $p0, 'name="product_id"' ), 'licence detail form posts canonical WooCommerce product id' );
-$assert( false !== strpos( $p0, "$_POST['product_id']" ), 'paid fallback injects canonical product before secure cart handler' );
+$assert( false !== strpos( $p0, "\$_POST['product_id']" ), 'paid fallback injects canonical product before secure cart handler' );
 $assert( false !== strpos( $p0, 'ufsc_handle_add_to_cart_secure();' ), 'paid licences delegate to canonical secure cart handler' );
 $assert( false !== strpos( $p0, "remove_filter( 'do_shortcode_tag', 'ufsc_enrich_club_profile_shortcode_output', 20 )" ), 'misplaced #537 profile enrichment is removed' );
 $assert( false !== strpos( $p0, 'class="ufsc-club-form ufsc-club-profile"' ), 'profile actions are inserted before the real club form, not the logo form' );
