@@ -15,6 +15,11 @@ if ( file_exists( $ufsc_p0_quota_cart_kpi ) ) {
     require_once $ufsc_p0_quota_cart_kpi;
 }
 
+$ufsc_p0_quota_ui = dirname( __FILE__ ) . '/p0-quota-ui.php';
+if ( file_exists( $ufsc_p0_quota_ui ) ) {
+    require_once $ufsc_p0_quota_ui;
+}
+
 /**
  * The affiliation pack is an active business rule: ten licences are included
  * before any additional licence becomes payable. Integrations may still disable
