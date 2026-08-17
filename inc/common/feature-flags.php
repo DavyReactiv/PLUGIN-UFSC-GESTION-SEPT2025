@@ -10,13 +10,20 @@ if ( file_exists( $ufsc_club_dashboard_hardening ) ) {
     require_once $ufsc_club_dashboard_hardening;
 }
 
+$ufsc_p0_quota_cart_kpi = dirname( __FILE__ ) . '/p0-quota-cart-kpi.php';
+if ( file_exists( $ufsc_p0_quota_cart_kpi ) ) {
+    require_once $ufsc_p0_quota_cart_kpi;
+}
+
 /**
- * UFSC PATCH: Quotas disabled by default (feature flag).
+ * The affiliation pack is an active business rule: ten licences are included
+ * before any additional licence becomes payable. Integrations may still disable
+ * the feature explicitly through the filter for isolated tests/migrations.
  *
  * @return bool
  */
 function ufsc_quotas_enabled() {
-    return (bool) apply_filters( 'ufsc_quotas_enabled', false );
+    return (bool) apply_filters( 'ufsc_quotas_enabled', true );
 }
 
 /**
