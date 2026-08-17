@@ -25,6 +25,11 @@ if ( file_exists( $ufsc_p0_dev_recipe_v2 ) ) {
     require_once $ufsc_p0_dev_recipe_v2;
 }
 
+$ufsc_p0_paid_cart_handoff = dirname( __FILE__ ) . '/p0-paid-cart-handoff.php';
+if ( file_exists( $ufsc_p0_paid_cart_handoff ) ) {
+    require_once $ufsc_p0_paid_cart_handoff;
+}
+
 function ufsc_quotas_enabled() {
     return (bool) apply_filters( 'ufsc_quotas_enabled', true );
 }
