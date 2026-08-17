@@ -1,0 +1,85 @@
+/* P0 DEV recipe — quota/cart decision and account layout stabilization. */
+.ufsc-club-portal {
+    inline-size: min(1180px, calc(100% - 32px));
+    max-inline-size: 1180px;
+    margin-inline: auto;
+}
+
+.ufsc-club-portal .ufsc-profile-actions,
+.ufsc-club-portal .ufsc-affiliation-trace {
+    inline-size: 100%;
+    max-inline-size: none;
+    margin-block: 18px;
+}
+
+.ufsc-club-portal .ufsc-affiliation-trace dl > div {
+    grid-template-columns: minmax(140px, 190px) minmax(0, 1fr);
+}
+
+.ufsc-club-portal .ufsc-affiliation-trace :is(dt, dd),
+.ufsc-club-portal .ufsc-profile-actions :is(span, a) {
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: break-word;
+}
+
+.ufsc-club-portal .ufsc-p0-licence-decision {
+    display: grid;
+    gap: 10px;
+    margin-block: 14px;
+    padding: 14px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.ufsc-club-portal .ufsc-p0-licence-decision--included {
+    border-color: #86efac;
+    background: #f0fdf4;
+}
+
+.ufsc-club-portal .ufsc-p0-licence-decision--paid {
+    border-color: #fbbf24;
+    background: #fffbeb;
+}
+
+.ufsc-club-portal .ufsc-p0-licence-decision > :is(strong, p),
+.ufsc-club-portal .ufsc-p0-finalize-form {
+    margin: 0;
+}
+
+.ufsc-club-portal .ufsc-p0-finalize-form .ufsc-btn {
+    min-block-size: 44px;
+    white-space: normal;
+}
+
+@media (min-width: 900px) {
+    .ufsc-club-portal .ufsc-club-profile-shell,
+    .ufsc-club-portal .ufsc-club-profile-layout,
+    .ufsc-club-portal .ufsc-club-profile-main,
+    .ufsc-club-portal .ufsc-profile-cards {
+        inline-size: 100%;
+        max-inline-size: none;
+    }
+
+    .ufsc-club-portal .ufsc-profile-actions,
+    .ufsc-club-portal .ufsc-affiliation-trace {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 767px) {
+    .ufsc-club-portal {
+        inline-size: calc(100% - 20px);
+        max-inline-size: 100%;
+    }
+
+    .ufsc-club-portal .ufsc-affiliation-trace dl > div,
+    .ufsc-club-portal .ufsc-profile-actions li {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ufsc-club-portal .ufsc-p0-finalize-form .ufsc-btn {
+        inline-size: 100%;
+    }
+}
