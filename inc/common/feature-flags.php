@@ -30,6 +30,11 @@ if ( file_exists( $ufsc_p0_paid_cart_handoff ) ) {
     require_once $ufsc_p0_paid_cart_handoff;
 }
 
+$ufsc_p0_dev_recipe_v3 = dirname( __FILE__ ) . '/p0-dev-recipe-v3.php';
+if ( file_exists( $ufsc_p0_dev_recipe_v3 ) ) {
+    require_once $ufsc_p0_dev_recipe_v3;
+}
+
 function ufsc_quotas_enabled() {
     return (bool) apply_filters( 'ufsc_quotas_enabled', true );
 }
