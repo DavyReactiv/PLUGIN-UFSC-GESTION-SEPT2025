@@ -16,9 +16,9 @@ $assert(
 );
 
 $assert(
-    false !== strpos( $flags, "'add_to_cart' === \$intent" ) &&
+    false !== strpos( $flags, "array( 'add_to_cart', 'submit_for_validation' )" ) &&
     false !== strpos( $flags, "add_filter( 'ufsc_role_requires_honorability'" ),
-    'honorability is checkout-nonblocking while remaining part of final validation'
+    'honorability is checkout/validation-submission nonblocking while remaining part of final validation'
 );
 
 $assert(
