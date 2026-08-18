@@ -74,12 +74,9 @@
 
 /*
  * Width hardening. Some theme/Elementor combinations were reintroducing a
- * narrow intrinsic column on detail/profile routes. The portal content must
- * own the available content width, while tables may scroll inside it.
+ * narrow intrinsic column on detail/profile routes. Keep this scoped strictly
+ * to UFSC components so no other Elementor widget is affected.
  */
-body.ufsc-club-portal-page .entry-content,
-body.ufsc-club-portal-page .elementor-shortcode,
-body.ufsc-club-portal-page .elementor-widget-container,
 .ufsc-club-portal,
 .ufsc-dashboard-wrap,
 .ufsc-club-account,
