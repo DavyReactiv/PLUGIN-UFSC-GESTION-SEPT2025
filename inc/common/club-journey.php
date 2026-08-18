@@ -13,6 +13,18 @@ function ufsc_journey_current_season() {
         : ( function_exists( 'ufsc_get_current_season' ) ? (string) ufsc_get_current_season() : '' );
 }
 
+/**
+ * The affiliation includes ten licences as a business rule, not as an optional
+ * checkout preference. Keep the legacy setting readable but never let a saved
+ * false value bypass the included quota and send an included licence to Woo.
+ */
+function ufsc_journey_enforce_pack_business_rule( $settings ) {
+    $settings = is_array( $settings ) ? $settings : array();
+    $settings['auto_consume_included'] = 1;
+    return $settings;
+}
+add_filter( 'option_ufsc_woocommerce_settings', 'ufsc_journey_enforce_pack_business_rule', 100 );
+
 function ufsc_journey_pack_state( $club_id, $season = '' ) {
     $club_id = absint( $club_id );
     $season  = $season ? str_replace( '/', '-', sanitize_text_field( $season ) ) : ufsc_journey_current_season();
@@ -47,16 +59,72 @@ function ufsc_journey_can_manage_licence( $licence ) {
 
 function ufsc_journey_licence_decision( $licence ) {
     $club_id = absint( $licence->club_id ?? 0 );
-    $season  = function_exists( 'ufsc_get_licence_season_label' )
+    // A historical licence is renewed into the active season. Quota decisions
+    // always belong to the target season, never to the archived source season.
+    $licence_season = function_exists( 'ufsc_get_licence_season_label' )
         ? (string) ufsc_get_licence_season_label( $licence )
-        : (string) ( $licence->season ?? $licence->saison ?? ufsc_journey_current_season() );
+        : (string) ( $licence->season ?? $licence->saison ?? '' );
+    $current_season = ufsc_journey_current_season();
+    $season = $licence_season && $licence_season === $current_season ? $licence_season : $current_season;
     $state = ufsc_journey_pack_state( $club_id, $season );
     $payment_status = sanitize_key( (string) ( $licence->payment_status ?? '' ) );
-    if ( ! empty( $licence->is_included ) || in_array( $payment_status, array( 'included', 'incluse', 'pack', 'included_pack' ), true ) ) {
+    if ( $licence_season === $current_season && ( ! empty( $licence->is_included ) || in_array( $payment_status, array( 'included', 'incluse', 'pack', 'included_pack' ), true ) ) ) {
         $state['included'] = true;
     }
+    $state['source_season'] = $licence_season;
     return $state;
 }
+
+/** Persist a lightweight submission audit without requiring a destructive schema migration. */
+function ufsc_journey_record_submission( $licence_id, $club_id, $season, $context = 'club' ) {
+    global $wpdb;
+    $licence_id = absint( $licence_id );
+    $club_id    = absint( $club_id );
+    if ( $licence_id < 1 || $club_id < 1 || ! function_exists( 'ufsc_get_licences_table' ) ) { return; }
+    $table   = ufsc_get_licences_table();
+    $columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : array();
+    $now     = current_time( 'mysql' );
+    foreach ( array( 'submitted_at', 'requested_at', 'date_soumission' ) as $column ) {
+        if ( in_array( $column, $columns, true ) ) {
+            $wpdb->update( $table, array( $column => $now ), array( 'id' => $licence_id, 'club_id' => $club_id ), array( '%s' ), array( '%d', '%d' ) );
+            break;
+        }
+    }
+    update_option(
+        'ufsc_licence_submission_' . $licence_id,
+        array(
+            'licence_id' => $licence_id,
+            'club_id'    => $club_id,
+            'season'     => sanitize_text_field( $season ),
+            'submitted_at' => $now,
+            'submitted_by' => get_current_user_id(),
+            'context'      => sanitize_key( $context ),
+        ),
+        false
+    );
+}
+
+/** Capture included submissions performed by the canonical unified handler. */
+function ufsc_journey_capture_pending_submission( $club_id ) {
+    static $running = false;
+    if ( $running || ! function_exists( 'ufsc_get_licences_table' ) ) { return; }
+    $running = true;
+    global $wpdb;
+    $table = ufsc_get_licences_table();
+    $columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : array();
+    $status_col = in_array( 'statut', $columns, true ) ? 'statut' : ( in_array( 'status', $columns, true ) ? 'status' : '' );
+    if ( $status_col ) {
+        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE club_id=%d AND `{$status_col}`=%s ORDER BY id DESC LIMIT 20", absint( $club_id ), 'en_attente' ) );
+        foreach ( (array) $rows as $row ) {
+            $payment = sanitize_key( (string) ( $row->payment_status ?? '' ) );
+            if ( in_array( $payment, array( 'included', 'incluse', 'pack', 'included_pack' ), true ) && ! get_option( 'ufsc_licence_submission_' . absint( $row->id ), false ) ) {
+                ufsc_journey_record_submission( $row->id, $club_id, ufsc_journey_current_season(), 'club_included' );
+            }
+        }
+    }
+    $running = false;
+}
+add_action( 'ufsc_licence_updated', 'ufsc_journey_capture_pending_submission', 50, 1 );
 
 function ufsc_journey_render_finalize_form( $licence ) {
     if ( ! $licence || ! ufsc_journey_can_manage_licence( $licence ) ) { return ''; }
@@ -125,6 +193,7 @@ function ufsc_journey_finalize_licence() {
         if ( in_array( 'payment_status', $columns, true ) ) {
             $wpdb->update( $table, array( 'payment_status' => 'included' ), array( 'id' => $licence_id ), array( '%s' ), array( '%d' ) );
         }
+        ufsc_journey_record_submission( $licence_id, $club_id, $season, 'club_included' );
         do_action( 'ufsc_licence_updated', $club_id );
         wp_safe_redirect( add_query_arg( array( 'ufsc_message' => 'licence_included', 'licence_id' => $licence_id ), wp_get_referer() ?: home_url() ) );
         exit;
@@ -195,6 +264,80 @@ function ufsc_journey_trace_box( $club_id, $season ) {
     </section><?php return ob_get_clean();
 }
 
+/** Build the renewal wizard URL for one historical source licence. */
+function ufsc_journey_renewal_url( $licence_id, $target_season ) {
+    $base = class_exists( 'UFSC_Frontend_Shortcodes' )
+        ? UFSC_Frontend_Shortcodes::get_club_portal_url( 'licences-renouvellement' )
+        : home_url( '/tableau-de-bord-club/' );
+    return add_query_arg(
+        array(
+            'ufsc_section'    => 'licences-renouvellement',
+            'renew_source_id' => absint( $licence_id ),
+            'target_season'   => sanitize_text_field( $target_season ),
+            'ufsc_renew_step' => 2,
+        ),
+        $base
+    ) . '#ufsc-renouvellement';
+}
+
+/** Replace one direct-cart form with the canonical licence/renewal decision. */
+function ufsc_journey_replace_detail_cart_form( $output, $licence ) {
+    if ( ! $licence ) { return $output; }
+    $id = absint( $licence->id ?? 0 );
+    if ( $id < 1 ) { return $output; }
+    $decision = ufsc_journey_licence_decision( $licence );
+    $current  = ufsc_journey_current_season();
+    $source   = (string) ( $decision['source_season'] ?? '' );
+    $form_pattern = '~<form\b[^>]*>(?:(?!</form>).)*?<input[^>]+name=["\']action["\'][^>]+value=["\']ufsc_add_to_cart["\'][^>]*>(?:(?!</form>).)*?<input[^>]+name=["\']ufsc_license_ids["\'][^>]+value=["\']' . preg_quote( (string) $id, '~' ) . '["\'][^>]*>(?:(?!</form>).)*?</form>~is';
+
+    if ( $source && $current && $source !== $current ) {
+        $label = $decision['included']
+            ? __( 'Renouveler — inclus dans votre affiliation', 'ufsc-clubs' )
+            : __( 'Renouveler cette licence', 'ufsc-clubs' );
+        $replacement = '<div class="ufsc-journey-renewal-cta"><div class="ufsc-journey-decision ' . ( $decision['included'] ? 'ufsc-journey-decision--included' : 'ufsc-journey-decision--paid' ) . '"><strong>'
+            . ( $decision['included'] ? esc_html__( 'Renouvellement inclus', 'ufsc-clubs' ) : esc_html__( 'Renouvellement supplémentaire', 'ufsc-clubs' ) )
+            . '</strong><span>'
+            . ( $decision['included'] ? esc_html( sprintf( __( '%d licence(s) incluse(s) restante(s). Le renouvellement ne passe pas par le panier.', 'ufsc-clubs' ), $decision['remaining'] ) ) : esc_html__( 'Le quota inclus est utilisé. Le paiement sera demandé après vérification.', 'ufsc-clubs' ) )
+            . '</span></div><a class="ufsc-btn ufsc-btn-primary" href="' . esc_url( ufsc_journey_renewal_url( $id, $current ) ) . '">' . esc_html( $label ) . '</a></div>';
+        return preg_replace( $form_pattern, $replacement, $output, 1 );
+    }
+
+    $status = function_exists( 'ufsc_get_licence_status_from_record' ) ? ufsc_get_licence_status_from_record( $licence ) : sanitize_key( (string) ( $licence->statut ?? '' ) );
+    if ( in_array( $status, array( 'brouillon', 'non_payee', 'a_regler' ), true ) ) {
+        $finalize = ufsc_journey_render_finalize_form( $licence );
+        if ( $finalize ) { return preg_replace( $form_pattern, $finalize, $output, 1 ); }
+    }
+    return $output;
+}
+
+/** Present the renewal assistant according to the current pack state. */
+function ufsc_journey_filter_renewal_wizard( $output, $club_id, $season ) {
+    if ( false === strpos( $output, 'ufsc-renewal-wizard' ) ) { return $output; }
+    $state = ufsc_journey_pack_state( $club_id, $season );
+    if ( ! $state['included'] ) {
+        $output = str_replace( '>Ajouter au panier<', '>Ajouter au panier — licences payantes<', $output );
+        return $output;
+    }
+
+    $banner = '<div class="ufsc-journey-renewal-quota" role="status"><strong>' . esc_html__( 'Renouvellements inclus disponibles', 'ufsc-clubs' ) . '</strong><span>'
+        . esc_html( sprintf( __( '%1$d/%2$d utilisées — %3$d restante(s). Les renouvellements utilisent d’abord votre quota, sans paiement.', 'ufsc-clubs' ), $state['used'], $state['limit'], $state['remaining'] ) ) . '</span></div>';
+    $output = preg_replace( '~(<p class="ufsc-renewal-season-context"[^>]*>.*?</p>)~is', '$1' . $banner, $output, 1 );
+    $output = preg_replace( '~(<li[^>]+data-ufsc-step-indicator=["\']3["\'][^>]*>.*?<strong>3</strong>)\s*Ajouter au panier(.*?</li>)~isu', '$1 ' . esc_html__( 'Finaliser', 'ufsc-clubs' ) . '$2', $output, 1 );
+    $output = preg_replace_callback(
+        '~<button\b(?=[^>]*name=["\']ufsc_renew_intent["\'])(?=[^>]*value=["\']add_to_cart["\'])[^>]*>.*?</button>~is',
+        static function( $match ) {
+            $button = preg_replace( '~\sdisabled(?:=["\']disabled["\'])?~i', '', $match[0] );
+            $button = preg_replace( '~data-ufsc-product-ready=["\'][01]["\']~i', 'data-ufsc-product-ready="1"', $button );
+            $button = preg_replace( '~>\s*Ajouter au panier\s*</button>~iu', '>' . esc_html__( 'Finaliser — quota inclus en priorité', 'ufsc-clubs' ) . '</button>', $button );
+            return $button;
+        },
+        $output,
+        1
+    );
+    $output = preg_replace( '~(<span[^>]+id=["\']ufsc-cart-readiness["\'][^>]*>).*?(</span>)~is', '$1' . esc_html__( 'Les licences sélectionnées consommeront d’abord les places incluses. Seules celles au-delà du quota nécessiteront un panier.', 'ufsc-clubs' ) . '$2', $output, 1 );
+    return $output;
+}
+
 function ufsc_journey_filter_shortcode_output( $output, $tag, $attr, $m ) {
     unset( $attr, $m );
     if ( ! is_user_logged_in() ) { return $output; }
@@ -223,15 +366,56 @@ function ufsc_journey_filter_shortcode_output( $output, $tag, $attr, $m ) {
         $decision = ufsc_journey_pack_state( $club_id, $season );
         if ( $decision['included'] ) {
             $output = str_replace( 'Vérification obligatoire avant paiement', 'Vérification obligatoire avant envoi', $output );
-            $output = str_replace( 'Une fois le paiement effectué, la licence passe en traitement et ne peut plus être modifiée en autonomie.', 'Une fois la demande envoyée, la licence passe en traitement et ne peut plus être modifiée en autonomie.', $output );
+            $output = str_replace( 'Une fois le paiement effectué, la licence passe en traitement et ne peut plus être modifiée en autonomie.', 'Une fois la demande envoyée, la licence passe en traitement UFSC et ne peut plus être modifiée en autonomie.', $output );
             $output = str_replace( 'Toute correction demandée après paiement est soumise à des frais de traitement administratif de 5 €.', 'Vérifiez soigneusement les informations avant l’envoi pour éviter toute demande de correction.', $output );
             $output = str_replace( 'Enregistrez un brouillon pour compléter la licence plus tard. Ajoutez au panier uniquement lorsque toutes les informations ont été vérifiées.', 'Enregistrez un brouillon pour compléter la licence plus tard. Cette licence est incluse dans votre affiliation et ne nécessite aucun paiement.', $output );
             $output = preg_replace( '~(<button[^>]+name="ufsc_submit_action"[^>]+value="add_to_cart"[^>]*>)\s*Ajouter au panier\s*(</button>)~iu', '$1' . esc_html__( 'Envoyer pour validation — inclus dans votre affiliation', 'ufsc-clubs' ) . '$2', $output, 1 );
+        } else {
+            $output = preg_replace( '~(<button[^>]+name="ufsc_submit_action"[^>]+value="add_to_cart"[^>]*>)\s*Ajouter au panier\s*(</button>)~iu', '$1' . esc_html__( 'Ajouter au panier — licence supplémentaire payante', 'ufsc-clubs' ) . '$2', $output, 1 );
+        }
+    }
+
+    if ( $club_id > 0 ) {
+        $output = ufsc_journey_filter_renewal_wizard( $output, $club_id, $season );
+    }
+
+    $view_id = isset( $_GET['view_licence'] ) ? absint( wp_unslash( $_GET['view_licence'] ) ) : 0;
+    if ( $view_id > 0 && $club_id > 0 ) {
+        $licence = ufsc_journey_get_licence( $view_id );
+        if ( $licence && ufsc_journey_can_manage_licence( $licence ) ) {
+            $output = ufsc_journey_replace_detail_cart_form( $output, $licence );
         }
     }
     return $output;
 }
 add_filter( 'do_shortcode_tag', 'ufsc_journey_filter_shortcode_output', 100, 4 );
+
+/** Admin visibility: make club submissions impossible to miss. */
+function ufsc_journey_admin_pending_notice() {
+    if ( ! is_admin() || ! current_user_can( 'manage_options' ) || ! function_exists( 'ufsc_get_licences_table' ) ) { return; }
+    $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+    $pages = array( 'ufsc_lc_licences', 'ufsc-gestion-licences', 'ufsc-licences', 'ufsc-sql-licences', 'ufsc-sql-licenses' );
+    if ( ! in_array( $page, $pages, true ) ) { return; }
+    global $wpdb;
+    $table = ufsc_get_licences_table();
+    $columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : array();
+    $status_col = in_array( 'statut', $columns, true ) ? 'statut' : ( in_array( 'status', $columns, true ) ? 'status' : '' );
+    if ( ! $status_col ) { return; }
+    $season = ufsc_journey_current_season();
+    $where = "`{$status_col}` = %s";
+    $args  = array( 'en_attente' );
+    foreach ( array( 'season', 'saison', 'paid_season' ) as $season_col ) {
+        if ( in_array( $season_col, $columns, true ) ) {
+            $where .= " AND `{$season_col}` = %s";
+            $args[] = $season;
+            break;
+        }
+    }
+    $count = absint( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM `{$table}` WHERE {$where}", ...$args ) ) );
+    if ( $count < 1 ) { return; }
+    echo '<div class="notice notice-warning"><p><strong>' . esc_html( sprintf( _n( '%d licence envoyée par un club est à valider.', '%d licences envoyées par les clubs sont à valider.', $count, 'ufsc-clubs' ), $count ) ) . '</strong> ' . esc_html( sprintf( __( 'Saison %s — ces dossiers ne sont plus des brouillons.', 'ufsc-clubs' ), $season ) ) . '</p></div>';
+}
+add_action( 'admin_notices', 'ufsc_journey_admin_pending_notice', 20 );
 
 function ufsc_journey_enqueue_assets() {
     if ( is_admin() || ! defined( 'UFSC_CL_URL' ) ) { return; }
