@@ -26,7 +26,7 @@ $assert( false !== strpos( $journey, "\$_POST['product_id']" ), 'paid handoff in
 $assert( false !== strpos( $journey, 'ufsc_handle_add_to_cart_secure();' ), 'paid licences delegate to canonical secure cart handler' );
 $assert( false !== strpos( $journey, "validated_licences'] ?? 0" ), 'club journey active-licence count uses validated current-season licences' );
 $assert( false !== strpos( $stats, 'if ( ! $official ) { continue; }' ), 'demographics remain official/validated only' );
-$assert( false !== strpos( $handlers, "if ( ! empty( $allocation['included'] ) )" ), 'canonical unified flow still short-circuits included licences before cart' );
+$assert( false !== strpos( $handlers, "if ( ! empty( \$allocation['included'] ) )" ), 'canonical unified flow still short-circuits included licences before cart' );
 $assert( false !== strpos( $cart, 'ufsc_add_licence_ids_to_cart_idempotent' ), 'paid Woo cart insertion remains idempotent' );
 $assert( false === strpos( $css, '!important' ), 'consolidated journey stylesheet adds no important overrides' );
 $assert( false !== strpos( $css, '@media (max-width: 820px)' ), 'consolidated journey includes responsive tablet/mobile contract' );
