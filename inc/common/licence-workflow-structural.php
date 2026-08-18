@@ -48,7 +48,7 @@ function ufsc_structural_season_sql( $table, $season ) {
 
 /**
  * Guarantee the included transition after the canonical save has persisted data.
- * This hook is intentionally idempotent: repeated calls cannot consume a second credit.
+ * This function receives a real licence ID and is intentionally idempotent.
  */
 function ufsc_structural_finalize_saved_licence( $licence_id ) {
     static $running = array();
@@ -101,12 +101,23 @@ function ufsc_structural_finalize_saved_licence( $licence_id ) {
     if ( function_exists( 'ufsc_journey_record_submission' ) ) {
         ufsc_journey_record_submission( $licence_id, $club_id, $season, 'club_included_structural' );
     }
-    if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) { ufsc_flush_table_columns_cache(); }
-
     unset( $running[ $licence_id ] );
 }
-add_action( 'ufsc_licence_created', 'ufsc_structural_finalize_saved_licence', 1, 1 );
-add_action( 'ufsc_licence_updated', 'ufsc_structural_finalize_saved_licence', 1, 1 );
+
+/** Creation hook provides the real new licence ID. */
+function ufsc_structural_finalize_created_licence( $licence_id, $club_id = 0 ) {
+    unset( $club_id );
+    ufsc_structural_finalize_saved_licence( $licence_id );
+}
+add_action( 'ufsc_licence_created', 'ufsc_structural_finalize_created_licence', 1, 2 );
+
+/** Update hook historically provides club_id, so resolve licence_id from the authenticated form request. */
+function ufsc_structural_finalize_updated_request( $club_id ) {
+    unset( $club_id );
+    $licence_id = isset( $_POST['licence_id'] ) && ! is_array( $_POST['licence_id'] ) ? absint( wp_unslash( $_POST['licence_id'] ) ) : 0;
+    if ( $licence_id > 0 ) { ufsc_structural_finalize_saved_licence( $licence_id ); }
+}
+add_action( 'ufsc_licence_updated', 'ufsc_structural_finalize_updated_request', 1, 1 );
 
 /** Preserve the archives route even when a legacy GET form omitted ufsc_section. */
 function ufsc_structural_preserve_portal_route() {
@@ -144,11 +155,12 @@ function ufsc_structural_admin_pending_notice() {
 }
 add_action( 'admin_notices', 'ufsc_structural_admin_pending_notice', 21 );
 
-/** Front/admin assets are scoped to UFSC pages only. */
+/** Front assets are scoped to UFSC components only. */
 function ufsc_structural_enqueue_front_assets() {
     if ( is_admin() || ! defined( 'UFSC_CL_URL' ) ) { return; }
-    wp_enqueue_style( 'ufsc-structural-portal', UFSC_CL_URL . 'assets/css/ufsc-structural-portal.css', array( 'ufsc-front' ), defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
-    wp_enqueue_script( 'ufsc-structural-portal', UFSC_CL_URL . 'assets/js/ufsc-structural-portal.js', array(), defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null, true );
+    $version = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/css/ufsc-structural-portal.css' ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
+    wp_enqueue_style( 'ufsc-structural-portal', UFSC_CL_URL . 'assets/css/ufsc-structural-portal.css', array( 'ufsc-front' ), $version );
+    wp_enqueue_script( 'ufsc-structural-portal', UFSC_CL_URL . 'assets/js/ufsc-structural-portal.js', array(), $version, true );
     wp_localize_script( 'ufsc-structural-portal', 'ufscStructuralPortal', array(
         'licencesUrl' => add_query_arg( 'ufsc_section', 'club-licences', home_url( '/tableau-de-bord-club/' ) ) . '#ufsc-current-licences',
         'renewalUrl'  => add_query_arg( 'ufsc_section', 'licences-renouvellement', home_url( '/tableau-de-bord-club/' ) ) . '#ufsc-renouvellement',
