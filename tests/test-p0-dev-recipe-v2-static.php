@@ -10,7 +10,7 @@ $checks = array(
     'single authoritative decision' => false !== strpos( $journey, 'ufsc_journey_licence_decision' ),
     'validated connection count' => false !== strpos( $journey, 'validated_licences' ),
     'included CTA wording' => false !== strpos( $journey, 'Envoyer pour validation' ),
-    'mobile navigation contract' => false !== strpos( $css, '@media (max-width: 782px)' ),
+    'responsive journey contract' => false !== strpos( $css, '@media (max-width: 820px)' ) && false !== strpos( $css, '@media (max-width: 600px)' ),
 );
 
 foreach ( $checks as $label => $ok ) {
