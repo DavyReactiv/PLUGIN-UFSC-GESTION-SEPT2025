@@ -12,12 +12,13 @@ $assert = static function ($ok, $message) {
 $assert(strpos($flags, 'licence-workflow-structural.php') !== false, 'structural state service is loaded');
 $assert(strpos($flags, "'submit_for_validation'") !== false, 'included finalization remains non-blocking for honorability');
 $assert(strpos($workflow, 'ufsc_structural_finalize_saved_licence') !== false, 'saved licence finalization hook exists');
+$assert(strpos($workflow, 'ufsc_structural_finalize_updated_request') !== false, 'update hook resolves licence id from request');
 $assert(strpos($workflow, 'ufsc_allocate_pack_credit') !== false, 'server reserves quota atomically');
 $assert(strpos($workflow, "'is_included' => 1") !== false, 'included reservation is persisted even for legacy NULL values');
 $assert(strpos($workflow, "'en_attente'") !== false, 'included finalization becomes pending validation');
 $assert(strpos($workflow, "'payment_status' => 'included'") !== false, 'included finalization is explicitly non-payable');
 $assert(strpos($workflow, "'submitted_at'") !== false, 'submission date is persisted');
-$assert(strpos($workflow, "$_GET['ufsc_section'] = 'licences-archives'") !== false, 'archive route is restored server-side');
+$assert(strpos($workflow, "\$_GET['ufsc_section'] = 'licences-archives'") !== false, 'archive route is restored server-side');
 $assert(strpos($workflow, 'ufsc_structural_admin_pending_notice') !== false, 'admin pending notice uses structural query');
 $assert(strpos($js, 'completeStatusFilter') !== false && strpos($js, 'en_attente') !== false, 'current list exposes pending status');
 $assert(strpos($js, 'preserveArchiveForms') !== false, 'archive forms preserve route client-side too');
