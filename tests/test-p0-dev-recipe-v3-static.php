@@ -1,20 +1,16 @@
 <?php
 $root = dirname( __DIR__ );
-$php = file_get_contents( $root . '/inc/common/p0-dev-recipe-v3.php' );
-$css = file_get_contents( $root . '/assets/css/ufsc-p0-dev-recipe-v3.css' );
 $flags = file_get_contents( $root . '/inc/common/feature-flags.php' );
+$journey = file_get_contents( $root . '/inc/common/club-journey.php' );
+$css = file_get_contents( $root . '/assets/css/ufsc-club-journey.css' );
 
 $checks = array(
-    'v3 loaded' => false !== strpos( $flags, 'p0-dev-recipe-v3.php' ),
-    'very late shortcode authority' => false !== strpos( $php, "'do_shortcode_tag', 'ufsc_p0v3_shortcode_output', 999" ),
-    'included decision required' => false !== strpos( $php, 'empty( $decision[\'included\'] )' ),
-    'legacy cart form removed' => false !== strpos( $php, 'Ajouter\\s+au\\s+panier' ),
-    'payment wording corrected' => false !== strpos( $php, 'Vérification obligatoire avant envoi' ),
-    'included visual state' => false !== strpos( $css, '.ufsc-p0-licence-decision--included' ),
-    'logo enlarged' => false !== strpos( $css, 'width: 180px' ) && false !== strpos( $css, 'height: 180px' ),
-    'logo remove secondary' => false !== strpos( $css, '.ufsc-remove-photo' ) && false !== strpos( $css, '#b91c1c' ),
-    'quota readability' => false !== strpos( $css, '.ufsc-pack-office' ) && false !== strpos( $css, 'color: #fff' ),
-    'kpi underline removed' => false !== strpos( $css, 'text-decoration: none' ),
+    'v3 not loaded at runtime' => false === strpos( $flags, 'p0-dev-recipe-v3.php' ),
+    'consolidated journey loaded' => false !== strpos( $flags, 'club-journey.php' ),
+    'payment wording consolidated' => false !== strpos( $journey, 'Vérification obligatoire avant envoi' ),
+    'included decision enforced' => false !== strpos( $journey, "'INCLUSE'" ),
+    'paid decision enforced' => false !== strpos( $journey, "'PAYANTE'" ),
+    'readable journey css' => false !== strpos( $css, '.ufsc-club-journey' ),
 );
 
 foreach ( $checks as $label => $ok ) {
@@ -24,4 +20,4 @@ foreach ( $checks as $label => $ok ) {
     }
 }
 
-echo "P0 DEV recipe v3 static guards OK\n";
+echo "Legacy v3 retired; consolidated journey safeguards OK\n";
