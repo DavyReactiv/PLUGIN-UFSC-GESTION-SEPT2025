@@ -8,7 +8,7 @@ $checks = array(
     'v3 not loaded at runtime' => false === strpos( $flags, 'p0-dev-recipe-v3.php' ),
     'consolidated journey loaded' => false !== strpos( $flags, 'club-journey.php' ),
     'payment wording consolidated' => false !== strpos( $journey, 'Vérification obligatoire avant envoi' ),
-    'included decision enforced' => false !== strpos( $journey, "$decision['included']" ) || false !== strpos( $journey, "$state['included']" ),
+    'included decision enforced' => false !== strpos( $journey, '$decision[\'included\']' ) || false !== strpos( $journey, '$state[\'included\']' ),
     'included CTA enforced' => false !== strpos( $journey, 'Envoyer pour validation' ),
     'paid CTA enforced' => false !== strpos( $journey, 'Ajouter au panier — licence payante' ),
     'readable journey css' => false !== strpos( $css, '.ufsc-journey-decision' ),
