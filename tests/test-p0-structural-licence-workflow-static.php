@@ -1,4 +1,5 @@
 <?php
+// Structural P0 contract: this test is intentionally tied to real canonical files, not post-render labels.
 $root = dirname(__DIR__);
 $handler = file_get_contents($root . '/includes/core/class-unified-handlers.php');
 $front = file_get_contents($root . '/includes/frontend/class-frontend-shortcodes.php');
