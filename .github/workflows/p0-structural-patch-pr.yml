@@ -17,13 +17,13 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-          import textwrap
           source = Path('.github/workflows/p0-structural-patch.yml').read_text(encoding='utf-8')
           anchor = '      - name: Apply canonical workflow patch\n        shell: python\n        run: |\n'
           if anchor not in source:
               raise SystemExit('embedded structural patch source not found')
           payload = source.split(anchor, 1)[1].split('      - name: Commit structural patch\n', 1)[0]
-          payload = textwrap.dedent(payload)
+          lines = payload.splitlines()
+          payload = '\n'.join((line[10:] if line.startswith('          ') else line) for line in lines) + '\n'
           exec(compile(payload, 'p0-structural-patch.py', 'exec'), {})
       - name: Commit canonical structural changes
         run: |
