@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
- * Feature flags for UFSC Gestion.
+ * Feature flags / runtime composition for UFSC Gestion.
  */
 
 $ufsc_club_dashboard_hardening = dirname( __FILE__ ) . '/club-dashboard-hardening.php';
@@ -10,29 +10,10 @@ if ( file_exists( $ufsc_club_dashboard_hardening ) ) {
     require_once $ufsc_club_dashboard_hardening;
 }
 
-$ufsc_p0_quota_cart_kpi = dirname( __FILE__ ) . '/p0-quota-cart-kpi.php';
-if ( file_exists( $ufsc_p0_quota_cart_kpi ) ) {
-    require_once $ufsc_p0_quota_cart_kpi;
-}
-
-$ufsc_p0_quota_ui = dirname( __FILE__ ) . '/p0-quota-ui.php';
-if ( file_exists( $ufsc_p0_quota_ui ) ) {
-    require_once $ufsc_p0_quota_ui;
-}
-
-$ufsc_p0_dev_recipe_v2 = dirname( __FILE__ ) . '/p0-dev-recipe-v2.php';
-if ( file_exists( $ufsc_p0_dev_recipe_v2 ) ) {
-    require_once $ufsc_p0_dev_recipe_v2;
-}
-
-$ufsc_p0_paid_cart_handoff = dirname( __FILE__ ) . '/p0-paid-cart-handoff.php';
-if ( file_exists( $ufsc_p0_paid_cart_handoff ) ) {
-    require_once $ufsc_p0_paid_cart_handoff;
-}
-
-$ufsc_p0_dev_recipe_v3 = dirname( __FILE__ ) . '/p0-dev-recipe-v3.php';
-if ( file_exists( $ufsc_p0_dev_recipe_v3 ) ) {
-    require_once $ufsc_p0_dev_recipe_v3;
+// Consolidated journey: replaces the former p0 quota/cart/UI runtime layers.
+$ufsc_club_journey = dirname( __FILE__ ) . '/club-journey.php';
+if ( file_exists( $ufsc_club_journey ) ) {
+    require_once $ufsc_club_journey;
 }
 
 function ufsc_quotas_enabled() {

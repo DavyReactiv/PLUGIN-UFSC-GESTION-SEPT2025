@@ -1,0 +1,78 @@
+/* Consolidated premium Club/Licence journey. Former p0 styles are no longer loaded. */
+.ufsc-existing-club-card,
+.ufsc-affiliation-trace--premium,
+.ufsc-journey-decision {
+    box-sizing: border-box;
+}
+
+.ufsc-existing-club-card {
+    max-width: 920px;
+    margin: 24px auto;
+    padding: clamp(22px, 4vw, 38px);
+    border: 1px solid #d7e4ef;
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 16px 40px rgba(20, 55, 88, .08);
+}
+.ufsc-existing-club-card__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #eaf7f0;
+    color: #145c3b;
+    font-weight: 700;
+}
+.ufsc-existing-club-card h3 { margin: 0 0 12px; }
+.ufsc-existing-club-card p { max-width: 760px; }
+.ufsc-existing-club-card__help { color: #53657a; }
+.ufsc-existing-club-card__actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+
+.ufsc-affiliation-trace--premium {
+    padding: clamp(20px, 3vw, 30px);
+    border: 1px solid #d7e4ef;
+    border-radius: 22px;
+    background: #fff;
+}
+.ufsc-affiliation-trace__head { display: flex; justify-content: space-between; gap: 14px; align-items: baseline; margin-bottom: 18px; }
+.ufsc-affiliation-trace__head span { font-size: 1.15rem; font-weight: 800; }
+.ufsc-affiliation-trace__head strong { color: #53657a; }
+.ufsc-affiliation-trace__steps { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; list-style: none; margin: 0; padding: 0; }
+.ufsc-affiliation-trace__steps li { display: grid; grid-template-columns: 34px minmax(0,1fr); gap: 10px; align-items: start; padding: 14px; border: 1px solid #e1e9f0; border-radius: 16px; background: #f9fbfd; }
+.ufsc-affiliation-trace__steps strong,
+.ufsc-affiliation-trace__steps small { display: block; }
+.ufsc-affiliation-trace__steps small { margin-top: 4px; color: #5a6878; line-height: 1.4; }
+.ufsc-trace-dot { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: #e6f3fb; color: #075b91; font-weight: 800; }
+
+.ufsc-journey-decision { display: grid; gap: 4px; margin-bottom: 10px; padding: 12px 14px; border-radius: 14px; }
+.ufsc-journey-decision--included { background: #edf8f3; border: 1px solid #b9dfcb; color: #174f37; }
+.ufsc-journey-decision--paid { background: #fff6e7; border: 1px solid #ead09d; color: #674a16; }
+.ufsc-journey-finalize .ufsc-btn { min-height: 44px; }
+
+/* Restore readable KPI text after legacy theme/override interactions. */
+.ufsc-dashboard-wrap .ufsc-kpi-tile,
+.ufsc-dashboard-wrap .ufsc-kpi-tile * { text-decoration: none; }
+.ufsc-dashboard-wrap .ufsc-kpi-tile-label { color: #526277; }
+.ufsc-dashboard-wrap .ufsc-kpi-tile-value { color: #101b2d; }
+
+/* Quota panel: business information must remain readable. */
+.ufsc-dashboard-wrap .ufsc-pack-status > h2,
+.ufsc-dashboard-wrap .ufsc-pack-status > h3,
+.ufsc-dashboard-wrap .ufsc-pack-status > p,
+.ufsc-dashboard-wrap .ufsc-pack-office,
+.ufsc-dashboard-wrap .ufsc-pack-office * { color: #fff; opacity: 1; }
+.ufsc-dashboard-wrap .ufsc-pack-card,
+.ufsc-dashboard-wrap .ufsc-pack-card * { color: #18263c; }
+
+@media (max-width: 820px) {
+    .ufsc-affiliation-trace__steps { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 600px) {
+    .ufsc-existing-club-card__actions { display: grid; grid-template-columns: 1fr; }
+    .ufsc-existing-club-card__actions .ufsc-btn { width: 100%; min-height: 46px; }
+    .ufsc-affiliation-trace__head { display: grid; gap: 4px; }
+    .ufsc-affiliation-trace__steps { grid-template-columns: 1fr; }
+    .ufsc-affiliation-trace__steps li { min-width: 0; }
+}

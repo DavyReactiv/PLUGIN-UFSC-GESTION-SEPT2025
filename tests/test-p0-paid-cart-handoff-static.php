@@ -1,8 +1,8 @@
 <?php
 $root = dirname( __DIR__ );
-$handoff = file_get_contents( $root . '/inc/common/p0-paid-cart-handoff.php' );
 $flags = file_get_contents( $root . '/inc/common/feature-flags.php' );
-$p0 = file_get_contents( $root . '/inc/common/p0-quota-cart-kpi.php' );
+$journey = file_get_contents( $root . '/inc/common/club-journey.php' );
+$cart = file_get_contents( $root . '/inc/woocommerce/cart-integration.php' );
 
 $assert = static function ( $condition, $message ) {
     if ( ! $condition ) {
@@ -11,11 +11,11 @@ $assert = static function ( $condition, $message ) {
     }
 };
 
-$assert( false !== strpos( $flags, "p0-paid-cart-handoff.php" ), 'handoff module is loaded' );
-$assert( false !== strpos( $handoff, "wp_create_nonce( 'ufsc_add_to_cart_action' )" ), 'WooCommerce nonce is prepared' );
-$assert( false !== strpos( $handoff, "\$_POST['ufsc_action'] = 'new_licence'" ), 'new licence cart intent is explicit' );
-$assert( false !== strpos( $handoff, "remove_action( 'admin_post_ufsc_p0_finalize_licence', 'ufsc_p0_handle_finalize_licence' )" ), 'legacy finalizer hook is replaced once' );
-$assert( false !== strpos( $handoff, 'ufsc_p0_handle_finalize_licence();' ), 'existing quota and authorization finalizer remains authoritative' );
-$assert( false !== strpos( $p0, 'name="product_id"' ) && false !== strpos( $p0, 'name="ufsc_license_ids"' ), 'licence detail form keeps canonical WooCommerce product and licence identifiers' );
+$assert( false === strpos( $flags, 'p0-paid-cart-handoff.php' ), 'legacy handoff wrapper is not loaded' );
+$assert( false !== strpos( $flags, 'club-journey.php' ), 'consolidated journey is loaded' );
+$assert( false !== strpos( $journey, 'ufsc_handle_add_to_cart_secure' ), 'paid decision hands off to canonical secure cart handler' );
+$assert( false !== strpos( $journey, "wp_create_nonce( 'ufsc_add_to_cart_action' )" ), 'canonical cart nonce is prepared after server authorization' );
+$assert( false !== strpos( $journey, "'new_licence'" ), 'new licence paid intent is explicit' );
+$assert( false !== strpos( $cart, 'ufsc_persist_woocommerce_cart' ), 'canonical WooCommerce cart persistence remains present' );
 
-echo "P0 paid cart handoff static safeguards OK\n";
+echo "Legacy paid-cart wrapper retired; consolidated cart handoff safeguards OK\n";
