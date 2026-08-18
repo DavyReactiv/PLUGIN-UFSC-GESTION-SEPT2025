@@ -1,0 +1,277 @@
+name: P0 structural patch
+on:
+  push:
+    branches: [fix/p0-structural-licence-stabilization]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/p0-structural-licence-stabilization
+          fetch-depth: 0
+      - name: Apply canonical workflow patch
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          def load(path): return Path(path).read_text(encoding='utf-8')
+          def save(path, text): Path(path).write_text(text, encoding='utf-8')
+          def one(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 exact match, got {count}')
+              return text.replace(old, new, 1)
+          def sub1(text, pattern, repl, label, flags=0):
+              out, count = re.subn(pattern, repl, text, count=1, flags=flags)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected 1 regex match, got {count}')
+              return out
+
+          # 1) Canonical business handler: finalization is server-side, quota-first.
+          p='includes/core/class-unified-handlers.php'; s=load(p)
+          s=one(s,
+              "return in_array( $action, array( 'save_draft', 'continue', 'verify', 'add_to_cart' ), true ) ? $action : 'continue';",
+              "return in_array( $action, array( 'save_draft', 'continue', 'verify', 'submit_for_validation', 'add_to_cart' ), true ) ? $action : 'continue';",
+              'intent allowlist')
+          s=one(s,
+              "public static function should_add_licence_to_cart( $action ) { return 'add_to_cart' === self::normalize_licence_intent( $action ); }",
+              "public static function should_add_licence_to_cart( $action ) { return 'add_to_cart' === self::normalize_licence_intent( $action ); }\n\n    /** Finalisation means: reserve included quota first, then use Woo only if quota is exhausted. */\n    public static function should_finalize_licence( $action ) {\n        return in_array( self::normalize_licence_intent( $action ), array( 'submit_for_validation', 'add_to_cart' ), true );\n    }",
+              'finalize helper')
+          s=one(s,
+              "$submit_action = isset( $_POST['ufsc_submit_action'] ) ? self::normalize_licence_intent( wp_unslash( $_POST['ufsc_submit_action'] ) ) : 'continue';",
+              "$submit_action = isset( $_POST['ufsc_submit_action'] ) ? self::normalize_licence_intent( wp_unslash( $_POST['ufsc_submit_action'] ) ) : 'continue';\n        if ( 'continue' === $submit_action && isset( $_POST['ufsc_final_intent'] ) && ! is_array( $_POST['ufsc_final_intent'] ) ) {\n            $submit_action = self::normalize_licence_intent( wp_unslash( $_POST['ufsc_final_intent'] ) );\n        }",
+              'intent fallback')
+          s=one(s,
+              "$wants_cart = self::should_add_licence_to_cart( $submit_action );",
+              "$wants_finalization = self::should_finalize_licence( $submit_action );\n        $wants_cart = self::should_add_licence_to_cart( $submit_action );",
+              'finalization variable')
+          s=one(s,
+              "if ( $wants_cart && ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) && ! empty( $wc_settings['auto_consume_included'] ) && function_exists( 'ufsc_allocate_pack_credit' ) ) {",
+              "if ( $wants_finalization && ( ! function_exists( 'ufsc_quotas_enabled' ) || ufsc_quotas_enabled() ) && function_exists( 'ufsc_allocate_pack_credit' ) ) {",
+              'mandatory quota allocation')
+          s=one(s,
+              "self::update_licence_status_db( $new_id, 'en_attente' );\n            $message = __( 'Cette licence est comprise dans votre pack d’affiliation. Aucun paiement supplémentaire n’est nécessaire.', 'ufsc-clubs' );",
+              "self::update_licence_status_db( $new_id, 'en_attente' );\n            global $wpdb;\n            $licences_table = function_exists( 'ufsc_get_licences_table' ) ? ufsc_get_licences_table() : '';\n            $licence_columns = $licences_table && function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $licences_table ) : array();\n            if ( $licences_table && in_array( 'payment_status', $licence_columns, true ) ) {\n                $wpdb->update( $licences_table, array( 'payment_status' => 'included' ), array( 'id' => $new_id ), array( '%s' ), array( '%d' ) );\n            }\n            $message = __( 'Cette licence est comprise dans votre pack d’affiliation et a été envoyée à l’UFSC pour validation. Aucun paiement supplémentaire n’est nécessaire.', 'ufsc-clubs' );",
+              'included state persistence')
+          s=one(s,
+              "// Saving without checkout never creates a payable line.\n        if ( ! $wants_cart ) {",
+              "// A non-final save never creates a payable line. A final submission continues to Woo only when quota is exhausted.\n        if ( ! $wants_finalization ) {",
+              'finalization branch')
+          s=one(s,
+              "$strict_checkout = isset( $post_data['ufsc_submit_action'] ) && 'add_to_cart' === sanitize_key( (string) $post_data['ufsc_submit_action'] );",
+              "$strict_checkout = isset( $post_data['ufsc_submit_action'] ) && self::should_finalize_licence( $post_data['ufsc_submit_action'] );",
+              'strict finalization validation')
+          save(p,s)
+
+          # 2) Canonical frontend: real intent, current statuses, archive routing, renewal CTA.
+          p='includes/frontend/class-frontend-shortcodes.php'; s=load(p)
+          # Canonical licences route must carry the section, not only an anchor.
+          old="""        if ( 'licences-archives' === $section ) {
+            $url = add_query_arg( 'ufsc_section', 'licences-archives', $url ) . '#ufsc-licences-archives';
+        } elseif ( 'licences-renouvellement' === $section ) {
+            $url = add_query_arg( array( 'ufsc_section' => 'licences-renouvellement' ), $url ) . '#ufsc-renouvellement';
+        } elseif ( isset( $anchors[ $section ] ) ) {
+            $url .= '#' . $anchors[ $section ];
+        }
+"""
+          new="""        if ( in_array( $section, array( 'licences', 'club-licences' ), true ) ) {
+            $url = add_query_arg( 'ufsc_section', 'club-licences', $url ) . '#ufsc-current-licences';
+        } elseif ( 'licences-archives' === $section ) {
+            $url = add_query_arg( 'ufsc_section', 'licences-archives', $url ) . '#ufsc-licences-archives';
+        } elseif ( 'licences-renouvellement' === $section ) {
+            $url = add_query_arg( array( 'ufsc_section' => 'licences-renouvellement' ), $url ) . '#ufsc-renouvellement';
+        } elseif ( isset( $anchors[ $section ] ) ) {
+            $url .= '#' . $anchors[ $section ];
+        }
+"""
+          s=one(s,old,new,'canonical licences URL')
+
+          # Current list filters: all real dossier states.
+          old="array( 'brouillon' => __( 'Brouillon', 'ufsc-clubs' ), 'validee' => __( 'Validée', 'ufsc-clubs' ), 'a_regler' => __( 'À régler', 'ufsc-clubs' ) )"
+          new="array( 'brouillon' => __( 'Brouillon', 'ufsc-clubs' ), 'en_attente' => __( 'En attente de validation', 'ufsc-clubs' ), 'valide' => __( 'Validée', 'ufsc-clubs' ), 'a_regler' => __( 'À régler', 'ufsc-clubs' ), 'refuse' => __( 'Refusée', 'ufsc-clubs' ) )"
+          s=one(s,old,new,'current status filters')
+
+          # Replace current-row raw payment/edit rendering with canonical business state.
+          old="""                <?php foreach ( $licences as $licence ) : $id = absint( $licence->id ?? 0 ); $status = $licence->licence_statut ?? ( $licence->statut ?? '' ); $payment = self::get_first_licence_field( $licence, array( 'payment_status', 'statut_paiement', 'paid' ) ); ?>
+                    <tr><td data-label="<?php esc_attr_e( 'Identité', 'ufsc-clubs' ); ?>"><?php echo esc_html( trim( ( $licence->prenom ?? '' ) . ' ' . ( $licence->nom ?? '' ) ) ); ?></td><td data-label="<?php esc_attr_e( 'N° UFSC', 'ufsc-clubs' ); ?>"><?php echo esc_html( class_exists( 'UFSC_Identifier_Resolver' ) ? ( UFSC_Identifier_Resolver::read( $licence, 'licence_ufsc' ) ?: '—' ) : '—' ); ?></td><td data-label="<?php esc_attr_e( 'Saison', 'ufsc-clubs' ); ?>"><?php echo esc_html( self::get_licence_display_season( $licence ) ?: $season ); ?></td><td data-label="<?php esc_attr_e( 'Statut', 'ufsc-clubs' ); ?>"><?php echo self::get_status_badge_front( $status ); ?></td><td data-label="<?php esc_attr_e( 'Paiement', 'ufsc-clubs' ); ?>"><?php echo esc_html( '' !== $payment ? $payment : __( 'Non renseigné', 'ufsc-clubs' ) ); ?></td><td data-label="<?php esc_attr_e( 'Actions', 'ufsc-clubs' ); ?>"><a class="ufsc-btn ufsc-btn-secondary" href="<?php echo esc_url( self::get_licence_detail_url( $id ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a><a class="ufsc-btn ufsc-btn-primary" href="<?php echo esc_url( add_query_arg( array( 'edit_licence' => $id, 'ufsc_return' => remove_query_arg( array( 'edit_licence', 'view_licence' ) ) ) ) ); ?>"><?php esc_html_e( 'Modifier / Compléter', 'ufsc-clubs' ); ?></a></td></tr>
+                <?php endforeach; ?>
+"""
+          new="""                <?php foreach ( $licences as $licence ) :
+                    $id = absint( $licence->id ?? 0 );
+                    $status = $licence->licence_statut ?? ( $licence->statut ?? '' );
+                    $business = function_exists( 'ufsc_resolve_licence_business_state' ) ? ufsc_resolve_licence_business_state( $licence ) : array();
+                    $payment_key = (string) ( $business['payment'] ?? '' );
+                    $payment_labels = array( 'inclus' => __( 'Incluse', 'ufsc-clubs' ), 'requis' => __( 'À régler', 'ufsc-clubs' ), 'recu' => __( 'Réglée', 'ufsc-clubs' ), 'valide_manuellement' => __( 'Réglée', 'ufsc-clubs' ), 'rembourse' => __( 'Remboursée', 'ufsc-clubs' ) );
+                    $payment_label = $payment_labels[ $payment_key ] ?? __( '—', 'ufsc-clubs' );
+                    $locked = function_exists( 'ufsc_is_licence_locked_for_club' ) && ufsc_is_licence_locked_for_club( $licence );
+                ?>
+                    <tr><td data-label="<?php esc_attr_e( 'Identité', 'ufsc-clubs' ); ?>"><?php echo esc_html( trim( ( $licence->prenom ?? '' ) . ' ' . ( $licence->nom ?? '' ) ) ); ?></td><td data-label="<?php esc_attr_e( 'N° UFSC', 'ufsc-clubs' ); ?>"><?php echo esc_html( class_exists( 'UFSC_Identifier_Resolver' ) ? ( UFSC_Identifier_Resolver::read( $licence, 'licence_ufsc' ) ?: '—' ) : '—' ); ?></td><td data-label="<?php esc_attr_e( 'Saison', 'ufsc-clubs' ); ?>"><?php echo esc_html( self::get_licence_display_season( $licence ) ?: $season ); ?></td><td data-label="<?php esc_attr_e( 'Statut', 'ufsc-clubs' ); ?>"><?php echo self::get_status_badge_front( $status ); ?></td><td data-label="<?php esc_attr_e( 'Paiement', 'ufsc-clubs' ); ?>"><?php echo esc_html( $payment_label ); ?></td><td data-label="<?php esc_attr_e( 'Actions', 'ufsc-clubs' ); ?>"><a class="ufsc-btn ufsc-btn-secondary" href="<?php echo esc_url( self::get_licence_detail_url( $id ) ); ?>"><?php esc_html_e( 'Consulter', 'ufsc-clubs' ); ?></a><?php if ( ! $locked ) : ?><a class="ufsc-btn ufsc-btn-primary" href="<?php echo esc_url( add_query_arg( array( 'edit_licence' => $id, 'ufsc_return' => remove_query_arg( array( 'edit_licence', 'view_licence' ) ) ) ) ); ?>"><?php esc_html_e( 'Modifier / Compléter', 'ufsc-clubs' ); ?></a><?php endif; ?></td></tr>
+                <?php endforeach; ?>
+"""
+          s=one(s,old,new,'current row business state')
+
+          # Archive form must stay in archives.
+          s=one(s,
+              "<?php if ( $archive_seasons ) : ?><form method=\"get\" class=\"ufsc-archive-filter-form\">",
+              "<?php if ( $archive_seasons ) : ?><form method=\"get\" class=\"ufsc-archive-filter-form\"><input type=\"hidden\" name=\"ufsc_section\" value=\"licences-archives\">",
+              'archive section preservation')
+          s=one(s,
+              "href=\"<?php echo esc_url( remove_query_arg( array( 'ufsc_archive_season', 'ufsc_archive_page', 'ufsc_archive_per_page' ) ) ); ?>\"",
+              "href=\"<?php echo esc_url( self::get_club_portal_url( 'licences-archives' ) ); ?>\"",
+              'archive reset route')
+
+          # Included renewals must not depend on product availability at presentation time.
+          s=s.replace("! $readonly && $can_renew_licences && $licence_product_id", "! $readonly && $can_renew_licences")
+          s=s.replace("! empty( $season_context['renewal_allowed'] ) && ! $readonly && $licence_product_id", "! empty( $season_context['renewal_allowed'] ) && ! $readonly")
+
+          # Direct archive add-to-cart form becomes a link to the renewal assistant.
+          pattern=r'''<form method="post" action="<\?php echo esc_url\( admin_url\( 'admin-post.php' \) \); \?>" class="ufsc-inline-renew-form" style="display:inline">.*?</form>'''
+          replacement="""<a class="ufsc-action" href="<?php echo esc_url( add_query_arg( array( 'ufsc_section' => 'licences-renouvellement', 'renew_source_id' => absint( $licence->id ?? 0 ), 'target_season' => $target_renewal_season ), self::get_club_portal_url( 'licences-renouvellement' ) ) ); ?>"><?php echo esc_html( sprintf( __( 'Renouveler pour %s', 'ufsc-clubs' ), $target_renewal_season ) ); ?></a>"""
+          s=sub1(s,pattern,replacement,'archive direct cart removal',flags=re.S)
+
+          # Renewal wizard: quota decision is canonical, Woo product only required beyond quota.
+          s=one(s,
+              "$product_ready = ! empty( $product_resolution['valid'] );",
+              "$pack_state = function_exists( 'ufsc_journey_pack_state' ) ? ufsc_journey_pack_state( $club_id, $target ) : array( 'included' => false, 'used' => 10, 'limit' => 10, 'remaining' => 0 );\n        $quota_included = ! empty( $pack_state['included'] );\n        $product_ready = $quota_included || ! empty( $product_resolution['valid'] );",
+              'renewal quota state')
+          s=one(s,
+              "<li data-ufsc-step-indicator=\"3\"><strong>3</strong> <?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?></li>",
+              "<li data-ufsc-step-indicator=\"3\"><strong>3</strong> <?php esc_html_e( 'Finaliser', 'ufsc-clubs' ); ?></li>",
+              'renewal step label')
+          old="""<button type="submit" name="ufsc_renew_intent" value="add_to_cart" class="ufsc-btn ufsc-btn-primary" <?php disabled( ! $product_ready ); ?> data-ufsc-product-ready="<?php echo $product_ready ? '1' : '0'; ?>" aria-describedby="ufsc-cart-readiness"><?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?></button><span id="ufsc-cart-readiness" class="ufsc-cart-readiness" role="status"><?php echo $product_ready ? esc_html__( 'Complétez puis vérifiez tous les dossiers pour activer le panier.', 'ufsc-clubs' ) : esc_html( function_exists( 'ufsc_get_licence_product_message' ) ? ufsc_get_licence_product_message( $product_resolution ) : __( 'Le produit Licence UFSC est indisponible.', 'ufsc-clubs' ) ); ?></span>"""
+          new="""<button type="submit" name="ufsc_renew_intent" value="add_to_cart" class="ufsc-btn ufsc-btn-primary" <?php disabled( ! $product_ready ); ?> data-ufsc-product-ready="<?php echo $product_ready ? '1' : '0'; ?>" aria-describedby="ufsc-cart-readiness"><?php echo $quota_included ? esc_html__( 'Finaliser — quota inclus en priorité', 'ufsc-clubs' ) : esc_html__( 'Ajouter au panier — licence payante', 'ufsc-clubs' ); ?></button><span id="ufsc-cart-readiness" class="ufsc-cart-readiness" role="status"><?php echo $quota_included ? esc_html( sprintf( __( '%1$d/%2$d utilisées — %3$d restante(s). Aucun paiement tant que le quota n’est pas épuisé.', 'ufsc-clubs' ), $pack_state['used'], $pack_state['limit'], $pack_state['remaining'] ) ) : ( $product_ready ? esc_html__( 'Quota inclus épuisé : les licences supplémentaires seront ajoutées au panier.', 'ufsc-clubs' ) : esc_html( function_exists( 'ufsc_get_licence_product_message' ) ? ufsc_get_licence_product_message( $product_resolution ) : __( 'Le produit Licence UFSC est indisponible.', 'ufsc-clubs' ) ) ); ?></span>"""
+          s=one(s,old,new,'renewal final CTA')
+
+          # Canonical add/edit form: actual intent changes, not just its label.
+          marker="<div class=\"ufsc-form-actions ufsc-licence-final-actions\">"
+          count=s.count(marker)
+          if count != 1: raise SystemExit(f'final actions marker: expected 1 got {count}')
+          prep="""<?php
+                $final_pack = function_exists( 'ufsc_journey_pack_state' ) ? ufsc_journey_pack_state( absint( $atts['club_id'] ?? 0 ), class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : '' ) : array( 'included' => false );
+                $final_included = ! empty( $final_pack['included'] );
+                $final_intent = $final_included ? 'submit_for_validation' : 'add_to_cart';
+                ?>
+                <input type="hidden" name="ufsc_final_intent" value="<?php echo esc_attr( $final_intent ); ?>">
+                """+marker
+          s=s.replace(marker,prep,1)
+          s=one(s,
+              "<h4><?php esc_html_e( 'Récapitulatif avant panier', 'ufsc-clubs' ); ?></h4>",
+              "<h4><?php echo $final_included ? esc_html__( 'Récapitulatif avant envoi', 'ufsc-clubs' ) : esc_html__( 'Récapitulatif avant paiement', 'ufsc-clubs' ); ?></h4>",
+              'review heading')
+          s=one(s,
+              "<?php echo self::render_pre_payment_warning_block(); ?>\n\t\t\t\t\t\t<p class=\"ufsc-final-help\"><?php esc_html_e( 'Enregistrez un brouillon pour compléter la licence plus tard. Ajoutez au panier uniquement lorsque toutes les informations ont été vérifiées.', 'ufsc-clubs' ); ?></p>",
+              "<?php if ( $final_included ) : ?><div class=\"ufsc-message ufsc-info ufsc-finalisation-info\"><strong><?php esc_html_e( 'Vérification obligatoire avant envoi', 'ufsc-clubs' ); ?></strong><br><?php esc_html_e( 'Cette licence est incluse dans votre affiliation. Après l’envoi, elle passe en attente de validation UFSC et ne nécessite aucun paiement.', 'ufsc-clubs' ); ?></div><?php else : ?><?php echo self::render_pre_payment_warning_block(); ?><?php endif; ?>\n\t\t\t\t\t\t<p class=\"ufsc-final-help\"><?php echo $final_included ? esc_html__( 'Enregistrez un brouillon si le dossier n’est pas prêt. Sinon, envoyez-le à l’UFSC pour validation.', 'ufsc-clubs' ) : esc_html__( 'Enregistrez un brouillon pour compléter la licence plus tard. Le paiement concerne uniquement les licences au-delà du quota inclus.', 'ufsc-clubs' ); ?></p>",
+              'canonical final help')
+          old="""                        <button type="submit" name="ufsc_submit_action" value="add_to_cart" class="ufsc-btn ufsc-btn-primary">
+							<?php esc_html_e( 'Ajouter au panier', 'ufsc-clubs' ); ?>
+                        </button>"""
+          new="""                        <button type="submit" name="ufsc_submit_action" value="<?php echo esc_attr( $final_intent ); ?>" class="ufsc-btn ufsc-btn-primary">
+							<?php echo $final_included ? esc_html__( 'Envoyer pour validation — inclus dans votre affiliation', 'ufsc-clubs' ) : esc_html__( 'Ajouter au panier — licence supplémentaire payante', 'ufsc-clubs' ); ?>
+                        </button>"""
+          s=one(s,old,new,'canonical final button')
+
+          # Profile: remove duplicate 6-item nav; top portal navigation remains canonical.
+          nav_pattern=r'''\n\s*<nav class="ufsc-club-account__nav ufsc-club-portal__nav" aria-label="<\?php esc_attr_e\( 'Navigation Compte Club', 'ufsc-clubs' \); \?>">\s*<a href="<\?php echo esc_url\( self::get_club_portal_url\( 'overview' \) \); \?>">.*?</nav>\n\s*<\?php\n\s*// UFSC PATCH: Attestation UFSC section'''
+          nav_repl="\n\n            <?php\n                // UFSC PATCH: Attestation UFSC section"
+          s=sub1(s,nav_pattern,nav_repl,'profile duplicate nav',flags=re.S)
+
+          # Logo: one visible action and no permanent delete CTA.
+          s=one(s,"<?php esc_html_e( 'Remplacer le logo', 'ufsc-clubs' ); ?>","<?php esc_html_e( 'Modifier le logo', 'ufsc-clubs' ); ?>",'logo label')
+          remove_pattern=r'''\s*<\?php if \( '' !== \$profile_logo \) : \?><form method="post" action="<\?php echo esc_url\( admin_url\( 'admin-post.php' \) \); \?>" class="ufsc-logo-editor__remove".*?</form><\?php endif; \?>'''
+          s=sub1(s,remove_pattern,'','logo delete action',flags=re.S)
+          save(p,s)
+
+          # 3) Honourability + traceability accept the real final intent.
+          p='inc/common/feature-flags.php'; s=load(p)
+          s=one(s,
+              "return 'add_to_cart' === $intent ? false : $required;",
+              "return in_array( $intent, array( 'add_to_cart', 'submit_for_validation' ), true ) ? false : $required;",
+              'honorability final intents')
+          save(p,s)
+          p='inc/common/club-dashboard-hardening.php'; s=load(p)
+          s=one(s,
+              "array( 'add_to_cart', 'submit', 'finalize' )",
+              "array( 'add_to_cart', 'submit_for_validation', 'submit', 'finalize' )",
+              'traceability final intents')
+          save(p,s)
+
+          # 4) Stop journey layer from changing canonical form/renewal HTML after render.
+          p='inc/common/club-journey.php'; s=load(p)
+          start=s.find("    // The creation/edit form may be rendered by different shortcode aliases.")
+          end=s.find("    $view_id = isset( $_GET['view_licence'] )", start)
+          if start < 0 or end < 0: raise SystemExit('journey post-render block not found')
+          s=s[:start]+"    // Creation/edit and renewal controls are rendered canonically by UFSC_Frontend_Shortcodes.\n\n"+s[end:]
+          save(p,s)
+
+          # 5) Last-loaded CSS: scoped stabilization only; no global Elementor widths.
+          p='assets/css/ufsc-club-journey.css'; s=load(p)
+          marker='/* P0 structural portal stabilization */'
+          if marker not in s:
+              s += r'''
+
+/* P0 structural portal stabilization */
+.ufsc-club-portal,
+.ufsc-club-profile-shell,
+.ufsc-club-profile-main,
+.ufsc-club-form.ufsc-club-profile,
+.ufsc-licences-section,
+.ufsc-licences-workspace,
+.ufsc-licence-detail,
+.ufsc-add-licence-section {
+    width: 100%;
+    max-width: 1180px;
+    min-width: 0;
+    box-sizing: border-box;
+    margin-inline: auto;
+}
+.ufsc-club-profile-shell > *,
+.ufsc-club-hero > *,
+.ufsc-club-profile-main > *,
+.ufsc-licence-detail > * { min-width: 0; }
+.ufsc-club-hero {
+    display: grid;
+    grid-template-columns: minmax(190px, 220px) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+}
+.ufsc-logo-editor { width: 100%; max-width: 220px; display: grid; justify-items: center; gap: 12px; }
+.ufsc-logo-editor__preview,
+.ufsc-logo-editor__preview .ufsc-club-logo,
+.ufsc-logo-editor__preview img { width: 170px; height: 170px; max-width: 170px; }
+.ufsc-logo-editor__preview img { object-fit: contain; }
+.ufsc-logo-editor__upload { width: 100%; display: grid; justify-items: center; gap: 8px; }
+.ufsc-logo-editor__upload > .ufsc-btn { width: 100%; }
+.ufsc-btn,
+.ufsc-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.2;
+}
+.ufsc-front-table-scroll { width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.ufsc-current-licences .ufsc-licence-table,
+.ufsc-licences-archives .ufsc-licence-table { min-width: 720px; }
+.ufsc-club-account__nav { align-items: stretch; }
+.ufsc-club-account__nav a { min-height: 46px; }
+@media (max-width: 820px) {
+    .ufsc-club-hero { grid-template-columns: 1fr; }
+    .ufsc-logo-editor { max-width: none; }
+    .ufsc-logo-editor__preview,
+    .ufsc-logo-editor__preview .ufsc-club-logo,
+    .ufsc-logo-editor__preview img { width: 150px; height: 150px; max-width: 150px; }
+}
+'''
+          save(p,s)
+      - name: Commit structural patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add includes/core/class-unified-handlers.php includes/frontend/class-frontend-shortcodes.php inc/common/feature-flags.php inc/common/club-dashboard-hardening.php inc/common/club-journey.php assets/css/ufsc-club-journey.css
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "fix: stabilize canonical licence workflow and portal routes"
+          git push origin HEAD:fix/p0-structural-licence-stabilization
