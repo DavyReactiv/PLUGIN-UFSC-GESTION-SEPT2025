@@ -10,10 +10,16 @@ if ( file_exists( $ufsc_club_dashboard_hardening ) ) {
     require_once $ufsc_club_dashboard_hardening;
 }
 
-// Consolidated journey: replaces the former p0 quota/cart/UI runtime layers.
+// Consolidated journey: presentation and affiliation journey.
 $ufsc_club_journey = dirname( __FILE__ ) . '/club-journey.php';
 if ( file_exists( $ufsc_club_journey ) ) {
     require_once $ufsc_club_journey;
+}
+
+// Structural server state machine: quota/status/routing guarantees independent of HTML rewrites.
+$ufsc_structural_workflow = dirname( __FILE__ ) . '/licence-workflow-structural.php';
+if ( file_exists( $ufsc_structural_workflow ) ) {
+    require_once $ufsc_structural_workflow;
 }
 
 function ufsc_quotas_enabled() {
@@ -44,7 +50,10 @@ add_action( 'init', 'ufsc_fix_new_licence_cart_route', 20 );
 function ufsc_allow_cart_before_honorability_completion( $required, $normalized_role, $raw_role ) {
     unset( $normalized_role, $raw_role );
     if ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) { return $required; }
-    $intent = isset( $_POST['ufsc_submit_action'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_submit_action'] ) ) : '';
-    return 'add_to_cart' === $intent ? false : $required;
+    $intent = isset( $_POST['ufsc_submit_action'] ) && ! is_array( $_POST['ufsc_submit_action'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_submit_action'] ) ) : '';
+    if ( ! $intent && isset( $_POST['ufsc_final_intent'] ) && ! is_array( $_POST['ufsc_final_intent'] ) ) {
+        $intent = sanitize_key( wp_unslash( $_POST['ufsc_final_intent'] ) );
+    }
+    return in_array( $intent, array( 'add_to_cart', 'submit_for_validation' ), true ) ? false : $required;
 }
 add_filter( 'ufsc_role_requires_honorability', 'ufsc_allow_cart_before_honorability_completion', 10, 3 );
