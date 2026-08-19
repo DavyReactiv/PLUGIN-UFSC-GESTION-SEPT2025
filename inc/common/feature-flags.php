@@ -22,6 +22,13 @@ if ( file_exists( $ufsc_structural_workflow ) ) {
     require_once $ufsc_structural_workflow;
 }
 
+// Final UI cascade: one scoped presentation layer replaces the overlapping
+// journey/structural/P0 styles without touching their server-side business logic.
+$ufsc_portal_ui_cleanup = dirname( __FILE__ ) . '/portal-ui-cleanup.php';
+if ( file_exists( $ufsc_portal_ui_cleanup ) ) {
+    require_once $ufsc_portal_ui_cleanup;
+}
+
 function ufsc_quotas_enabled() {
     return (bool) apply_filters( 'ufsc_quotas_enabled', true );
 }
