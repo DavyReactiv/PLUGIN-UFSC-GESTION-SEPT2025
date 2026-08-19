@@ -74,7 +74,7 @@ add_action( 'init', 'ufsc_fix_new_licence_cart_route', 20 );
 
 function ufsc_allow_cart_before_honorability_completion( $required, $normalized_role, $raw_role ) {
     unset( $normalized_role, $raw_role );
-    if ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) { return $required; }
+    if ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) { return $required; }
     $intent = isset( $_POST['ufsc_submit_action'] ) && ! is_array( $_POST['ufsc_submit_action'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_submit_action'] ) ) : '';
     if ( ! $intent && isset( $_POST['ufsc_final_intent'] ) && ! is_array( $_POST['ufsc_final_intent'] ) ) {
         $intent = sanitize_key( wp_unslash( $_POST['ufsc_final_intent'] ) );
