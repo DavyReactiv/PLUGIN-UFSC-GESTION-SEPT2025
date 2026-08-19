@@ -52,7 +52,6 @@ jobs:
             if [ "$code" -ne 0 ]; then overall=1; fi
           }
 
-          # Temporary branch-only self-report. Removed before PR.
           run_check "PHP LINT" bash -lc "find . -path ./vendor -prune -o -name '*.php' -type f -print0 | xargs -0 -n1 php -l"
           run_check "P0 REGRESSIONS" composer repro:p0
           run_check "STANDALONE" composer test:standalone
@@ -61,7 +60,7 @@ jobs:
           run_check "WPCS" composer cs
 
           echo "OVERALL=${overall}" >> "$result"
-          echo "FINAL_RERUN=2" >> "$result"
+          echo "FINAL_RERUN=3" >> "$result"
           cat "$result"
 
       - name: Commit temporary report
