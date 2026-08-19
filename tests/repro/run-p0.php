@@ -5,6 +5,7 @@ $tests = array(
     __DIR__ . '/status-dual-column-repro.php',
     __DIR__ . '/submit-intent-repro.php',
     __DIR__ . '/renewal-finalization-runtime-repro.php',
+    dirname( __DIR__ ) . '/test-native-licence-cart-runtime.php',
     __DIR__ . '/paid-renewal-cart-repro.php',
 );
 
