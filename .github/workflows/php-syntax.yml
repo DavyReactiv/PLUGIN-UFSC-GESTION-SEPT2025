@@ -4,10 +4,7 @@ on:
   pull_request:
     branches: [ main ]
   push:
-    branches:
-      - main
-      - chore/phase2-quality-observability
-      - fix/p0-licence-root-causes
+    branches: [ main ]
 
 permissions:
   contents: read
