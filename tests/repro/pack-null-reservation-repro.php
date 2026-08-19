@@ -33,6 +33,9 @@ final class Repro_WPDB {
         if ( false !== strpos( $sql, 'GET_LOCK' ) || false !== strpos( $sql, 'RELEASE_LOCK' ) ) {
             return 1;
         }
+        if ( false !== strpos( $sql, 'SELECT is_included' ) ) {
+            return $this->row_is_included;
+        }
         return null;
     }
 
@@ -46,7 +49,7 @@ final class Repro_WPDB {
 
     public function query( $sql ) {
         if ( false !== strpos( $sql, 'UPDATE `wp_ufsc_licences` SET is_included = 1' ) ) {
-            if ( false !== strpos( $sql, 'is_included = 0' ) && null === $this->row_is_included ) {
+            if ( null === $this->row_is_included && false === strpos( $sql, 'is_included IS NULL' ) ) {
                 return 0;
             }
             $this->row_is_included = 1;
@@ -68,9 +71,9 @@ if ( empty( $result['included'] ) ) {
     fwrite( STDERR, "FAIL: the legacy NULL row should be eligible for an included credit\n" );
     exit( 1 );
 }
-if ( empty( $result['reserved'] ) ) {
-    fwrite( STDERR, "REPRODUCED: eligible legacy row with is_included=NULL was not reserved\n" );
-    exit( 2 );
+if ( empty( $result['reserved'] ) || 1 !== $wpdb->row_is_included ) {
+    fwrite( STDERR, "FAIL: eligible legacy NULL row was not confirmed as reserved\n" );
+    exit( 1 );
 }
 
-echo "OK: legacy NULL row reserved as included\n";
+echo "OK: legacy NULL row reserved and confirmed as included\n";
