@@ -7,12 +7,14 @@ parameters:
         - inc/common/licence-status.php
         - inc/common/compliance.php
         - inc/common/fighter-level.php
+        - inc/common/licence-finalization-runtime.php
         - inc/woocommerce/cart-integration.php
         - includes/core/class-unified-handlers.php
+        - includes/core/class-ufsc-debug-trace.php
+        - includes/core/class-ufsc-licence-finalization-service.php
         - includes/core/class-ufsc-licence-payments.php
         - includes/core/class-ufsc-renewal-service.php
         - includes/core/class-ufsc-season-service.php
-        - includes/core/class-ufsc-debug-trace.php
         - includes/front/class-ufsc-stats.php
     bootstrapFiles:
         - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
