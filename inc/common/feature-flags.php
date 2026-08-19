@@ -5,6 +5,11 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Feature flags / runtime composition for UFSC Gestion.
  */
 
+$ufsc_finalization_service = UFSC_CL_DIR . 'includes/core/class-ufsc-licence-finalization-service.php';
+if ( file_exists( $ufsc_finalization_service ) ) {
+    require_once $ufsc_finalization_service;
+}
+
 $ufsc_club_dashboard_hardening = dirname( __FILE__ ) . '/club-dashboard-hardening.php';
 if ( file_exists( $ufsc_club_dashboard_hardening ) ) {
     require_once $ufsc_club_dashboard_hardening;
@@ -16,10 +21,16 @@ if ( file_exists( $ufsc_club_journey ) ) {
     require_once $ufsc_club_journey;
 }
 
-// Structural server state machine: quota/status/routing guarantees independent of HTML rewrites.
+// Structural routing/admin helpers. Its legacy after-the-fact finalizers are
+// disabled by the canonical runtime below; the remaining archive/UI helpers stay active.
 $ufsc_structural_workflow = dirname( __FILE__ ) . '/licence-workflow-structural.php';
 if ( file_exists( $ufsc_structural_workflow ) ) {
     require_once $ufsc_structural_workflow;
+}
+
+$ufsc_finalization_runtime = dirname( __FILE__ ) . '/licence-finalization-runtime.php';
+if ( file_exists( $ufsc_finalization_runtime ) ) {
+    require_once $ufsc_finalization_runtime;
 }
 
 // Final UI cascade: one scoped presentation layer replaces the overlapping
