@@ -3,6 +3,7 @@ $tests = array(
     __DIR__ . '/pack-boundary-repro.php',
     __DIR__ . '/pack-null-reservation-repro.php',
     __DIR__ . '/status-dual-column-repro.php',
+    __DIR__ . '/submit-intent-repro.php',
     __DIR__ . '/paid-renewal-cart-repro.php',
 );
 
