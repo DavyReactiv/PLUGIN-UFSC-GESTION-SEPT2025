@@ -93,6 +93,7 @@ final class UFSC_Licence_Finalization_Runtime {
 		}
 		self::finalize_for_unified_request( $licence_id, absint( $club_id ), 'unified_update' );
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	/**
 	 * Finalise the current-season target row of a renewal before the cart helper
@@ -119,6 +120,7 @@ final class UFSC_Licence_Finalization_Runtime {
 		return $target;
 	}
 
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Renewal target filter runs only after the Woo/admin-post nonce check.
 	private static function is_renewal_final_request() {
 		if ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) {
 			return false;
@@ -137,6 +139,7 @@ final class UFSC_Licence_Finalization_Runtime {
 		}
 		return in_array( $intent, array( 'add_to_cart', 'submit_for_validation', 'finalize' ), true );
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	/**
 	 * The service has already made the payable decision; prevent the historical
@@ -157,6 +160,7 @@ final class UFSC_Licence_Finalization_Runtime {
 		if ( is_wp_error( $result ) || ! empty( $result['included'] ) ) {
 			// The canonical service either completed the included transition or failed
 			// closed. In both cases the old handler must not create a cart line.
+			// phpcs:ignore WordPress.Security.NonceVerification.Missing -- This post-save request has already passed the controller nonce check.
 			$_POST['ufsc_submit_action'] = 'continue';
 			return;
 		}
@@ -186,6 +190,7 @@ final class UFSC_Licence_Finalization_Runtime {
 
 		return 'add_to_cart' === $intent || 'submit_for_validation' === $final_intent;
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	/**
 	 * Rewrite only the success/error redirect of the historical Unified Handler.
@@ -227,6 +232,7 @@ final class UFSC_Licence_Finalization_Runtime {
 			$location
 		);
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	private static function is_unified_request_action() {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Helper is used only during the verified admin-post lifecycle.
@@ -235,6 +241,7 @@ final class UFSC_Licence_Finalization_Runtime {
 			: '';
 		return in_array( $action, array( 'ufsc_add_licence', 'ufsc_save_licence', 'ufsc_update_licence' ), true );
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	private static function resolved_result_licence_id() {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Helper is used only during the verified admin-post lifecycle.
@@ -245,6 +252,7 @@ final class UFSC_Licence_Finalization_Runtime {
 		$ids = array_keys( self::$results );
 		return $ids ? absint( end( $ids ) ) : 0;
 	}
+	// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 	/**
 	 * Canonical replacement for the Journey finalisation endpoint.
