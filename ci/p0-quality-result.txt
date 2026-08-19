@@ -526,7 +526,8 @@ exit=0
      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
 --------------------------------------------------------------------------------
 
-Time: 92ms; Memory: 10MB
+Time: 87ms; Memory: 10MB
 
 
 OVERALL=1
+FINAL_RERUN=1
