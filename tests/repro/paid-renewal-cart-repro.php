@@ -13,6 +13,8 @@ function absint( $value ) { return abs( (int) $value ); }
 function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', (string) $value ) ); }
 function sanitize_text_field( $value ) { return trim( (string) $value ); }
 function apply_filters( $hook, $value ) { return $value; }
+function add_action() {}
+function add_filter() {}
 function get_current_user_id() { return 42; }
 function wp_generate_uuid4() { return '11111111-2222-4333-8444-555555555555'; }
 function esc_html( $value ) { return $value; }
