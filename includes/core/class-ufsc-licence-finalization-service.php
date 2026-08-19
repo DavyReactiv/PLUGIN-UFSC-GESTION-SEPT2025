@@ -34,7 +34,7 @@ final class UFSC_Licence_Finalization_Service {
 		}
 
 		$table = ufsc_get_licences_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", $licence_id ) );
+		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM %i WHERE id = %d", $table, $licence_id ) );
 		if ( ! $row ) {
 			return new WP_Error( 'ufsc_finalization_not_found', __( 'Licence introuvable.', 'ufsc-clubs' ) );
 		}
@@ -98,7 +98,7 @@ final class UFSC_Licence_Finalization_Service {
 			return new WP_Error( 'ufsc_finalization_quota_unconfirmed', __( 'La licence est éligible au quota, mais la réservation n’a pas été confirmée.', 'ufsc-clubs' ) );
 		}
 
-		$columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : (array) $wpdb->get_col( "DESCRIBE `{$table}`" );
+		$columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : (array) $wpdb->get_col( $wpdb->prepare( "DESCRIBE %i", $table ) );
 		$status_result = class_exists( 'UFSC_Licence_Status' )
 			? UFSC_Licence_Status::update_status_columns( $table, array( 'id' => $licence_id, 'club_id' => $club_id ), 'en_attente', array( '%d', '%d' ) )
 			: $wpdb->update( $table, array( 'statut' => 'en_attente' ), array( 'id' => $licence_id, 'club_id' => $club_id ), array( '%s' ), array( '%d', '%d' ) );
@@ -114,13 +114,13 @@ final class UFSC_Licence_Finalization_Service {
 		}
 
 		if ( in_array( 'submitted_at', $columns, true ) ) {
-			$current_submitted = (string) $wpdb->get_var( $wpdb->prepare( "SELECT submitted_at FROM `{$table}` WHERE id = %d", $licence_id ) );
+			$current_submitted = (string) $wpdb->get_var( $wpdb->prepare( "SELECT submitted_at FROM %i WHERE id = %d", $table, $licence_id ) );
 			if ( '' === trim( $current_submitted ) || '0000-00-00 00:00:00' === $current_submitted ) {
 				$wpdb->update( $table, array( 'submitted_at' => current_time( 'mysql' ) ), array( 'id' => $licence_id ), array( '%s' ), array( '%d' ) );
 			}
 		}
 
-		$confirmed = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d AND club_id = %d", $licence_id, $club_id ) );
+		$confirmed = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM %i WHERE id = %d AND club_id = %d", $table, $licence_id, $club_id ) );
 		$confirmed_status = $confirmed && function_exists( 'ufsc_get_licence_status_from_record' )
 			? ufsc_get_licence_status_from_record( $confirmed )
 			: ( $confirmed ? sanitize_key( (string) ( $confirmed->statut ?? $confirmed->status ?? '' ) ) : '' );

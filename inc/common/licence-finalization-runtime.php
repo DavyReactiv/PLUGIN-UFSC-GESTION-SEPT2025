@@ -37,6 +37,12 @@ final class UFSC_Licence_Finalization_Runtime {
 			return;
 		}
 
+		$nonce = isset( $_POST['_wpnonce'] ) && ! is_array( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		$valid_nonce = $nonce && ( wp_verify_nonce( $nonce, 'ufsc_add_licence' ) || wp_verify_nonce( $nonce, 'ufsc_save_licence' ) || wp_verify_nonce( $nonce, 'ufsc_update_licence' ) );
+		if ( ! $valid_nonce ) {
+			return;
+		}
+
 		$action = isset( $_POST['action'] ) && ! is_array( $_POST['action'] )
 			? sanitize_key( wp_unslash( $_POST['action'] ) )
 			: '';
@@ -74,6 +80,7 @@ final class UFSC_Licence_Finalization_Runtime {
 		self::finalize_for_unified_request( absint( $licence_id ), absint( $club_id ), 'unified_new' );
 	}
 
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Post-save observer runs only after the Unified Handler nonce check.
 	public static function finalize_updated_licence( $club_id ) {
 		if ( ! self::is_unified_final_request() ) {
 			return;
@@ -160,6 +167,7 @@ final class UFSC_Licence_Finalization_Runtime {
 	}
 
 	private static function is_unified_final_request() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Called only from post-save observers after controller nonce verification.
 		if ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) {
 			return false;
 		}
@@ -182,6 +190,7 @@ final class UFSC_Licence_Finalization_Runtime {
 	/**
 	 * Rewrite only the success/error redirect of the historical Unified Handler.
 	 */
+	// phpcs:disable WordPress.Security.NonceVerification.Missing -- Redirect filter is evaluated in the already verified admin-post request.
 	public static function rewrite_unified_redirect( $location, $status = 302 ) {
 		unset( $status );
 		if ( empty( self::$results ) || ! self::is_unified_request_action() ) {
@@ -220,6 +229,7 @@ final class UFSC_Licence_Finalization_Runtime {
 	}
 
 	private static function is_unified_request_action() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Helper is used only during the verified admin-post lifecycle.
 		$action = isset( $_POST['action'] ) && ! is_array( $_POST['action'] )
 			? sanitize_key( wp_unslash( $_POST['action'] ) )
 			: '';
@@ -227,6 +237,7 @@ final class UFSC_Licence_Finalization_Runtime {
 	}
 
 	private static function resolved_result_licence_id() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Helper is used only during the verified admin-post lifecycle.
 		$posted = isset( $_POST['licence_id'] ) && ! is_array( $_POST['licence_id'] ) ? absint( wp_unslash( $_POST['licence_id'] ) ) : 0;
 		if ( $posted > 0 && isset( self::$results[ $posted ] ) ) {
 			return $posted;
@@ -243,9 +254,11 @@ final class UFSC_Licence_Finalization_Runtime {
 			wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
 		}
 
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- Licence ID is required to derive the nonce action and is verified immediately below.
 		$licence_id = isset( $_POST['licence_id'] ) && ! is_array( $_POST['licence_id'] )
 			? absint( wp_unslash( $_POST['licence_id'] ) )
 			: 0;
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 		check_admin_referer( 'ufsc_journey_finalize_' . $licence_id );
 
 		$licence = function_exists( 'ufsc_journey_get_licence' ) ? ufsc_journey_get_licence( $licence_id ) : null;
