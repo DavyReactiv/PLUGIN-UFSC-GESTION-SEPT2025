@@ -1,0 +1,59 @@
+name: TEMP definitive UFSC gate
+
+on:
+  push:
+    branches: [ fix/p0-licence-root-causes ]
+    paths: [ .github/workflows/temp-final-gate.yml ]
+
+permissions:
+  contents: write
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          tools: composer:v2
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Execute definitive gate
+        shell: bash
+        run: |
+          set +e
+          mkdir -p ci
+          out=ci/final-gate.txt
+          : > "$out"
+          overall=0
+          run_check() {
+            label="$1"; shift
+            tmp="$(mktemp)"
+            "$@" >"$tmp" 2>&1
+            code=$?
+            echo "===== $label =====" >> "$out"
+            echo "exit=$code" >> "$out"
+            cat "$tmp" >> "$out"
+            echo >> "$out"
+            rm -f "$tmp"
+            [ "$code" -eq 0 ] || overall=1
+          }
+          run_check "PHP LINT" bash -lc "find . -path ./vendor -prune -o -name '*.php' -type f -print0 | xargs -0 -n1 php -l"
+          run_check "P0" composer repro:p0
+          run_check "STANDALONE" composer test:standalone
+          run_check "PHPUNIT" composer test
+          run_check "PHPSTAN" composer analyse
+          run_check "WPCS" composer cs
+          echo "HEAD=$(git rev-parse HEAD)" >> "$out"
+          echo "OVERALL=$overall" >> "$out"
+          cat "$out"
+      - name: Commit definitive temporary report
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ci/final-gate.txt
+          git diff --cached --quiet && exit 0
+          git commit -m "ci: temporary definitive gate report [skip ci]"
+          git push
