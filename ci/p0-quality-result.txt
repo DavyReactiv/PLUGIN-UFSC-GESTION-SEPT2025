@@ -1,5 +1,5 @@
 ===== PHP LINT =====
-exit=124
+exit=0
 No syntax errors detected in ./INTEGRATION_EXAMPLES.php
 No syntax errors detected in ./examples/extension-example.php
 No syntax errors detected in ./examples/frontend-usage-examples.php
@@ -124,25 +124,109 @@ No syntax errors detected in ./inc/common/club-journey.php
 No syntax errors detected in ./inc/common/portal-ui-cleanup.php
 No syntax errors detected in ./inc/common/functions.php
 No syntax errors detected in ./inc/common/attestations.php
-PHP Parse error:  Unclosed '{' on line 468 in ./inc/common/licence-status.php on line 603
-Errors parsing ./inc/common/licence-status.php
-xargs: php: exited with status 255; aborting
+No syntax errors detected in ./inc/common/licence-status.php
+No syntax errors detected in ./inc/common/p0-dev-recipe-v2.php
+No syntax errors detected in ./inc/common/p0-quota-ui.php
+No syntax errors detected in ./inc/common/fighter-level.php
+No syntax errors detected in ./inc/common/status.php
+No syntax errors detected in ./inc/common/statuts.php
+No syntax errors detected in ./inc/common/seasons.php
+No syntax errors detected in ./inc/common/season.php
+No syntax errors detected in ./inc/common/licence-finalization-runtime.php
+No syntax errors detected in ./inc/common/regions.php
+No syntax errors detected in ./inc/common/tables.php
+No syntax errors detected in ./inc/common/licence-documents.php
+No syntax errors detected in ./inc/common/feature-flags.php
+No syntax errors detected in ./inc/common/diagnostics.php
+No syntax errors detected in ./inc/common/logging.php
+No syntax errors detected in ./inc/common/p0-dev-recipe-v3.php
+No syntax errors detected in ./inc/common/p0-paid-cart-handoff.php
+No syntax errors detected in ./inc/common/compliance.php
+No syntax errors detected in ./inc/common/p0-quota-cart-kpi.php
+No syntax errors detected in ./inc/settings.php
+No syntax errors detected in ./inc/admin/class-ufsc-gestion-clubs-list-table.php
+No syntax errors detected in ./inc/admin/menu.php
+No syntax errors detected in ./inc/admin/class-ufsc-gestion-licences-list-table.php
+No syntax errors detected in ./includes/front/class-ufsc-documents.php
+No syntax errors detected in ./includes/front/class-ufsc-media.php
+No syntax errors detected in ./includes/front/class-ufsc-stats.php
+No syntax errors detected in ./includes/common/functions.php
+No syntax errors detected in ./includes/common/class-ufsc-cron.php
+No syntax errors detected in ./includes/common/class-ufsc-utils.php
+No syntax errors detected in ./includes/permissions/class-ufsc-permissions.php
+No syntax errors detected in ./includes/communication/class-ufsc-mail-installer.php
+No syntax errors detected in ./includes/communication/class-ufsc-mail-service.php
+No syntax errors detected in ./includes/security/class-ufsc-capabilities.php
+No syntax errors detected in ./includes/security/class-ufsc-scope.php
+No syntax errors detected in ./includes/core/class-permissions.php
+No syntax errors detected in ./includes/core/class-ufsc-licence-finalization-service.php
+No syntax errors detected in ./includes/core/class-ufsc-db-migrations.php
+No syntax errors detected in ./includes/core/class-ufsc-category-repository.php
+No syntax errors detected in ./includes/core/class-import-export.php
+No syntax errors detected in ./includes/core/class-uploads.php
+No syntax errors detected in ./includes/core/class-ufsc-transaction.php
+No syntax errors detected in ./includes/core/class-ufsc-licence-payments.php
+No syntax errors detected in ./includes/core/class-unified-handlers.php
+No syntax errors detected in ./includes/core/class-ufsc-badges.php
+No syntax errors detected in ./includes/core/class-ufsc-season-archive-manager.php
+No syntax errors detected in ./includes/core/class-ufsc-debug-trace.php
+No syntax errors detected in ./includes/core/class-ufsc-renewal-service.php
+No syntax errors detected in ./includes/core/class-sql.php
+No syntax errors detected in ./includes/core/class-ufsc-identifier-resolver.php
+No syntax errors detected in ./includes/core/class-audit-logger.php
+No syntax errors detected in ./includes/core/class-ufsc-identifier-service.php
+No syntax errors detected in ./includes/core/class-badge-helper.php
+No syntax errors detected in ./includes/core/class-user-club-mapping.php
+No syntax errors detected in ./includes/core/class-email-notifications.php
+No syntax errors detected in ./includes/core/class-ufsc-season-service.php
+No syntax errors detected in ./includes/core/class-utils.php
+No syntax errors detected in ./includes/core/column-map.php
+No syntax errors detected in ./includes/core/class-cache-manager.php
+No syntax errors detected in ./includes/core/class-ufsc-storage-resolver.php
+No syntax errors detected in ./includes/core/class-ufsc-pdf-attestations.php
+No syntax errors detected in ./includes/api/class-rest-api.php
+No syntax errors detected in ./includes/admin/class-user-club-admin.php
+No syntax errors detected in ./includes/admin/class-sql-admin.php
+No syntax errors detected in ./includes/admin/class-ufsc-club-metaboxes.php
+No syntax errors detected in ./includes/admin/class-user-profile-scope-field.php
+No syntax errors detected in ./includes/admin/class-ufsc-diagnostics-admin.php
+No syntax errors detected in ./includes/admin/class-ufsc-settings-page.php
+No syntax errors detected in ./includes/admin/class-admin-menu.php
+No syntax errors detected in ./includes/admin/class-ufsc-simplified-admin.php
+No syntax errors detected in ./includes/admin/list-tables/class-ufsc-licences-list-table.php
+No syntax errors detected in ./includes/admin/list-tables/class-ufsc-clubs-list-table.php
+No syntax errors detected in ./includes/frontend/class-club-form-handler.php
+No syntax errors detected in ./includes/frontend/class-auth-shortcodes.php
+No syntax errors detected in ./includes/frontend/class-club-form.php
+No syntax errors detected in ./includes/frontend/class-sql-shortcodes.php
+No syntax errors detected in ./includes/frontend/class-affiliation-form.php
+No syntax errors detected in ./includes/frontend/class-frontend-shortcodes.php
+No syntax errors detected in ./includes/cli/class-wp-cli-commands.php
+No syntax errors detected in ./includes/lib/fpdf/fpdf.php
+No syntax errors detected in ./includes/lib/class-simple-pdf.php
+No syntax errors detected in ./includes/lib/fpdf.php
+No syntax errors detected in ./includes/woo/class-ufsc-woo-sync.php
+No syntax errors detected in ./logout.php
 
 ===== P0 REGRESSIONS =====
 exit=1
 OK: licences 1-10 included, licence 11 payable
 OK: legacy NULL row reserved and confirmed as included
-PHP Parse error:  Unclosed '{' on line 468 in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/inc/common/licence-status.php on line 603
+OK: canonical statut persisted independently from legacy status compatibility
 OK: submit_for_validation reaches the canonical finalisation path
 OK: renewals use canonical finalization, preserve history and fail closed
-PHP Fatal error:  Cannot redeclare ufsc_ensure_woocommerce_cart() (previously declared in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/tests/repro/paid-renewal-cart-repro.php:24) in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/inc/woocommerce/cart-integration.php on line 876
+Native licence cart runtime safeguards OK
+PHP Fatal error:  Uncaught Error: Call to undefined function add_action() in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/inc/woocommerce/cart-integration.php:1977
+Stack trace:
+#0 /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/tests/repro/paid-renewal-cart-repro.php(111): require_once()
+#1 {main}
+  thrown in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/inc/woocommerce/cart-integration.php on line 1977
 P0 regression suite failed:
-- status-dual-column-repro.php (exit 255)
 - paid-renewal-cart-repro.php (exit 255)
 Script @php tests/repro/run-p0.php handling the repro:p0 event returned with error code 1
 
 ===== STANDALONE =====
-exit=1
+exit=0
 Annual affiliation and document runtime safeguards passed.
 Admin asset existence safeguards OK
 Admin business KPI static/runtime safeguards OK
@@ -165,7 +249,7 @@ Affiliation pack 10-included/11th-paid runtime safeguards OK
 Affiliation product 4823 runtime safeguards OK
 Affiliation product 4823 static safeguards OK
 Canonical annual affiliation resolver runtime safeguards passed.
-PHP Parse error:  Unclosed '{' on line 468 in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/inc/common/licence-status.php on line 603
+Canonical licence business-state runtime safeguards OK
 Canonical KPI/list reconciliation runtime safeguards OK
 Club archive runtime safeguards OK
 Club contact validation and own-club whitelist runtime safeguards OK
@@ -333,8 +417,7 @@ User-club link compatibility runtime safeguards OK
 Native WooCommerce session/cart bootstrap runtime safeguards OK
 WooCommerce settings form contract safeguards OK
 WooCommerce settings real-handler runtime safeguards OK
-Standalone failures (1): test-canonical-business-state-runtime.php
-Script @php tests/run-standalone.php handling the test:standalone event returned with error code 1
+Standalone suite: 86 scripts passed.
 
 ===== PHPUNIT =====
 exit=0
@@ -1638,7 +1721,7 @@ exit=1
     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
 --------------------------------------------------------------------------------
 
-Time: 667ms; Memory: 40MB
+Time: 720ms; Memory: 40MB
 
 Script phpcs --standard=phpcs.xml.dist handling the cs event returned with error code 1
 
