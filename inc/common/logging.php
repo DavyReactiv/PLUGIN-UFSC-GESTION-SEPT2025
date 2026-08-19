@@ -1,19 +1,30 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+if ( defined( 'UFSC_CL_DIR' ) ) {
+    require_once UFSC_CL_DIR . 'includes/core/class-ufsc-debug-trace.php';
+}
+
 /**
- * UFSC PATCH: Admin-only debug logger without sensitive data.
+ * Admin-only compatibility logger.
  *
  * @param string $message Log message.
  * @param array  $context Context data (non-sensitive).
  * @return void
  */
 function ufsc_admin_debug_log( $message, $context = array() ) {
-    if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+    if ( class_exists( 'UFSC_Debug_Trace' ) && UFSC_Debug_Trace::enabled() ) {
+        UFSC_Debug_Trace::record(
+            'admin_debug',
+            array(
+                'message' => sanitize_text_field( (string) $message ),
+                'context' => is_array( $context ) ? $context : array(),
+            )
+        );
         return;
     }
 
-    if ( ! current_user_can( 'manage_options' ) ) {
+    if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG || ! current_user_can( 'manage_options' ) ) {
         return;
     }
 
