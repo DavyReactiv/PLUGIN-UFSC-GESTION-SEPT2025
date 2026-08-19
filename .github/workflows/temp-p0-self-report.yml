@@ -61,7 +61,7 @@ jobs:
           run_check "WPCS" composer cs
 
           echo "OVERALL=${overall}" >> "$result"
-          echo "FINAL_RERUN=1" >> "$result"
+          echo "FINAL_RERUN=2" >> "$result"
           cat "$result"
 
       - name: Commit temporary report
