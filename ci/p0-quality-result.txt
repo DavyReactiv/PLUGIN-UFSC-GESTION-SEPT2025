@@ -345,7 +345,7 @@ Configuration: /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTIO
 
 .....                                                               5 / 5 (100%)
 
-Time: 00:00.009, Memory: 10.00 MB
+Time: 00:00.010, Memory: 10.00 MB
 
 OK (5 tests, 17 assertions)
 
@@ -1497,7 +1497,7 @@ exit=1
     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
 --------------------------------------------------------------------------------
 
-Time: 491ms; Memory: 40MB
+Time: 639ms; Memory: 40MB
 
 Script phpcs --standard=phpcs.xml.dist handling the cs event returned with error code 1
 
