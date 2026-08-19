@@ -47,6 +47,11 @@ if ( file_exists( $ufsc_production_readiness ) ) {
     require_once $ufsc_production_readiness;
 }
 
+$ufsc_production_payment_boundary = dirname( __FILE__ ) . '/production-payment-boundary.php';
+if ( file_exists( $ufsc_production_payment_boundary ) ) {
+    require_once $ufsc_production_payment_boundary;
+}
+
 function ufsc_quotas_enabled() {
     return (bool) apply_filters( 'ufsc_quotas_enabled', true );
 }
