@@ -34,6 +34,7 @@ jobs:
           echo '===== WPCS NEW FINALIZATION =====' >> "$out"
           vendor/bin/phpcs --standard=phpcs.xml.dist inc/common/licence-finalization-runtime.php includes/core/class-ufsc-licence-finalization-service.php >> "$out" 2>&1
           echo "exit=$?" >> "$out"
+          echo '# rerun after nonce and prepared-SQL fixes' >> "$out"
           cat "$out"
       - name: Commit focused report
         shell: bash
