@@ -1,0 +1,1504 @@
+===== PHP LINT =====
+exit=124
+No syntax errors detected in ./INTEGRATION_EXAMPLES.php
+No syntax errors detected in ./examples/extension-example.php
+No syntax errors detected in ./examples/frontend-usage-examples.php
+No syntax errors detected in ./class-sql-admin.php
+No syntax errors detected in ./templates/front/dashboard-club.php
+No syntax errors detected in ./templates/partials/notice.php
+No syntax errors detected in ./templates/frontend/club-dashboard.php
+No syntax errors detected in ./templates/frontend/licence-form.php
+No syntax errors detected in ./templates/frontend/licences-list.php
+No syntax errors detected in ./ufsc-clubs-licences-sql.php
+No syntax errors detected in ./tests/test-licence-submission-renewal-status-static.php
+No syntax errors detected in ./tests/test-p0-dev-recipe-v2-static.php
+No syntax errors detected in ./tests/test-honorability-role-runtime.php
+No syntax errors detected in ./tests/test-renewal-season-static.php
+No syntax errors detected in ./tests/test-p0-cart-pack-ui-static.php
+No syntax errors detected in ./tests/test-legacy-storage-resolution-runtime.php
+No syntax errors detected in ./tests/test-licence-product-canonical-runtime.php
+No syntax errors detected in ./tests/test-final-draft-previous-number-runtime.php
+No syntax errors detected in ./tests/test-new-licence-cart-route-static.php
+No syntax errors detected in ./tests/test-club-save.php
+No syntax errors detected in ./tests/test-club-portal-responsive-accessibility-static.php
+No syntax errors detected in ./tests/test-restore-history-kpis-profile-static.php
+No syntax errors detected in ./tests/test-licence-flow-levels-ux-static.php
+No syntax errors detected in ./tests/test-core.php
+No syntax errors detected in ./tests/test-front-club-portal-final-static.php
+No syntax errors detected in ./tests/test-licence-affiliation-gate-runtime.php
+No syntax errors detected in ./tests/test-current-licences-portal-static.php
+No syntax errors detected in ./tests/test-portal-css-cleanup-static.php
+No syntax errors detected in ./tests/test-p0-paid-cart-handoff-static.php
+No syntax errors detected in ./tests/test-final-dev-corrections-static.php
+No syntax errors detected in ./tests/test-frontend-shortcodes-load.php
+No syntax errors detected in ./tests/test-admin-assets-exist-static.php
+No syntax errors detected in ./tests/test-front-renewal-wizard-p0-static.php
+No syntax errors detected in ./tests/phpunit/BusinessRulesContractTest.php
+No syntax errors detected in ./tests/phpunit/CartContractTest.php
+No syntax errors detected in ./tests/phpunit-bootstrap.php
+No syntax errors detected in ./tests/test-production-readiness-runtime.php
+No syntax errors detected in ./tests/test-final-dev-corrections-runtime.php
+No syntax errors detected in ./tests/test-final-stabilization-static.php
+No syntax errors detected in ./tests/test-licence-render-runtime.php
+No syntax errors detected in ./tests/test-dev-product-actions-pagination-static.php
+No syntax errors detected in ./tests/test-p0-structural-licence-workflow-static.php
+No syntax errors detected in ./tests/test-admin-annual-documents-runtime.php
+No syntax errors detected in ./tests/test-debug-trace-static.php
+No syntax errors detected in ./tests/test-fatal-season-renewal-runtime.php
+No syntax errors detected in ./tests/test-club-portal-color-contrast-static.php
+No syntax errors detected in ./tests/test-affiliation-pack-runtime.php
+No syntax errors detected in ./tests/test-woocommerce-cart-bootstrap-runtime.php
+No syntax errors detected in ./tests/manual-single-licence-test.php
+No syntax errors detected in ./tests/test-frontend.php
+No syntax errors detected in ./tests/test-reprise-delivery-runtime.php
+No syntax errors detected in ./tests/test-season-status-archives-honorability-static.php
+No syntax errors detected in ./tests/test-canonical-business-state-runtime.php
+No syntax errors detected in ./tests/test-portal-css-distillation-static.php
+No syntax errors detected in ./tests/test-identifier-resolver-runtime.php
+No syntax errors detected in ./tests/test-p0-dev-recipe-v3-static.php
+No syntax errors detected in ./tests/test-licence-season-context-runtime.php
+No syntax errors detected in ./tests/test-draft-cart-intent-runtime.php
+No syntax errors detected in ./tests/test-p0-quota-cart-kpi-layout-static.php
+No syntax errors detected in ./tests/run-standalone.php
+No syntax errors detected in ./tests/test-annual-affiliation-canonical-resolver-runtime.php
+No syntax errors detected in ./tests/test-final-renewal-navigation-runtime.php
+No syntax errors detected in ./tests/test-native-licence-cart-runtime.php
+No syntax errors detected in ./tests/test-canonical-kpi-reconciliation-runtime.php
+No syntax errors detected in ./tests/test-final-admin-clubs-season-workflow-static.php
+No syntax errors detected in ./tests/test-licence-season-context-static.php
+No syntax errors detected in ./tests/test-honorability-documents-renewal-runtime.php
+No syntax errors detected in ./tests/test-season-compliance-runtime.php
+No syntax errors detected in ./tests/test-final-portal-ui-ux-static.php
+No syntax errors detected in ./tests/test-p0-production-renewal-static.php
+No syntax errors detected in ./tests/test-club-journey-consolidation-static.php
+No syntax errors detected in ./tests/test-definitive-renewal-hardening-static.php
+No syntax errors detected in ./tests/test-rest-route-runtime.php
+No syntax errors detected in ./tests/test-woocommerce-settings-form-static.php
+No syntax errors detected in ./tests/test-portal-season-isolation-runtime.php
+No syntax errors detected in ./tests/test-ufsc-identifiers-renewal-static.php
+No syntax errors detected in ./tests/test-p0-finalization-static.php
+No syntax errors detected in ./tests/test-affiliation-product-4823-runtime.php
+No syntax errors detected in ./tests/test-club-portal-polish-static.php
+No syntax errors detected in ./tests/test-renewal-runtime-chain.php
+No syntax errors detected in ./tests/test-season-clarity-levels-static.php
+No syntax errors detected in ./tests/test-premium-front-club-ui-static.php
+No syntax errors detected in ./tests/test-admin-kpis-consistency-runtime.php
+No syntax errors detected in ./tests/test-renewal-profile-updates-runtime.php
+No syntax errors detected in ./tests/test-ufsc-frontend-css-structure-static.php
+No syntax errors detected in ./tests/test-club-portal-professional-layout-static.php
+No syntax errors detected in ./tests/test-club-archives-runtime.php
+No syntax errors detected in ./tests/test-affiliation-redirect.php
+No syntax errors detected in ./tests/repro/pack-boundary-repro.php
+No syntax errors detected in ./tests/repro/status-dual-column-repro.php
+No syntax errors detected in ./tests/repro/submit-intent-repro.php
+No syntax errors detected in ./tests/repro/renewal-finalization-runtime-repro.php
+No syntax errors detected in ./tests/repro/paid-renewal-cart-repro.php
+No syntax errors detected in ./tests/repro/pack-null-reservation-repro.php
+No syntax errors detected in ./tests/repro/run-p0.php
+No syntax errors detected in ./tests/test-user-club-link-compatibility-runtime.php
+No syntax errors detected in ./tests/test-final-admin-ui-renewal-static.php
+No syntax errors detected in ./tests/test-final-renewal-journey-static.php
+No syntax errors detected in ./tests/test-release-build-static.php
+No syntax errors detected in ./tests/test-club-contact-validation-runtime.php
+No syntax errors detected in ./tests/test-real-licence-form-cart-contract.php
+No syntax errors detected in ./tests/test-admin-business-kpis-static.php
+No syntax errors detected in ./tests/test-compte-club-ui-static.php
+No syntax errors detected in ./tests/test-affiliation-product-4823-static.php
+No syntax errors detected in ./tests/test-historical-season-fallback-runtime.php
+No syntax errors detected in ./tests/test-woocommerce-settings-handler-runtime.php
+No syntax errors detected in ./tests/integration-test.php
+No syntax errors detected in ./tests/test-front-licence-detail-navigation-static.php
+No syntax errors detected in ./tests/test-fighter-level-runtime.php
+No syntax errors detected in ./tests/test-frontend-asset-optimization-static.php
+No syntax errors detected in ./tests/test-front-club-portal-layout-regression-static.php
+No syntax errors detected in ./tests/test-club-dashboard-hardening-static.php
+No syntax errors detected in ./uninstall.php
+No syntax errors detected in ./inc/woocommerce/hooks.php
+No syntax errors detected in ./inc/woocommerce/settings-woocommerce.php
+No syntax errors detected in ./inc/woocommerce/cart-integration.php
+No syntax errors detected in ./inc/woocommerce/admin-actions.php
+No syntax errors detected in ./inc/form-license-sanitizer.php
+No syntax errors detected in ./inc/common/club-dashboard-hardening.php
+No syntax errors detected in ./inc/common/licence-workflow-structural.php
+No syntax errors detected in ./inc/common/club-journey.php
+No syntax errors detected in ./inc/common/portal-ui-cleanup.php
+No syntax errors detected in ./inc/common/functions.php
+No syntax errors detected in ./inc/common/attestations.php
+PHP Parse error:  Unclosed '{' on line 468 in ./inc/common/licence-status.php on line 603
+Errors parsing ./inc/common/licence-status.php
+xargs: php: exited with status 255; aborting
+
+===== P0 REGRESSIONS =====
+exit=1
+OK: licences 1-10 included, licence 11 payable
+OK: legacy NULL row reserved and confirmed as included
+PHP Parse error:  Unclosed '{' on line 468 in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/inc/common/licence-status.php on line 603
+OK: submit_for_validation reaches the canonical finalisation path
+OK: renewals use canonical finalization, preserve history and fail closed
+PHP Fatal error:  Cannot redeclare ufsc_ensure_woocommerce_cart() (previously declared in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/tests/repro/paid-renewal-cart-repro.php:24) in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/inc/woocommerce/cart-integration.php on line 876
+P0 regression suite failed:
+- status-dual-column-repro.php (exit 255)
+- paid-renewal-cart-repro.php (exit 255)
+Script @php tests/repro/run-p0.php handling the repro:p0 event returned with error code 1
+
+===== STANDALONE =====
+exit=1
+Annual affiliation and document runtime safeguards passed.
+Admin asset existence safeguards OK
+Admin business KPI static/runtime safeguards OK
+Admin KPI consistency runtime safeguards OK
+PASS: licence 1 incluse dans le pack
+PASS: licence 2 incluse dans le pack
+PASS: licence 3 incluse dans le pack
+PASS: licence 4 incluse dans le pack
+PASS: licence 5 incluse dans le pack
+PASS: licence 6 incluse dans le pack
+PASS: licence 7 incluse dans le pack
+PASS: licence 8 incluse dans le pack
+PASS: licence 9 incluse dans le pack
+PASS: licence 10 incluse dans le pack
+PASS: exactement dix crédits inclus consommés
+PASS: 11e licence payante
+PASS: 11e renouvellement ou nouvelle licence payante quel que soit le rôle
+PASS: honorabilité suit le rôle canonique
+Affiliation pack 10-included/11th-paid runtime safeguards OK
+Affiliation product 4823 runtime safeguards OK
+Affiliation product 4823 static safeguards OK
+Canonical annual affiliation resolver runtime safeguards passed.
+PHP Parse error:  Unclosed '{' on line 468 in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/inc/common/licence-status.php on line 603
+Canonical KPI/list reconciliation runtime safeguards OK
+Club archive runtime safeguards OK
+Club contact validation and own-club whitelist runtime safeguards OK
+OK: club dashboard hardening and cart regression guards
+Club journey consolidation guards OK
+Club portal color contrast safeguards OK — primary=8.48:1, hover=11.50:1, secondary=8.10:1, disabled=8.33:1, danger=6.47:1, body=17.85:1, muted=7.58:1, focus=11.50:1
+Club portal polish safeguards OK -- no side-tabs, no parasitic vertical copy, compact canonical cards, pack and logo
+Professional Club portal layout safeguards OK -- content height, readable cards, aligned tabs and responsive grids
+Club portal responsive contract OK — 360/768/1024/1440/1920, 44px targets, labelled selections, fluid actions, filters, tables, pagination and logos
+Club saved successfully
+Compte Club UI static safeguards OK
+Current licence list routing, filters, actions and responsive contract OK
+OK: safe diagnostic tracing contract
+PASS: fallback target is verified
+PASS: renewal JS has an initialization guard
+PASS: weight is checked client-side
+PASS: cart fails closed without WooCommerce
+PASS: forged blocked statuses are refused
+PASS: canonical eligibility is checked at cart boundary
+PASS: admin defaults to 25 and caps at 50
+Definitive renewal hardening safeguards passed.
+OK: DEV product, actions, pagination, assets and DOM safeguards
+Draft/cart intent runtime safeguards passed.
+Fatal season renewal runtime safeguards OK
+PASS: liste officielle PRO A B C ASSAUT VETERAN
+PASS: mineur propose Assaut par défaut
+PASS: majeur propose Classe C par défaut
+PASS: mineur avec Assaut
+PASS: mineur refusé avec Classe A
+PASS: majeur accepté en assaut
+PASS: majeur accepté en classe_c
+PASS: majeur accepté en classe_b
+PASS: majeur accepté en classe_a
+PASS: majeur accepté en pro
+PASS: Vétéran refusé avant 41 ans
+PASS: Vétéran accepté à 41 ans
+PASS: ancienne licence vide acceptée en lecture historique
+PASS: ancienne valeur Débutant reste compatible historiquement
+PASS: ancienne valeur Débutant reste lisible
+PASS: ancienne licence sans niveau reste Non renseigné
+Fighter-level defaults and history safeguards OK
+PASS: KPI views do not inherit implicit season evidence.
+PASS: Renewals exclude validated and already-open requests.
+PASS: Active and missing-number views use shared KPI conditions.
+PASS: Club search has the required business label.
+PASS: Search covers permanent club identifiers.
+PASS: Search covers annual affiliation number.
+PASS: Business filter chips are removable.
+PASS: Raw technical GET summary is absent.
+PASS: Empty state explains filters and recovery.
+PASS: Changing/removing filters resets pagination.
+PASS: Club detail return URL is validated and preserved.
+PASS: Renewal and annual-number actions are contextual.
+Final admin and renewal UI safeguards passed.
+Final DEV corrective runtime safeguards OK
+Final DEV corrective static safeguards OK
+Six-step draft and previous-number runtime safeguards passed.
+Final portal UI/UX static safeguards OK
+Final renewal journey static checks passed.
+Renewal filter and clickable pagination runtime safeguards passed.
+Final stabilization static safeguards passed.
+Final club portal static safeguards OK
+Front club portal layout regression safeguards OK
+PASS: The detail renderer is selected with view_licence.
+PASS: The licence detail renderer remains explicit.
+PASS: The detail provides a prominent list return action.
+PASS: Return candidates pass through WordPress redirect validation.
+PASS: Return candidates are restricted to this site.
+PASS: An explicit filter-preserving return URL is supported.
+PASS: A validated portal referer is the secondary return source.
+PASS: The canonical licence-list anchor is the fallback.
+PASS: Overview resolves to its real anchor.
+PASS: Club information resolves to the account page anchor.
+PASS: Officers resolve to the account page anchor.
+PASS: Documents resolve to the account page anchor.
+PASS: Archives resolve to the dashboard anchor.
+PASS: The canonical licence-list target exists.
+PASS: The official sports rules URL is present.
+PASS: Portal navigation no longer uses a page-relative overview link.
+PASS: No inactive hash-only link is introduced.
+PASS: Detail lookup remains scoped to the connected club.
+PASS: The licence query still binds both licence and club IDs.
+Front licence detail navigation checks passed.
+Front renewal wizard P0 static safeguards passed.
+Frontend asset optimization safeguards OK
+Frontend shortcodes load OK
+Historical season fallback safeguards OK
+OK: persistent honorability documents, validation gate, KPI and bulk renewal
+OK: centralized honorability role truth-table
+Identifier resolver runtime safeguards passed.
+Legacy storage resolution runtime safeguards OK
+OK: central licence affiliation gate runtime
+PASS: pack allocation uses total included count
+PASS: renewal uses canonical pack allocation
+PASS: new licence uses canonical pack allocation
+PASS: paid renewal has WooCommerce add_to_cart path
+PASS: paid new licence has idempotent cart path
+PASS: historical renewal source remains immutable
+PASS: front displays boxer level
+PASS: front displays explicit level guidance
+PASS: dashboard explains 10 included then paid flow
+PASS: dashboard no longer presents a contradictory seven-free quota
+PASS: club navigation final alignment contract exists
+PASS: navigation correction adds no important declarations
+Unified licence journey safeguards OK
+Canonical licence product migration/runtime safeguards OK
+PASS : 1 canonical licence table(s)
+PASS new: 0 canonical licence table(s)
+PASS edit: 0 canonical licence table(s)
+PASS view: 0 canonical licence table(s)
+Licence render runtime contract OK
+Licence season context runtime safeguards passed.
+Licence season context static safeguards passed.
+Licence submission/renewal status static safeguards OK
+Native licence cart runtime safeguards OK
+OK: new licence cart route and honorability checkout safeguards
+P0 cart, pack and accessible UI static safeguards OK
+Legacy v2 retired; consolidated journey safeguards OK
+Legacy v3 retired; consolidated journey safeguards OK
+P0 finalization cross-layer static safeguards OK
+Legacy paid-cart wrapper retired; consolidated cart handoff safeguards OK
+P0 production renewal safeguards passed.
+OK: consolidated quota/cart/KPI/layout static guards
+P0 structural server and portal contract OK
+Club portal consolidated CSS/UX safeguards OK
+Portal CSS distillation safeguards OK — 16 redundant rule blocks consolidated with contracts preserved
+Strict SQL season, total, archive and club isolation runtime safeguards OK
+Premium front club UI static safeguards OK
+Production readiness runtime safeguards OK
+Real licence form-to-native-cart contract safeguards OK
+Release build and asset version safeguards OK
+Renewal profile update runtime safeguards passed.
+OK: rendered selectable incomplete checkbox, fallback steps, cart form and controlled pagination
+Renewal/season static safeguards OK
+Final reprise product, network, REST cleanup, layout and accessibility safeguards OK
+All UFSC REST callbacks and Club/Region/Admin scope runtime safeguards OK
+Restore history/KPI/profile static checks passed.
+PASS: Le renderer canonique bloque tout second tableau Licences.
+PASS: Le garde de rendu sort avant tout formulaire ou tableau parasite.
+PASS: Les archives restent accessibles depuis le tableau principal.
+PASS: La page Clubs propose le filtre saison centralisé.
+PASS: Club permanent et affiliation annuelle sont séparés.
+PASS: Les KPI Clubs portent la saison sélectionnée.
+PASS: Les niveaux PRO/A/B/C/ASSAUT/VÉTÉRAN et les défauts mineur/majeur sont validés côté serveur.
+PASS: Une ancienne licence vide ou Débutant reste compatible sans migration destructive.
+PASS: Le formulaire front expose le niveau sportif.
+PASS: Le tableau admin filtre et affiche le niveau.
+PASS: Le renouvellement conserve niveau et filiation sans modifier la source.
+PASS: Le véritable export admin produit le libellé du niveau.
+Season compliance runtime safeguards OK
+OK: season status, archive and honorability static regressions
+UFSC frontend CSS structural safeguards OK
+PASS: Stable, separated formats.
+PASS: Atomic monotone allocation.
+PASS: Registry uniqueness.
+PASS: Assignment is idempotent.
+PASS: UFSC cannot populate ASPTT, regardless of case.
+PASS: ASPTT has separate canonical fields.
+PASS: Renewal lineage and stable key retained.
+PASS: ASPTT is not copied into renewal payload.
+PASS: Cart metadata is nominative quantity one.
+PASS: Contextual renewal defaults exclusively to the canonical season service.
+PASS: Handlers require POST and nonces.
+User-club link compatibility runtime safeguards OK
+Native WooCommerce session/cart bootstrap runtime safeguards OK
+WooCommerce settings form contract safeguards OK
+WooCommerce settings real-handler runtime safeguards OK
+Standalone failures (1): test-canonical-business-state-runtime.php
+Script @php tests/run-standalone.php handling the test:standalone event returned with error code 1
+
+===== PHPUNIT =====
+exit=0
+PHPUnit 10.5.64 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.1.34
+Configuration: /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/phpunit.xml
+
+.....                                                               5 / 5 (100%)
+
+Time: 00:00.009, Memory: 10.00 MB
+
+OK (5 tests, 17 assertions)
+
+===== PHPSTAN =====
+exit=1
+
+⚠️  You're running an old version of PHPStan.️
+
+The last release in the 1.12.x series with new features
+and bugfixes was released on July 17th 2025,
+that's 398 days ago.
+
+Since then more than 65 new PHPStan versions were released
+with hundreds of new features, bugfixes, and other
+quality of life improvements.
+
+To learn about what you're missing out on, check out
+this blog with articles about the latest major releases:
+https://phpstan.org/blog
+
+Upgrade today to PHPStan 2.2 or newer by using
+"phpstan/phpstan": "^2.2" in your composer.json.
+
+::error ::Child process error: PHPStan process crashed because it reached configured PHP memory limit: 1G%0AIncrease your memory limit in php.ini or run PHPStan with --memory-limit CLI option.%0A while running parallel worker
+ -- -------------------------------------------------------------------------- 
+     Error                                                                     
+ -- -------------------------------------------------------------------------- 
+     Child process error: PHPStan process crashed because it reached           
+     configured PHP memory limit: 1G                                           
+     Increase your memory limit in php.ini or run PHPStan with --memory-limit  
+     CLI option.                                                               
+      while running parallel worker                                            
+ -- -------------------------------------------------------------------------- 
+
+
+ [ERROR] Found 1 error                                                          
+
+⚠️  Result is incomplete because of severe errors. ⚠️
+   Fix these errors first and then re-run PHPStan
+   to get all reported errors.
+
+Script phpstan analyse -c phpstan.neon --no-progress --memory-limit=1G handling the analyse event returned with error code 1
+
+===== WPCS =====
+exit=1
+[31mE[0m[31mE[0m.[31mE[0m[31mE[0m.[31mE[0m.[31mE[0m[31mE[0m.[31mE[0m 12 / 12 (100%)
+
+
+
+[1mFILE: inc/common/licence-status.php[0m
+--------------------------------------------------------------------------------
+[1mFOUND 3 ERRORS AND 12 WARNINGS AFFECTING 7 LINES[0m
+--------------------------------------------------------------------------------
+ 355 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 355 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 355 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 364 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 364 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 376 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 376 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 391 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 391 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 416 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 416 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 416 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 422 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 422 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 423 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "UPDATE `{$table}` SET `status` =[0m
+     |         | [1m`statut` WHERE `statut` IS NOT NULL AND `statut` <> '' AND[0m
+     |         | [1m(`status` IS NULL OR `status` = '' OR `status` <> `statut`)"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+--------------------------------------------------------------------------------
+
+
+[1mFILE: inc/common/compliance.php[0m
+--------------------------------------------------------------------------------
+[1mFOUND 11 ERRORS AND 22 WARNINGS AFFECTING 13 LINES[0m
+--------------------------------------------------------------------------------
+  49 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  49 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  49 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "DESC `{$table}`"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  53 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  53 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  55 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  55 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  55 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "SELECT role FROM `{$table}` WHERE[0m
+     |         | [1mclub_id = %d AND `{$season_column}` = %s AND is_included = 1[0m
+     |         | [1mAND id <> %d"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  55 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$season_column} at "SELECT role FROM `{$table}`[0m
+     |         | [1mWHERE club_id = %d AND `{$season_column}` = %s AND is_included[0m
+     |         | [1m= 1 AND id <> %d"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  57 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  57 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  59 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  59 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  61 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "UPDATE `{$table}` SET is_included = 1[0m
+     |         | [1mWHERE id = %d AND club_id = %d AND `{$season_column}` = %s AND[0m
+     |         | [1m(is_included = 0 OR is_included IS NULL)"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  61 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$season_column} at "UPDATE `{$table}` SET[0m
+     |         | [1mis_included = 1 WHERE id = %d AND club_id = %d AND[0m
+     |         | [1m`{$season_column}` = %s AND (is_included = 0 OR is_included IS[0m
+     |         | [1mNULL)"[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  68 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  68 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  74 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  74 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  76 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "SELECT is_included FROM `{$table}` WHERE[0m
+     |         | [1mid = %d AND club_id = %d AND `{$season_column}` = %s LIMIT 1"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  76 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$season_column} at "SELECT is_included FROM[0m
+     |         | [1m`{$table}` WHERE id = %d AND club_id = %d AND[0m
+     |         | [1m`{$season_column}` = %s LIMIT 1"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  82 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  82 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  97 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  97 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  97 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "DESC `{$table}`"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 100 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 100 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 100 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "SELECT role, is_included FROM `{$table}`[0m
+     |         | [1mWHERE club_id = %d AND `{$season_column}` = %s"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 100 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$season_column} at "SELECT role, is_included FROM[0m
+     |         | [1m`{$table}` WHERE club_id = %d AND `{$season_column}` = %s"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 211 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 211 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 211 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+--------------------------------------------------------------------------------
+
+
+[1mFILE: inc/woocommerce/cart-integration.php[0m
+--------------------------------------------------------------------------------
+[1mFOUND 21 ERRORS AND 57 WARNINGS AFFECTING 39 LINES[0m
+--------------------------------------------------------------------------------
+   86 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+   86 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+   86 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  114 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  114 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  114 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "UPDATE `{$table}` SET "[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  114 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $sets[0m
+      |         | (WordPress.DB.PreparedSQL.NotPrepared)
+  204 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+  204 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+  204 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+  209 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+  209 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+  210 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+  210 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+  210 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+  228 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+  228 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+  483 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  483 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  483 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  531 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  531 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  531 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $trace_sql[0m
+      |         | (WordPress.DB.PreparedSQL.NotPrepared)
+  542 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  542 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  542 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $sql[0m
+      |         | (WordPress.DB.PreparedSQL.NotPrepared)
+  657 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  657 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  660 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$order_itemmeta} at 			 FROM {$order_itemmeta}[0m
+      |         | [1m[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  668 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  668 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  671 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$order_itemmeta} at 			 FROM {$order_itemmeta}[0m
+      |         | [1m[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  692 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  692 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  695 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$order_items} at 			 FROM {$order_items} oi[0m
+      |         | [1m[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  696 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$posts} at 			 INNER JOIN {$posts} p ON p.ID =[0m
+      |         | [1moi.order_id[0m
+      |         | [1m[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  697 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$in} at 			 WHERE oi.order_item_id IN ({$in})[0m
+      |         | [1m[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  698 | [33mWARNING[0m | [1mReplacement variables found, but no valid placeholders found[0m
+      |         | [1min the query.[0m
+      |         | (WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare)
+  789 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  789 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  789 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT * FROM {$table} WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  836 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  836 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1081 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1081 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1082 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT club_id FROM `{$table}` WHERE id[0m
+      |         | [1m= %d"[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1188 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1188 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1188 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1380 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1380 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1381 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1381 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1382 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1382 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1383 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1383 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1384 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1384 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1472 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1472 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1472 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d[0m
+      |         | [1mAND club_id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1586 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1586 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1587 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1853 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1853 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1855 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$clubs_table} at "SELECT nom FROM {$clubs_table}[0m
+      |         | [1mWHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1957 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1957 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1958 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$clubs_table} at "SELECT included_quota FROM[0m
+      |         | [1m{$clubs_table} WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1961 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1961 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1962 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$clubs_table} at "SELECT included_quota_used FROM[0m
+      |         | [1m{$clubs_table} WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 2027 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 2027 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 2029 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT statut FROM `{$table}` WHERE[0m
+      |         | [1m`{$pk}` = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 2029 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$pk} at "SELECT statut FROM `{$table}` WHERE[0m
+      |         | [1m`{$pk}` = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+--------------------------------------------------------------------------------
+
+
+[1mFILE: inc/woocommerce/hooks.php[0m
+--------------------------------------------------------------------------------
+[1mFOUND 19 ERRORS AND 54 WARNINGS AFFECTING 36 LINES[0m
+--------------------------------------------------------------------------------
+  212 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  212 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  212 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  217 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  217 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  217 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  276 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  276 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  372 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  372 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  372 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  447 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  669 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  669 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  669 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  750 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  797 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  797 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  797 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  872 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $sql[0m
+      |         | (WordPress.DB.PreparedSQL.NotPrepared)
+  873 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  873 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  873 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $query[0m
+      |         | (WordPress.DB.PreparedSQL.NotPrepared)
+  914 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  914 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  914 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  949 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  949 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  949 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  981 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  981 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1010 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1010 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1010 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1015 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1015 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1015 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1062 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1062 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1175 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1175 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1179 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1183 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1184 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1184 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Recommended)
+ 1472 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1472 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1474 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$clubs_table} at "UPDATE {$clubs_table} SET[0m
+      |         | [1mincluded_quota_used = COALESCE(included_quota_used,0) + %d[0m
+      |         | [1mWHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1600 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1600 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1600 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1624 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1624 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1626 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1626 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1626 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT club_id FROM {$table} WHERE id =[0m
+      |         | [1m%d"[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1654 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1654 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1657 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$order_items} at 			 FROM {$order_items} oi[0m
+      |         | [1m[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1658 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$order_itemmeta} at 			 INNER JOIN[0m
+      |         | [1m{$order_itemmeta} oim ON oim.order_item_id = oi.order_item_id[0m
+      |         | [1m[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1817 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1817 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1819 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$clubs_table} at "SELECT id FROM {$clubs_table}[0m
+      |         | [1mWHERE responsable_id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1846 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1846 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1890 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1890 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1922 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1922 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1924 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$clubs_table} at "UPDATE {$clubs_table} SET[0m
+      |         | [1mquota_licences = COALESCE(quota_licences,0) + %d WHERE id =[0m
+      |         | [1m%d"[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1953 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1953 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1955 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$clubs_table} at "UPDATE {$clubs_table} SET[0m
+      |         | [1mquota_licences = COALESCE(quota_licences,0) + %d WHERE id =[0m
+      |         | [1m%d"[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+--------------------------------------------------------------------------------
+
+
+[1mFILE: includes/core/class-unified-handlers.php[0m
+--------------------------------------------------------------------------------
+[1mFOUND 53 ERRORS AND 56 WARNINGS AFFECTING 69 LINES[0m
+--------------------------------------------------------------------------------
+   83 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+   98 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  154 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  248 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  280 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  280 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  280 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$licences_table} at "DESCRIBE `{$licences_table}`"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  320 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  320 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  337 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  363 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  406 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  446 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  446 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  470 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  493 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  493 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  493 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT * FROM {$table} WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  510 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  510 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  517 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  517 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  544 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  555 | [31mERROR[0m   | [1m$_POST['status'] not unslashed before sanitization. Use[0m
+      |         | [1mwp_unslash() or similar[0m
+      |         | (WordPress.Security.ValidatedSanitizedInput.MissingUnslash)
+  592 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  592 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  608 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  631 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  698 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$season_column} at[0m
+      |         | [1m"REPLACE(TRIM(`{$season_column}`), '/', '-') = %s"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  699 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  699 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  701 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT id FROM {$table} WHERE club_id =[0m
+      |         | [1m%d AND role = %s AND id <> %d AND {$season_sql}"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  701 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$season_sql} at "SELECT id FROM {$table} WHERE[0m
+      |         | [1mclub_id = %d AND role = %s AND id <> %d AND {$season_sql}"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  714 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  714 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  745 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  760 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  760 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  761 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT id, club_id FROM {$table} WHERE[0m
+      |         | [1mid = %d"[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  769 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  821 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  821 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  841 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  856 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  856 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  857 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT id, club_id FROM {$table} WHERE[0m
+      |         | [1mid = %d"[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+  865 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  881 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  881 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  900 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  900 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  923 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  926 | [31mERROR[0m   | [1mDetected usage of a non-sanitized input variable:[0m
+      |         | [1m$_FILES['honorability_attestation'][0m
+      |         | (WordPress.Security.ValidatedSanitizedInput.InputNotSanitized)
+  942 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+  955 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+ 1032 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+ 1067 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1128 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+ 1198 | [31mERROR[0m   | [1mDetected usage of a non-sanitized input variable:[0m
+      |         | [1m$_POST['ufsc_submit_action'][0m
+      |         | (WordPress.Security.ValidatedSanitizedInput.InputNotSanitized)
+ 1303 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1303 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1306 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1306 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1306 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$licences_table} at "SELECT club_id FROM[0m
+      |         | [1m{$licences_table} WHERE id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1318 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+ 1324 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+ 1328 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+ 1335 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+ 1339 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '__'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+ 1342 | [31mERROR[0m   | [1mDetected usage of a non-sanitized input variable:[0m
+      |         | [1m$_POST['filters'][0m
+      |         | (WordPress.Security.ValidatedSanitizedInput.InputNotSanitized)
+ 1357 | [31mERROR[0m   | [1mAll output should be run through an escaping function (see[0m
+      |         | [1mthe Security sections in the WordPress Developer Handbooks),[0m
+      |         | [1mfound '$csv_data'.[0m
+      |         | (WordPress.Security.EscapeOutput.OutputNotEscaped)
+ 1577 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1577 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1686 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$season_column} at[0m
+      |         | [1m"REPLACE(TRIM(`{$season_column}`), '/', '-') = %s"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1687 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1687 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1687 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$licences_table} at "SELECT id FROM[0m
+      |         | [1m`{$licences_table}` WHERE club_id = %d AND role = %s AND id[0m
+      |         | [1m<> %d AND {$season_sql} LIMIT 1"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1687 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$season_sql} at "SELECT id FROM `{$licences_table}`[0m
+      |         | [1mWHERE club_id = %d AND role = %s AND id <> %d AND[0m
+      |         | [1m{$season_sql} LIMIT 1"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1699 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1699 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1713 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$season_column} at "REPLACE(`{$season_column}`,[0m
+      |         | [1m'/', '-') = %s"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1714 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1714 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1716 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$licences_table} at "SELECT id, nom, prenom FROM[0m
+      |         | [1m`{$licences_table}` WHERE club_id = %d AND date_naissance =[0m
+      |         | [1m%s AND {$season_sql}"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1716 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$season_sql} at "SELECT id, nom, prenom FROM[0m
+      |         | [1m`{$licences_table}` WHERE club_id = %d AND date_naissance =[0m
+      |         | [1m%s AND {$season_sql}"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1736 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1770 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$season_column} at[0m
+      |         | [1m"REPLACE(TRIM(`{$season_column}`), '/', '-') = %s"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1771 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1771 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1771 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$licences_table} at "SELECT * FROM[0m
+      |         | [1m`{$licences_table}` WHERE club_id = %d AND role IN[0m
+      |         | [1m('president','secretaire','tresorier') AND {$season_sql}[0m
+      |         | [1mORDER BY id DESC"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1771 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$season_sql} at "SELECT * FROM `{$licences_table}`[0m
+      |         | [1mWHERE club_id = %d AND role IN[0m
+      |         | [1m('president','secretaire','tresorier') AND {$season_sql}[0m
+      |         | [1mORDER BY id DESC"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 1791 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1791 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1809 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1809 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1861 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1861 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1861 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $sql[0m
+      |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 1913 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 1913 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 1914 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$licences_table} at "SELECT * FROM[0m
+      |         | [1m{$licences_table} WHERE id = %d AND club_id = %d"[0m
+      |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 2023 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 2023 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 2023 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $sql[0m
+      |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 2101 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 2101 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 2101 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+      |         | [1mvariable {$table} at "SELECT club_id FROM {$table} WHERE id =[0m
+      |         | [1m%d"[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 2148 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Missing)
+ 2148 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
+      |         | (WordPress.Security.NonceVerification.Missing)
+--------------------------------------------------------------------------------
+
+
+[1mFILE: includes/core/class-ufsc-licence-payments.php[0m
+--------------------------------------------------------------------------------
+[1mFOUND 11 ERRORS AND 16 WARNINGS AFFECTING 11 LINES[0m
+--------------------------------------------------------------------------------
+  89 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+  89 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+  89 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 109 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 109 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 109 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $sql[0m
+     |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 129 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 129 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 129 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 139 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 139 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 140 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE[0m
+     |         | [1mlicence_id = %d AND is_deleted = 0 ORDER BY id DESC LIMIT 1"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 345 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "INSERT INTO `{$table}`[0m
+     |         | [1m[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 347 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$amount_sql} at 			VALUES[0m
+     |         | [1m(%d,%s,%s,%s,%s,%s,%s,%s,{$amount_sql},%s,{$order_id_sql},{$item_id_sql},%s,%s,%s,%s,%s,%d,%s,%s,0)[0m
+     |         | [1m[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 347 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$order_id_sql} at 			VALUES[0m
+     |         | [1m(%d,%s,%s,%s,%s,%s,%s,%s,{$amount_sql},%s,{$order_id_sql},{$item_id_sql},%s,%s,%s,%s,%s,%d,%s,%s,0)[0m
+     |         | [1m[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 347 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$item_id_sql} at 			VALUES[0m
+     |         | [1m(%d,%s,%s,%s,%s,%s,%s,%s,{$amount_sql},%s,{$order_id_sql},{$item_id_sql},%s,%s,%s,%s,%s,%d,%s,%s,0)[0m
+     |         | [1m[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 367 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 367 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 367 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $sql[0m
+     |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 378 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 378 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 378 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 379 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 379 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 379 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 408 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 408 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+--------------------------------------------------------------------------------
+
+
+[1mFILE: includes/core/class-ufsc-renewal-service.php[0m
+--------------------------------------------------------------------------------
+[1mFOUND 5 ERRORS AND 13 WARNINGS AFFECTING 7 LINES[0m
+--------------------------------------------------------------------------------
+ 104 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 104 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 104 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "SHOW COLUMNS FROM `{$table}`"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 109 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 109 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 109 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "SELECT id FROM `{$table}` WHERE[0m
+     |         | [1mclub_id=%d AND person_identifier=%s AND `{$season_column}`=%s[0m
+     |         | [1mLIMIT 1"[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 109 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$season_column} at "SELECT id FROM `{$table}` WHERE[0m
+     |         | [1mclub_id=%d AND person_identifier=%s AND `{$season_column}`=%s[0m
+     |         | [1mLIMIT 1"[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 195 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 195 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 195 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id=%d[0m
+     |         | [1mLIMIT 1"[0m (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 244 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 244 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 244 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+     |         | [1mvariable {$table} at "SHOW COLUMNS FROM `{$table}`"[0m
+     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 250 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 250 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 293 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 304 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 304 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+     |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+     |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+--------------------------------------------------------------------------------
+
+
+[1mFILE: includes/front/class-ufsc-stats.php[0m
+--------------------------------------------------------------------------------
+[1mFOUND 16 ERRORS AND 4 WARNINGS AFFECTING 6 LINES[0m
+--------------------------------------------------------------------------------
+ 18 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $this[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 18 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found wpdb[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 18 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found prepare[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 18 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $sql[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 23 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $this[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 23 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found wpdb[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 23 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found prepare[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 23 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $sql[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 39 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $this[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 39 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found wpdb[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 39 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found prepare[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 39 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found $sql[0m
+    |         | (WordPress.DB.PreparedSQL.NotPrepared)
+ 49 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+    |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 49 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+    |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+    |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 49 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+    |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
+    |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 64 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+    |         | [1mvariable {$season_column} at " AND[0m
+    |         | [1mREPLACE(TRIM(`{$season_column}`), '/', '-') = %s"[0m
+    |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 70 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
+    |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
+ 70 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
+    |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
+    |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
+ 70 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+    |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE {$where}"[0m
+    |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+ 70 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
+    |         | [1mvariable {$where} at "SELECT * FROM `{$table}` WHERE {$where}"[0m
+    |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
+--------------------------------------------------------------------------------
+
+Time: 491ms; Memory: 40MB
+
+Script phpcs --standard=phpcs.xml.dist handling the cs event returned with error code 1
+
+OVERALL=1
