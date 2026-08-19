@@ -23,10 +23,12 @@
     "scripts": {
         "test": "phpunit -c phpunit.xml",
         "test:standalone": "@php tests/run-standalone.php",
+        "repro:p0": "@php tests/repro/run-p0.php",
         "analyse": "phpstan analyse -c phpstan.neon --no-progress --memory-limit=1G",
         "cs": "phpcs --standard=phpcs.xml.dist",
         "quality": [
             "@test:standalone",
+            "@repro:p0",
             "@test",
             "@analyse",
             "@cs"

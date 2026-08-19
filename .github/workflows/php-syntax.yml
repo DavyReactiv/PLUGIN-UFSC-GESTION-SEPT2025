@@ -1,4 +1,4 @@
-name: PHP syntax and runtime guards
+name: UFSC quality gate
 
 on:
   pull_request:
@@ -10,20 +10,47 @@ permissions:
   contents: read
 
 jobs:
-  php-syntax:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact commit
         uses: actions/checkout@v4
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.1'
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate Composer metadata
+        run: composer validate --no-check-publish
+
+      - name: Install PHP quality dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
       - name: Lint PHP files outside vendor
         run: find . -path ./vendor -prune -o -name '*.php' -type f -print0 | xargs -0 -n1 php -l
+
       - name: Check JavaScript syntax
-        run: find assets -name '*.js' -type f -print0 | xargs -0 -r -n1 node --check
-      - name: Runtime, static and PHPUnit-aware test runner
-        run: |
-          chmod +x tests/run-tests.sh
-          tests/run-tests.sh
+        run: find assets tests -name '*.js' -type f -print0 | xargs -0 -r -n1 node --check
+
+      - name: Run standalone and runtime regression tests
+        run: composer test:standalone
+
+      - name: Run P0 licence regressions
+        run: composer repro:p0
+
+      - name: Run PHPUnit
+        run: composer test
+
+      - name: Run PHPStan
+        run: composer analyse
+
+      - name: Run WordPress Coding Standards security gate
+        run: composer cs

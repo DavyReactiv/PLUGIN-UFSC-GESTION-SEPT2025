@@ -10,7 +10,7 @@ class UFSC_Unified_Handlers {
     /** Normalize the only supported licence workflow intentions. */
     public static function normalize_licence_intent( $action ) {
         $action = sanitize_key( (string) $action );
-        return in_array( $action, array( 'save_draft', 'continue', 'verify', 'add_to_cart' ), true ) ? $action : 'continue';
+        return in_array( $action, array( 'save_draft', 'continue', 'verify', 'submit_for_validation', 'add_to_cart' ), true ) ? $action : 'continue';
     }
 
     /** Decide whether an explicit form intent may mutate the WooCommerce cart. */

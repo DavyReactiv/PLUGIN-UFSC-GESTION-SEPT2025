@@ -337,11 +337,15 @@ final class UFSC_Licence_Status {
 	/**
 	 * Update status columns for a licence row.
 	 *
+	 * Canonical `statut` is authoritative. Legacy `status` is best-effort
+	 * compatibility and is deliberately written in a separate SQL statement so
+	 * an old constraint can never roll back the canonical transition.
+	 *
 	 * @param string $table Table name.
 	 * @param array  $where Where clause.
 	 * @param string $status Status to set.
 	 * @param array  $where_format Where format.
-	 * @return int|false
+	 * @return int|false Canonical update result, or legacy result when no canonical column exists.
 	 */
 	public static function update_status_columns( $table, $where, $status, $where_format = array( '%d' ) ) {
 		global $wpdb;
@@ -350,24 +354,47 @@ final class UFSC_Licence_Status {
 			? ufsc_table_columns( $table )
 			: $wpdb->get_col( "DESCRIBE `{$table}`" );
 
-		$data   = array();
-		$format = array();
-
-		if ( in_array( 'statut', $columns, true ) ) {
-			$data['statut'] = $status;
-			$format[]       = '%s';
-		}
-
-		if ( in_array( 'status', $columns, true ) ) {
-			$data['status'] = $status;
-			$format[]       = '%s';
-		}
-
-		if ( empty( $data ) ) {
+		$has_canonical = in_array( 'statut', $columns, true );
+		$has_legacy    = in_array( 'status', $columns, true );
+		if ( ! $has_canonical && ! $has_legacy ) {
 			return false;
 		}
 
-		return $wpdb->update( $table, $data, $where, $format, $where_format );
+		if ( $has_canonical ) {
+			$canonical_result = $wpdb->update(
+				$table,
+				array( 'statut' => $status ),
+				$where,
+				array( '%s' ),
+				$where_format
+			);
+			if ( false === $canonical_result ) {
+				return false;
+			}
+
+			if ( $has_legacy ) {
+				$legacy_result = $wpdb->update(
+					$table,
+					array( 'status' => $status ),
+					$where,
+					array( '%s' ),
+					$where_format
+				);
+				if ( false === $legacy_result && class_exists( 'UFSC_Audit_Logger' ) ) {
+					UFSC_Audit_Logger::log( 'UFSC: legacy licence status compatibility write failed after canonical status succeeded.' );
+				}
+			}
+
+			return $canonical_result;
+		}
+
+		return $wpdb->update(
+			$table,
+			array( 'status' => $status ),
+			$where,
+			array( '%s' ),
+			$where_format
+		);
 	}
 
 	/**
@@ -507,6 +534,8 @@ function ufsc_is_licence_locked_for_club( $licence ) {
 			if ( function_exists( 'ufsc_wc_log' ) ) {
 				ufsc_wc_log( 'ufsc_licence_lock_order_check_unavailable', array( 'order_id' => $order_id ), 'warning' );
 			}
+
+			return false;
 		}
 
 		return false;
