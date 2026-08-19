@@ -55,10 +55,36 @@ function ufsc_allocate_pack_credit( $licence_id, $club_id, $season, $role ) {
 	$roles = $wpdb->get_col( $wpdb->prepare( "SELECT role FROM `{$table}` WHERE club_id = %d AND `{$season_column}` = %s AND is_included = 1 AND id <> %d", $club_id, $season, $licence_id ) );
 	$allocation = ufsc_resolve_pack_credit( $role, $roles );
 	if ( empty( $allocation['included'] ) ) { $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); return $allocation; }
-	$updated = $wpdb->query( $wpdb->prepare( "UPDATE `{$table}` SET is_included = 1 WHERE id = %d AND club_id = %d AND `{$season_column}` = %s AND is_included = 0", $licence_id, $club_id, $season ) );
+
+	$updated = $wpdb->query(
+		$wpdb->prepare(
+			"UPDATE `{$table}` SET is_included = 1 WHERE id = %d AND club_id = %d AND `{$season_column}` = %s AND (is_included = 0 OR is_included IS NULL)",
+			$licence_id,
+			$club_id,
+			$season
+		)
+	);
+	if ( false === $updated ) {
+		$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
+		return new WP_Error( 'ufsc_pack_reservation_failed', __( 'Le crédit inclus n’a pas pu être réservé.', 'ufsc-clubs' ) );
+	}
+
+	// Re-read while the club/season lock is still held. A previous identical
+	// request is accepted only when this exact licence is already reserved.
+	$reserved = (int) $wpdb->get_var(
+		$wpdb->prepare(
+			"SELECT is_included FROM `{$table}` WHERE id = %d AND club_id = %d AND `{$season_column}` = %s LIMIT 1",
+			$licence_id,
+			$club_id,
+			$season
+		)
+	);
 	$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
-	if ( false === $updated ) { return new WP_Error( 'ufsc_pack_reservation_failed', __( 'Le crédit inclus n’a pas pu être réservé.', 'ufsc-clubs' ) ); }
-	$allocation['reserved'] = 1 === (int) $updated;
+	if ( 1 !== $reserved ) {
+		return new WP_Error( 'ufsc_pack_reservation_unconfirmed', __( 'Le crédit inclus n’a pas pu être confirmé. La licence est conservée sans paiement.', 'ufsc-clubs' ) );
+	}
+
+	$allocation['reserved'] = true;
 	return $allocation;
 }
 
