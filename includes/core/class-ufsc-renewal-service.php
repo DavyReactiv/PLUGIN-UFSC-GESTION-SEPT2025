@@ -255,7 +255,10 @@ final class UFSC_Renewal_Service {
             $person_key = self::person_key( $source, $club_id );
             $existing_id = $person_key ? self::find_annual( $person_key, $club_id, $season ) : 0;
             if ( $existing_id ) {
-                return array( 'licence_id' => $existing_id, 'created' => false );
+                $target = array( 'licence_id' => $existing_id, 'created' => false );
+                return function_exists( 'apply_filters' )
+                    ? apply_filters( 'ufsc_renewal_target_draft_result', $target, $source, $club_id, $season, $updates )
+                    : $target;
             }
 
             $allowed = self::can_renew( $source, $club_id, $season );
@@ -293,7 +296,10 @@ final class UFSC_Renewal_Service {
 
             $new_id = absint( $wpdb->insert_id );
             if ( $new_id && function_exists( 'ufsc_set_licence_season' ) ) { ufsc_set_licence_season( $new_id, $season ); }
-            return array( 'licence_id' => $new_id, 'created' => true );
+            $target = array( 'licence_id' => $new_id, 'created' => true );
+            return function_exists( 'apply_filters' )
+                ? apply_filters( 'ufsc_renewal_target_draft_result', $target, $source, $club_id, $season, $updates )
+                : $target;
         } finally {
             $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
         }
