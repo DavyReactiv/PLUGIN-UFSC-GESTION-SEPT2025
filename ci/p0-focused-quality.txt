@@ -22,115 +22,43 @@ Upgrade today to PHPStan 2.2 or newer by using
 
 exit=0
 ===== WPCS NEW FINALIZATION =====
-[31mE[0m[31mE[0m 2 / 2 (100%)
+[33mW[0m[33mW[0m 2 / 2 (100%)
 
 
 
 [1mFILE: inc/common/licence-finalization-runtime.php[0m
 --------------------------------------------------------------------------------
-[1mFOUND 33 ERRORS AND 6 WARNINGS AFFECTING 25 LINES[0m
+[1mFOUND 0 ERRORS AND 6 WARNINGS AFFECTING 4 LINES[0m
 --------------------------------------------------------------------------------
-  40 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
-  40 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
-  41 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
-  47 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
-  47 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
-  48 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
-  81 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
-  81 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
-  82 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 119 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 119 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 120 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 125 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 125 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 126 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 128 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 128 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 129 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 166 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 166 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 167 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 172 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 172 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 173 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 175 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 175 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 176 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 223 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 223 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 224 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 230 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 230 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 230 | [31mERROR[0m   | [1mProcessing form data without nonce verification.[0m
-     |         | (WordPress.Security.NonceVerification.Missing)
- 324 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+ 345 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
      |         | (WordPress.Security.NonceVerification.Recommended)
- 324 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+ 345 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
      |         | (WordPress.Security.NonceVerification.Recommended)
- 325 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+ 346 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
      |         | (WordPress.Security.NonceVerification.Recommended)
- 327 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+ 348 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
      |         | (WordPress.Security.NonceVerification.Recommended)
- 327 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+ 348 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
      |         | (WordPress.Security.NonceVerification.Recommended)
- 328 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
+ 349 | [33mWARNING[0m | [1mProcessing form data without nonce verification.[0m
      |         | (WordPress.Security.NonceVerification.Recommended)
 --------------------------------------------------------------------------------
 
 
 [1mFILE: includes/core/class-ufsc-licence-finalization-service.php[0m
 --------------------------------------------------------------------------------
-[1mFOUND 4 ERRORS AND 14 WARNINGS AFFECTING 7 LINES[0m
+[1mFOUND 0 ERRORS AND 14 WARNINGS AFFECTING 7 LINES[0m
 --------------------------------------------------------------------------------
   37 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
   37 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
-  37 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
-     |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d"[0m
-     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
  101 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
  101 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
- 101 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
-     |         | [1mvariable {$table} at "DESCRIBE `{$table}`"[0m
-     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
  104 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
  104 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
@@ -146,10 +74,6 @@ exit=0
  117 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
- 117 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
-     |         | [1mvariable {$table} at "SELECT submitted_at FROM `{$table}`[0m
-     |         | [1mWHERE id = %d"[0m
-     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
  119 | [33mWARNING[0m | [1mUse of a direct database call is discouraged.[0m
      |         | (WordPress.DB.DirectDatabaseQuery.DirectQuery)
  119 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
@@ -160,12 +84,9 @@ exit=0
  123 | [33mWARNING[0m | [1mDirect database call without caching detected. Consider using[0m
      |         | [1mwp_cache_get() / wp_cache_set() or wp_cache_delete().[0m
      |         | (WordPress.DB.DirectDatabaseQuery.NoCaching)
- 123 | [31mERROR[0m   | [1mUse placeholders and $wpdb->prepare(); found interpolated[0m
-     |         | [1mvariable {$table} at "SELECT * FROM `{$table}` WHERE id = %d[0m
-     |         | [1mAND club_id = %d"[0m
-     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
 --------------------------------------------------------------------------------
 
-Time: 66ms; Memory: 10MB
+Time: 51ms; Memory: 12MB
 
-exit=1
+exit=0
+# rerun after nonce and prepared-SQL fixes
