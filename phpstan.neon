@@ -5,12 +5,18 @@ parameters:
     level: 5
     paths:
         - inc/common/licence-status.php
+        - inc/common/compliance.php
+        - inc/common/fighter-level.php
+        - inc/woocommerce/cart-integration.php
+        - includes/core/class-unified-handlers.php
+        - includes/core/class-ufsc-licence-payments.php
         - includes/core/class-ufsc-renewal-service.php
+        - includes/core/class-ufsc-season-service.php
+        - includes/core/class-ufsc-debug-trace.php
         - includes/front/class-ufsc-stats.php
     bootstrapFiles:
         - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
     scanFiles:
-        - inc/common/fighter-level.php
         - includes/core/class-sql.php
         - includes/core/class-ufsc-category-repository.php
         - includes/core/class-ufsc-identifier-resolver.php
