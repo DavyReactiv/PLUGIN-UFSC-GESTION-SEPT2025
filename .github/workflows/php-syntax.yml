@@ -7,6 +7,7 @@ on:
     branches:
       - main
       - chore/phase2-quality-observability
+      - fix/p0-licence-root-causes
 
 permissions:
   contents: read
@@ -44,6 +45,9 @@ jobs:
 
       - name: Run standalone and runtime regression tests
         run: composer test:standalone
+
+      - name: Run P0 licence regressions
+        run: composer repro:p0
 
       - name: Run PHPUnit
         run: composer test
