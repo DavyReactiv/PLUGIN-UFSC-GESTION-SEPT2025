@@ -209,21 +209,15 @@ No syntax errors detected in ./includes/woo/class-ufsc-woo-sync.php
 No syntax errors detected in ./logout.php
 
 ===== P0 REGRESSIONS =====
-exit=1
+exit=0
 OK: licences 1-10 included, licence 11 payable
 OK: legacy NULL row reserved and confirmed as included
 OK: canonical statut persisted independently from legacy status compatibility
 OK: submit_for_validation reaches the canonical finalisation path
 OK: renewals use canonical finalization, preserve history and fail closed
 Native licence cart runtime safeguards OK
-PHP Fatal error:  Uncaught Error: Call to undefined function add_action() in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/inc/woocommerce/cart-integration.php:1977
-Stack trace:
-#0 /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/tests/repro/paid-renewal-cart-repro.php(111): require_once()
-#1 {main}
-  thrown in /home/runner/work/PLUGIN-UFSC-GESTION-SEPT2025/PLUGIN-UFSC-GESTION-SEPT2025/inc/woocommerce/cart-integration.php on line 1977
-P0 regression suite failed:
-- paid-renewal-cart-repro.php (exit 255)
-Script @php tests/repro/run-p0.php handling the repro:p0 event returned with error code 1
+OK: paid renewal created and persisted one quantity-one WooCommerce cart item with licence metadata
+P0 regression suite passed.
 
 ===== STANDALONE =====
 exit=0
@@ -1721,7 +1715,7 @@ exit=1
     |         | (WordPress.DB.PreparedSQL.InterpolatedNotPrepared)
 --------------------------------------------------------------------------------
 
-Time: 720ms; Memory: 40MB
+Time: 719ms; Memory: 40MB
 
 Script phpcs --standard=phpcs.xml.dist handling the cs event returned with error code 1
 
