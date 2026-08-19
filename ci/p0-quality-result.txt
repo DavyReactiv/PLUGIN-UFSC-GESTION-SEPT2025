@@ -209,17 +209,15 @@ No syntax errors detected in ./includes/woo/class-ufsc-woo-sync.php
 No syntax errors detected in ./logout.php
 
 ===== P0 REGRESSIONS =====
-exit=1
+exit=0
 OK: licences 1-10 included, licence 11 payable
 OK: legacy NULL row reserved and confirmed as included
 OK: canonical statut persisted independently from legacy status compatibility
-FAIL: submit_for_validation was not normalized to the canonical finalisation trigger
+OK: submit_for_validation is canonical while add_to_cart alone authorizes WooCommerce
 OK: renewals use canonical finalization, preserve history and fail closed
 Native licence cart runtime safeguards OK
 OK: paid renewal created and persisted one quantity-one WooCommerce cart item with licence metadata
-P0 regression suite failed:
-- submit-intent-repro.php (exit 1)
-Script @php tests/repro/run-p0.php handling the repro:p0 event returned with error code 1
+P0 regression suite passed.
 
 ===== STANDALONE =====
 exit=0
@@ -429,7 +427,7 @@ Time: 00:00.010, Memory: 10.00 MB
 OK (5 tests, 17 assertions)
 
 ===== PHPSTAN =====
-exit=1
+exit=0
 
 ⚠️  You're running an old version of PHPStan.️
 
@@ -448,17 +446,9 @@ https://phpstan.org/blog
 Upgrade today to PHPStan 2.2 or newer by using
 "phpstan/phpstan": "^2.2" in your composer.json.
 
-::error file=includes/core/class-ufsc-season-service.php,line=218,col=0::Static method UFSC_Season_Service::normalize_parse_input() is unused.
- ------ ----------------------------------------------------------------------- 
-  Line   includes/core/class-ufsc-season-service.php                            
- ------ ----------------------------------------------------------------------- 
-  218    Static method UFSC_Season_Service::normalize_parse_input() is unused.  
- ------ ----------------------------------------------------------------------- 
 
+ [OK] No errors                                                                 
 
- [ERROR] Found 1 error                                                          
-
-Script phpstan analyse -c phpstan.neon --no-progress --memory-limit=1G handling the analyse event returned with error code 1
 
 ===== WPCS =====
 exit=0
@@ -529,5 +519,5 @@ exit=0
 Time: 87ms; Memory: 10MB
 
 
-OVERALL=1
-FINAL_RERUN=1
+OVERALL=0
+FINAL_RERUN=3
