@@ -28,6 +28,7 @@
         "cs": "phpcs --standard=phpcs.xml.dist",
         "quality": [
             "@test:standalone",
+            "@repro:p0",
             "@test",
             "@analyse",
             "@cs"
