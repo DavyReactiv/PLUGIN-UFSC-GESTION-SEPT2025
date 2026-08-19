@@ -1,0 +1,39 @@
+name: TEMP targeted P0 source repair
+
+on:
+  push:
+    branches:
+      - fix/p0-licence-root-causes
+    paths:
+      - .github/workflows/temp-p0-targeted-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore accidentally removed foreach brace
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('inc/common/licence-status.php')
+          source = path.read_text()
+          old = "\t\t\t\t\t}\n\t\t\t}\n\n\t\t\tif ( function_exists( 'ufsc_wc_log' ) ) {"
+          new = "\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\n\t\t\tif ( function_exists( 'ufsc_wc_log' ) ) {"
+          if old not in source:
+              raise SystemExit('Target sequence not found; refusing broad edit.')
+          path.write_text(source.replace(old, new, 1))
+      - name: Verify target syntax
+        run: php -l inc/common/licence-status.php
+      - name: Commit repair
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add inc/common/licence-status.php
+          git diff --cached --quiet && exit 0
+          git commit -m "fix: restore licence status lock branch syntax [skip ci]"
+          git push
