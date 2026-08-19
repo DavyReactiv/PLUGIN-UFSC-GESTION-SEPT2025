@@ -563,6 +563,7 @@ function ufsc_is_licence_locked_for_club( $licence ) {
 						$has_paid_proof = true;
 						break;
 					}
+				}
 			}
 
 			if ( function_exists( 'ufsc_wc_log' ) ) {
