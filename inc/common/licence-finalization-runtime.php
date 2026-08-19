@@ -4,8 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 /**
  * Runtime wiring for the canonical licence finalization service.
  *
- * The service decides included vs payable exactly once. Existing controllers keep
- * ownership of form validation and WooCommerce cart persistence.
+ * The service decides included vs payable. Existing controllers keep ownership
+ * of form validation and WooCommerce cart persistence.
  */
 final class UFSC_Licence_Finalization_Runtime {
 	/** @var array<int,array|WP_Error> */
@@ -22,6 +22,7 @@ final class UFSC_Licence_Finalization_Runtime {
 		add_action( 'init', array( __CLASS__, 'replace_legacy_finalizers' ), 99 );
 		add_action( 'ufsc_licence_created', array( __CLASS__, 'finalize_created_licence' ), 0, 2 );
 		add_action( 'ufsc_licence_updated', array( __CLASS__, 'finalize_updated_licence' ), 0, 1 );
+		add_filter( 'ufsc_renewal_target_draft_result', array( __CLASS__, 'finalize_renewal_target' ), 5, 5 );
 		add_filter( 'ufsc_quotas_enabled', array( __CLASS__, 'maybe_skip_unified_quota_recheck' ), 999 );
 		add_filter( 'wp_redirect', array( __CLASS__, 'rewrite_unified_redirect' ), 10, 2 );
 		add_filter( 'do_shortcode_tag', array( __CLASS__, 'prepend_portal_notice' ), 5, 4 );
@@ -84,6 +85,50 @@ final class UFSC_Licence_Finalization_Runtime {
 			return;
 		}
 		self::finalize_for_unified_request( $licence_id, absint( $club_id ), 'unified_update' );
+	}
+
+	/**
+	 * Finalise the current-season target row of a renewal before the cart helper
+	 * decides whether to create a paid line. Returning WP_Error makes the existing
+	 * renewal controller fail closed without touching the historical source row.
+	 */
+	public static function finalize_renewal_target( $target, $source, $club_id, $season, $updates ) {
+		unset( $source, $updates );
+		if ( is_wp_error( $target ) || ! self::is_renewal_final_request() ) {
+			return $target;
+		}
+		$licence_id = absint( is_array( $target ) ? ( $target['licence_id'] ?? 0 ) : 0 );
+		if ( $licence_id < 1 || ! class_exists( 'UFSC_Licence_Finalization_Service' ) ) {
+			return $target;
+		}
+
+		$result = UFSC_Licence_Finalization_Service::finalize( $licence_id, absint( $club_id ), (string) $season, 'renewal' );
+		self::$results[ $licence_id ] = $result;
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$target['ufsc_finalization'] = $result;
+		return $target;
+	}
+
+	private static function is_renewal_final_request() {
+		if ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) {
+			return false;
+		}
+		$action = isset( $_POST['action'] ) && ! is_array( $_POST['action'] )
+			? sanitize_key( wp_unslash( $_POST['action'] ) )
+			: '';
+		if ( ! in_array( $action, array( 'ufsc_bulk_renew_licences', 'ufsc_renew_licence' ), true ) ) {
+			return false;
+		}
+		$intent = isset( $_POST['ufsc_renew_intent'] ) && ! is_array( $_POST['ufsc_renew_intent'] )
+			? sanitize_key( wp_unslash( $_POST['ufsc_renew_intent'] ) )
+			: '';
+		if ( '' === $intent && isset( $_POST['ufsc_submit_action'] ) && ! is_array( $_POST['ufsc_submit_action'] ) ) {
+			$intent = sanitize_key( wp_unslash( $_POST['ufsc_submit_action'] ) );
+		}
+		return in_array( $intent, array( 'add_to_cart', 'submit_for_validation', 'finalize' ), true );
 	}
 
 	/**
