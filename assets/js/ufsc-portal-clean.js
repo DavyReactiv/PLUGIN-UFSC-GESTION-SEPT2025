@@ -5,10 +5,6 @@
     return (el && el.textContent ? el.textContent : '').replace(/\s+/g, ' ').trim();
   }
 
-  function matchesText(el, re) {
-    return re.test(txt(el));
-  }
-
   function normalizeClubNavigation() {
     var navs = Array.prototype.slice.call(document.querySelectorAll('.ufsc-club-account__nav'));
     var seen = {};
@@ -18,8 +14,8 @@
       }).join('||');
       if (!signature) return;
       if (seen[signature]) {
-        nav.hidden = true;
-        nav.setAttribute('aria-hidden', 'true');
+        if (!nav.hidden) nav.hidden = true;
+        if (nav.getAttribute('aria-hidden') !== 'true') nav.setAttribute('aria-hidden', 'true');
       } else {
         seen[signature] = true;
       }
@@ -29,10 +25,10 @@
   function simplifyLogo() {
     document.querySelectorAll('.ufsc-logo-editor').forEach(function (editor) {
       var primary = editor.querySelector('label.ufsc-btn[for="ufsc-club-logo-file"], .ufsc-logo-editor__upload label.ufsc-btn');
-      if (primary) primary.textContent = 'Modifier le logo';
+      if (primary && txt(primary) !== 'Modifier le logo') primary.textContent = 'Modifier le logo';
       editor.querySelectorAll('.ufsc-logo-editor__remove, .ufsc-btn-danger').forEach(function (el) {
-        el.hidden = true;
-        el.setAttribute('aria-hidden', 'true');
+        if (!el.hidden) el.hidden = true;
+        if (el.getAttribute('aria-hidden') !== 'true') el.setAttribute('aria-hidden', 'true');
       });
     });
   }
@@ -55,13 +51,14 @@
     var seasonLabel = seasonCard.querySelector('.ufsc-kpi-tile-label');
     var seasonValue = seasonCard.querySelector('.ufsc-kpi-tile-value');
     var season = txt(seasonLabel).replace(/^licences\s+/i, '');
-    seasonLabel.textContent = 'Licences actives ' + season;
-    seasonValue.textContent = txt(validatedValue);
-    seasonCard.setAttribute('aria-label', 'Licences actives ' + season + ' — ' + txt(validatedValue));
+    var activeLabel = 'Licences actives ' + season;
+    if (txt(seasonLabel) !== activeLabel) seasonLabel.textContent = activeLabel;
+    if (txt(seasonValue) !== txt(validatedValue)) seasonValue.textContent = txt(validatedValue);
+    seasonCard.setAttribute('aria-label', activeLabel + ' — ' + txt(validatedValue));
 
     // Avoid presenting the same business count twice.
-    validated.hidden = true;
-    validated.setAttribute('aria-hidden', 'true');
+    if (!validated.hidden) validated.hidden = true;
+    if (validated.getAttribute('aria-hidden') !== 'true') validated.setAttribute('aria-hidden', 'true');
   }
 
   function normalizeActionTargets() {
@@ -111,7 +108,7 @@
     var finalButton = form.querySelector('button[name="ufsc_renew_intent"][value="add_to_cart"]');
     var readiness = form.querySelector('#ufsc-cart-readiness');
 
-    if (reviewTitle && /panier|vérification finale/i.test(txt(reviewTitle))) {
+    if (reviewTitle && txt(reviewTitle) !== 'Dossiers prêts pour validation') {
       reviewTitle.textContent = 'Dossiers prêts pour validation';
     }
     if (reviewStatus && /panier|quantité/i.test(txt(reviewStatus))) {
@@ -119,26 +116,30 @@
       reviewStatus.textContent = count + ' dossier(s) sélectionné(s). Le quota inclus sera utilisé en priorité.';
     }
     if (finalButton) {
-      finalButton.textContent = 'Envoyer pour validation — inclus dans votre affiliation';
-      finalButton.disabled = false;
-      finalButton.setAttribute('aria-disabled', 'false');
-      finalButton.setAttribute('data-ufsc-product-ready', '1');
+      if (txt(finalButton) !== 'Envoyer pour validation — inclus dans votre affiliation') {
+        finalButton.textContent = 'Envoyer pour validation — inclus dans votre affiliation';
+      }
+      if (finalButton.disabled) finalButton.disabled = false;
+      if (finalButton.getAttribute('aria-disabled') !== 'false') finalButton.setAttribute('aria-disabled', 'false');
+      if (finalButton.getAttribute('data-ufsc-product-ready') !== '1') finalButton.setAttribute('data-ufsc-product-ready', '1');
     }
-    if (readiness) {
+    if (readiness && txt(readiness) !== 'Aucun paiement n’est nécessaire tant que votre quota inclus n’est pas atteint.') {
       readiness.textContent = 'Aucun paiement n’est nécessaire tant que votre quota inclus n’est pas atteint.';
     }
 
     form.querySelectorAll('.ufsc-message.ufsc-warning').forEach(function (warning) {
-      if (/produit licence ufsc|woocommerce|panier/i.test(txt(warning))) {
+      if (/produit licence ufsc|woocommerce|panier/i.test(txt(warning)) && !warning.hidden) {
         warning.hidden = true;
       }
     });
 
     form.querySelectorAll('[data-ufsc-step-indicator="3"]').forEach(function (step) {
-      var strong = step.querySelector('strong');
-      step.textContent = '';
-      if (strong) step.appendChild(strong);
-      step.appendChild(document.createTextNode(' Finaliser'));
+      if (!/^3\s+finaliser$/i.test(txt(step))) {
+        var strong = step.querySelector('strong');
+        step.textContent = '';
+        if (strong) step.appendChild(strong);
+        step.appendChild(document.createTextNode(' Finaliser'));
+      }
     });
   }
 
