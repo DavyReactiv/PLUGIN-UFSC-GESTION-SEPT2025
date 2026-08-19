@@ -4,23 +4,23 @@ includes:
 parameters:
     level: 5
     paths:
-        - inc/common/licence-status.php
-        - inc/common/compliance.php
+        # Progressive blocking scope. These files are clean at level 5 and
+        # include the canonical finalisation/security path introduced by P0.
         - inc/common/fighter-level.php
         - inc/common/licence-finalization-runtime.php
-        - inc/woocommerce/cart-integration.php
-        - includes/core/class-unified-handlers.php
         - includes/core/class-ufsc-debug-trace.php
         - includes/core/class-ufsc-licence-finalization-service.php
-        - includes/core/class-ufsc-licence-payments.php
-        - includes/core/class-ufsc-renewal-service.php
         - includes/core/class-ufsc-season-service.php
-        - includes/front/class-ufsc-stats.php
     bootstrapFiles:
         - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
     scanFiles:
         - includes/core/class-sql.php
         - includes/core/class-ufsc-category-repository.php
         - includes/core/class-ufsc-identifier-resolver.php
+        - inc/common/licence-status.php
+        - inc/common/compliance.php
+        - inc/woocommerce/cart-integration.php
+        - includes/core/class-unified-handlers.php
+        - includes/core/class-ufsc-renewal-service.php
     reportUnmatchedIgnoredErrors: true
     treatPhpDocTypesAsCertain: false
