@@ -9,6 +9,7 @@ parameters:
         - inc/common/fighter-level.php
         - inc/common/licence-finalization-runtime.php
         - inc/common/production-readiness-hotfix.php
+        - inc/common/production-payment-boundary.php
         - includes/core/class-ufsc-debug-trace.php
         - includes/core/class-ufsc-licence-finalization-service.php
         - includes/core/class-ufsc-season-service.php
