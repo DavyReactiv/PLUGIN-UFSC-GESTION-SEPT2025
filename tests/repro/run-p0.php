@@ -4,6 +4,7 @@ $tests = array(
     __DIR__ . '/pack-null-reservation-repro.php',
     __DIR__ . '/status-dual-column-repro.php',
     __DIR__ . '/submit-intent-repro.php',
+    __DIR__ . '/renewal-finalization-runtime-repro.php',
     __DIR__ . '/paid-renewal-cart-repro.php',
 );
 
@@ -17,11 +18,11 @@ foreach ( $tests as $test ) {
 }
 
 if ( $failures ) {
-    fwrite( STDERR, "P0 reproductions not all green:\n" );
+    fwrite( STDERR, "P0 regression suite failed:\n" );
     foreach ( $failures as $failure ) {
         fwrite( STDERR, sprintf( "- %s (exit %d)\n", $failure['file'], $failure['exit'] ) );
     }
     exit( 1 );
 }
 
-echo "P0 reproduction suite passed.\n";
+echo "P0 regression suite passed.\n";
