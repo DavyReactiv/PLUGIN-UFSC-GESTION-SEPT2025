@@ -21,8 +21,6 @@ function ufsc_club_can_manage_licences_for_season( $club_id, $season ) { return 
 function ufsc_get_licences_table() { return 'wp_ufsc_licences'; }
 function ufsc_get_licence_season_label( $source ) { return '2025-2026'; }
 function ufsc_allocate_pack_credit( $licence_id, $club_id, $season, $role ) { return array( 'included' => false, 'bucket' => 'payante' ); }
-function ufsc_ensure_woocommerce_cart() { return true; }
-function ufsc_persist_woocommerce_cart() { return true; }
 
 final class Repro_Product {
     public function exists() { return true; }
@@ -30,8 +28,16 @@ final class Repro_Product {
 }
 function wc_get_product( $product_id ) { return new Repro_Product(); }
 
+final class Repro_Session {
+    public $cookies = 0;
+    public $saves = 0;
+    public function set_customer_session_cookie( $set ) { if ( $set ) { $this->cookies++; } }
+    public function save_data() { $this->saves++; }
+}
 final class Repro_Cart {
     public $items = array();
+    public $session_sets = 0;
+    public $totals = 0;
     public function get_cart() { return $this->items; }
     public function add_to_cart( $product_id, $quantity, $variation_id, $variation, $data ) {
         $key = 'cart-key-' . count( $this->items );
@@ -49,10 +55,13 @@ final class Repro_Cart {
     public function set_quantity( $key, $quantity, $refresh_totals = true ) {
         if ( isset( $this->items[ $key ] ) ) { $this->items[ $key ]['quantity'] = $quantity; }
     }
+    public function calculate_totals() { $this->totals++; }
+    public function set_session() { $this->session_sets++; }
 }
 final class Repro_WC_Env {
     public $cart;
-    public function __construct() { $this->cart = new Repro_Cart(); }
+    public $session;
+    public function __construct() { $this->cart = new Repro_Cart(); $this->session = new Repro_Session(); }
 }
 $repro_wc = new Repro_WC_Env();
 function WC() { global $repro_wc; return $repro_wc; }
@@ -131,5 +140,9 @@ foreach ( $checks as $key => $expected ) {
         exit( 1 );
     }
 }
+if ( WC()->cart->totals < 1 || WC()->cart->session_sets < 1 || WC()->session->cookies < 1 || WC()->session->saves < 1 ) {
+    fwrite( STDERR, "FAIL: native WooCommerce cart/session persistence was not executed\n" );
+    exit( 1 );
+}
 
-echo "OK: paid renewal created one quantity-one WooCommerce cart item with licence metadata\n";
+echo "OK: paid renewal created and persisted one quantity-one WooCommerce cart item with licence metadata\n";
