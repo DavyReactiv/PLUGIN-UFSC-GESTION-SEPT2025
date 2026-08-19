@@ -8,6 +8,7 @@
 
     <file>inc/common/fighter-level.php</file>
     <file>inc/common/licence-finalization-runtime.php</file>
+    <file>inc/common/production-readiness-hotfix.php</file>
     <file>includes/core/class-ufsc-debug-trace.php</file>
     <file>includes/core/class-ufsc-licence-finalization-service.php</file>
     <file>includes/core/class-ufsc-season-service.php</file>
