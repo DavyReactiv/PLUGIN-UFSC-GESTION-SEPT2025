@@ -15,62 +15,63 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Apply narrowly scoped quality fixes
+      - name: Tighten PHPCS exception scopes
         shell: python
         run: |
           from pathlib import Path
+          path = Path('inc/common/licence-finalization-runtime.php')
+          src = path.read_text()
 
-          service = Path('includes/core/class-ufsc-licence-finalization-service.php')
-          src = service.read_text()
-          replacements = {
-              '$wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d", $licence_id )': '$wpdb->prepare( "SELECT * FROM %i WHERE id = %d", $table, $licence_id )',
-              '$wpdb->get_col( "DESCRIBE `{$table}`" )': '$wpdb->get_col( $wpdb->prepare( "DESCRIBE %i", $table ) )',
-              '$wpdb->prepare( "SELECT submitted_at FROM `{$table}` WHERE id = %d", $licence_id )': '$wpdb->prepare( "SELECT submitted_at FROM %i WHERE id = %d", $table, $licence_id )',
-              '$wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d AND club_id = %d", $licence_id, $club_id )': '$wpdb->prepare( "SELECT * FROM %i WHERE id = %d AND club_id = %d", $table, $licence_id, $club_id )',
-          }
-          for old, new in replacements.items():
+          pairs = [
+              (
+                  "\t\tself::finalize_for_unified_request( $licence_id, absint( $club_id ), 'unified_update' );\n\t}\n\n\t/**\n\t * Finalise the current-season target row",
+                  "\t\tself::finalize_for_unified_request( $licence_id, absint( $club_id ), 'unified_update' );\n\t}\n\t// phpcs:enable WordPress.Security.NonceVerification.Missing\n\n\t/**\n\t * Finalise the current-season target row"
+              ),
+              (
+                  "\tprivate static function is_renewal_final_request() {",
+                  "\t// phpcs:disable WordPress.Security.NonceVerification.Missing -- Renewal target filter runs only after the Woo/admin-post nonce check.\n\tprivate static function is_renewal_final_request() {"
+              ),
+              (
+                  "\t\treturn in_array( $intent, array( 'add_to_cart', 'submit_for_validation', 'finalize' ), true );\n\t}\n\n\t/**\n\t * The service has already made the payable decision",
+                  "\t\treturn in_array( $intent, array( 'add_to_cart', 'submit_for_validation', 'finalize' ), true );\n\t}\n\t// phpcs:enable WordPress.Security.NonceVerification.Missing\n\n\t/**\n\t * The service has already made the payable decision"
+              ),
+              (
+                  "\t\t\t$_POST['ufsc_submit_action'] = 'continue';",
+                  "\t\t\t// phpcs:ignore WordPress.Security.NonceVerification.Missing -- This post-save request has already passed the controller nonce check.\n\t\t\t$_POST['ufsc_submit_action'] = 'continue';"
+              ),
+              (
+                  "\t\treturn 'add_to_cart' === $intent || 'submit_for_validation' === $final_intent;\n\t}\n\n\t/**\n\t * Rewrite only the success/error redirect",
+                  "\t\treturn 'add_to_cart' === $intent || 'submit_for_validation' === $final_intent;\n\t}\n\t// phpcs:enable WordPress.Security.NonceVerification.Missing\n\n\t/**\n\t * Rewrite only the success/error redirect"
+              ),
+              (
+                  "\t\treturn add_query_arg(\n\t\t\tarray(\n\t\t\t\t'ufsc_message'      => 'licence_included',\n\t\t\t\t'licence_included' => 1,\n\t\t\t\t'licence_id'       => $licence_id,\n\t\t\t\t'pack_bucket'      => sanitize_key( (string) ( $result['bucket'] ?? 'libre' ) ),\n\t\t\t),\n\t\t\t$location\n\t\t);\n\t}\n\n\tprivate static function is_unified_request_action()",
+                  "\t\treturn add_query_arg(\n\t\t\tarray(\n\t\t\t\t'ufsc_message'      => 'licence_included',\n\t\t\t\t'licence_included' => 1,\n\t\t\t\t'licence_id'       => $licence_id,\n\t\t\t\t'pack_bucket'      => sanitize_key( (string) ( $result['bucket'] ?? 'libre' ) ),\n\t\t\t),\n\t\t\t$location\n\t\t);\n\t}\n\t// phpcs:enable WordPress.Security.NonceVerification.Missing\n\n\tprivate static function is_unified_request_action()"
+              ),
+              (
+                  "\t\treturn in_array( $action, array( 'ufsc_add_licence', 'ufsc_save_licence', 'ufsc_update_licence' ), true );\n\t}\n\n\tprivate static function resolved_result_licence_id()",
+                  "\t\treturn in_array( $action, array( 'ufsc_add_licence', 'ufsc_save_licence', 'ufsc_update_licence' ), true );\n\t}\n\t// phpcs:enable WordPress.Security.NonceVerification.Missing\n\n\tprivate static function resolved_result_licence_id()"
+              ),
+              (
+                  "\t\treturn $ids ? absint( end( $ids ) ) : 0;\n\t}\n\n\t/**\n\t * Canonical replacement for the Journey finalisation endpoint.",
+                  "\t\treturn $ids ? absint( end( $ids ) ) : 0;\n\t}\n\t// phpcs:enable WordPress.Security.NonceVerification.Missing\n\n\t/**\n\t * Canonical replacement for the Journey finalisation endpoint."
+              ),
+          ]
+
+          for old, new in pairs:
               if old not in src:
-                  raise SystemExit(f'Service target missing: {old}')
-              src = src.replace(old, new, 1)
-          service.write_text(src)
-
-          runtime = Path('inc/common/licence-finalization-runtime.php')
-          src = runtime.read_text()
-          old = "\tpublic static function normalize_final_intent_post() {\n\t\tif ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) {\n\t\t\treturn;\n\t\t}\n\n\t\t$action ="
-          new = "\tpublic static function normalize_final_intent_post() {\n\t\tif ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) {\n\t\t\treturn;\n\t\t}\n\n\t\t$nonce = isset( $_POST['_wpnonce'] ) && ! is_array( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';\n\t\t$valid_nonce = $nonce && ( wp_verify_nonce( $nonce, 'ufsc_add_licence' ) || wp_verify_nonce( $nonce, 'ufsc_save_licence' ) || wp_verify_nonce( $nonce, 'ufsc_update_licence' ) );\n\t\tif ( ! $valid_nonce ) {\n\t\t\treturn;\n\t\t}\n\n\t\t$action ="
-          if old not in src:
-              raise SystemExit('Runtime nonce target missing')
-          src = src.replace(old, new, 1)
-
-          scoped = {
-              "\tpublic static function finalize_updated_licence( $club_id ) {": "\t// phpcs:disable WordPress.Security.NonceVerification.Missing -- Post-save observer runs only after the Unified Handler nonce check.\n\tpublic static function finalize_updated_licence( $club_id ) {",
-              "\tprivate static function is_unified_final_request() {": "\tprivate static function is_unified_final_request() {\n\t\t// phpcs:disable WordPress.Security.NonceVerification.Missing -- Called only from post-save observers after controller nonce verification.",
-              "\tpublic static function rewrite_unified_redirect( $location, $status = 302 ) {": "\t// phpcs:disable WordPress.Security.NonceVerification.Missing -- Redirect filter is evaluated in the already verified admin-post request.\n\tpublic static function rewrite_unified_redirect( $location, $status = 302 ) {",
-              "\tprivate static function is_unified_request_action() {": "\tprivate static function is_unified_request_action() {\n\t\t// phpcs:disable WordPress.Security.NonceVerification.Missing -- Helper is used only during the verified admin-post lifecycle.",
-              "\tprivate static function resolved_result_licence_id() {": "\tprivate static function resolved_result_licence_id() {\n\t\t// phpcs:disable WordPress.Security.NonceVerification.Missing -- Helper is used only during the verified admin-post lifecycle.",
-          }
-          for old, new in scoped.items():
-              if old not in src:
-                  raise SystemExit(f'Runtime scoped target missing: {old}')
+                  raise SystemExit(f'Target missing: {old[:90]}')
               src = src.replace(old, new, 1)
 
-          old = "\t\t$licence_id = isset( $_POST['licence_id'] ) && ! is_array( $_POST['licence_id'] )\n\t\t\t? absint( wp_unslash( $_POST['licence_id'] ) )\n\t\t\t: 0;\n\t\tcheck_admin_referer( 'ufsc_journey_finalize_' . $licence_id );"
-          new = "\t\t// phpcs:disable WordPress.Security.NonceVerification.Missing -- Licence ID is required to derive the nonce action and is verified immediately below.\n\t\t$licence_id = isset( $_POST['licence_id'] ) && ! is_array( $_POST['licence_id'] )\n\t\t\t? absint( wp_unslash( $_POST['licence_id'] ) )\n\t\t\t: 0;\n\t\t// phpcs:enable WordPress.Security.NonceVerification.Missing\n\t\tcheck_admin_referer( 'ufsc_journey_finalize_' . $licence_id );"
-          if old not in src:
-              raise SystemExit('Journey nonce target missing')
-          src = src.replace(old, new, 1)
-          runtime.write_text(src)
+          path.write_text(src)
 
       - name: Verify PHP syntax
-        run: |
-          php -l includes/core/class-ufsc-licence-finalization-service.php
-          php -l inc/common/licence-finalization-runtime.php
+        run: php -l inc/common/licence-finalization-runtime.php
       - name: Commit repair
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add includes/core/class-ufsc-licence-finalization-service.php inc/common/licence-finalization-runtime.php
+          git add inc/common/licence-finalization-runtime.php
           git diff --cached --quiet && exit 0
-          git commit -m "quality: harden finalization nonce and prepared SQL [skip ci]"
+          git commit -m "quality: scope nonce exclusions to verified request observers [skip ci]"
           git push
