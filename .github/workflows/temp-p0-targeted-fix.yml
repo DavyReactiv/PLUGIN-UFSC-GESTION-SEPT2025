@@ -15,25 +15,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Promote submit_for_validation to canonical intent
+      - name: Update submit intent regression contract
         shell: python
         run: |
           from pathlib import Path
-          path = Path('includes/core/class-unified-handlers.php')
-          src = path.read_text()
-          old = "return in_array( $action, array( 'save_draft', 'continue', 'verify', 'add_to_cart' ), true ) ? $action : 'continue';"
-          new = "return in_array( $action, array( 'save_draft', 'continue', 'verify', 'submit_for_validation', 'add_to_cart' ), true ) ? $action : 'continue';"
-          if old not in src:
-              raise SystemExit('Unified intent target missing; refusing broad edit.')
-          path.write_text(src.replace(old, new, 1))
-      - name: Verify PHP syntax
-        run: php -l includes/core/class-unified-handlers.php
-      - name: Commit repair
+          path = Path('tests/repro/submit-intent-repro.php')
+          path.write_text(r'''<?php
+if ( ! defined( 'ABSPATH' ) ) { define( 'ABSPATH', dirname( __DIR__, 2 ) . '/' ); }
+
+function sanitize_key( $value ) { return strtolower( preg_replace( '/[^a-z0-9_\-]/i', '', (string) $value ) ); }
+
+require_once dirname( __DIR__, 2 ) . '/includes/core/class-unified-handlers.php';
+
+$normalized = UFSC_Unified_Handlers::normalize_licence_intent( 'submit_for_validation' );
+if ( 'submit_for_validation' !== $normalized ) {
+    fwrite( STDERR, "FAIL: submit_for_validation is not a first-class canonical intent\n" );
+    exit( 1 );
+}
+
+if ( UFSC_Unified_Handlers::should_add_licence_to_cart( 'submit_for_validation' ) ) {
+    fwrite( STDERR, "FAIL: submit_for_validation must not directly authorize a paid cart line\n" );
+    exit( 1 );
+}
+
+if ( ! UFSC_Unified_Handlers::should_add_licence_to_cart( 'add_to_cart' ) ) {
+    fwrite( STDERR, "FAIL: add_to_cart must remain the only direct paid-cart intent\n" );
+    exit( 1 );
+}
+
+echo "OK: submit_for_validation is canonical while add_to_cart alone authorizes WooCommerce\n";
+''')
+      - name: Verify test syntax
+        run: php -l tests/repro/submit-intent-repro.php
+      - name: Commit test
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add includes/core/class-unified-handlers.php
+          git add tests/repro/submit-intent-repro.php
           git diff --cached --quiet && exit 0
-          git commit -m "fix: make submit_for_validation a canonical licence intent [skip ci]"
+          git commit -m "tests: assert native submit_for_validation contract [skip ci]"
           git push
