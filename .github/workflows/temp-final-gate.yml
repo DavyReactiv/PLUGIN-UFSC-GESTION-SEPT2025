@@ -24,7 +24,7 @@ jobs:
         run: |
           set +e
           mkdir -p ci
-          out=ci/final-gate.txt
+          out=ci/final-gate-v2.txt
           : > "$out"
           overall=0
           run_check() {
@@ -53,7 +53,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ci/final-gate.txt
+          git add ci/final-gate-v2.txt
           git diff --cached --quiet && exit 0
-          git commit -m "ci: temporary definitive gate report [skip ci]"
+          git commit -m "ci: temporary definitive gate v2 report [skip ci]"
           git push
