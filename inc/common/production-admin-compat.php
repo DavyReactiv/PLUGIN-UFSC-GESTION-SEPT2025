@@ -10,6 +10,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  *    birth date across every season. A normal annual renewal is therefore shown
  *    as a duplicate of its archived source. Scope that comparison to the same
  *    stored season without mutating any licence row.
+ * 3. admin-post.php may expose WC()->cart before WooCommerce has loaded its
+ *    frontend cart helper functions. A paid licence renewal then reaches
+ *    WC_Cart::add_to_cart() but fatals on wc_get_cart_item_data_hash(). Load the
+ *    native Woo cart functions before UFSC final-payment handlers run.
  */
 
 /**
@@ -29,6 +33,47 @@ function ufsc_production_fix_woocommerce_settings_redirect( $location, $status )
     return str_replace( 'page=ufsc-woocommerce-settings', 'page=ufsc-woocommerce', $location );
 }
 add_filter( 'wp_redirect', 'ufsc_production_fix_woocommerce_settings_redirect', 998, 2 );
+
+/**
+ * Ensure native WooCommerce cart helper functions exist on UFSC admin-post flows.
+ *
+ * WooCommerce can have a cart object available in an admin-post request while
+ * frontend cart functions have not yet been included. WC_Cart::add_to_cart()
+ * requires wc_get_cart_item_data_hash(), which lives in wc-cart-functions.php.
+ * Loading the official WooCommerce file is safer than reimplementing helpers or
+ * instantiating a second cart.
+ */
+function ufsc_production_bootstrap_woocommerce_cart_functions() {
+    if ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) {
+        return;
+    }
+
+    $action = isset( $_POST['action'] ) && ! is_array( $_POST['action'] )
+        ? sanitize_key( wp_unslash( $_POST['action'] ) )
+        : '';
+    $cart_actions = array(
+        'ufsc_bulk_renew_licences',
+        'ufsc_add_to_cart',
+        'ufsc_affiliation_pay',
+    );
+    if ( ! in_array( $action, $cart_actions, true ) ) {
+        return;
+    }
+
+    if ( function_exists( 'wc_get_cart_item_data_hash' ) ) {
+        return;
+    }
+
+    if ( ! defined( 'WC_ABSPATH' ) ) {
+        return;
+    }
+
+    $cart_functions = trailingslashit( WC_ABSPATH ) . 'includes/wc-cart-functions.php';
+    if ( is_readable( $cart_functions ) ) {
+        include_once $cart_functions;
+    }
+}
+add_action( 'admin_init', 'ufsc_production_bootstrap_woocommerce_cart_functions', -90 );
 
 /**
  * Register a tightly-scoped SQL compatibility filter on licence admin lists.
