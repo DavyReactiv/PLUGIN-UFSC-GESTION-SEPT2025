@@ -4,28 +4,97 @@
 
 **UFSC – Gestion Clubs & Licences** est un plugin WordPress professionnel développé sur mesure pour l’**UFSC — Union Française des Sports de Combat**.
 
-Il a pour objectif de centraliser, fiabiliser et sécuriser la gestion fédérale des clubs, licences, affiliations, documents administratifs, communications et outils associés, dans un environnement WordPress maintenable et adapté aux besoins métier de l’UFSC.
+Il centralise la gestion des clubs, licences, affiliations annuelles, documents administratifs, communications et outils de suivi dans un environnement WordPress maintenable, sécurisé et adapté aux règles métier de l’UFSC.
 
-Ce plugin est conçu comme un outil métier personnalisé : il accompagne les équipes administratives, les clubs affiliés et les mainteneurs techniques dans la gestion quotidienne des données fédérales.
+Le plugin est conçu comme un outil métier personnalisé destiné aux équipes administratives, aux clubs affiliés et aux mainteneurs techniques.
 
-## Présentation
+## Statut de la version actuelle
 
-Le plugin accompagne la gestion opérationnelle de l’UFSC en regroupant dans WordPress les principaux processus liés aux clubs, aux licences, aux affiliations, aux documents administratifs et aux communications internes.
+- **Version plugin : `082026`**.
+- **Saison active de référence : 2026-2027**.
+- Saison métier : **du 1er août au 31 juillet**.
+- La stabilisation production issue de la **PR #547** a été fusionnée dans `main` le **20 août 2026**.
+- Les parcours critiques licences, renouvellements, affiliations, quota et panier WooCommerce ont été validés sur l’environnement DEV avant fusion.
+- Les corrections de cette stabilisation ont été conçues pour préserver les licences, clubs et saisons historiques.
 
-Il s’appuie sur une approche modulaire afin de limiter les régressions, de préserver les données existantes et de faciliter les évolutions futures. Les fonctionnalités sont pensées pour être utilisées par des administrateurs fédéraux, des responsables de clubs et des développeurs amenés à maintenir ou faire évoluer la solution.
+## Règles métier principales
 
-## Objectifs
+### Affiliation annuelle
 
-Le plugin vise à :
+Un club est une entité permanente. Son affiliation, elle, est annuelle.
 
-- centraliser les données fédérales ;
-- simplifier les démarches des clubs ;
-- fiabiliser les inscriptions et les suivis administratifs ;
-- améliorer le contrôle des licences, affiliations et documents ;
-- renforcer la sécurité des accès et des actions sensibles ;
-- faciliter les exports, contrôles et diagnostics ;
-- moderniser les outils de gestion de l’UFSC ;
-- fournir une base technique maintenable pour les évolutions futures.
+- Un club déjà enregistré la saison précédente **ne recrée jamais son club**.
+- Il se connecte avec son compte existant et renouvelle uniquement son affiliation pour la nouvelle saison.
+- Un club jamais enregistré suit le parcours de première création puis première affiliation.
+- Une affiliation payée passe en **attente de validation UFSC** avant de devenir active.
+- L’historique des saisons précédentes est conservé.
+
+### Pack de 10 licences incluses
+
+L’affiliation donne accès à **10 licences incluses par club et par saison**.
+
+- Licences 1 à 10 : incluses dans le pack, sans ajout au panier.
+- À partir de la 11e : licence payante via WooCommerce.
+- La règle s’applique aussi bien aux **nouvelles licences** qu’aux **renouvellements**.
+- Une licence incluse finalisée est enregistrée avec le statut métier prévu, notamment `en_attente` lorsqu’elle doit être contrôlée par l’administration.
+- Une licence payante est transmise au panier WooCommerce avec ses métadonnées UFSC.
+
+### Niveaux sportifs
+
+Le niveau sportif du licencié est géré dans les formulaires et doit rester disponible côté club et administration :
+
+- Débutant ;
+- Assaut ;
+- Classe C ;
+- Classe B ;
+- Classe A ;
+- Pro ;
+- Vétéran.
+
+Les valeurs historiques sont conservées lors des renouvellements.
+
+## Parcours utilisateur
+
+### Club existant — renouvellement d’affiliation
+
+1. Le responsable se connecte à son compte existant.
+2. Le plugin retrouve le même club et son historique.
+3. Si aucune affiliation active n’existe pour la saison courante, le portail propose **« Renouveler mon affiliation 2026-2027 »**.
+4. Le club vérifie ou actualise ses informations.
+5. L’affiliation est ajoutée au panier WooCommerce en quantité 1.
+6. Après paiement, l’affiliation annuelle passe en attente de validation UFSC.
+7. Après validation, l’affiliation devient active pour 2026-2027.
+8. Les 10 licences incluses de la saison sont alors utilisables.
+9. Le club peut renouveler ses anciennes licences ou créer de nouvelles licences.
+
+### Nouveau club — première affiliation
+
+1. Création du compte utilisateur.
+2. Création du club une seule fois.
+3. Enregistrement initial du club avec protection contre les doubles soumissions.
+4. Paiement de la première affiliation annuelle.
+5. Attente de validation UFSC.
+6. Activation de l’affiliation.
+7. Ouverture du quota de 10 licences incluses pour la saison.
+
+### Nouvelle licence
+
+1. Le club saisit le licencié.
+2. Le plugin vérifie la saison, le quota et l’éligibilité du dossier.
+3. S’il reste une place dans le pack, la licence est finalisée sans WooCommerce.
+4. Si le quota est atteint, la licence est ajoutée au panier WooCommerce.
+5. Le panier affiche clairement **« Nouvelle licence »**.
+6. Les doubles clics et rechargements ne doivent jamais créer de doublon.
+
+### Renouvellement d’une licence
+
+1. Le club choisit une licence d’une saison précédente.
+2. Le dossier historique reste intact.
+3. Le club vérifie et complète le nouveau dossier de saison.
+4. Le service canonique décide si la licence est incluse ou payante.
+5. Si elle est incluse, elle est finalisée sans panier.
+6. Si elle est payante, elle est ajoutée au panier avec le libellé **« Renouvellement de licence »**.
+7. La nouvelle licence conserve la traçabilité avec la licence source sans modifier cette dernière.
 
 ## Fonctionnalités principales
 
@@ -34,25 +103,49 @@ Le plugin vise à :
 - Création et édition des clubs.
 - Suivi administratif des structures.
 - Gestion des statuts.
-- Suivi des coordonnées et informations de contact.
-- Gestion des responsables et référents.
+- Coordonnées, informations légales et contacts.
+- Gestion des dirigeants et référents.
+- Logo et profil du club.
 - Association et suivi des documents administratifs.
+- Espace Club responsive avec navigation Vue d’ensemble, Informations du club, Dirigeants, Documents, Archives et autres sections métier.
 
 ### Gestion des licences
 
-- Création et suivi des licences.
-- Rattachement des licenciés à leur club.
-- Gestion des informations licenciés.
+- Création et renouvellement de licences.
+- Rattachement des licenciés au club et à la saison.
+- Gestion des informations personnelles et sportives.
+- Gestion du niveau sportif.
+- Gestion des rôles du club.
+- Honorabilité pour les fonctions concernées.
+- Quota des licences incluses.
+- Licences supplémentaires payantes.
+- Pagination, recherche, filtres et archives saisonnières.
 - Contrôles administratifs.
 - Exports de données.
-- Suivi des statuts selon les règles du plugin.
+- Traçabilité des créations, soumissions et validations lorsque les informations sont disponibles.
 
 ### Affiliations
 
-- Suivi des clubs affiliés.
-- Gestion de la saison active lorsque l’information est disponible.
-- Identification des clubs à jour selon la logique métier du plugin.
-- Validation et contrôle administratif.
+- Première affiliation d’un nouveau club.
+- Renouvellement annuel d’un club existant.
+- Suivi de la saison active.
+- États : à renouveler, attente de paiement, attente de validation, actif, correction demandée, refusé ou suspendu selon les écrans concernés.
+- Paiement WooCommerce.
+- Validation administrative.
+- Conservation de l’historique annuel.
+
+### WooCommerce
+
+Le plugin utilise WooCommerce comme frontière de paiement pour les éléments réellement payants.
+
+- Produit licence canonique configuré dans les réglages UFSC.
+- Produit affiliation canonique configuré dans les réglages UFSC.
+- Panier natif WooCommerce.
+- Quantité 1 pour une demande nominative ou une affiliation annuelle.
+- Métadonnées UFSC visibles dans le panier.
+- Persistance du panier sur les parcours `admin-post.php`.
+- Protection anti-doublon.
+- Les licences incluses ne sont pas envoyées inutilement au panier.
 
 ### Documents administratifs
 
@@ -60,27 +153,7 @@ Le plugin vise à :
 - Validation administrative.
 - Gestion des statuts.
 - Consultation des pièces liées aux clubs ou dossiers suivis.
-
-### Compatibilité avec le module compétition
-
-Le plugin UFSC Gestion est conçu pour fonctionner dans l’écosystème des outils métiers UFSC.
-
-La gestion avancée des compétitions, des inscriptions sportives, des catégories, des participants et des statuts d’engagement est portée par un plugin dédié : **UFSC Licences Compétitions**.
-
-Le présent plugin peut être utilisé en complément pour la gestion des clubs, des licences, des affiliations, des communications et des données administratives nécessaires au bon fonctionnement fédéral.
-
-### Exports, diagnostics et tableaux de bord
-
-- Exports CSV et outils de contrôle.
-- Tableaux de bord administratifs.
-- Outils de diagnostic pour faciliter le suivi et la maintenance.
-- Espaces clubs et interfaces adaptées aux usages front-office lorsque les modules correspondants sont activés.
-
-### Gestion des rôles et permissions
-
-- Utilisation des droits et permissions WordPress.
-- Capacités dédiées pour les actions sensibles.
-- Contrôle d’accès aux écrans d’administration et aux opérations critiques.
+- Gestion des pièces d’honorabilité selon les rôles concernés.
 
 ### Communication UFSC
 
@@ -107,99 +180,147 @@ Fonctionnalités principales :
 - exports CSV ;
 - compatibilité avec FluentSMTP / Brevo via `wp_mail()`.
 
-Le module est conçu pour éviter les envois massifs en une seule requête PHP. Les emails sont placés dans une file d’attente et envoyés progressivement afin de limiter les risques de surcharge serveur et de faciliter le suivi des campagnes.
+## Compatibilité avec le module compétition
 
-## Sécurité
+La gestion avancée des compétitions, inscriptions sportives, catégories, participants et statuts d’engagement est portée par un plugin dédié : **UFSC Licences Compétitions**.
 
-Le plugin applique les principes de sécurité WordPress pour les opérations sensibles :
+UFSC Gestion conserve la responsabilité principale des clubs, licences administratives, affiliations, documents, paiements associés, communications, diagnostics et exports.
 
-- contrôle des droits et permissions WordPress ;
-- capability dédiée pour certains modules, notamment la communication ;
-- vérification de nonces pour les actions administratives ;
-- sanitization des entrées utilisateur ;
-- escaping des sorties affichées dans l’interface ;
-- requêtes SQL préparées lorsque des paramètres dynamiques sont utilisés ;
-- logique de migration additive et non destructive ;
-- préservation des données existantes ;
-- séparation des modules afin de réduire les risques de régression.
+## Compatibilité des données historiques
 
-Aucune action sensible ne doit être exposée sans contrôle de permission approprié. Toute évolution doit conserver ces principes.
+Le plugin doit rester non destructif vis-à-vis des données existantes.
+
+La version 082026 contient notamment :
+
+- un résolveur de stockage compatible avec différentes structures historiques ;
+- une détection des colonnes de saison existantes ;
+- des migrations additives ;
+- une compatibilité `dbDelta()` pour les tables techniques d’identifiants ;
+- un préflight des identifiants optionnels historiques afin que les valeurs absentes de `numero_licence_delegataire` et `num_affiliation` soient représentées par `NULL` avant la création de contraintes `UNIQUE` ;
+- une compatibilité MySQL strict pour éviter les comparaisons invalides avec des dates historiques vides ;
+- une conservation des anciennes saisons sans réécriture massive.
+
+Aucune migration ne doit supprimer une licence, un club ou une saison pour résoudre une incompatibilité de schéma.
+
+## Sécurité et non-régression
+
+Le plugin applique les principes WordPress pour les opérations sensibles :
+
+- contrôle des capacités et permissions ;
+- vérification des nonces ;
+- sanitization des entrées ;
+- escaping des sorties ;
+- requêtes préparées lorsque des paramètres dynamiques sont utilisés ;
+- finalisation métier côté serveur ;
+- protection contre les doubles soumissions ;
+- migrations additives et non destructives ;
+- séparation entre logique métier et correctifs de présentation ;
+- conservation des lignes historiques.
+
+Les parcours licences, quota, panier et affiliations doivent être considérés comme des parcours critiques. Toute modification future doit être testée en préproduction avant fusion.
+
+## Qualité et tests
+
+La stabilisation d’août 2026 a été validée par le **UFSC quality gate** avec succès avant fusion.
+
+Le pipeline couvre notamment :
+
+- validation Composer ;
+- lint PHP ;
+- syntaxe JavaScript ;
+- tests de régression standalone et runtime ;
+- tests P0 licences ;
+- PHPUnit ;
+- PHPStan ;
+- WordPress Coding Standards / sécurité.
+
+Les tests automatisés complètent la recette fonctionnelle DEV mais ne remplacent pas les tests WooCommerce et WordPress réels.
+
+## Mise en production
+
+Procédure recommandée :
+
+1. effectuer une sauvegarde complète de la base de données et de `wp-content` ;
+2. disposer d’un point de restauration vérifié ;
+3. installer la version issue de `main` ;
+4. dans une fenêtre de maintenance, désactiver puis réactiver une fois le plugin afin d’exécuter les migrations d’activation prévues par la version ;
+5. purger les caches WordPress, serveur, CDN et navigateur si nécessaire ;
+6. vérifier l’administration UFSC Clubs et Licences ;
+7. vérifier l’Espace Club sur desktop et mobile ;
+8. effectuer un smoke-test nouvelle licence incluse ;
+9. effectuer un smoke-test licence payante au-delà du quota ;
+10. vérifier un renouvellement de licence ;
+11. vérifier le parcours de renouvellement d’affiliation ;
+12. vérifier les anciennes saisons et archives ;
+13. contrôler le `debug.log` afin de confirmer l’absence d’erreur UFSC bloquante ;
+14. laisser `WP_DEBUG_DISPLAY` désactivé en production.
+
+## Points externes au plugin
+
+Des installations WordPress peuvent encore produire des notices provenant d’autres plugins ou du thème, par exemple des handles enregistrés trop tôt, des appels conditionnels WordPress avant la requête principale ou des chargements de traductions précoces.
+
+Ces notices ne doivent pas être masquées dans UFSC Gestion sans identifier précisément leur source.
 
 ## Architecture
 
-Le plugin est une solution WordPress personnalisée construite autour d’une structure modulaire.
+Le plugin est construit autour d’une structure modulaire et peut s’appuyer sur des tables métiers historiques ainsi que sur des tables dédiées aux modules plus récents.
 
-Principes généraux :
+Principes :
 
-- intégration dans l’écosystème WordPress ;
-- fichiers et classes organisés par domaines fonctionnels ;
-- tables dédiées lorsque les fonctionnalités nécessitent un stockage spécifique ;
-- compatibilité avec les mécanismes standards WordPress ;
-- utilisation de `dbDelta()` pour les créations ou évolutions de tables prévues par le plugin ;
-- approche maintenable pour les futures évolutions.
-
-Le plugin peut s’appuyer sur des tables métiers existantes et sur des tables dédiées aux modules ajoutés, notamment pour les campagnes email, la file d’attente, les contacts et les listes personnalisées.
-
-## Écosystème UFSC
-
-Le plugin UFSC Gestion s’inscrit dans un ensemble d’outils développés sur mesure pour l’**UFSC — Union Française des Sports de Combat**.
-
-Il peut être utilisé en complément d’autres modules ou plugins spécifiques, notamment le plugin **UFSC Licences Compétitions**, dédié à la gestion sportive des compétitions, inscriptions, catégories et engagements.
-
-Cette séparation permet de clarifier les responsabilités fonctionnelles : le présent plugin porte principalement la gestion administrative des clubs, licences, affiliations, documents, communications, diagnostics et exports associés.
+- intégration WordPress native ;
+- classes et fichiers organisés par domaine ;
+- stockage saisonnier explicite ;
+- compatibilité avec les installations historiques ;
+- utilisation de `dbDelta()` lorsque cela est adapté ;
+- services canoniques pour les parcours sensibles ;
+- couches UX/CSS séparées de la logique métier ;
+- maintenance incrémentale et non destructive.
 
 ## Compatibilité email
 
-Le module Communication UFSC utilise la fonction WordPress `wp_mail()` pour l’envoi des emails.
+Le module Communication UFSC utilise `wp_mail()`.
 
-Cela permet au site WordPress d’utiliser un service SMTP externe configuré par un plugin spécialisé, par exemple **FluentSMTP** avec **Brevo** ou un service équivalent.
+Le site peut donc s’appuyer sur un service SMTP externe configuré par un plugin spécialisé, par exemple **FluentSMTP** avec **Brevo** ou un service équivalent.
 
-Le plugin UFSC ne stocke pas de clé API Brevo et ne dépend pas directement d’un fournisseur SMTP. La configuration de délivrabilité, d’authentification de domaine, SPF, DKIM et DMARC reste à gérer dans l’outil SMTP ou le service email utilisé par le site.
-
-## Développement & personnalisation
-
-Ce plugin a été conçu, développé et personnalisé spécifiquement pour l’**UFSC — Union Française des Sports de Combat**.
-
-Il est développé par l’agence **Studio Reactiv**, spécialisée dans la création de solutions web, WordPress, outils métiers, communication digitale et accompagnement technique sur mesure.
-
-Site : [https://studioreactiv.fr](https://studioreactiv.fr)
+Le plugin UFSC ne stocke pas directement de clé API Brevo. La configuration SPF, DKIM, DMARC et de délivrabilité reste à gérer dans le service email utilisé par WordPress.
 
 ## Maintenance
 
-Ce plugin étant un outil métier personnalisé, sa maintenance doit être réalisée avec prudence.
+Recommandations pour les évolutions futures :
 
-Recommandations :
+- toujours sauvegarder avant mise à jour ;
+- développer les évolutions sur une branche dédiée ;
+- éviter les modifications directes en production ;
+- tester sur DEV/préproduction ;
+- faire passer le quality gate ;
+- limiter chaque PR à un périmètre clair ;
+- ne pas mélanger une refonte CSS avec une modification du moteur licences sauf nécessité démontrée ;
+- préserver le modèle saisonnier ;
+- ne jamais modifier en masse les anciennes licences pour corriger un problème d’affichage ;
+- vérifier WooCommerce après toute modification du parcours de paiement ;
+- documenter les changements dans `CHANGELOG.md` et ce README.
 
-- effectuer une sauvegarde complète avant toute mise à jour ;
-- tester les évolutions en environnement de préproduction ;
-- vérifier les parcours critiques avant mise en production ;
-- documenter les modifications fonctionnelles et techniques ;
-- éviter les modifications destructives de tables ou de données ;
-- contrôler les impacts sur les clubs, licences, affiliations, communications et l’écosystème compétition lorsque des intégrations existent ;
-- conserver une attention particulière à la non-régression.
+## Évolutions récentes — août 2026
 
-## Avertissement
+- Stabilisation des renouvellements de licences.
+- Stabilisation des nouvelles licences.
+- Finalisation quota-first des 10 licences incluses.
+- Passage fiable de la 11e licence et des suivantes au panier WooCommerce.
+- Correction des métadonnées panier « Nouvelle licence » et « Renouvellement de licence ».
+- Renouvellement annuel d’affiliation sécurisé pour les clubs existants.
+- Première affiliation sécurisée pour les nouveaux clubs.
+- Protection contre les doubles soumissions et doublons inter-saisons.
+- Amélioration du portail Compte Club et de son responsive.
+- Pagination et filtres licences consolidés.
+- Compatibilité `dbDelta()` renforcée.
+- Compatibilité des anciennes valeurs d’identifiants avec les contraintes uniques.
+- Compatibilité MySQL strict pour les données historiques.
+- Conservation des anciennes saisons et des licences sources lors des renouvellements.
 
-Ce plugin est un outil métier personnalisé. Toute modification doit être réalisée avec prudence, après sauvegarde complète et idéalement en environnement de préproduction.
+## Développement & crédit
 
-Les données gérées peuvent être sensibles sur le plan administratif et fédéral. Les évolutions doivent respecter les règles de sécurité WordPress, la logique métier existante et les contraintes de conservation des données.
+Ce plugin a été conçu, développé et personnalisé spécifiquement pour l’**UFSC — Union Française des Sports de Combat**.
 
-## Évolutions récentes
-
-- Ajout du module Communication UFSC.
-- Ajout des campagnes email.
-- Ajout du carnet d’adresses.
-- Ajout des listes personnalisées.
-- Ajout de l’historique des campagnes.
-- Ajout de la prévisualisation avancée.
-- Ajout du diagnostic destinataires.
-- Ajout de la file d’attente email.
-- Ajout des exports CSV.
-- Renforcement des aides d’utilisation.
-- Amélioration du suivi des campagnes et des compteurs d’envoi.
-
-## Crédit
-
-Développé par **Studio Reactiv** pour l’**UFSC — Union Française des Sports de Combat**.
+Développé par **Studio Reactiv**.
 
 Site : [https://studioreactiv.fr](https://studioreactiv.fr)
