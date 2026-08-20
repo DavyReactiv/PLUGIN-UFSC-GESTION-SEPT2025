@@ -62,6 +62,42 @@ function ufsc_production_licence_ux_enqueue() {
 }
 add_action( 'wp_enqueue_scripts', 'ufsc_production_licence_ux_enqueue', 1300 );
 
+/**
+ * Renewal source compatibility bridge.
+ *
+ * The legacy renderer still injects a validated-only SQL clause before calling
+ * UFSC_Renewal_Service::can_renew(). That hides legitimate historical sources
+ * in Brouillon / En attente / Non payée before the canonical service can decide.
+ * On the renewal screen only, remove that obsolete validated-only predicate.
+ * The canonical can_renew() service remains the final authority for club,
+ * previous-season, affiliation, duplicate and allowed-status checks.
+ */
+function ufsc_production_expand_renewal_source_query( $query ) {
+    if ( is_admin() || ! is_user_logged_in() || ! is_string( $query ) ) {
+        return $query;
+    }
+
+    $section = isset( $_GET['ufsc_section'] ) && ! is_array( $_GET['ufsc_section'] )
+        ? sanitize_key( wp_unslash( $_GET['ufsc_section'] ) )
+        : '';
+    if ( 'licences-renouvellement' !== $section || ! function_exists( 'ufsc_get_licences_table' ) ) {
+        return $query;
+    }
+
+    $table = (string) ufsc_get_licences_table();
+    if ( '' === $table || false === strpos( $query, $table ) || false === stripos( $query, 'SELECT' ) ) {
+        return $query;
+    }
+
+    // Only remove IN() predicates that clearly represent the legacy "validated" alias set.
+    // Explicit filters such as Brouillon / En attente remain untouched.
+    $pattern = '/\s+AND\s+(?:COALESCE\(NULLIF\(TRIM\(`statut`\),\s*\'\'\),\s*`status`\)|`statut`|`status`)\s+IN\s*\((?=[^)]*\'valide\')(?=[^)]*\'validated\')[^)]*\)/i';
+    $expanded = preg_replace( $pattern, '', $query );
+
+    return is_string( $expanded ) ? $expanded : $query;
+}
+add_filter( 'query', 'ufsc_production_expand_renewal_source_query', 999 );
+
 /** Use the same visual language for WordPress admin notices on UFSC screens. */
 function ufsc_production_licence_ux_admin_enqueue() {
     if ( ! defined( 'UFSC_CL_URL' ) ) { return; }
