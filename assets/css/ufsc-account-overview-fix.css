@@ -13,6 +13,8 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-profile-main {
     width: 100% !important;
     max-width: none !important;
     min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
 }
 
 /* Account navigation: one clear row on desktop, responsive below. */
@@ -22,6 +24,7 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-account__nav {
     gap: 10px !important;
     width: 100% !important;
     max-width: 1180px !important;
+    margin: 16px auto 20px !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-account__nav > a {
@@ -31,18 +34,26 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-account__nav > a {
 }
 
 /*
- * The overview hero has two direct regions: logo/media + club content.
- * Legacy rules can leave the content at the former sidebar width. Rebuild the
- * intended two-column contract only when the media child is actually present.
+ * The account hero always contains the logo/media region and the club-content
+ * region. Do not depend on :has() here: explicitly rebuild the two-column
+ * contract so old structural rules cannot stack the identity hundreds of pixels
+ * below the logo.
  */
-body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero:has(> .ufsc-club-hero-media) {
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero {
     display: grid !important;
-    grid-template-columns: minmax(210px, 260px) minmax(0, 1fr) !important;
+    grid-template-columns: minmax(190px, 220px) minmax(0, 1fr) !important;
+    grid-auto-rows: min-content !important;
     align-items: start !important;
-    gap: clamp(20px, 3vw, 34px) !important;
+    align-content: start !important;
+    gap: clamp(18px, 2.4vw, 28px) !important;
     width: 100% !important;
     max-width: none !important;
     min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 0 18px !important;
+    padding: clamp(18px, 2.4vw, 28px) !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-media,
@@ -50,26 +61,72 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-content {
     width: 100% !important;
     max-width: none !important;
     min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     margin: 0 !important;
+    padding: 0 !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-media {
-    align-self: start;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    align-self: start !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-content {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
     display: grid !important;
-    gap: 18px !important;
+    gap: 12px !important;
     align-content: start !important;
+    align-self: start !important;
+}
+
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-content > h4,
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-content > p,
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-content .ufsc-dashboard-status-line {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor {
+    display: grid !important;
+    align-content: start !important;
+    justify-items: center !important;
+    gap: 10px !important;
     width: 100% !important;
-    max-width: 240px !important;
+    max-width: 190px !important;
+    height: auto !important;
+    min-height: 0 !important;
     margin: 0 auto !important;
 }
 
-/* Club identity and completion content must use the content column, never a 60px rail. */
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__title {
+    margin: 0 !important;
+}
+
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__preview,
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__preview .ufsc-club-logo,
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__preview img {
+    width: 140px !important;
+    height: 140px !important;
+    max-width: 140px !important;
+    max-height: 140px !important;
+}
+
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__upload {
+    gap: 8px !important;
+    margin: 0 !important;
+}
+
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__upload > .ufsc-btn,
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor label.ufsc-btn {
+    width: auto !important;
+    min-width: 150px !important;
+}
+
+/* Club identity must use the content column, never a narrow rail. */
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-account__identity {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -77,7 +134,7 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-account__identity {
     width: 100% !important;
     max-width: none !important;
     min-width: 0 !important;
-    margin: 0 !important;
+    margin: 2px 0 0 !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-account__identity > div,
@@ -99,6 +156,50 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-content > ol {
     width: 100% !important;
     max-width: none !important;
     min-width: 0 !important;
+    margin-block: 0 !important;
+}
+
+/* Completion actions: use the available width instead of leaving a large empty half. */
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-actions {
+    display: grid !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 16px 0 !important;
+    padding: 18px !important;
+}
+
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-actions__heading,
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-actions__heading > * {
+    margin-block: 0 !important;
+}
+
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-actions ul {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0 22px !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-actions li {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 10px 0 !important;
+}
+
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-actions li .ufsc-btn {
+    min-height: 40px !important;
+    margin: 0 !important;
 }
 
 /* Affiliation timeline: four readable stages across the available width. */
@@ -107,7 +208,10 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-affiliation-trace--premium 
     width: 100% !important;
     max-width: none !important;
     min-width: 0 !important;
-    margin: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 16px 0 !important;
+    padding: 18px !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-affiliation-trace__steps {
@@ -115,7 +219,7 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-affiliation-trace__steps {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
     gap: 12px !important;
     width: 100% !important;
-    margin: 16px 0 0 !important;
+    margin: 12px 0 0 !important;
     padding: 0 !important;
     list-style: none !important;
 }
@@ -125,8 +229,9 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-affiliation-trace__steps > 
     align-items: flex-start !important;
     gap: 10px !important;
     min-width: 0 !important;
+    min-height: 0 !important;
     margin: 0 !important;
-    padding: 14px !important;
+    padding: 10px !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-affiliation-trace__steps > li > div {
@@ -135,10 +240,17 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-affiliation-trace__steps > 
     min-width: 0 !important;
 }
 
-/* Information page: defeat legacy narrow sidebar/card dimensions with higher specificity. */
+/* Information/officer/documents form: remove historical top gutters and narrow cards. */
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-form.ufsc-club-profile {
+    margin: 16px 0 0 !important;
+    padding-top: 0 !important;
+}
+
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-profile-layout {
     display: block !important;
     grid-template-columns: none !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-profile-main.ufsc-profile-cards,
@@ -146,9 +258,12 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-cards {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 22px !important;
+    align-content: start !important;
     width: 100% !important;
     max-width: none !important;
     min-width: 0 !important;
+    margin-top: 0 !important;
+    padding-top: 0 !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-cards > *,
@@ -157,6 +272,8 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-form .ufsc-form-sectio
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
     margin-inline: 0 !important;
 }
 
@@ -165,6 +282,11 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-cards > #ufsc-club-
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-account__savebar,
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-portal__section--full {
     grid-column: 1 / -1 !important;
+}
+
+body.ufsc-portal-clean-page .ufsc-club-account #ufsc-club-officers,
+body.ufsc-portal-clean-page .ufsc-club-account #ufsc-club-documents {
+    margin-top: 0 !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
@@ -180,13 +302,17 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-form textarea {
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     }
 
-    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero:has(> .ufsc-club-hero-media) {
-        grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) !important;
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero {
+        grid-template-columns: minmax(170px, 200px) minmax(0, 1fr) !important;
+    }
+
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-actions ul {
+        grid-template-columns: 1fr !important;
     }
 }
 
 @media (max-width: 760px) {
-    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero:has(> .ufsc-club-hero-media),
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero,
     body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-profile-main.ufsc-profile-cards,
     body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-cards,
     body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-account__identity,
@@ -194,14 +320,39 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-form textarea {
         grid-template-columns: 1fr !important;
     }
 
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-media,
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-content {
+        grid-column: 1 !important;
+        grid-row: auto !important;
+    }
+
     body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-media {
-        max-width: 260px !important;
+        max-width: 220px !important;
         margin-inline: auto !important;
+    }
+
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero-content {
+        gap: 10px !important;
+    }
+
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-actions li {
+        grid-template-columns: 1fr !important;
+    }
+
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-actions li .ufsc-btn {
+        width: 100% !important;
     }
 }
 
 @media (max-width: 560px) {
     body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-account__nav {
         grid-template-columns: 1fr !important;
+    }
+
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-hero,
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-profile-actions,
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-affiliation-trace,
+    body.ufsc-portal-clean-page .ufsc-club-account .ufsc-affiliation-trace--premium {
+        padding: 14px !important;
     }
 }
