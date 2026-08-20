@@ -28,6 +28,13 @@ if ( file_exists( $ufsc_structural_workflow ) ) {
     require_once $ufsc_structural_workflow;
 }
 
+// Normalise the front renewal submitter before the canonical finalization runtime
+// inspects POST. The real admin-post handler still performs all security checks.
+$ufsc_renewal_intent_compat = dirname( __FILE__ ) . '/renewal-intent-compat.php';
+if ( file_exists( $ufsc_renewal_intent_compat ) ) {
+    require_once $ufsc_renewal_intent_compat;
+}
+
 $ufsc_finalization_runtime = dirname( __FILE__ ) . '/licence-finalization-runtime.php';
 if ( file_exists( $ufsc_finalization_runtime ) ) {
     require_once $ufsc_finalization_runtime;
