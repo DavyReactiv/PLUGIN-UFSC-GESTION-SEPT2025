@@ -28,6 +28,13 @@ if ( file_exists( $ufsc_structural_workflow ) ) {
     require_once $ufsc_structural_workflow;
 }
 
+// Normalise the front renewal submitter before the canonical finalization runtime
+// inspects POST. The real admin-post handler still performs all security checks.
+$ufsc_renewal_intent_compat = dirname( __FILE__ ) . '/renewal-intent-compat.php';
+if ( file_exists( $ufsc_renewal_intent_compat ) ) {
+    require_once $ufsc_renewal_intent_compat;
+}
+
 $ufsc_finalization_runtime = dirname( __FILE__ ) . '/licence-finalization-runtime.php';
 if ( file_exists( $ufsc_finalization_runtime ) ) {
     require_once $ufsc_finalization_runtime;
@@ -38,6 +45,40 @@ if ( file_exists( $ufsc_finalization_runtime ) ) {
 $ufsc_portal_ui_cleanup = dirname( __FILE__ ) . '/portal-ui-cleanup.php';
 if ( file_exists( $ufsc_portal_ui_cleanup ) ) {
     require_once $ufsc_portal_ui_cleanup;
+}
+
+// Final Compte Club width repair. Presentation only; intentionally isolated from
+// affiliation, licence, quota and WooCommerce business logic.
+$ufsc_account_overview_layout = dirname( __FILE__ ) . '/account-overview-layout.php';
+if ( file_exists( $ufsc_account_overview_layout ) ) {
+    require_once $ufsc_account_overview_layout;
+}
+
+// Production boundary: deterministic affiliation/licence finalisation while
+// keeping all historical rows and non-final assistant steps untouched.
+$ufsc_production_readiness = dirname( __FILE__ ) . '/production-readiness-hotfix.php';
+if ( file_exists( $ufsc_production_readiness ) ) {
+    require_once $ufsc_production_readiness;
+}
+
+$ufsc_production_payment_boundary = dirname( __FILE__ ) . '/production-payment-boundary.php';
+if ( file_exists( $ufsc_production_payment_boundary ) ) {
+    require_once $ufsc_production_payment_boundary;
+}
+
+// Shared licence navigation, visible notifications and responsive tables for
+// member/admin views. This layer does not mutate licence or affiliation data.
+$ufsc_production_licence_ux = dirname( __FILE__ ) . '/production-licence-ux.php';
+if ( file_exists( $ufsc_production_licence_ux ) ) {
+    require_once $ufsc_production_licence_ux;
+}
+
+// DEV acceptance compatibility: keep annual renewals from being labelled as
+// identity duplicates across seasons and return WooCommerce settings saves to
+// the canonical registered UFSC admin page.
+$ufsc_production_admin_compat = dirname( __FILE__ ) . '/production-admin-compat.php';
+if ( file_exists( $ufsc_production_admin_compat ) ) {
+    require_once $ufsc_production_admin_compat;
 }
 
 function ufsc_quotas_enabled() {

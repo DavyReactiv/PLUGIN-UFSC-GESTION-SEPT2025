@@ -39,6 +39,29 @@ function ufsc_resolve_pack_credit( $role, $included_roles ) {
 	return array( 'included' => true, 'bucket' => $bucket, 'role' => $role );
 }
 
+/** Resolve the real season storage column/value used by this installation. */
+function ufsc_get_pack_season_storage_context( $table, $season ) {
+	global $wpdb;
+	$columns = $wpdb->get_col( "DESC `{$table}`", 0 );
+	$column = function_exists( 'ufsc_get_detected_season_column' ) ? ufsc_get_detected_season_column( $table ) : '';
+	if ( ! $column || ! in_array( $column, $columns, true ) ) {
+		foreach ( array( 'paid_season', 'season', 'saison', 'season_end_year' ) as $candidate ) {
+			if ( in_array( $candidate, $columns, true ) ) {
+				$column = $candidate;
+				break;
+			}
+		}
+	}
+	if ( ! $column ) {
+		return array( 'column' => '', 'value' => '' );
+	}
+	$value = (string) $season;
+	if ( 'season_end_year' === $column && preg_match( '/^(\d{4})-(\d{4})$/', $value, $matches ) ) {
+		$value = (string) (int) $matches[2];
+	}
+	return array( 'column' => $column, 'value' => $value );
+}
+
 /** Atomically reserve the season's appropriate pack credit for one licence. */
 function ufsc_allocate_pack_credit( $licence_id, $club_id, $season, $role ) {
 	global $wpdb;
@@ -46,13 +69,14 @@ function ufsc_allocate_pack_credit( $licence_id, $club_id, $season, $role ) {
 	if ( ! $table || ! $licence_id || ! $club_id || ! preg_match( '/^\d{4}-\d{4}$/', (string) $season ) ) {
 		return new WP_Error( 'ufsc_pack_context_invalid', __( 'Le quota du pack ne peut pas être déterminé pour cette saison.', 'ufsc-clubs' ) );
 	}
-	$columns = $wpdb->get_col( "DESC `{$table}`", 0 );
-	$season_column = in_array( 'season', $columns, true ) ? 'season' : ( in_array( 'saison', $columns, true ) ? 'saison' : '' );
+	$season_storage = ufsc_get_pack_season_storage_context( $table, $season );
+	$season_column  = $season_storage['column'];
+	$season_value   = $season_storage['value'];
 	if ( ! $season_column ) { return new WP_Error( 'ufsc_pack_season_missing', __( 'La saison canonique des licences est indisponible.', 'ufsc-clubs' ) ); }
 	$lock_name = 'ufsc_pack_' . absint( $club_id ) . '_' . sanitize_key( $season );
 	$locked = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock_name ) );
 	if ( 1 !== $locked ) { return new WP_Error( 'ufsc_pack_busy', __( 'Le pack est en cours de mise à jour. Réessayez dans quelques secondes.', 'ufsc-clubs' ) ); }
-	$roles = $wpdb->get_col( $wpdb->prepare( "SELECT role FROM `{$table}` WHERE club_id = %d AND `{$season_column}` = %s AND is_included = 1 AND id <> %d", $club_id, $season, $licence_id ) );
+	$roles = $wpdb->get_col( $wpdb->prepare( "SELECT role FROM `{$table}` WHERE club_id = %d AND `{$season_column}` = %s AND is_included = 1 AND id <> %d", $club_id, $season_value, $licence_id ) );
 	$allocation = ufsc_resolve_pack_credit( $role, $roles );
 	if ( empty( $allocation['included'] ) ) { $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); return $allocation; }
 
@@ -61,7 +85,7 @@ function ufsc_allocate_pack_credit( $licence_id, $club_id, $season, $role ) {
 			"UPDATE `{$table}` SET is_included = 1 WHERE id = %d AND club_id = %d AND `{$season_column}` = %s AND (is_included = 0 OR is_included IS NULL)",
 			$licence_id,
 			$club_id,
-			$season
+			$season_value
 		)
 	);
 	if ( false === $updated ) {
@@ -76,7 +100,7 @@ function ufsc_allocate_pack_credit( $licence_id, $club_id, $season, $role ) {
 			"SELECT is_included FROM `{$table}` WHERE id = %d AND club_id = %d AND `{$season_column}` = %s LIMIT 1",
 			$licence_id,
 			$club_id,
-			$season
+			$season_value
 		)
 	);
 	$wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) );
@@ -94,10 +118,11 @@ function ufsc_get_pack_usage( $club_id, $season ) {
 	$empty = array( 'total' => 0, 'bureau' => 0, 'libres' => 0, 'payantes' => 0, 'roles' => array( 'president' => false, 'secretaire' => false, 'tresorier' => false ) );
 	$table = function_exists( 'ufsc_get_licences_table' ) ? ufsc_get_licences_table() : '';
 	if ( ! $table ) { return $empty; }
-	$columns = $wpdb->get_col( "DESC `{$table}`", 0 );
-	$season_column = in_array( 'season', $columns, true ) ? 'season' : ( in_array( 'saison', $columns, true ) ? 'saison' : '' );
+	$season_storage = ufsc_get_pack_season_storage_context( $table, $season );
+	$season_column  = $season_storage['column'];
+	$season_value   = $season_storage['value'];
 	if ( ! $season_column ) { return $empty; }
-	$rows = $wpdb->get_results( $wpdb->prepare( "SELECT role, is_included FROM `{$table}` WHERE club_id = %d AND `{$season_column}` = %s", absint( $club_id ), $season ) );
+	$rows = $wpdb->get_results( $wpdb->prepare( "SELECT role, is_included FROM `{$table}` WHERE club_id = %d AND `{$season_column}` = %s", absint( $club_id ), $season_value ) );
 	$included_roles = array();
 	foreach ( (array) $rows as $row ) { if ( ! empty( $row->is_included ) ) { $included_roles[] = ufsc_normalize_club_role( $row->role ?? '' ); } }
 	foreach ( array_keys( $empty['roles'] ) as $office_role ) { $empty['roles'][ $office_role ] = in_array( $office_role, $included_roles, true ); }
