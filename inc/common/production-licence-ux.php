@@ -73,6 +73,13 @@ add_action( 'wp_enqueue_scripts', 'ufsc_production_licence_ux_enqueue', 1300 );
  * previous-season, affiliation, duplicate and allowed-status checks.
  */
 function ufsc_production_expand_renewal_source_query( $query ) {
+    // The global `query` filter can fire during the WordPress bootstrap, before
+    // pluggable.php has defined is_user_logged_in() (for example while ACF reads
+    // options or when wp-cron.php boots). Never run front-end renewal logic then.
+    if ( ! function_exists( 'is_user_logged_in' ) ) {
+        return $query;
+    }
+
     if ( is_admin() || ! is_user_logged_in() || ! is_string( $query ) ) {
         return $query;
     }
