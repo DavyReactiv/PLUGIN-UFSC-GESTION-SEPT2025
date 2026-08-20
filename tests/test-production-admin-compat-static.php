@@ -20,5 +20,10 @@ $assert( false !== strpos( $compat, "add_filter( 'query'" ), 'duplicate compatib
 $assert( false !== strpos( $compat, "function_exists( 'wc_get_cart_item_data_hash' )" ), 'admin-post cart bootstrap must verify the Woo cart hash helper' );
 $assert( false !== strpos( $compat, "includes/wc-cart-functions.php" ), 'admin-post cart bootstrap must load native Woo cart functions' );
 $assert( false !== strpos( $compat, "'ufsc_bulk_renew_licences'" ), 'paid renewal admin-post must be covered by Woo cart bootstrap' );
+$assert( false !== strpos( $compat, "'ufsc_save_licence'" ), 'new licence save/finalization must be covered by Woo cart bootstrap' );
+$assert( false !== strpos( $compat, "'ufsc_journey_finalize_licence'" ), 'journey finalization must be covered by Woo cart bootstrap' );
+$assert( false !== strpos( $compat, "'Renouvellement de licence'" ), 'cart request metadata must identify licence renewals correctly' );
+$assert( false !== strpos( $compat, "'Nouvelle licence'" ), 'cart request metadata must identify new licences correctly' );
+$assert( false !== strpos( $compat, "add_filter( 'woocommerce_get_item_data'" ), 'cart metadata correction must run on Woo item display' );
 
 echo "Production admin compatibility safeguards OK\n";
