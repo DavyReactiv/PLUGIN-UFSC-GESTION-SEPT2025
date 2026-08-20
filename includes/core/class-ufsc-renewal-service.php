@@ -86,7 +86,8 @@ final class UFSC_Renewal_Service {
         if ( absint( $source_row->club_id ?? 0 ) !== absint( $club_id ) ) { return new WP_Error( 'source_club_mismatch', __( 'Cette licence n’appartient pas au club connecté.', 'ufsc-clubs' ) ); }
         $source_status = function_exists( 'ufsc_get_licence_status_from_record' ) ? ufsc_get_licence_status_from_record( $source_row ) : sanitize_key( (string) ( ! empty( $source_row->statut ) ? $source_row->statut : ( $source_row->status ?? '' ) ) );
         if ( in_array( $source_status, array( 'validated', 'valid', 'active', 'approved' ), true ) ) { $source_status = 'valide'; }
-        if ( 'valide' !== $source_status ) { return new WP_Error( 'source_status_blocked', __( 'Seule une licence validée de la saison précédente peut être renouvelée.', 'ufsc-clubs' ) ); }
+        $renewable_source_statuses = array( 'valide', 'brouillon', 'draft', 'en_attente', 'pending', 'pending_validation', 'pending_payment', 'non_payee', 'a_completer', 'incomplete' );
+        if ( ! in_array( $source_status, $renewable_source_statuses, true ) ) { return new WP_Error( 'source_status_blocked', __( 'Cette licence historique ne peut pas être renouvelée dans son état actuel.', 'ufsc-clubs' ) ); }
         $target_start = self::season_start_year( $target_season );
         $expected_source_season = $target_start ? ( $target_start - 1 ) . '-' . $target_start : '';
         if ( ! $expected_source_season || self::licence_season( $source_row ) !== $expected_source_season ) { return new WP_Error( 'source_season_mismatch', __( 'La licence source doit appartenir exactement à la saison précédente.', 'ufsc-clubs' ) ); }
