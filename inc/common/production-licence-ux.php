@@ -155,6 +155,73 @@ function ufsc_production_expand_renewal_source_query( $query ) {
     return is_string( $expanded ) ? $expanded : $query;
 }
 
+/**
+ * After a successful direct renewal covered by the affiliation quota, leave the
+ * verification assistant and return to the current-season licence list.
+ *
+ * The canonical handler already completed ownership, nonce, season, duplicate,
+ * profile and quota checks before WordPress reaches wp_redirect. We additionally
+ * require a real renewal marker and an included target row, so a skipped or paid
+ * renewal can never be turned into a false success redirect here.
+ */
+function ufsc_production_redirect_included_direct_renewal( $location, $status ) {
+    unset( $status );
+
+    $method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : '';
+    $action = isset( $_POST['action'] ) && ! is_array( $_POST['action'] ) ? sanitize_key( wp_unslash( $_POST['action'] ) ) : '';
+    $intent = isset( $_POST['ufsc_renew_intent'] ) && ! is_array( $_POST['ufsc_renew_intent'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_renew_intent'] ) ) : '';
+
+    if ( 'POST' !== $method || 'ufsc_bulk_renew_licences' !== $action || 'add_to_cart' !== $intent ) {
+        return $location;
+    }
+
+    $ids = array();
+    foreach ( array( 'ufsc_renew_ids', 'source_ids', 'renew_licence_ids' ) as $key ) {
+        if ( isset( $_POST[ $key ] ) && is_array( $_POST[ $key ] ) ) {
+            $ids = array_values( array_unique( array_filter( array_map( 'absint', wp_unslash( $_POST[ $key ] ) ) ) ) );
+            break;
+        }
+    }
+    if ( 1 !== count( $ids ) || ! function_exists( 'ufsc_get_renewed_licence_marker' ) || ! function_exists( 'ufsc_get_licences_table' ) ) {
+        return $location;
+    }
+
+    $season = class_exists( 'UFSC_Season_Service' )
+        ? (string) UFSC_Season_Service::get_current_season()
+        : ( function_exists( 'ufsc_get_current_season' ) ? (string) ufsc_get_current_season() : '' );
+    $target_id = absint( ufsc_get_renewed_licence_marker( $ids[0], $season ) );
+    $club_id = isset( $_POST['ufsc_club_id'] ) ? absint( wp_unslash( $_POST['ufsc_club_id'] ) ) : 0;
+    if ( $target_id < 1 || $club_id < 1 ) {
+        return $location;
+    }
+
+    global $wpdb;
+    $table = ufsc_get_licences_table();
+    $target = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d AND club_id = %d LIMIT 1", $target_id, $club_id ) );
+    if ( ! $target ) {
+        return $location;
+    }
+
+    $payment_status = sanitize_key( (string) ( $target->payment_status ?? '' ) );
+    $is_included = ! empty( $target->is_included ) || in_array( $payment_status, array( 'included', 'incluse', 'pack', 'included_pack' ), true );
+    if ( ! $is_included ) {
+        return $location;
+    }
+
+    $urls = ufsc_production_licence_ux_urls();
+    $target_url = add_query_arg(
+        array(
+            'ufsc_section' => 'club-licences',
+            'ufsc_season'  => $season,
+            'ufsc_message' => 'renewal_included',
+        ),
+        $urls['dashboard']
+    );
+
+    return $target_url . '#ufsc-current-licences';
+}
+add_filter( 'wp_redirect', 'ufsc_production_redirect_included_direct_renewal', 999, 2 );
+
 /** Use the same visual language for WordPress admin notices on UFSC screens. */
 function ufsc_production_licence_ux_admin_enqueue() {
     if ( ! defined( 'UFSC_CL_URL' ) ) { return; }
