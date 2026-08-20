@@ -12,6 +12,35 @@
   function blocked(row) { return !!row && row.getAttribute('data-blocked') === '1'; }
   function esc(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 
+  /*
+   * Browsers normally include the clicked submit button name/value in POST, but
+   * the renewal page still has legacy listeners and DOM promotion around the
+   * same form. On DEV we observed real requests containing the selected licence
+   * but no ufsc_renew_intent. Keep a separate fallback field so the server can
+   * restore the exact action without relying on event.submitter support.
+   */
+  function intentFallback(f) {
+    var input = f.querySelector('input[data-ufsc-renew-intent-fallback="1"]');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'ufsc_renew_intent_fallback';
+      input.setAttribute('data-ufsc-renew-intent-fallback', '1');
+      input.value = '';
+      f.appendChild(input);
+    }
+    return input;
+  }
+
+  function rememberIntent(f, value) {
+    intentFallback(f).value = value || '';
+  }
+
+  function stepNumber(f) {
+    var step = Number(f.getAttribute('data-current-step') || f.getAttribute('data-initial-step') || 1);
+    return step === 2 || step === 3 ? step : 1;
+  }
+
   function ensurePanels(f) {
     var w = wizard(f), wrap = f && f.querySelector('.ufsc-front-table-scroll');
     if (!w || !wrap) return;
@@ -76,7 +105,7 @@
   }
 
   function finalReview(f, w, c) {
-    var step = Number(f.getAttribute('data-current-step') || f.getAttribute('data-initial-step') || 1);
+    var step = stepNumber(f);
     if (step !== 3) return;
     var selected = ids(f), remaining = quota(w), included = Math.min(selected.length, remaining), paid = Math.max(0, selected.length - included);
     var button = f.querySelector('button[name="ufsc_renew_intent"][value="add_to_cart"]');
@@ -103,9 +132,12 @@
   function sync() {
     var f = form(), w = wizard(f); if (!f || !w) return;
     ensurePanels(f);
-    var step = Number(f.getAttribute('data-current-step') || f.getAttribute('data-initial-step') || 1); if (step !== 2 && step !== 3) step = 1;
+    var step = stepNumber(f);
     w.setAttribute('data-ufsc-current-step', String(step));
     var selected = ids(f);
+
+    // A previous final click must never leak into a later step-1/2 Enter submit.
+    if (step !== 3) rememberIntent(f, '');
 
     Array.prototype.slice.call(w.querySelectorAll('.ufsc-renewal-filters,.ufsc-renewal-list-tools,.ufsc-renewal-pagination')).forEach(function (el) { el.style.display = step === 1 ? '' : 'none'; });
     var wrap = f.querySelector('.ufsc-front-table-scroll'); if (wrap) wrap.style.display = step === 1 ? '' : 'none';
@@ -120,7 +152,28 @@
 
   function init() {
     var f = form(); if (!f || f.getAttribute('data-ufsc-renewal-overlay') === '1') return;
-    f.setAttribute('data-ufsc-renewal-overlay','1'); ensurePanels(f); sync();
+    f.setAttribute('data-ufsc-renewal-overlay','1'); ensurePanels(f); rememberIntent(f, ''); sync();
+
+    // Capture the clicked server action before older listeners can alter/disable
+    // the submit control. The field uses a distinct name to avoid duplicate-key
+    // ambiguity with the real submit button.
+    f.addEventListener('click', function (e) {
+      var submitter = e.target && e.target.closest ? e.target.closest('button[type="submit"][name="ufsc_renew_intent"],input[type="submit"][name="ufsc_renew_intent"]') : null;
+      if (submitter) rememberIntent(f, submitter.value || '');
+    }, true);
+
+    // Keyboard submits and older browsers may expose no submitter at all. On the
+    // final review only, an enabled final button makes the intent unambiguous.
+    f.addEventListener('submit', function (e) {
+      var submitter = e.submitter || null;
+      var intent = submitter && submitter.name === 'ufsc_renew_intent' ? String(submitter.value || '') : '';
+      if (!intent && stepNumber(f) === 3) {
+        var finalButton = f.querySelector('button[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"]');
+        if (finalButton && !finalButton.disabled) intent = 'add_to_cart';
+      }
+      if (intent) rememberIntent(f, intent);
+    }, true);
+
     f.addEventListener('change', function () { window.setTimeout(sync,0); });
     f.addEventListener('input', function () { window.setTimeout(sync,0); });
     f.addEventListener('click', function (e) { if (e.target && e.target.closest && e.target.closest('[data-ufsc-next-step],[data-ufsc-renew-one],[data-ufsc-select-all],[data-ufsc-select-none]')) window.setTimeout(sync,0); });
