@@ -17,6 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * 4. Legacy cart metadata labels every non-empty request_type as an affiliation
  *    renewal. Normalize the visible "Demande" label from the actual UFSC item
  *    type/action so licence renewals and new licences are described correctly.
+ * 5. Included quota is now allocated before cart insertion. The historical cart
+ *    repricer still queries obsolete club columns and can incorrectly zero a
+ *    paid over-quota licence. Remove that legacy hook in the production layer.
  */
 
 /**
@@ -133,6 +136,19 @@ function ufsc_production_fix_cart_request_label( $item_data, $cart_item ) {
     return $filtered;
 }
 add_filter( 'woocommerce_get_item_data', 'ufsc_production_fix_cart_request_label', 999, 2 );
+
+/**
+ * Remove the obsolete cart-time included-quota repricer.
+ *
+ * Canonical licence finalization consumes included pack credits before a cart
+ * line is created; only the over-quota paid remainder reaches WooCommerce. The
+ * legacy callback reads removed columns such as included_quota_used and can
+ * incorrectly turn a genuinely paid line into a zero-price line.
+ */
+function ufsc_production_remove_legacy_cart_quota_repricing() {
+    remove_action( 'woocommerce_before_calculate_totals', 'ufsc_apply_included_quota_to_cart', 10 );
+}
+add_action( 'wp_loaded', 'ufsc_production_remove_legacy_cart_quota_repricing', 5 );
 
 /**
  * Register a tightly-scoped SQL compatibility filter on licence admin lists.
