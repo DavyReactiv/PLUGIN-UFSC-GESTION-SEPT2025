@@ -8,7 +8,7 @@
   function redirectLegacyLicenceAnchor() {
     if (!config().current || currentSection()) return false;
     var hash = window.location.hash || '';
-    if (hash === '#ufsc-club-licences' || hash === '#ufsc-current-licences') {
+    if (hash === '#licences' || hash === '#ufsc-club-licences' || hash === '#ufsc-current-licences') {
       window.location.replace(config().current);
       return true;
     }
@@ -62,10 +62,30 @@
     if (!config().current) return;
     document.querySelectorAll('a').forEach(function (a) {
       var text = (a.textContent || '').trim().toLowerCase(), href = a.getAttribute('href') || '';
-      var isLicenceLink = text === 'mes licences ufsc' || text === 'mes licences' || href.indexOf('#ufsc-club-licences') !== -1 || href.indexOf('#ufsc-current-licences') !== -1;
+      var isLicenceLink = text === 'mes licences ufsc' || text === 'mes licences' || href === '#licences' || href.indexOf('#ufsc-club-licences') !== -1 || href.indexOf('#ufsc-current-licences') !== -1;
       if (!isLicenceLink || href.indexOf('view_licence=') !== -1 || href.indexOf('edit_licence=') !== -1) return;
       a.setAttribute('href', config().current);
     });
+  }
+
+  /*
+   * The dashboard still ships two historical tab handlers. One targets
+   * #ufsc-club-licences correctly, while the older one immediately removes the
+   * active class and looks for the now-nonexistent #ufsc-section-licences. The
+   * visible symptom is a licence table that flashes, then disappears and leaves
+   * #licences in the URL. Intercept only the canonical licences button before
+   * those competing handlers run and use the server-rendered route instead.
+   */
+  function bindCanonicalDashboardLicenceButton() {
+    if (!config().current) return;
+    document.addEventListener('click', function (event) {
+      var target = event.target && event.target.closest ? event.target.closest('.ufsc-nav-btn[data-section="licences"]') : null;
+      if (!target) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (typeof event.stopImmediatePropagation === 'function') event.stopImmediatePropagation();
+      window.location.assign(config().current);
+    }, true);
   }
 
   function applyTableLabels() {
@@ -75,6 +95,47 @@
         Array.prototype.forEach.call(row.children, function (cell, index) { if (!cell.getAttribute('data-label') && headers[index]) cell.setAttribute('data-label', headers[index]); });
       });
     });
+  }
+
+  /*
+   * Renewal verification profiles are legacy <tr>/<td> blocks. Modern card CSS
+   * cannot reliably make a colspan cell full-width once table/card rules have
+   * been mixed. Promote only visible profile rows into standalone panels while
+   * keeping every field inside the same parent form. Historical source data is
+   * untouched; this is presentation-only DOM normalization.
+   */
+  function promoteVisibleRenewalProfiles() {
+    var wizard = document.querySelector('.ufsc-renewal-wizard');
+    if (!wizard) return;
+    var tableWrap = wizard.querySelector('.ufsc-front-table-scroll');
+    if (!tableWrap) return;
+    var insertionPoint = tableWrap;
+    Array.prototype.slice.call(wizard.querySelectorAll('tr.ufsc-renewal-profile-row:not([hidden])')).forEach(function (row) {
+      var cell = row.querySelector('td');
+      if (!cell) return;
+      var panel = document.createElement('section');
+      panel.className = 'ufsc-renewal-profile-panel';
+      panel.setAttribute('data-profile-id', row.getAttribute('data-profile-id') || '');
+      while (cell.firstChild) panel.appendChild(cell.firstChild);
+      insertionPoint.insertAdjacentElement('afterend', panel);
+      insertionPoint = panel;
+      row.remove();
+    });
+  }
+
+  function watchRenewalProfiles() {
+    var wizard = document.querySelector('.ufsc-renewal-wizard');
+    if (!wizard || !window.MutationObserver) return;
+    var scheduled = false;
+    var observer = new MutationObserver(function () {
+      if (scheduled) return;
+      scheduled = true;
+      window.requestAnimationFrame(function () {
+        scheduled = false;
+        promoteVisibleRenewalProfiles();
+      });
+    });
+    observer.observe(wizard, {subtree: true, attributes: true, attributeFilter: ['hidden']});
   }
 
   function escapeHtml(value) {
@@ -136,8 +197,17 @@
 
   function init() {
     if (redirectLegacyLicenceAnchor()) return;
-    repairMesLicencesLinks(); insertShortcuts(); applyTableLabels(); normalizeExistingMessages(); insertQueryNotice(); bindValidationFeedback();
+    repairMesLicencesLinks();
+    insertShortcuts();
+    applyTableLabels();
+    promoteVisibleRenewalProfiles();
+    watchRenewalProfiles();
+    normalizeExistingMessages();
+    insertQueryNotice();
+    bindValidationFeedback();
   }
 
+  bindCanonicalDashboardLicenceButton();
+  window.addEventListener('hashchange', redirectLegacyLicenceAnchor);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
