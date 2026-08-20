@@ -25,5 +25,7 @@ $assert( false !== strpos( $compat, "'ufsc_journey_finalize_licence'" ), 'journe
 $assert( false !== strpos( $compat, "'Renouvellement de licence'" ), 'cart request metadata must identify licence renewals correctly' );
 $assert( false !== strpos( $compat, "'Nouvelle licence'" ), 'cart request metadata must identify new licences correctly' );
 $assert( false !== strpos( $compat, "add_filter( 'woocommerce_get_item_data'" ), 'cart metadata correction must run on Woo item display' );
+$assert( false !== strpos( $compat, "remove_action( 'woocommerce_before_calculate_totals', 'ufsc_apply_included_quota_to_cart', 10 )" ), 'legacy cart quota repricer must be disabled after canonical quota allocation' );
+$assert( false !== strpos( $compat, "add_action( 'wp_loaded', 'ufsc_production_remove_legacy_cart_quota_repricing'" ), 'legacy quota repricer removal must run after Woo hooks are registered' );
 
 echo "Production admin compatibility safeguards OK\n";
