@@ -66,6 +66,14 @@ if ( file_exists( $ufsc_production_licence_ux ) ) {
     require_once $ufsc_production_licence_ux;
 }
 
+// DEV acceptance compatibility: keep annual renewals from being labelled as
+// identity duplicates across seasons and return WooCommerce settings saves to
+// the canonical registered UFSC admin page.
+$ufsc_production_admin_compat = dirname( __FILE__ ) . '/production-admin-compat.php';
+if ( file_exists( $ufsc_production_admin_compat ) ) {
+    require_once $ufsc_production_admin_compat;
+}
+
 function ufsc_quotas_enabled() {
     return (bool) apply_filters( 'ufsc_quotas_enabled', true );
 }
