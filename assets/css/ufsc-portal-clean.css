@@ -10,25 +10,64 @@
 }
 
 /* ---------- Theme / Elementor width contract ---------- */
+/*
+ * Compte Club can be embedded through Astra + Elementor containers whose
+ * inherited flex-basis/max-width collapses the shortcode to a very narrow
+ * column. Keep this repair presentation-only and scoped to portal pages.
+ */
 .ufsc-portal-clean-page .site-content,
+.ufsc-portal-clean-page .site-content > .ast-container,
 .ufsc-portal-clean-page .ast-container,
+.ufsc-portal-clean-page #primary,
 .ufsc-portal-clean-page .content-area,
 .ufsc-portal-clean-page .site-main,
+.ufsc-portal-clean-page article,
 .ufsc-portal-clean-page .entry-content,
+.ufsc-portal-clean-page .entry-content > *,
 .ufsc-portal-clean-page .elementor,
 .ufsc-portal-clean-page .elementor-section,
 .ufsc-portal-clean-page .elementor-container,
+.ufsc-portal-clean-page .elementor-column,
+.ufsc-portal-clean-page .elementor-column-wrap,
+.ufsc-portal-clean-page .elementor-widget-wrap,
+.ufsc-portal-clean-page .elementor-element.e-con,
+.ufsc-portal-clean-page .elementor-element.e-con > .e-con-inner,
 .ufsc-portal-clean-page .elementor-widget-shortcode,
 .ufsc-portal-clean-page .elementor-widget-shortcode > .elementor-widget-container,
 .ufsc-portal-clean-page .elementor-shortcode {
     min-width: 0;
 }
 
+.ufsc-portal-clean-page .site-content > .ast-container,
+.ufsc-portal-clean-page #primary,
+.ufsc-portal-clean-page .content-area,
+.ufsc-portal-clean-page .site-main,
+.ufsc-portal-clean-page article,
+.ufsc-portal-clean-page .entry-content,
+.ufsc-portal-clean-page .elementor,
+.ufsc-portal-clean-page .elementor-section,
+.ufsc-portal-clean-page .elementor-container,
+.ufsc-portal-clean-page .elementor-column,
+.ufsc-portal-clean-page .elementor-column-wrap,
+.ufsc-portal-clean-page .elementor-widget-wrap,
+.ufsc-portal-clean-page .elementor-element.e-con,
+.ufsc-portal-clean-page .elementor-element.e-con > .e-con-inner,
 .ufsc-portal-clean-page .elementor-widget-shortcode,
 .ufsc-portal-clean-page .elementor-widget-shortcode > .elementor-widget-container,
 .ufsc-portal-clean-page .elementor-shortcode {
     width: 100%;
     max-width: none;
+}
+
+.ufsc-portal-clean-page .elementor-widget-shortcode {
+    flex: 1 1 100%;
+    --width: 100%;
+    --container-widget-width: 100%;
+}
+
+.ufsc-portal-clean-page .elementor-element.e-con,
+.ufsc-portal-clean-page .elementor-element.e-con > .e-con-inner {
+    --width: 100%;
 }
 
 /* ---------- Canonical portal width ---------- */
@@ -48,9 +87,83 @@
     margin-inline: auto;
 }
 
-/* Root cause of the 100%-zoom collapse: the former structural CSS forced this
- * container into a 220px + 1fr grid while the real DOM can contain the whole
- * profile in the first child. Keep the outer hero single-column permanently. */
+/* ---------- Compte Club layout safety ---------- */
+.ufsc-portal-clean-page .ufsc-club-account,
+.ufsc-portal-clean-page .ufsc-club-profile-shell,
+.ufsc-portal-clean-page .ufsc-club-profile-layout,
+.ufsc-portal-clean-page .ufsc-club-profile-main,
+.ufsc-portal-clean-page .ufsc-club-form.ufsc-club-profile,
+.ufsc-portal-clean-page .ufsc-profile-cards {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+
+/* Remove any historical sidebar/grid contract from the account form. */
+.ufsc-portal-clean-page .ufsc-club-profile-layout {
+    display: block;
+    grid-template-columns: none;
+}
+
+.ufsc-portal-clean-page .ufsc-club-profile-main.ufsc-profile-cards,
+.ufsc-portal-clean-page .ufsc-profile-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    align-items: start;
+}
+
+.ufsc-portal-clean-page .ufsc-profile-cards > .ufsc-card,
+.ufsc-portal-clean-page .ufsc-club-form .ufsc-card,
+.ufsc-portal-clean-page .ufsc-club-form .ufsc-section,
+.ufsc-portal-clean-page .ufsc-club-form .ufsc-form-section {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    height: auto;
+    margin-inline: 0;
+}
+
+.ufsc-portal-clean-page .ufsc-profile-cards > #ufsc-club-officers,
+.ufsc-portal-clean-page .ufsc-profile-cards > #ufsc-club-documents,
+.ufsc-portal-clean-page .ufsc-profile-cards > .ufsc-section-board,
+.ufsc-portal-clean-page .ufsc-profile-cards > .ufsc-club-profile-documents,
+.ufsc-portal-clean-page .ufsc-club-account__savebar {
+    grid-column: 1 / -1;
+}
+
+.ufsc-portal-clean-page .ufsc-club-form .ufsc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    width: 100%;
+}
+
+.ufsc-portal-clean-page .ufsc-club-form .ufsc-field,
+.ufsc-portal-clean-page .ufsc-club-form label,
+.ufsc-portal-clean-page .ufsc-club-form input,
+.ufsc-portal-clean-page .ufsc-club-form select,
+.ufsc-portal-clean-page .ufsc-club-form textarea {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.ufsc-portal-clean-page .ufsc-club-form input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.ufsc-portal-clean-page .ufsc-club-form select,
+.ufsc-portal-clean-page .ufsc-club-form textarea {
+    width: 100%;
+}
+
+.ufsc-portal-clean-page .ufsc-board-columns,
+.ufsc-portal-clean-page .ufsc-documents-grid,
+.ufsc-portal-clean-page .ufsc-profile-insight-band {
+    width: 100%;
+    min-width: 0;
+}
+
+/* Root cause of the former 100%-zoom collapse: historical structural CSS could
+ * force this container into a 220px + 1fr grid. Keep the outer hero safe and
+ * let its children use the full account width. */
 .ufsc-portal-clean-page .ufsc-club-hero {
     display: block;
     width: 100%;
@@ -401,6 +514,22 @@
 @media (max-width: 1050px) {
     .ufsc-portal-clean-page .ufsc-club-account__nav {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .ufsc-portal-clean-page .ufsc-club-profile-main.ufsc-profile-cards,
+    .ufsc-portal-clean-page .ufsc-profile-cards,
+    .ufsc-portal-clean-page .ufsc-club-form .ufsc-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ufsc-portal-clean-page .ufsc-profile-cards > #ufsc-club-officers,
+    .ufsc-portal-clean-page .ufsc-profile-cards > #ufsc-club-documents,
+    .ufsc-portal-clean-page .ufsc-profile-cards > .ufsc-section-board,
+    .ufsc-portal-clean-page .ufsc-profile-cards > .ufsc-club-profile-documents,
+    .ufsc-portal-clean-page .ufsc-club-account__savebar {
+        grid-column: auto;
     }
 }
 
