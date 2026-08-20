@@ -4,20 +4,16 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 /**
  * Read-only multi-region UFSC administration.
  *
- * This module is intentionally additive. It reuses the existing
- * `ufsc_region_viewer` role and regional scope helpers without changing any
- * licence, affiliation, quota, WooCommerce or season business workflow.
+ * Additive layer only: it reuses the existing `ufsc_region_viewer` role and
+ * regional scope helpers. It does not modify licence, affiliation, quota,
+ * WooCommerce, season or historical-data business workflows.
  */
 
 const UFSC_READONLY_ACCESS_PROFILE_META = '_ufsc_readonly_access_profile';
 const UFSC_READONLY_ACCESS_REGIONAL     = 'regional_readonly';
 const UFSC_READONLY_ACCESS_NATIONAL     = 'national_readonly';
 
-/**
- * Return the profiles managed by the simplified access screen.
- *
- * @return array<string,string>
- */
+/** @return array<string,string> */
 function ufsc_readonly_access_profiles() {
     return array(
         ''                            => __( 'Aucun accès consultation géré ici', 'ufsc-clubs' ),
@@ -27,20 +23,26 @@ function ufsc_readonly_access_profiles() {
 }
 
 /**
- * Determine whether a user is managed by the read-only access layer.
+ * Raw administrator check that never calls user_can(); safe inside user_has_cap.
  *
- * WordPress administrators are always excluded, even if stale metadata exists.
+ * @param WP_User $user User object.
+ */
+function ufsc_readonly_access_is_raw_administrator( $user ) {
+    if ( ! $user instanceof WP_User ) {
+        return false;
+    }
+    return in_array( 'administrator', (array) $user->roles, true ) || ! empty( $user->allcaps['manage_options'] );
+}
+
+/**
+ * Determine whether a user is managed by this strict read-only layer.
  *
  * @param int|null $user_id User ID, defaults to current user.
- * @return bool
  */
 function ufsc_readonly_access_is_user( $user_id = null ) {
     $user_id = $user_id ? absint( $user_id ) : get_current_user_id();
-    if ( ! $user_id ) {
-        return false;
-    }
-
-    if ( class_exists( 'UFSC_Permissions' ) && UFSC_Permissions::is_wordpress_administrator( $user_id ) ) {
+    $user    = $user_id ? get_userdata( $user_id ) : false;
+    if ( ! $user || ufsc_readonly_access_is_raw_administrator( $user ) ) {
         return false;
     }
 
@@ -49,16 +51,12 @@ function ufsc_readonly_access_is_user( $user_id = null ) {
         return false;
     }
 
-    $user = get_userdata( $user_id );
-    return $user && in_array( 'ufsc_region_viewer', (array) $user->roles, true );
+    return in_array( 'ufsc_region_viewer', (array) $user->roles, true );
 }
 
 /**
- * Check for legacy/elevated UFSC rights that must not be silently downgraded by
- * the simplified read-only screen.
- *
- * @param int $user_id User ID.
- * @return bool
+ * Detect elevated UFSC rights without calling user_can(), preventing capability
+ * recursion and avoiding silent downgrades of existing managers.
  */
 function ufsc_readonly_access_has_conflicting_rights( $user_id ) {
     $user = get_userdata( absint( $user_id ) );
@@ -66,8 +64,7 @@ function ufsc_readonly_access_has_conflicting_rights( $user_id ) {
         return true;
     }
 
-    $conflicting_roles = array( 'ufsc_region_manager', 'ufsc_competition_manager', 'ufsc_admin_limited' );
-    if ( array_intersect( $conflicting_roles, (array) $user->roles ) ) {
+    if ( array_intersect( array( 'ufsc_region_manager', 'ufsc_competition_manager', 'ufsc_admin_limited' ), (array) $user->roles ) ) {
         return true;
     }
 
@@ -82,7 +79,7 @@ function ufsc_readonly_access_has_conflicting_rights( $user_id ) {
         UFSC_Permissions::CAP_SETTINGS_MANAGE,
         UFSC_Permissions::CAP_REGIONS_MANAGE,
     ) as $capability ) {
-        if ( user_can( $user_id, $capability ) ) {
+        if ( ! empty( $user->allcaps[ $capability ] ) || ! empty( $user->caps[ $capability ] ) ) {
             return true;
         }
     }
@@ -90,9 +87,7 @@ function ufsc_readonly_access_has_conflicting_rights( $user_id ) {
     return false;
 }
 
-/**
- * Register the administrator-only assignment screen.
- */
+/** Register the administrator-only assignment screen. */
 function ufsc_readonly_access_register_admin_page() {
     add_submenu_page(
         'ufsc-dashboard',
@@ -106,13 +101,11 @@ function ufsc_readonly_access_register_admin_page() {
 add_action( 'admin_menu', 'ufsc_readonly_access_register_admin_page', 31 );
 
 /**
- * Apply one read-only access profile to an existing WordPress user.
- *
- * The function never creates users and never touches business data.
+ * Apply one read-only profile to an existing WordPress user.
  *
  * @param int      $user_id User ID.
  * @param string   $profile Profile key.
- * @param string[] $regions Allowed regions for regional profile.
+ * @param string[] $regions Allowed regional scope.
  * @return true|WP_Error
  */
 function ufsc_readonly_access_apply_profile( $user_id, $profile, array $regions = array() ) {
@@ -123,29 +116,33 @@ function ufsc_readonly_access_apply_profile( $user_id, $profile, array $regions 
     if ( ! $user ) {
         return new WP_Error( 'ufsc_readonly_user_missing', __( 'Utilisateur WordPress introuvable.', 'ufsc-clubs' ) );
     }
-
-    if ( class_exists( 'UFSC_Permissions' ) && UFSC_Permissions::is_wordpress_administrator( $user_id ) ) {
+    if ( ufsc_readonly_access_is_raw_administrator( $user ) ) {
         return new WP_Error( 'ufsc_readonly_admin_forbidden', __( 'Un administrateur WordPress ne peut pas être converti en compte UFSC lecture seule.', 'ufsc-clubs' ) );
     }
-
-    $managed_profile = sanitize_key( (string) get_user_meta( $user_id, UFSC_READONLY_ACCESS_PROFILE_META, true ) );
     if ( '' !== $profile && ! in_array( $profile, array( UFSC_READONLY_ACCESS_REGIONAL, UFSC_READONLY_ACCESS_NATIONAL ), true ) ) {
         return new WP_Error( 'ufsc_readonly_profile_invalid', __( 'Profil de consultation invalide.', 'ufsc-clubs' ) );
     }
 
+    $managed_profile = sanitize_key( (string) get_user_meta( $user_id, UFSC_READONLY_ACCESS_PROFILE_META, true ) );
     if ( '' !== $profile && ufsc_readonly_access_has_conflicting_rights( $user_id ) && ! in_array( $managed_profile, array( UFSC_READONLY_ACCESS_REGIONAL, UFSC_READONLY_ACCESS_NATIONAL ), true ) ) {
         return new WP_Error(
             'ufsc_readonly_conflicting_rights',
-            __( 'Ce compte possède déjà des droits UFSC de gestion. Utilisez la page Droits & accès avancée pour éviter une régression de permissions.', 'ufsc-clubs' )
+            __( 'Ce compte possède déjà des droits UFSC de gestion. Utilisez Droits & accès avancés afin de ne pas modifier ces permissions par erreur.', 'ufsc-clubs' )
         );
     }
 
     if ( '' === $profile ) {
         $user->remove_role( 'ufsc_region_viewer' );
+        if ( class_exists( 'UFSC_Permissions' ) ) {
+            $user->remove_cap( UFSC_Permissions::CAP_GESTION_READ );
+            $user->remove_cap( UFSC_Permissions::CAP_LICENCES_READ );
+            delete_user_meta( $user_id, UFSC_Permissions::META_ALLOWED_REGIONS );
+            delete_user_meta( $user_id, UFSC_Permissions::META_ALL_REGIONS );
+        }
+        if ( class_exists( 'UFSC_Scope' ) ) {
+            delete_user_meta( $user_id, UFSC_Scope::USER_META_KEY );
+        }
         delete_user_meta( $user_id, UFSC_READONLY_ACCESS_PROFILE_META );
-        delete_user_meta( $user_id, UFSC_Permissions::META_ALLOWED_REGIONS );
-        delete_user_meta( $user_id, UFSC_Permissions::META_ALL_REGIONS );
-        delete_user_meta( $user_id, UFSC_Scope::USER_META_KEY );
         return true;
     }
 
@@ -158,11 +155,10 @@ function ufsc_readonly_access_apply_profile( $user_id, $profile, array $regions 
         $regions = array();
     }
 
-    // Reuse the existing role. add_role preserves the user's unrelated WP role.
+    // Existing WordPress role(s) are preserved; only the UFSC viewer role is added.
     $user->add_role( 'ufsc_region_viewer' );
 
-    // Defensive removal of direct UFSC elevated grants. The normal viewer role
-    // only contains read capabilities, but direct grants may exist on old users.
+    // Defensive removal of stale direct elevated UFSC grants.
     foreach ( array(
         UFSC_Permissions::CAP_GESTION_MANAGE,
         UFSC_Permissions::CAP_LICENCES_MANAGE,
@@ -173,13 +169,10 @@ function ufsc_readonly_access_apply_profile( $user_id, $profile, array $regions 
     ) as $capability ) {
         $user->remove_cap( $capability );
     }
-
-    // Explicit read grants are additive and match the existing viewer role.
     $user->add_cap( UFSC_Permissions::CAP_GESTION_READ );
     $user->add_cap( UFSC_Permissions::CAP_LICENCES_READ );
 
     update_user_meta( $user_id, UFSC_READONLY_ACCESS_PROFILE_META, $profile );
-
     if ( UFSC_READONLY_ACCESS_NATIONAL === $profile ) {
         ufsc_set_user_regions( $user_id, array() );
         update_user_meta( $user_id, UFSC_Permissions::META_ALL_REGIONS, '1' );
@@ -188,26 +181,22 @@ function ufsc_readonly_access_apply_profile( $user_id, $profile, array $regions 
         update_user_meta( $user_id, UFSC_Permissions::META_ALL_REGIONS, '0' );
     }
 
-    // The legacy single-region scope is intentionally cleared. UFSC_Scope then
-    // consumes the canonical multi-region list through ufsc_get_user_regions().
-    delete_user_meta( $user_id, UFSC_Scope::USER_META_KEY );
+    // Multi-region metadata becomes canonical for this profile.
+    if ( class_exists( 'UFSC_Scope' ) ) {
+        delete_user_meta( $user_id, UFSC_Scope::USER_META_KEY );
+    }
 
     return true;
 }
 
-/**
- * Handle administrator assignment submissions.
- */
+/** Handle administrator assignment submissions. */
 function ufsc_readonly_access_handle_save() {
     if ( ! is_admin() || 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) {
         return;
     }
-
-    $page = isset( $_POST['ufsc_readonly_access_page'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_readonly_access_page'] ) ) : '';
-    if ( 'save' !== $page ) {
+    if ( empty( $_POST['ufsc_readonly_access_page'] ) || 'save' !== sanitize_key( wp_unslash( $_POST['ufsc_readonly_access_page'] ) ) ) {
         return;
     }
-
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
     }
@@ -222,9 +211,8 @@ function ufsc_readonly_access_handle_save() {
 
     $result = ufsc_readonly_access_apply_profile( $user_id, $profile, $regions );
     $args   = array( 'page' => 'ufsc-readonly-access', 'user_id' => $user_id );
-
     if ( is_wp_error( $result ) ) {
-        $args['ufsc_access_error'] = rawurlencode( $result->get_error_message() );
+        $args['ufsc_access_error'] = $result->get_error_message();
     } else {
         $args['ufsc_access_saved'] = '1';
     }
@@ -234,9 +222,7 @@ function ufsc_readonly_access_handle_save() {
 }
 add_action( 'admin_init', 'ufsc_readonly_access_handle_save', -50 );
 
-/**
- * Render the administrator assignment page.
- */
+/** Render the administrator assignment page. */
 function ufsc_readonly_access_render_admin_page() {
     if ( ! current_user_can( 'manage_options' ) ) {
         wp_die( esc_html__( 'Accès refusé.', 'ufsc-clubs' ) );
@@ -250,7 +236,7 @@ function ufsc_readonly_access_render_admin_page() {
 
     echo '<div class="wrap ufsc-readonly-access-admin">';
     echo '<h1>' . esc_html__( 'Accès responsables – Consultation', 'ufsc-clubs' ) . '</h1>';
-    echo '<p>' . esc_html__( 'Créez d’abord le compte dans Utilisateurs WordPress, puis attribuez ici un accès UFSC strictement en lecture seule, limité à une ou plusieurs régions ou à l’ensemble du territoire.', 'ufsc-clubs' ) . '</p>';
+    echo '<p>' . esc_html__( 'Créez d’abord le compte dans Utilisateurs WordPress, puis attribuez ici un accès UFSC strictement en lecture seule, limité à une ou plusieurs régions ou à toutes les régions.', 'ufsc-clubs' ) . '</p>';
     echo '<p><a class="button" href="' . esc_url( admin_url( 'user-new.php' ) ) . '">' . esc_html__( 'Créer un utilisateur WordPress', 'ufsc-clubs' ) . '</a> ';
     echo '<a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-permissions' ) ) . '">' . esc_html__( 'Droits & accès avancés', 'ufsc-clubs' ) . '</a></p>';
 
@@ -258,8 +244,7 @@ function ufsc_readonly_access_render_admin_page() {
         echo '<div class="notice notice-success is-dismissible"><p>' . esc_html__( 'Accès de consultation enregistré.', 'ufsc-clubs' ) . '</p></div>';
     }
     if ( isset( $_GET['ufsc_access_error'] ) ) {
-        $error_message = sanitize_text_field( rawurldecode( wp_unslash( $_GET['ufsc_access_error'] ) ) );
-        echo '<div class="notice notice-error"><p>' . esc_html( $error_message ) . '</p></div>';
+        echo '<div class="notice notice-error"><p>' . esc_html( sanitize_text_field( wp_unslash( $_GET['ufsc_access_error'] ) ) ) . '</p></div>';
     }
 
     echo '<form method="get" action="' . esc_url( admin_url( 'admin.php' ) ) . '" style="max-width:900px;background:#fff;border:1px solid #dcdcde;padding:18px;margin:20px 0;">';
@@ -268,17 +253,16 @@ function ufsc_readonly_access_render_admin_page() {
     echo '<select id="ufsc-readonly-user" name="user_id" style="min-width:420px;max-width:100%;margin-top:8px;">';
     echo '<option value="">' . esc_html__( '— Choisir un utilisateur —', 'ufsc-clubs' ) . '</option>';
     foreach ( $users as $user ) {
-        if ( class_exists( 'UFSC_Permissions' ) && UFSC_Permissions::is_wordpress_administrator( $user->ID ) ) {
+        if ( ufsc_readonly_access_is_raw_administrator( $user ) ) {
             continue;
         }
-        $roles = implode( ', ', array_map( 'sanitize_text_field', (array) $user->roles ) );
         printf(
             '<option value="%1$d" %2$s>%3$s — %4$s (%5$s)</option>',
             (int) $user->ID,
             selected( $selected_user_id, $user->ID, false ),
             esc_html( $user->display_name ),
             esc_html( $user->user_email ),
-            esc_html( $roles ?: __( 'aucun rôle', 'ufsc-clubs' ) )
+            esc_html( implode( ', ', (array) $user->roles ) ?: __( 'aucun rôle', 'ufsc-clubs' ) )
         );
     }
     echo '</select> ';
@@ -294,7 +278,7 @@ function ufsc_readonly_access_render_admin_page() {
         echo '<h2>' . esc_html( $selected_user->display_name ) . '</h2>';
 
         if ( $conflict ) {
-            echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Ce compte possède déjà des droits UFSC de gestion. Pour sa sécurité, ce formulaire ne les modifiera pas automatiquement : utilisez Droits & accès avancés.', 'ufsc-clubs' ) . '</p></div>';
+            echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Ce compte possède déjà des droits UFSC de gestion. Ce formulaire ne les modifiera pas automatiquement : utilisez Droits & accès avancés.', 'ufsc-clubs' ) . '</p></div>';
         }
 
         echo '<p><label for="ufsc-readonly-profile"><strong>' . esc_html__( 'Type d’accès', 'ufsc-clubs' ) . '</strong></label><br>';
@@ -305,16 +289,20 @@ function ufsc_readonly_access_render_admin_page() {
         echo '</select></p>';
 
         echo '<div id="ufsc-readonly-regions"><h3>' . esc_html__( 'Régions autorisées', 'ufsc-clubs' ) . '</h3>';
-        echo '<p class="description">' . esc_html__( 'Vous pouvez attribuer plusieurs régions au même responsable. Le profil national ignore cette sélection et donne accès à toutes les régions en lecture seule.', 'ufsc-clubs' ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Plusieurs régions peuvent être attribuées au même responsable. Le profil national donne accès à toutes les régions en lecture seule.', 'ufsc-clubs' ) . '</p>';
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 18px;max-width:820px;">';
         foreach ( ufsc_get_regions() as $region ) {
             echo '<label><input type="checkbox" name="ufsc_readonly_regions[]" value="' . esc_attr( $region ) . '" ' . checked( in_array( $region, $allowed_regions, true ), true, false ) . '> ' . esc_html( $region ) . '</label>';
         }
         echo '</div></div>';
-
         echo '<hr style="margin:22px 0;">';
-        echo '<p><strong>' . esc_html__( 'Ce profil ne donne jamais accès :', 'ufsc-clubs' ) . '</strong> ' . esc_html__( 'aux modifications de clubs/licences, validations, imports, réglages, commandes, paiements, données comptables ou administration WooCommerce.', 'ufsc-clubs' ) . '</p>';
-        submit_button( __( 'Enregistrer l’accès de consultation', 'ufsc-clubs' ), 'primary', 'submit', false, $conflict ? array( 'disabled' => 'disabled' ) : array() );
+        echo '<p><strong>' . esc_html__( 'Jamais accessible avec ce profil :', 'ufsc-clubs' ) . '</strong> ' . esc_html__( 'modification des clubs/licences, validations, imports, réglages, commandes, paiements, données comptables et administration WooCommerce.', 'ufsc-clubs' ) . '</p>';
+
+        if ( $conflict ) {
+            echo '<button type="button" class="button button-primary" disabled>' . esc_html__( 'Enregistrement bloqué par sécurité', 'ufsc-clubs' ) . '</button>';
+        } else {
+            submit_button( __( 'Enregistrer l’accès de consultation', 'ufsc-clubs' ), 'primary', 'submit', false );
+        }
         echo '</form>';
     }
 
@@ -323,22 +311,20 @@ function ufsc_readonly_access_render_admin_page() {
 
 /**
  * Force sensitive capabilities off for managed read-only users.
- *
- * This is a server-side safety net in addition to the role configuration.
- *
- * @param array   $allcaps All capabilities.
- * @param string[] $caps   Required capabilities.
- * @param array   $args    Capability arguments.
- * @param WP_User $user    User object.
- * @return array
+ * No call to user_can() is made from this filter.
  */
 function ufsc_readonly_access_deny_sensitive_caps( $allcaps, $caps, $args, $user ) {
     unset( $caps, $args );
-    if ( ! $user instanceof WP_User || ! ufsc_readonly_access_is_user( $user->ID ) ) {
+    if ( ! $user instanceof WP_User || ufsc_readonly_access_is_raw_administrator( $user ) ) {
         return $allcaps;
     }
 
-    $deny = array(
+    $profile = sanitize_key( (string) get_user_meta( $user->ID, UFSC_READONLY_ACCESS_PROFILE_META, true ) );
+    if ( ! in_array( $profile, array( UFSC_READONLY_ACCESS_REGIONAL, UFSC_READONLY_ACCESS_NATIONAL ), true ) || ! in_array( 'ufsc_region_viewer', (array) $user->roles, true ) ) {
+        return $allcaps;
+    }
+
+    foreach ( array(
         UFSC_Permissions::CAP_GESTION_MANAGE,
         UFSC_Permissions::CAP_LICENCES_MANAGE,
         UFSC_Permissions::CAP_COMPETITIONS_MANAGE,
@@ -352,9 +338,7 @@ function ufsc_readonly_access_deny_sensitive_caps( $allcaps, $caps, $args, $user
         'publish_shop_orders',
         'delete_shop_orders',
         'read_private_shop_orders',
-    );
-
-    foreach ( $deny as $capability ) {
+    ) as $capability ) {
         $allcaps[ $capability ] = false;
     }
 
@@ -362,9 +346,7 @@ function ufsc_readonly_access_deny_sensitive_caps( $allcaps, $caps, $args, $user
 }
 add_filter( 'user_has_cap', 'ufsc_readonly_access_deny_sensitive_caps', 999, 4 );
 
-/**
- * Block every UFSC write request and sensitive direct screen for read-only users.
- */
+/** Block UFSC writes and sensitive/accounting direct screens. */
 function ufsc_readonly_access_guard_requests() {
     if ( ! is_admin() || ! ufsc_readonly_access_is_user() ) {
         return;
@@ -378,15 +360,7 @@ function ufsc_readonly_access_guard_requests() {
         wp_die( esc_html__( 'Compte en consultation : aucune modification UFSC n’est autorisée.', 'ufsc-clubs' ), esc_html__( 'Accès lecture seule', 'ufsc-clubs' ), array( 'response' => 403 ) );
     }
 
-    $blocked_pages = array(
-        'ufsc-exports',
-        'ufsc-import',
-        'ufsc-settings',
-        'ufsc-woocommerce',
-        'ufsc-permissions',
-        'ufsc-readonly-access',
-        'ufsc-diagnostics',
-    );
+    $blocked_pages = array( 'ufsc-exports', 'ufsc-import', 'ufsc-settings', 'ufsc-woocommerce', 'ufsc-permissions', 'ufsc-readonly-access', 'ufsc-diagnostics' );
     if ( in_array( $page, $blocked_pages, true ) || false !== strpos( $page, 'communication' ) || false !== strpos( $page, 'mail' ) ) {
         wp_die( esc_html__( 'Cette rubrique n’est pas disponible avec un compte de consultation.', 'ufsc-clubs' ), esc_html__( 'Accès lecture seule', 'ufsc-clubs' ), array( 'response' => 403 ) );
     }
@@ -396,60 +370,45 @@ function ufsc_readonly_access_guard_requests() {
         wp_die( esc_html__( 'Les commandes et données WooCommerce ne sont pas accessibles aux responsables en consultation.', 'ufsc-clubs' ), esc_html__( 'Accès lecture seule', 'ufsc-clubs' ), array( 'response' => 403 ) );
     }
 
-    $blocked_get_actions = array( 'new', 'delete', 'trash', 'restore', 'force-delete', 'renew', 'validate', 'approve', 'reject', 'import', 'export', 'save' );
-    if ( 'GET' === $method && 0 === strpos( $page, 'ufsc' ) && in_array( $action, $blocked_get_actions, true ) ) {
+    // Existing `action=edit` screens are intentionally allowed as detail views;
+    // their inputs are disabled in the UI and POST remains blocked server-side.
+    if ( 'GET' === $method && 0 === strpos( $page, 'ufsc' ) && in_array( $action, array( 'new', 'delete', 'trash', 'restore', 'force-delete', 'renew', 'validate', 'approve', 'reject', 'import', 'export', 'save' ), true ) ) {
         wp_die( esc_html__( 'Compte en consultation : cette action est désactivée.', 'ufsc-clubs' ), esc_html__( 'Accès lecture seule', 'ufsc-clubs' ), array( 'response' => 403 ) );
     }
 }
 add_action( 'admin_init', 'ufsc_readonly_access_guard_requests', 5 );
 
-/**
- * Replace only the dashboard callback for a read-only user. Full administrators
- * keep the existing dashboard unchanged.
- */
+/** Replace only the normal dashboard callback for read-only users. */
 function ufsc_readonly_access_replace_dashboard_callback() {
     if ( ! ufsc_readonly_access_is_user() ) {
         return;
     }
-
     remove_action( 'toplevel_page_ufsc-dashboard', array( 'UFSC_CL_Admin_Menu', 'render_dashboard' ) );
     add_action( 'toplevel_page_ufsc-dashboard', 'ufsc_readonly_access_render_dashboard', 1 );
 }
 add_action( 'admin_menu', 'ufsc_readonly_access_replace_dashboard_callback', 9996 );
 
-/**
- * Hide mutation, settings and accounting menus for read-only users.
- */
+/** Hide settings, exports, imports and accounting menus. */
 function ufsc_readonly_access_cleanup_menus() {
     if ( ! ufsc_readonly_access_is_user() ) {
         return;
     }
-
     foreach ( array( 'ufsc-exports', 'ufsc-import', 'ufsc-settings', 'ufsc-woocommerce', 'ufsc-permissions', 'ufsc-readonly-access', 'ufsc-diagnostics' ) as $slug ) {
         remove_submenu_page( 'ufsc-dashboard', $slug );
     }
-
     remove_menu_page( 'woocommerce' );
     remove_menu_page( 'wc-admin' );
     remove_menu_page( 'edit.php?post_type=shop_order' );
 }
 add_action( 'admin_menu', 'ufsc_readonly_access_cleanup_menus', 10000 );
 
-/**
- * Add a body marker used for presentation-only read-only refinements.
- *
- * @param string $classes Existing body classes.
- * @return string
- */
+/** Add a body marker for presentation-only refinements. */
 function ufsc_readonly_access_admin_body_class( $classes ) {
     return ufsc_readonly_access_is_user() ? trim( $classes . ' ufsc-readonly-access' ) : $classes;
 }
 add_filter( 'admin_body_class', 'ufsc_readonly_access_admin_body_class' );
 
-/**
- * Present existing edit/detail screens as consultation screens without changing
- * their server-side data source. POST is blocked independently by the guard.
- */
+/** Present existing detail/edit screens as disabled consultation screens. */
 function ufsc_readonly_access_admin_footer() {
     if ( ! ufsc_readonly_access_is_user() ) {
         return;
@@ -464,17 +423,8 @@ function ufsc_readonly_access_admin_footer() {
         body.ufsc-readonly-access a[href*="action=new"],
         body.ufsc-readonly-access a[href*="action=delete"],
         body.ufsc-readonly-access a[href*="action=trash"],
-        body.ufsc-readonly-access a[href*="action=renew"] {
-            display: none !important;
-        }
-        body.ufsc-readonly-access .ufsc-readonly-banner {
-            margin: 14px 0;
-            padding: 12px 16px;
-            border-left: 4px solid #2271b1;
-            background: #f0f6fc;
-            color: #1d2327;
-            font-weight: 600;
-        }
+        body.ufsc-readonly-access a[href*="action=renew"] { display:none !important; }
+        body.ufsc-readonly-access .ufsc-readonly-banner { margin:14px 0;padding:12px 16px;border-left:4px solid #2271b1;background:#f0f6fc;color:#1d2327;font-weight:600; }
     </style>
     <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -482,12 +432,10 @@ function ufsc_readonly_access_admin_footer() {
         const page = params.get('page') || '';
         const action = params.get('action') || '';
         if (!page.startsWith('ufsc')) return;
-
         document.querySelectorAll('a[href*="action=edit"]').forEach(function (link) {
             const text = (link.textContent || '').trim().toLowerCase();
             if (text === 'modifier' || text === 'edit') link.textContent = 'Consulter';
         });
-
         if (action === 'edit' || action === 'view') {
             const wrap = document.querySelector('.wrap');
             if (wrap && !wrap.querySelector('.ufsc-readonly-banner')) {
@@ -507,8 +455,8 @@ function ufsc_readonly_access_admin_footer() {
 add_action( 'admin_footer', 'ufsc_readonly_access_admin_footer', 9999 );
 
 /**
- * Render a dedicated non-accounting dashboard in place of the normal dashboard
- * for read-only users. Queries reuse the canonical regional SQL scope.
+ * Dedicated non-accounting dashboard for regional/national viewers.
+ * Queries reuse the canonical regional scope and current-season storage.
  */
 function ufsc_readonly_access_render_dashboard() {
     if ( ! ufsc_readonly_access_is_user() ) {
@@ -516,7 +464,6 @@ function ufsc_readonly_access_render_dashboard() {
     }
 
     global $wpdb;
-
     $clubs_table    = function_exists( 'ufsc_get_clubs_table' ) ? ufsc_get_clubs_table() : $wpdb->prefix . 'ufsc_clubs';
     $licences_table = function_exists( 'ufsc_get_licences_table' ) ? ufsc_get_licences_table() : $wpdb->prefix . 'ufsc_licences';
     $season         = function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '';
@@ -524,11 +471,13 @@ function ufsc_readonly_access_render_dashboard() {
 
     $club_scope = class_exists( 'UFSC_Scope' ) ? UFSC_Scope::build_scope_condition( 'region' ) : '';
     $lic_scope  = class_exists( 'UFSC_Scope' ) ? UFSC_Scope::build_scope_condition( 'region' ) : '';
-    $club_where = $club_scope ? 'WHERE ' . $club_scope : '';
+    $club_where = $club_scope ? 'WHERE ' . $club_scope : 'WHERE 0=1';
 
     $lic_conditions = array();
     if ( $lic_scope ) {
         $lic_conditions[] = $lic_scope;
+    } else {
+        $lic_conditions[] = '0=1';
     }
     $season_column = function_exists( 'ufsc_get_detected_season_column' ) ? ufsc_get_detected_season_column( $licences_table ) : '';
     if ( $season && $season_column ) {
@@ -537,8 +486,10 @@ function ufsc_readonly_access_render_dashboard() {
         } else {
             $lic_conditions[] = $wpdb->prepare( "REPLACE(`{$season_column}`, '/', '-') = %s", $season );
         }
+    } else {
+        $lic_conditions[] = '0=1';
     }
-    $lic_where = $lic_conditions ? 'WHERE ' . implode( ' AND ', $lic_conditions ) : 'WHERE 0=1';
+    $lic_where = 'WHERE ' . implode( ' AND ', $lic_conditions );
 
     $clubs_total    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$clubs_table}` {$club_where}" );
     $licences_total = (int) $wpdb->get_var( "SELECT COUNT(*) FROM `{$licences_table}` {$lic_where}" );
@@ -551,7 +502,7 @@ function ufsc_readonly_access_render_dashboard() {
         $aff_table = UFSC_Season_Archive_Manager::get_affiliations_table();
         if ( ! function_exists( 'ufsc_table_exists' ) || ufsc_table_exists( $aff_table ) ) {
             $join_scope = class_exists( 'UFSC_Scope' ) ? UFSC_Scope::build_scope_condition( 'region', 'c' ) : '';
-            $join_scope = $join_scope ? ' AND ' . $join_scope : '';
+            $join_scope = $join_scope ? ' AND ' . $join_scope : ' AND 0=1';
             $affiliations_active = (int) $wpdb->get_var(
                 $wpdb->prepare(
                     "SELECT COUNT(DISTINCT a.club_id) FROM `{$aff_table}` a INNER JOIN `{$clubs_table}` c ON c.id=a.club_id WHERE a.season=%s AND LOWER(a.status) IN ('validated','valide','active','actif'){$join_scope}",
@@ -573,13 +524,13 @@ function ufsc_readonly_access_render_dashboard() {
     echo '<div class="notice notice-info inline"><p><strong>' . esc_html__( 'Périmètre autorisé : ', 'ufsc-clubs' ) . '</strong>' . esc_html( implode( ' · ', $regions ) ) . '</p></div>';
 
     $cards = array(
-        __( 'Saison', 'ufsc-clubs' )                 => $season,
-        __( 'Clubs', 'ufsc-clubs' )                  => $clubs_total,
-        __( 'Affiliations actives', 'ufsc-clubs' )   => $affiliations_active,
+        __( 'Saison', 'ufsc-clubs' )                  => $season,
+        __( 'Clubs', 'ufsc-clubs' )                   => $clubs_total,
+        __( 'Affiliations actives', 'ufsc-clubs' )    => $affiliations_active,
         __( 'Affiliations en attente', 'ufsc-clubs' ) => $affiliations_pending,
-        __( 'Licences', 'ufsc-clubs' )               => $licences_total,
-        __( 'Licences validées', 'ufsc-clubs' )      => $licences_valid,
-        __( 'Licences en attente', 'ufsc-clubs' )    => $licences_wait,
+        __( 'Licences', 'ufsc-clubs' )                => $licences_total,
+        __( 'Licences validées', 'ufsc-clubs' )       => $licences_valid,
+        __( 'Licences en attente', 'ufsc-clubs' )     => $licences_wait,
     );
 
     echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin:22px 0;">';
@@ -590,7 +541,6 @@ function ufsc_readonly_access_render_dashboard() {
         echo '</div>';
     }
     echo '</div>';
-
     echo '<p><a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=ufsc-clubs' ) ) . '">' . esc_html__( 'Consulter les clubs', 'ufsc-clubs' ) . '</a> ';
     echo '<a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc_lc_licences' ) ) . '">' . esc_html__( 'Consulter les licences', 'ufsc-clubs' ) . '</a></p>';
     echo '</div>';
