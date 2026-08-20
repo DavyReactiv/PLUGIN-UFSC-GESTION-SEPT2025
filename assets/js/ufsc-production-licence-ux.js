@@ -15,6 +15,16 @@
     return params.get('ufsc_season') || config().season || '';
   }
 
+  function redirectLegacyLicenceAnchor() {
+    if (!config().current || currentSection()) return false;
+    var hash = window.location.hash || '';
+    if (hash === '#ufsc-club-licences' || hash === '#ufsc-current-licences') {
+      window.location.replace(config().current);
+      return true;
+    }
+    return false;
+  }
+
   function link(label, href, key, active) {
     var a = document.createElement('a');
     a.className = 'ufsc-licence-shortcut' + (active === key ? ' is-active' : '');
@@ -164,6 +174,7 @@
   }
 
   function init() {
+    if (redirectLegacyLicenceAnchor()) return;
     repairMesLicencesLinks();
     insertShortcuts();
     applyTableLabels();
