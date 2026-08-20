@@ -20,6 +20,11 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * 5. Included quota is now allocated before cart insertion. The historical cart
  *    repricer still queries obsolete club columns and can incorrectly zero a
  *    paid over-quota licence. Remove that legacy hook in the production layer.
+ * 6. Legacy identifier columns use an empty string for "not assigned". MySQL
+ *    UNIQUE constraints treat repeated empty strings as duplicates; normalize
+ *    only those absent values to SQL NULL before migrations run.
+ * 7. Strict MySQL rejects comparisons between DATETIME columns and ''. Rewrite
+ *    the two legacy read-only predicates to compare their CHAR representation.
  */
 
 /**
@@ -149,6 +154,98 @@ function ufsc_production_remove_legacy_cart_quota_repricing() {
     remove_action( 'woocommerce_before_calculate_totals', 'ufsc_apply_included_quota_to_cart', 10 );
 }
 add_action( 'wp_loaded', 'ufsc_production_remove_legacy_cart_quota_repricing', 5 );
+
+/**
+ * Normalize optional legacy identifiers before the migration layer creates
+ * UNIQUE constraints. Empty string and NULL both mean "identifier not assigned";
+ * SQL NULL is the representation compatible with multiple missing values.
+ */
+function ufsc_production_prepare_optional_unique_identifiers() {
+    global $wpdb;
+
+    if ( ! class_exists( 'UFSC_SQL' ) ) {
+        return;
+    }
+
+    $settings = (array) UFSC_SQL::get_settings();
+    $targets  = array(
+        array( (string) ( $settings['table_licences'] ?? '' ), 'numero_licence_delegataire' ),
+        array( (string) ( $settings['table_clubs'] ?? '' ), 'num_affiliation' ),
+    );
+
+    foreach ( $targets as $target ) {
+        $table  = preg_replace( '/[^A-Za-z0-9_]/', '', $target[0] );
+        $column = preg_replace( '/[^A-Za-z0-9_]/', '', $target[1] );
+        if ( '' === $table || '' === $column ) {
+            continue;
+        }
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- identifiers are strictly allow-listed above.
+        $column_info = $wpdb->get_row( $wpdb->prepare( "SHOW COLUMNS FROM `{$table}` LIKE %s", $column ) );
+        if ( ! $column_info ) {
+            continue;
+        }
+
+        // These two identifier fields are textual and optional by business rule.
+        // Preserve their exact SQL type while allowing NULL when a legacy schema
+        // still declares the column NOT NULL DEFAULT ''.
+        if ( 'YES' !== strtoupper( (string) ( $column_info->Null ?? '' ) ) ) {
+            $type = strtolower( trim( (string) ( $column_info->Type ?? '' ) ) );
+            if ( ! preg_match( '/^(?:var)?char\([0-9]+\)$/', $type ) ) {
+                continue;
+            }
+            // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table/column/type have strict validation.
+            $wpdb->query( "ALTER TABLE `{$table}` MODIFY COLUMN `{$column}` {$type} NULL DEFAULT NULL" );
+        }
+
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- identifiers are strictly allow-listed above.
+        $wpdb->query( "UPDATE `{$table}` SET `{$column}` = NULL WHERE `{$column}` IS NOT NULL AND TRIM(CAST(`{$column}` AS CHAR)) = ''" );
+    }
+}
+
+// feature-flags.php is loaded before UFSC_CL_Bootstrap registers its activation
+// callback, so this repair executes first on activation and prevents the legacy
+// ADD CONSTRAINT statements from seeing repeated empty-string values.
+if ( defined( 'UFSC_CL_DIR' ) ) {
+    register_activation_hook( UFSC_CL_DIR . 'ufsc-clubs-licences-sql.php', 'ufsc_production_prepare_optional_unique_identifiers' );
+}
+add_action( 'plugins_loaded', 'ufsc_production_prepare_optional_unique_identifiers', 1 );
+
+/**
+ * Make legacy UFSC read-only date predicates compatible with strict MySQL.
+ *
+ * This filter is intentionally pure: it performs no DB/helper call, so it cannot
+ * re-enter wpdb::query(). It only rewrites known UFSC legacy SQL fragments.
+ *
+ * @param string $query SQL query.
+ * @return string
+ */
+function ufsc_production_strict_datetime_query_compat( $query ) {
+    if ( ! is_string( $query ) || false === stripos( $query, 'ufsc_' ) ) {
+        return $query;
+    }
+
+    $deleted_pattern = "/\(((?:[A-Za-z0-9_]+\.)?`deleted_at`)\s+IS\s+NULL\s+OR\s+\\1\s*=\s*''\s+OR\s+\\1\s*=\s*'0000-00-00 00:00:00'\)/i";
+    $query = preg_replace_callback(
+        $deleted_pattern,
+        static function( $matches ) {
+            $column = $matches[1];
+            return "({$column} IS NULL OR TRIM(CAST({$column} AS CHAR)) IN ('', '0000-00-00', '0000-00-00 00:00:00'))";
+        },
+        $query
+    );
+
+    $query = preg_replace_callback(
+        '/DATE\(((?:[A-Za-z0-9_]+\.)?`(?:date_affiliation|date_validation|date_asptt)`)\)/i',
+        static function( $matches ) {
+            return 'LEFT(TRIM(CAST(' . $matches[1] . ' AS CHAR)), 10)';
+        },
+        $query
+    );
+
+    return is_string( $query ) ? $query : '';
+}
+add_filter( 'query', 'ufsc_production_strict_datetime_query_compat', 5 );
 
 /**
  * Register a tightly-scoped SQL compatibility filter on licence admin lists.
