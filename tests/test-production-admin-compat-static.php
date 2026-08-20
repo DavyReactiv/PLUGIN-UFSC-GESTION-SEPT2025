@@ -17,5 +17,8 @@ $assert( false !== strpos( $compat, '$same_season_sql = "l2.`{$season_column}` <
 $assert( false !== strpos( $compat, "'ufsc_lc_licences'" ), 'duplicate fix must be scoped to canonical licence admin pages' );
 $assert( false !== strpos( $compat, "add_action( 'admin_init'" ), 'season column resolution must happen outside the global query filter' );
 $assert( false !== strpos( $compat, "add_filter( 'query'" ), 'duplicate compatibility must affect generated SQL before execution' );
+$assert( false !== strpos( $compat, "function_exists( 'wc_get_cart_item_data_hash' )" ), 'admin-post cart bootstrap must verify the Woo cart hash helper' );
+$assert( false !== strpos( $compat, "includes/wc-cart-functions.php" ), 'admin-post cart bootstrap must load native Woo cart functions' );
+$assert( false !== strpos( $compat, "'ufsc_bulk_renew_licences'" ), 'paid renewal admin-post must be covered by Woo cart bootstrap' );
 
 echo "Production admin compatibility safeguards OK\n";
