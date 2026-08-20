@@ -39,13 +39,22 @@ function ufsc_portal_cleanup_assets() {
 add_action( 'wp_enqueue_scripts', 'ufsc_portal_cleanup_assets', 999 );
 
 /**
- * Add a body class to every front page where a Club portal shortcode is used.
- * This keeps all layout repairs strictly scoped to the UFSC portal.
+ * Add the portal body class on the Compte Club route and on pages that expose a
+ * Club portal shortcode directly in post_content.
+ *
+ * Production may render the Compte Club shortcode through Elementor metadata,
+ * in which case has_shortcode( $post->post_content ) cannot see it. The stable
+ * layout styles are intentionally scoped to body.ufsc-portal-clean-page, so the
+ * canonical page slug is a safe presentation-only fallback.
  */
 function ufsc_portal_cleanup_body_class( $classes ) {
     global $post;
     $classes = is_array( $classes ) ? $classes : array();
-    if ( $post && is_string( $post->post_content ?? null ) ) {
+
+    $is_compte_club = function_exists( 'is_page' ) && is_page( 'compte-club' );
+    if ( $is_compte_club ) {
+        $classes[] = 'ufsc-portal-clean-page';
+    } elseif ( $post && is_string( $post->post_content ?? null ) ) {
         foreach ( array( 'ufsc_club_dashboard', 'ufsc_club_profile', 'ufsc_club_licences', 'ufsc_add_licence' ) as $shortcode ) {
             if ( has_shortcode( $post->post_content, $shortcode ) ) {
                 $classes[] = 'ufsc-portal-clean-page';
