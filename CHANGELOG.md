@@ -1,5 +1,62 @@
 # UFSC Clubs & Licences Plugin - Changelog
 
+## Version 082026 - Stabilisation production 2026-2027 (20 août 2026)
+
+### Parcours licences
+
+- Stabilisation complète du renouvellement de licence.
+- Stabilisation complète de la création d’une nouvelle licence.
+- Finalisation quota-first : les licences incluses ne passent plus inutilement par WooCommerce.
+- Gestion canonique des **10 licences incluses par club et par saison**.
+- À partir de la 11e licence, nouvelle licence ou renouvellement, passage au vrai panier WooCommerce.
+- Conservation de la licence source et des saisons historiques lors d’un renouvellement.
+- Protection contre les doubles clics, rechargements et doublons de finalisation.
+- Correction des faux doublons d’identité entre saisons différentes.
+- Assistant de renouvellement stabilisé : sélection → vérification → finalisation.
+- Pagination serveur et filtres conservant saison, recherche, statut et taille de page.
+
+### WooCommerce
+
+- Initialisation fiable des fonctions panier sur les routes `admin-post.php`.
+- Persistance du panier renforcée.
+- Produit licence canonique utilisé pour les demandes payantes.
+- Métadonnées panier corrigées : **« Nouvelle licence »** et **« Renouvellement de licence »**.
+- Suppression du recalcul legacy du quota dans le panier afin d’éviter de transformer une licence payante en ligne à 0 €.
+- Renouvellement d’affiliation ajouté au panier en quantité 1 avec les métadonnées de saison et de club.
+
+### Affiliations
+
+- Distinction claire entre première affiliation et renouvellement annuel.
+- Un club existant conserve sa fiche club et renouvelle uniquement son affiliation annuelle.
+- Sécurisation du parcours : connexion → renouvellement → panier → paiement → attente de validation → affiliation active.
+- Première affiliation d’un nouveau club sécurisée sans double formulaire HTML.
+- Conservation de l’historique des affiliations annuelles.
+
+### Portail Club / UX
+
+- Refonte de la couche CSS finale du Compte Club sans modification du moteur métier.
+- Correction des collapses de largeur sous Astra / Elementor.
+- Vue d’ensemble, informations du club, suivi affiliation, navigation et cartes de profil rendus responsive.
+- Suppression des débordements horizontaux desktop sur les vues principales.
+- Amélioration des listes licences, archives, filtres et pagination.
+
+### Données historiques / MySQL
+
+- Compatibilité `dbDelta()` renforcée pour les tables `ufsc_identifier*`.
+- Préflight avant contraintes uniques : les identifiants optionnels absents `numero_licence_delegataire` et `num_affiliation` sont normalisés de chaîne vide vers `NULL`.
+- Aucune valeur métier non vide n’est modifiée par cette normalisation.
+- Compatibilité MySQL strict pour les anciennes comparaisons de dates vides.
+- Suppression des erreurs `Incorrect DATETIME value: ''` sur les lectures historiques ciblées.
+- Aucune suppression de club, licence ou saison.
+- Aucune réécriture massive de l’historique.
+
+### Qualité / recette
+
+- Validation DEV des parcours critiques avant fusion de la PR #547.
+- UFSC quality gate vert avant fusion : lint PHP, syntaxe JavaScript, tests runtime, tests P0 licences, PHPUnit, PHPStan et WordPress Coding Standards.
+- Absence de fatal PHP et d’épuisement mémoire sur la recette finale communiquée.
+- README mis à jour avec les parcours utilisateurs, règles métier et procédure de mise en production.
+
 ## Version 082026 - Portail Club et panier P0 (Août 2026)
 
 - Dossiers de licence canoniques et saisonniers pour le président, le secrétaire et le trésorier.
