@@ -52,6 +52,13 @@ if ( file_exists( $ufsc_production_payment_boundary ) ) {
     require_once $ufsc_production_payment_boundary;
 }
 
+// Shared licence navigation, visible notifications and responsive tables for
+// member/admin views. This layer does not mutate licence or affiliation data.
+$ufsc_production_licence_ux = dirname( __FILE__ ) . '/production-licence-ux.php';
+if ( file_exists( $ufsc_production_licence_ux ) ) {
+    require_once $ufsc_production_licence_ux;
+}
+
 function ufsc_quotas_enabled() {
     return (bool) apply_filters( 'ufsc_quotas_enabled', true );
 }
