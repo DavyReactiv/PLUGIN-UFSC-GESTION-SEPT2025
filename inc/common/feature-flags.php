@@ -81,6 +81,14 @@ if ( file_exists( $ufsc_production_admin_compat ) ) {
     require_once $ufsc_production_admin_compat;
 }
 
+// Additive federation access layer: existing WordPress users can be assigned a
+// strict read-only UFSC profile limited to one/many regions or to all regions.
+// It does not alter licence, affiliation, quota, WooCommerce or season flows.
+$ufsc_readonly_multiregion_admin = dirname( __FILE__ ) . '/readonly-multiregion-admin.php';
+if ( file_exists( $ufsc_readonly_multiregion_admin ) ) {
+    require_once $ufsc_readonly_multiregion_admin;
+}
+
 function ufsc_quotas_enabled() {
     return (bool) apply_filters( 'ufsc_quotas_enabled', true );
 }
