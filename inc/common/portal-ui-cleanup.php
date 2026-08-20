@@ -27,11 +27,14 @@ function ufsc_portal_cleanup_assets() {
 
     $css = 'assets/css/ufsc-portal-clean.css';
     $js  = 'assets/js/ufsc-portal-clean.js';
+    $renewal_js = 'assets/js/ufsc-renewal-production-flow.js';
     $version_css = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $css ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
     $version_js  = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $js ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
+    $version_renewal_js = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $renewal_js ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
 
     wp_enqueue_style( 'ufsc-portal-clean', UFSC_CL_URL . $css, array(), $version_css );
     wp_enqueue_script( 'ufsc-portal-clean', UFSC_CL_URL . $js, array(), $version_js, true );
+    wp_enqueue_script( 'ufsc-renewal-production-flow', UFSC_CL_URL . $renewal_js, array( 'ufsc-portal-clean' ), $version_renewal_js, true );
 }
 add_action( 'wp_enqueue_scripts', 'ufsc_portal_cleanup_assets', 999 );
 
