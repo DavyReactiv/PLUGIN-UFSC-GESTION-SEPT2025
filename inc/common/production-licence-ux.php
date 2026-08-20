@@ -51,10 +51,19 @@ function ufsc_production_licence_ux_urls() {
 function ufsc_production_licence_ux_enqueue() {
     if ( is_admin() || ! defined( 'UFSC_CL_URL' ) ) { return; }
 
+    $base_css = 'assets/css/ufsc-front.css';
     $css = 'assets/css/ufsc-production-licence-ux.css';
     $js  = 'assets/js/ufsc-production-licence-ux.js';
+    $base_css_version = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $base_css ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
     $css_version = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $css ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
     $js_version  = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $js ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
+
+    // The dashboard renderer may enqueue ufsc-front after wp_enqueue_scripts has
+    // already run. Register the dependency here so WordPress can resolve and
+    // print the production UX stylesheet reliably on the first page load.
+    if ( ! wp_style_is( 'ufsc-front', 'registered' ) ) {
+        wp_register_style( 'ufsc-front', UFSC_CL_URL . $base_css, array(), $base_css_version );
+    }
 
     wp_enqueue_style( 'ufsc-production-licence-ux', UFSC_CL_URL . $css, array( 'ufsc-front' ), $css_version );
     wp_enqueue_script( 'ufsc-production-licence-ux', UFSC_CL_URL . $js, array(), $js_version, true );
