@@ -11,9 +11,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  *    as a duplicate of its archived source. Scope that comparison to the same
  *    stored season without mutating any licence row.
  * 3. admin-post.php may expose WC()->cart before WooCommerce has loaded its
- *    frontend cart helper functions. A paid licence renewal then reaches
- *    WC_Cart::add_to_cart() but fatals on wc_get_cart_item_data_hash(). Load the
- *    native Woo cart functions before UFSC final-payment handlers run.
+ *    frontend cart helper functions. Licence renewal and new-licence payment
+ *    flows can then fatal on wc_get_cart_item_data_hash(). Load the native Woo
+ *    cart functions before every UFSC admin-post flow that can touch the cart.
+ * 4. Legacy cart metadata labels every non-empty request_type as an affiliation
+ *    renewal. Normalize the visible "Demande" label from the actual UFSC item
+ *    type/action so licence renewals and new licences are described correctly.
  */
 
 /**
@@ -38,10 +41,10 @@ add_filter( 'wp_redirect', 'ufsc_production_fix_woocommerce_settings_redirect', 
  * Ensure native WooCommerce cart helper functions exist on UFSC admin-post flows.
  *
  * WooCommerce can have a cart object available in an admin-post request while
- * frontend cart functions have not yet been included. WC_Cart::add_to_cart()
- * requires wc_get_cart_item_data_hash(), which lives in wc-cart-functions.php.
- * Loading the official WooCommerce file is safer than reimplementing helpers or
- * instantiating a second cart.
+ * frontend cart functions have not yet been included. WC_Cart and
+ * WC_Cart_Session both require wc_get_cart_item_data_hash(), which lives in
+ * wc-cart-functions.php. Loading the official WooCommerce file is safer than
+ * reimplementing helpers or instantiating a second cart.
  */
 function ufsc_production_bootstrap_woocommerce_cart_functions() {
     if ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) {
@@ -55,6 +58,10 @@ function ufsc_production_bootstrap_woocommerce_cart_functions() {
         'ufsc_bulk_renew_licences',
         'ufsc_add_to_cart',
         'ufsc_affiliation_pay',
+        'ufsc_save_licence',
+        'ufsc_add_licence',
+        'ufsc_update_licence',
+        'ufsc_journey_finalize_licence',
     );
     if ( ! in_array( $action, $cart_actions, true ) ) {
         return;
@@ -74,6 +81,58 @@ function ufsc_production_bootstrap_woocommerce_cart_functions() {
     }
 }
 add_action( 'admin_init', 'ufsc_production_bootstrap_woocommerce_cart_functions', -90 );
+
+/**
+ * Correct the visible UFSC request type in WooCommerce cart metadata.
+ *
+ * The legacy display callback treats any non-empty ufsc_request_type as an
+ * affiliation renewal. Use the cart item's canonical action/type instead and
+ * replace the existing "Demande" row rather than adding a second one.
+ *
+ * @param array $item_data Existing WooCommerce display rows.
+ * @param array $cart_item Cart item payload.
+ * @return array
+ */
+function ufsc_production_fix_cart_request_label( $item_data, $cart_item ) {
+    if ( ! is_array( $item_data ) || ! is_array( $cart_item ) ) {
+        return $item_data;
+    }
+
+    $action         = sanitize_key( (string) ( $cart_item['ufsc_action'] ?? '' ) );
+    $item_type      = sanitize_key( (string) ( $cart_item['ufsc_item_type'] ?? '' ) );
+    $operation_type = sanitize_key( (string) ( $cart_item['ufsc_operation_type'] ?? '' ) );
+    $request_type   = sanitize_key( (string) ( $cart_item['ufsc_request_type'] ?? '' ) );
+    $has_licence    = ! empty( $cart_item['ufsc_licence_id'] ) || ! empty( $cart_item['ufsc_license_ids'] ) || ! empty( $cart_item['ufsc_licence_ids'] );
+
+    $label = '';
+    if ( 'renew_affiliation' === $action || 'affiliation_renewal' === $item_type ) {
+        $label = __( 'Renouvellement d’affiliation', 'ufsc-clubs' );
+    } elseif ( 'renew_licence' === $action || 'licence_renewal' === $item_type || ( $has_licence && 'renewal' === $operation_type ) ) {
+        $label = __( 'Renouvellement de licence', 'ufsc-clubs' );
+    } elseif ( $has_licence && ( 'new_licence' === $operation_type || 'new' === $request_type ) ) {
+        $label = __( 'Nouvelle licence', 'ufsc-clubs' );
+    }
+
+    if ( '' === $label ) {
+        return $item_data;
+    }
+
+    $filtered = array();
+    foreach ( $item_data as $row ) {
+        $key = is_array( $row ) && isset( $row['key'] ) ? wp_strip_all_tags( (string) $row['key'] ) : '';
+        if ( 'Demande' === $key ) {
+            continue;
+        }
+        $filtered[] = $row;
+    }
+    $filtered[] = array(
+        'key'   => __( 'Demande', 'ufsc-clubs' ),
+        'value' => $label,
+    );
+
+    return $filtered;
+}
+add_filter( 'woocommerce_get_item_data', 'ufsc_production_fix_cart_request_label', 999, 2 );
 
 /**
  * Register a tightly-scoped SQL compatibility filter on licence admin lists.
