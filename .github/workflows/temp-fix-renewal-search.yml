@@ -1,0 +1,62 @@
+name: One-shot renewal search patch
+on:
+  push:
+    branches: [hotfix/production-renewal-affiliation-20260820]
+    paths: [.github/workflows/temp-fix-renewal-search.yml]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/production-renewal-affiliation-20260820
+          fetch-depth: 0
+      - name: Patch renewal source query and final submit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('includes/frontend/class-frontend-shortcodes.php')
+          s = p.read_text(encoding='utf-8')
+
+          # The renewal source list must not be restricted to validated rows.
+          s, n1 = re.subn(
+              r"(private static function get_renewable_sources\s*\([^)]*\)\s*\{\s*\n\s*)\$args = array_merge\( \(array\) \$filters, array\( 'season' => \$source_season, 'status' => 'valide', 'page' => 1, 'per_page' => 5000 \) \);",
+              r"\1$args = array_merge( (array) $filters, array( 'season' => $source_season, 'renewal_source' => true, 'page' => 1, 'per_page' => 5000 ) );",
+              s,
+              count=1,
+          )
+          if n1 == 0:
+              # Branch may already have removed status=valide; add the explicit renewal_source flag.
+              s, n1 = re.subn(
+                  r"(private static function get_renewable_sources\s*\([^)]*\)\s*\{\s*\n\s*)\$args = array_merge\( \(array\) \$filters, array\( 'season' => \$source_season, 'page' => 1, 'per_page' => 5000 \) \);",
+                  r"\1$args = array_merge( (array) $filters, array( 'season' => $source_season, 'renewal_source' => true, 'page' => 1, 'per_page' => 5000 ) );",
+                  s,
+                  count=1,
+              )
+          if n1 == 0:
+              raise SystemExit('get_renewable_sources args block not found')
+
+          # Demographic filters must not silently force validated-only status during renewal.
+          old = "$has_demographic_filter = ! empty( $args['gender'] ) || ! empty( $args['practice'] ) || ! empty( $args['age'] ) || ! empty( $args['missing_profile'] ) || ! empty( $args['birth_from'] ) || ! empty( $args['birth_to'] );\n\t\tif ( $has_demographic_filter ) {"
+          new = "$has_demographic_filter = ! empty( $args['gender'] ) || ! empty( $args['practice'] ) || ! empty( $args['age'] ) || ! empty( $args['missing_profile'] ) || ! empty( $args['birth_from'] ) || ! empty( $args['birth_to'] );\n\t\tif ( $has_demographic_filter && empty( $args['renewal_source'] ) ) {"
+          count = s.count(old)
+          if count < 1:
+              raise SystemExit('demographic status gate not found')
+          s = s.replace(old, new)
+
+          # Let the server return a visible validation error instead of browser-native silent blocking.
+          s = s.replace('name="ufsc_renew_intent" value="add_to_cart" class="ufsc-btn ufsc-btn-primary"', 'name="ufsc_renew_intent" value="add_to_cart" formnovalidate class="ufsc-btn ufsc-btn-primary"')
+          s = s.replace('name="ufsc_renew_intent" value="submit_for_validation" class="ufsc-btn ufsc-btn-primary"', 'name="ufsc_renew_intent" value="submit_for_validation" formnovalidate class="ufsc-btn ufsc-btn-primary"')
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Remove workflow and commit
+        run: |
+          rm .github/workflows/temp-fix-renewal-search.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add includes/frontend/class-frontend-shortcodes.php .github/workflows/temp-fix-renewal-search.yml
+          git commit -m "fix: include pending historical licences in renewal search"
+          git push origin HEAD:hotfix/production-renewal-affiliation-20260820
