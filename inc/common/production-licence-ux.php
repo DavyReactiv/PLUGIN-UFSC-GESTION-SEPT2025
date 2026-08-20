@@ -63,6 +63,39 @@ function ufsc_production_licence_ux_enqueue() {
 add_action( 'wp_enqueue_scripts', 'ufsc_production_licence_ux_enqueue', 1300 );
 
 /**
+ * Register the renewal SQL compatibility bridge only after WordPress is fully
+ * loaded and only for the authenticated front-end renewal request.
+ *
+ * This is deliberately separate from the `query` filter callback. Calling
+ * is_user_logged_in(), get_option(), UFSC_SQL::get_settings() or any helper that
+ * can touch the database from inside the global `query` filter can recursively
+ * invoke wpdb and exhaust PHP memory.
+ */
+function ufsc_production_register_renewal_query_filter() {
+    if ( is_admin() || ! is_user_logged_in() ) {
+        return;
+    }
+
+    $section = isset( $_GET['ufsc_section'] ) && ! is_array( $_GET['ufsc_section'] )
+        ? sanitize_key( wp_unslash( $_GET['ufsc_section'] ) )
+        : '';
+
+    if ( 'licences-renouvellement' !== $section || ! function_exists( 'ufsc_get_licences_table' ) ) {
+        return;
+    }
+
+    // Resolve once, outside the global SQL filter. The helper may read options.
+    $table = (string) ufsc_get_licences_table();
+    if ( '' === $table ) {
+        return;
+    }
+
+    $GLOBALS['ufsc_production_renewal_licences_table'] = $table;
+    add_filter( 'query', 'ufsc_production_expand_renewal_source_query', 999 );
+}
+add_action( 'wp_loaded', 'ufsc_production_register_renewal_query_filter', 20 );
+
+/**
  * Renewal source compatibility bridge.
  *
  * The legacy renderer still injects a validated-only SQL clause before calling
@@ -71,39 +104,41 @@ add_action( 'wp_enqueue_scripts', 'ufsc_production_licence_ux_enqueue', 1300 );
  * On the renewal screen only, remove that obsolete validated-only predicate.
  * The canonical can_renew() service remains the final authority for club,
  * previous-season, affiliation, duplicate and allowed-status checks.
+ *
+ * IMPORTANT: this callback must never call WordPress helpers that can query the
+ * database. It runs inside wpdb::query().
  */
 function ufsc_production_expand_renewal_source_query( $query ) {
-    // The global `query` filter can fire during the WordPress bootstrap, before
-    // pluggable.php has defined is_user_logged_in() (for example while ACF reads
-    // options or when wp-cron.php boots). Never run front-end renewal logic then.
-    if ( ! function_exists( 'is_user_logged_in' ) ) {
+    if ( ! is_string( $query ) ) {
         return $query;
     }
 
-    if ( is_admin() || ! is_user_logged_in() || ! is_string( $query ) ) {
-        return $query;
-    }
-
-    $section = isset( $_GET['ufsc_section'] ) && ! is_array( $_GET['ufsc_section'] )
-        ? sanitize_key( wp_unslash( $_GET['ufsc_section'] ) )
+    $table = isset( $GLOBALS['ufsc_production_renewal_licences_table'] )
+        ? (string) $GLOBALS['ufsc_production_renewal_licences_table']
         : '';
-    if ( 'licences-renouvellement' !== $section || ! function_exists( 'ufsc_get_licences_table' ) ) {
-        return $query;
-    }
 
-    $table = (string) ufsc_get_licences_table();
     if ( '' === $table || false === strpos( $query, $table ) || false === stripos( $query, 'SELECT' ) ) {
         return $query;
     }
+
+    // Extra recursion guard: the callback itself currently performs no SQL, but
+    // this prevents future edits from turning the global filter into a loop.
+    static $running = false;
+    if ( $running ) {
+        return $query;
+    }
+
+    $running = true;
 
     // Only remove IN() predicates that clearly represent the legacy "validated" alias set.
     // Explicit filters such as Brouillon / En attente remain untouched.
     $pattern = '/\s+AND\s+(?:COALESCE\(NULLIF\(TRIM\(`statut`\),\s*\'\'\),\s*`status`\)|`statut`|`status`)\s+IN\s*\((?=[^)]*\'valide\')(?=[^)]*\'validated\')[^)]*\)/i';
     $expanded = preg_replace( $pattern, '', $query );
 
+    $running = false;
+
     return is_string( $expanded ) ? $expanded : $query;
 }
-add_filter( 'query', 'ufsc_production_expand_renewal_source_query', 999 );
 
 /** Use the same visual language for WordPress admin notices on UFSC screens. */
 function ufsc_production_licence_ux_admin_enqueue() {
