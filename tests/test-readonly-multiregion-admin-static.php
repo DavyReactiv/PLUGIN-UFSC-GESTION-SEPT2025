@@ -29,7 +29,7 @@ $assert( false !== strpos( $module, "'ufsc-woocommerce'" ), 'UFSC WooCommerce se
 $assert( false !== strpos( $module, 'remove_menu_page( \'woocommerce\' )' ), 'WooCommerce menu must be removed for read-only users' );
 $assert( false !== strpos( $module, 'ufsc_readonly_access_render_dashboard' ), 'read-only users must receive a dedicated non-accounting dashboard' );
 $assert( false !== strpos( $module, 'Aucune commande, aucun paiement et aucune donnée comptable' ), 'read-only dashboard must state its non-accounting boundary' );
-$assert( false !== strpos( $module, "'action=edit'" ), 'existing edit routes must be presented as consultation details rather than mutation entry points' );
+$assert( false !== strpos( $module, 'action=edit' ), 'existing edit routes must be presented as consultation details rather than mutation entry points' );
 $assert( false === strpos( $module, 'UFSC_Unified_Handlers::' ), 'read-only layer must not call licence business handlers' );
 $assert( false === strpos( $module, 'WC()->cart' ), 'read-only layer must not touch WooCommerce cart business logic' );
 
