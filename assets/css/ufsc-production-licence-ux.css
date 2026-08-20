@@ -1,0 +1,299 @@
+/* Production licence UX consolidation — scoped to UFSC licence components. */
+.ufsc-licence-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 18px;
+  padding: 12px;
+  border: 1px solid #d8e3ef;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(17, 52, 86, .06);
+}
+
+.ufsc-licence-shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 9px 14px;
+  border: 1px solid #0b5f96;
+  border-radius: 999px;
+  color: #0b4f7e;
+  background: #fff;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+}
+
+.ufsc-licence-shortcut:hover,
+.ufsc-licence-shortcut:focus-visible,
+.ufsc-licence-shortcut.is-active {
+  color: #fff;
+  background: #0b5f96;
+  outline: none;
+}
+
+.ufsc-licence-shortcut:focus-visible {
+  box-shadow: 0 0 0 3px rgba(11, 95, 150, .22);
+}
+
+.ufsc-global-notice,
+.ufsc-global-message,
+.ufsc-message {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.ufsc-global-notice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  box-shadow: 0 8px 24px rgba(17, 52, 86, .08);
+}
+
+.ufsc-global-notice__icon {
+  display: inline-flex;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 800;
+}
+
+.ufsc-global-notice.is-success,
+.ufsc-message.ufsc-success,
+.ufsc-global-message[data-state="success"] {
+  color: #14532d;
+  border-color: #86d6a9;
+  background: #ecfdf3;
+}
+
+.ufsc-global-notice.is-success .ufsc-global-notice__icon {
+  color: #fff;
+  background: #16804b;
+}
+
+.ufsc-global-notice.is-pending,
+.ufsc-message.ufsc-warning,
+.ufsc-global-message[data-state="pending"] {
+  color: #6b4800;
+  border-color: #f2c45c;
+  background: #fff8df;
+}
+
+.ufsc-global-notice.is-pending .ufsc-global-notice__icon {
+  color: #5e4300;
+  background: #f4c84d;
+}
+
+.ufsc-global-notice.is-error,
+.ufsc-message.ufsc-error,
+.ufsc-global-message[data-state="error"] {
+  color: #7f1d1d;
+  border-color: #ef9a9a;
+  background: #fff1f1;
+}
+
+.ufsc-global-notice.is-error .ufsc-global-notice__icon {
+  color: #fff;
+  background: #c92a2a;
+}
+
+.ufsc-global-notice.is-info,
+.ufsc-message.ufsc-info,
+.ufsc-global-message[data-state="info"] {
+  color: #123d61;
+  border-color: #9fc7e5;
+  background: #eef7fd;
+}
+
+.ufsc-global-notice.is-info .ufsc-global-notice__icon {
+  color: #fff;
+  background: #256c9e;
+}
+
+/* One table contract: no horizontal scrolling on normal desktop widths. */
+.ufsc-front-table-scroll {
+  max-width: 100%;
+  overflow-x: visible;
+}
+
+.ufsc-licence-table,
+.ufsc-renewal-table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.ufsc-licence-table th,
+.ufsc-licence-table td,
+.ufsc-renewal-table th,
+.ufsc-renewal-table td {
+  box-sizing: border-box;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  vertical-align: top;
+}
+
+.ufsc-licence-table td .ufsc-action,
+.ufsc-renewal-table td .ufsc-action,
+.ufsc-renewal-table td .ufsc-btn,
+.ufsc-licence-table td .ufsc-btn {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.ufsc-renewal-table th:last-child,
+.ufsc-renewal-table td:last-child,
+.ufsc-licence-table th:last-child,
+.ufsc-licence-table td:last-child {
+  width: 24%;
+}
+
+/* Keep WordPress admin notices visually aligned with the member portal. */
+body.wp-admin .wrap .notice {
+  border-radius: 10px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  box-shadow: 0 5px 18px rgba(17, 52, 86, .06);
+}
+body.wp-admin .wrap .notice-success { border-left-color: #16804b; background: #f1fcf5; }
+body.wp-admin .wrap .notice-warning { border-left-color: #e0a800; background: #fff9e8; }
+body.wp-admin .wrap .notice-error { border-left-color: #c92a2a; background: #fff3f3; }
+body.wp-admin .wrap .notice-info { border-left-color: #256c9e; background: #f0f8fd; }
+
+@media (max-width: 900px) {
+  .ufsc-licence-shortcuts {
+    gap: 8px;
+  }
+  .ufsc-licence-shortcut {
+    flex: 1 1 calc(50% - 8px);
+  }
+}
+
+@media (max-width: 760px) {
+  .ufsc-licence-shortcuts {
+    position: static;
+    padding: 10px;
+  }
+
+  .ufsc-licence-shortcut {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .ufsc-global-notice,
+  .ufsc-global-message,
+  .ufsc-message {
+    padding: 13px 14px;
+    font-size: 14px;
+  }
+
+  .ufsc-front-table-scroll {
+    overflow: visible;
+  }
+
+  .ufsc-licence-table,
+  .ufsc-renewal-table,
+  .ufsc-licence-table tbody,
+  .ufsc-renewal-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .ufsc-licence-table thead,
+  .ufsc-renewal-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .ufsc-licence-table tbody tr,
+  .ufsc-renewal-table tbody tr.ufsc-renewal-source-row {
+    display: block;
+    width: 100%;
+    margin: 0 0 14px;
+    padding: 8px 12px;
+    border: 1px solid #d8e3ef;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 5px 16px rgba(17, 52, 86, .05);
+  }
+
+  .ufsc-renewal-table tbody tr.ufsc-renewal-profile-row {
+    display: block;
+    width: 100%;
+    margin: -8px 0 14px;
+    border: 0;
+    background: transparent;
+  }
+
+  .ufsc-licence-table tbody td,
+  .ufsc-renewal-table tbody tr.ufsc-renewal-source-row > td {
+    display: grid;
+    grid-template-columns: minmax(105px, 38%) minmax(0, 1fr);
+    gap: 10px;
+    width: 100%;
+    padding: 9px 0;
+    border: 0;
+    border-bottom: 1px solid #edf2f7;
+    text-align: left;
+  }
+
+  .ufsc-licence-table tbody td:last-child,
+  .ufsc-renewal-table tbody tr.ufsc-renewal-source-row > td:last-child {
+    width: 100%;
+    border-bottom: 0;
+  }
+
+  .ufsc-licence-table tbody td::before,
+  .ufsc-renewal-table tbody tr.ufsc-renewal-source-row > td::before {
+    content: attr(data-label);
+    color: #29475e;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+  }
+
+  .ufsc-renewal-profile-row td {
+    display: block;
+    width: 100%;
+    padding: 0;
+  }
+
+  .ufsc-renewal-actions,
+  .ufsc-dashboard-actions,
+  .ufsc-form-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .ufsc-renewal-actions .ufsc-btn,
+  .ufsc-dashboard-actions .ufsc-btn,
+  .ufsc-form-actions .ufsc-btn {
+    width: 100%;
+    max-width: none;
+    justify-content: center;
+  }
+}
