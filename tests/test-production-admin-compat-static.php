@@ -27,5 +27,12 @@ $assert( false !== strpos( $compat, "'Nouvelle licence'" ), 'cart request metada
 $assert( false !== strpos( $compat, "add_filter( 'woocommerce_get_item_data'" ), 'cart metadata correction must run on Woo item display' );
 $assert( false !== strpos( $compat, "remove_action( 'woocommerce_before_calculate_totals', 'ufsc_apply_included_quota_to_cart', 10 )" ), 'legacy cart quota repricer must be disabled after canonical quota allocation' );
 $assert( false !== strpos( $compat, "add_action( 'wp_loaded', 'ufsc_production_remove_legacy_cart_quota_repricing'" ), 'legacy quota repricer removal must run after Woo hooks are registered' );
+$assert( false !== strpos( $compat, "'numero_licence_delegataire'" ), 'preflight must normalize optional delegated licence identifiers' );
+$assert( false !== strpos( $compat, "'num_affiliation'" ), 'preflight must normalize optional affiliation identifiers' );
+$assert( false !== strpos( $compat, "SET `{$column}` = NULL" ), 'preflight must represent missing optional identifiers as SQL NULL' );
+$assert( false !== strpos( $compat, "register_activation_hook( UFSC_CL_DIR . 'ufsc-clubs-licences-sql.php'" ), 'identifier normalization must run before activation migrations' );
+$assert( false !== strpos( $compat, 'ufsc_production_strict_datetime_query_compat' ), 'strict MySQL date compatibility must be registered' );
+$assert( false !== strpos( $compat, 'TRIM(CAST({$column} AS CHAR))' ), 'deleted_at compatibility must avoid direct DATETIME empty-string comparison' );
+$assert( false !== strpos( $compat, "date_affiliation|date_validation|date_asptt" ), 'legacy affiliation date evidence must avoid DATE() on blank legacy values' );
 
 echo "Production admin compatibility safeguards OK\n";
