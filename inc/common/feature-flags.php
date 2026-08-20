@@ -15,6 +15,13 @@ if ( file_exists( $ufsc_club_dashboard_hardening ) ) {
     require_once $ufsc_club_dashboard_hardening;
 }
 
+// Production schema compatibility: the traceability installer must confirm the
+// live database schema before issuing ALTER TABLE after a deployment cache hit.
+$ufsc_traceability_schema_compat = dirname( __FILE__ ) . '/production-traceability-schema-compat.php';
+if ( file_exists( $ufsc_traceability_schema_compat ) ) {
+    require_once $ufsc_traceability_schema_compat;
+}
+
 // Consolidated journey: presentation and affiliation journey.
 $ufsc_club_journey = dirname( __FILE__ ) . '/club-journey.php';
 if ( file_exists( $ufsc_club_journey ) ) {
