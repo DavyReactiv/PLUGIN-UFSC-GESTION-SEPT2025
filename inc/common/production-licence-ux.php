@@ -1,6 +1,12 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+$ufsc_production_dbdelta_compat = __DIR__ . '/production-dbdelta-compat.php';
+if ( file_exists( $ufsc_production_dbdelta_compat ) ) {
+    require_once $ufsc_production_dbdelta_compat;
+}
+unset( $ufsc_production_dbdelta_compat );
+
 /**
  * Production UX consolidation for licence pages.
  *
