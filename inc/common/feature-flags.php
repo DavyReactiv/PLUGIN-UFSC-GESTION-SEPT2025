@@ -47,6 +47,13 @@ if ( file_exists( $ufsc_portal_ui_cleanup ) ) {
     require_once $ufsc_portal_ui_cleanup;
 }
 
+// Final Compte Club width repair. Presentation only; intentionally isolated from
+// affiliation, licence, quota and WooCommerce business logic.
+$ufsc_account_overview_layout = dirname( __FILE__ ) . '/account-overview-layout.php';
+if ( file_exists( $ufsc_account_overview_layout ) ) {
+    require_once $ufsc_account_overview_layout;
+}
+
 // Production boundary: deterministic affiliation/licence finalisation while
 // keeping all historical rows and non-final assistant steps untouched.
 $ufsc_production_readiness = dirname( __FILE__ ) . '/production-readiness-hotfix.php';
