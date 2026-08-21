@@ -88,6 +88,13 @@ if ( file_exists( $ufsc_affiliation_order_state_bridge ) ) {
     require_once $ufsc_affiliation_order_state_bridge;
 }
 
+// Affiliation status labels: presentation only. Stored technical status keys stay
+// unchanged while club/admin screens display clear French wording.
+$ufsc_affiliation_status_labels_fr = dirname( __FILE__ ) . '/affiliation-status-labels-fr.php';
+if ( file_exists( $ufsc_affiliation_status_labels_fr ) ) {
+    require_once $ufsc_affiliation_status_labels_fr;
+}
+
 // Shared licence navigation, visible notifications and responsive tables for
 // member/admin views. This layer does not mutate licence or affiliation data.
 $ufsc_production_licence_ux = dirname( __FILE__ ) . '/production-licence-ux.php';
