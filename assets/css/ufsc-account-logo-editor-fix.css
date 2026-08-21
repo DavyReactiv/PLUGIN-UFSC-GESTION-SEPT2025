@@ -16,10 +16,10 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor {
     grid-auto-rows: max-content !important;
     align-items: start !important;
     align-content: start !important;
-    justify-items: stretch !important;
-    gap: 10px !important;
+    justify-items: center !important;
+    gap: 7px !important;
     width: 100% !important;
-    max-width: 180px !important;
+    max-width: 164px !important;
     min-width: 0 !important;
     height: auto !important;
     min-height: 0 !important;
@@ -38,26 +38,27 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__remove {
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__title {
     width: 100% !important;
-    margin: 0 0 2px !important;
+    margin: 0 0 1px !important;
     text-align: center !important;
+    line-height: 1.2 !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__preview {
     justify-self: center !important;
-    width: 112px !important;
-    height: 112px !important;
-    max-width: 112px !important;
-    max-height: 112px !important;
+    width: 104px !important;
+    height: 104px !important;
+    max-width: 104px !important;
+    max-height: 104px !important;
     margin: 0 auto !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__preview .ufsc-club-logo,
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__preview img {
     display: block !important;
-    width: 112px !important;
-    height: 112px !important;
-    max-width: 112px !important;
-    max-height: 112px !important;
+    width: 104px !important;
+    height: 104px !important;
+    max-width: 104px !important;
+    max-height: 104px !important;
     margin: 0 auto !important;
     object-fit: contain !important;
 }
@@ -67,10 +68,10 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__upload {
     grid-template-columns: minmax(0, 1fr) !important;
     grid-auto-rows: max-content !important;
     align-items: start !important;
-    justify-items: stretch !important;
-    gap: 6px !important;
+    justify-items: center !important;
+    gap: 4px !important;
     width: 100% !important;
-    margin: 0 !important;
+    margin: 2px 0 0 !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__upload > .ufsc-btn,
@@ -78,10 +79,12 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor label.ufsc-btn 
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    margin: 0 !important;
+    width: auto !important;
+    min-width: 132px !important;
+    max-width: 148px !important;
+    min-height: 38px !important;
+    margin: 0 auto !important;
+    padding-inline: 14px !important;
     text-align: center !important;
     white-space: normal !important;
 }
@@ -90,29 +93,29 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__help,
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__filename {
     display: block !important;
     width: 100% !important;
-    max-width: 100% !important;
+    max-width: 154px !important;
     min-width: 0 !important;
-    margin: 0 !important;
+    margin: 1px auto 0 !important;
     text-align: center !important;
-    line-height: 1.35 !important;
+    line-height: 1.25 !important;
     overflow-wrap: normal !important;
     word-break: normal !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__remove {
     width: 100% !important;
-    margin: 0 !important;
+    margin: 1px 0 0 !important;
     text-align: center !important;
 }
 
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__remove .ufsc-btn,
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor__remove button {
-    max-width: 100% !important;
+    max-width: 148px !important;
     margin: 0 auto !important;
 }
 
 @media (max-width: 760px) {
     body.ufsc-portal-clean-page .ufsc-club-account .ufsc-logo-editor {
-        max-width: 220px !important;
+        max-width: 190px !important;
     }
 }
