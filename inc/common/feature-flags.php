@@ -15,6 +15,13 @@ if ( file_exists( $ufsc_club_dashboard_hardening ) ) {
     require_once $ufsc_club_dashboard_hardening;
 }
 
+// Compte Club presentation compatibility: keep the server-derived action and
+// affiliation cards outside the nested logo upload form/column.
+$ufsc_account_profile_injection_fix = dirname( __FILE__ ) . '/account-profile-injection-fix.php';
+if ( file_exists( $ufsc_account_profile_injection_fix ) ) {
+    require_once $ufsc_account_profile_injection_fix;
+}
+
 // Production schema compatibility: the traceability installer must confirm the
 // live database schema before issuing ALTER TABLE after a deployment cache hit.
 $ufsc_traceability_schema_compat = dirname( __FILE__ ) . '/production-traceability-schema-compat.php';

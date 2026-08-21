@@ -21,5 +21,17 @@ function ufsc_account_overview_layout_asset() {
         array( 'ufsc-portal-clean' ),
         $version
     );
+
+    $logo_css = 'assets/css/ufsc-account-logo-editor-fix.css';
+    $logo_version = function_exists( 'ufsc_asset_version' )
+        ? ufsc_asset_version( $logo_css )
+        : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
+
+    wp_enqueue_style(
+        'ufsc-account-logo-editor-fix',
+        UFSC_CL_URL . $logo_css,
+        array( 'ufsc-account-overview-fix' ),
+        $logo_version
+    );
 }
 add_action( 'wp_enqueue_scripts', 'ufsc_account_overview_layout_asset', 1001 );
