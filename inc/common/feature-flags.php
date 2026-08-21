@@ -80,6 +80,14 @@ if ( file_exists( $ufsc_production_payment_boundary ) ) {
     require_once $ufsc_production_payment_boundary;
 }
 
+// Affiliation/WooCommerce state bridge: one pack per club and season, immediate
+// pending state for bank-transfer orders, paid -> pending validation, plus an
+// idempotent reconciliation pass for orders created during earlier deployments.
+$ufsc_affiliation_order_state_bridge = dirname( __FILE__ ) . '/affiliation-order-state-bridge.php';
+if ( file_exists( $ufsc_affiliation_order_state_bridge ) ) {
+    require_once $ufsc_affiliation_order_state_bridge;
+}
+
 // Shared licence navigation, visible notifications and responsive tables for
 // member/admin views. This layer does not mutate licence or affiliation data.
 $ufsc_production_licence_ux = dirname( __FILE__ ) . '/production-licence-ux.php';
