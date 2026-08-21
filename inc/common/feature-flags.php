@@ -15,6 +15,20 @@ if ( file_exists( $ufsc_club_dashboard_hardening ) ) {
     require_once $ufsc_club_dashboard_hardening;
 }
 
+// Compte Club presentation compatibility: keep the server-derived action and
+// affiliation cards outside the nested logo upload form/column.
+$ufsc_account_profile_injection_fix = dirname( __FILE__ ) . '/account-profile-injection-fix.php';
+if ( file_exists( $ufsc_account_profile_injection_fix ) ) {
+    require_once $ufsc_account_profile_injection_fix;
+}
+
+// Production schema compatibility: the traceability installer must confirm the
+// live database schema before issuing ALTER TABLE after a deployment cache hit.
+$ufsc_traceability_schema_compat = dirname( __FILE__ ) . '/production-traceability-schema-compat.php';
+if ( file_exists( $ufsc_traceability_schema_compat ) ) {
+    require_once $ufsc_traceability_schema_compat;
+}
+
 // Consolidated journey: presentation and affiliation journey.
 $ufsc_club_journey = dirname( __FILE__ ) . '/club-journey.php';
 if ( file_exists( $ufsc_club_journey ) ) {
@@ -66,6 +80,20 @@ if ( file_exists( $ufsc_production_payment_boundary ) ) {
     require_once $ufsc_production_payment_boundary;
 }
 
+// Affiliation/WooCommerce state bridge: one pack per club and season, immediate
+// pending state for bank-transfer orders, paid -> pending validation, plus an
+// idempotent reconciliation pass for orders created during earlier deployments.
+$ufsc_affiliation_order_state_bridge = dirname( __FILE__ ) . '/affiliation-order-state-bridge.php';
+if ( file_exists( $ufsc_affiliation_order_state_bridge ) ) {
+    require_once $ufsc_affiliation_order_state_bridge;
+}
+
+// Presentation-only French labels for affiliation workflow statuses.
+$ufsc_affiliation_status_labels_fr = dirname( __FILE__ ) . '/affiliation-status-labels-fr.php';
+if ( file_exists( $ufsc_affiliation_status_labels_fr ) ) {
+    require_once $ufsc_affiliation_status_labels_fr;
+}
+
 // Shared licence navigation, visible notifications and responsive tables for
 // member/admin views. This layer does not mutate licence or affiliation data.
 $ufsc_production_licence_ux = dirname( __FILE__ ) . '/production-licence-ux.php';
@@ -87,6 +115,14 @@ if ( file_exists( $ufsc_production_admin_compat ) ) {
 $ufsc_readonly_multiregion_admin = dirname( __FILE__ ) . '/readonly-multiregion-admin.php';
 if ( file_exists( $ufsc_readonly_multiregion_admin ) ) {
     require_once $ufsc_readonly_multiregion_admin;
+}
+
+// Final hardening for the read-only federation access layer: joins licences to
+// clubs for regional KPIs, removes accounting surfaces and adds an assignment
+// overview. Presentation/query scope only; no business mutation handlers.
+$ufsc_readonly_multiregion_hardening = dirname( __FILE__ ) . '/readonly-multiregion-admin-hardening.php';
+if ( file_exists( $ufsc_readonly_multiregion_hardening ) ) {
+    require_once $ufsc_readonly_multiregion_hardening;
 }
 
 function ufsc_quotas_enabled() {
