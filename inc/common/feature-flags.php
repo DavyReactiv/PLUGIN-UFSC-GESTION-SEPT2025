@@ -131,6 +131,14 @@ if ( file_exists( $ufsc_readonly_multiregion_admin_hardening ) ) {
     require_once $ufsc_readonly_multiregion_admin_hardening;
 }
 
+// Clear user-facing messages for forbidden read-only routes. Hidden menus stay
+// hidden; direct URLs/bookmarks receive an explicit French "droits nécessaires"
+// explanation before the generic guard runs.
+$ufsc_readonly_access_denied_messages = dirname( __FILE__ ) . '/readonly-access-denied-messages.php';
+if ( file_exists( $ufsc_readonly_access_denied_messages ) ) {
+    require_once $ufsc_readonly_access_denied_messages;
+}
+
 function ufsc_quotas_enabled() {
     return (bool) apply_filters( 'ufsc_quotas_enabled', true );
 }
