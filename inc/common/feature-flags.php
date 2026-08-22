@@ -94,6 +94,13 @@ if ( file_exists( $ufsc_affiliation_status_labels_fr ) ) {
     require_once $ufsc_affiliation_status_labels_fr;
 }
 
+// Front signup compatibility: ordinary club applicants may choose any valid UFSC
+// region for their first club, while regional back-office scopes remain enforced.
+$ufsc_front_club_registration_scope_hotfix = dirname( __FILE__ ) . '/front-club-registration-scope-hotfix.php';
+if ( file_exists( $ufsc_front_club_registration_scope_hotfix ) ) {
+    require_once $ufsc_front_club_registration_scope_hotfix;
+}
+
 // Shared licence navigation, visible notifications and responsive tables for
 // member/admin views. This layer does not mutate licence or affiliation data.
 $ufsc_production_licence_ux = dirname( __FILE__ ) . '/production-licence-ux.php';
