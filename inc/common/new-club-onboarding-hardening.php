@@ -81,14 +81,15 @@ final class UFSC_New_Club_Onboarding_Hardening {
 
 	public static function registration_redirect( $redirect_to ) {
 		unset( $redirect_to );
-		return self::affiliation_url();
+		$login_url = wp_login_url( self::affiliation_url() );
+		return add_query_arg( 'checkemail', 'registered', $login_url );
 	}
 
 	public static function registration_login_message( $message ) {
 		$action = isset( $_REQUEST['action'] ) && ! is_array( $_REQUEST['action'] ) ? sanitize_key( wp_unslash( $_REQUEST['action'] ) ) : '';
 		$checkemail = isset( $_GET['checkemail'] ) && ! is_array( $_GET['checkemail'] ) ? sanitize_key( wp_unslash( $_GET['checkemail'] ) ) : '';
 		if ( 'register' !== $action && 'registered' !== $checkemail ) { return $message; }
-		$guide = '<div class="message ufsc-registration-guide"><strong>' . esc_html__( 'Création de votre accès Club UFSC', 'ufsc-clubs' ) . '</strong><br>' . esc_html__( 'Après l’inscription, un email vous sera envoyé pour définir votre mot de passe. Consultez aussi vos courriers indésirables. Une fois le mot de passe créé, connectez-vous puis complétez le dossier de votre club et son affiliation.', 'ufsc-clubs' ) . '</div>';
+		$guide = '<div class="message ufsc-registration-guide"><strong>' . esc_html__( 'Création de votre accès Club UFSC', 'ufsc-clubs' ) . '</strong><br>' . esc_html__( 'Après l’inscription, un email vous est envoyé pour définir votre mot de passe. Consultez aussi vos courriers indésirables. Une fois le mot de passe créé, connectez-vous : vous serez dirigé vers le dossier d’affiliation de votre club.', 'ufsc-clubs' ) . '</div>';
 		return $guide . $message;
 	}
 
@@ -164,6 +165,7 @@ final class UFSC_New_Club_Onboarding_Hardening {
 	}
 
 	public static function translate_checkout_labels( $translated, $text, $domain ) {
+		unset( $domain );
 		if ( is_admin() || ! function_exists( 'is_checkout' ) || ! is_checkout() ) { return $translated; }
 		$map = array(
 			'Checkout'             => __( 'Finaliser mon affiliation', 'ufsc-clubs' ),
@@ -221,11 +223,8 @@ final class UFSC_New_Club_Onboarding_Hardening {
 		foreach ( array( 'president_adresse', 'secretaire_adresse', 'tresorier_adresse' ) as $field ) {
 			$output = preg_replace( '/(<input\b(?=[^>]*\bname=["\']' . preg_quote( $field, '/' ) . '["\'])(?![^>]*\brequired\b)[^>]*)(>)/i', '$1 required autocomplete="street-address"$2', $output, 1 );
 		}
-		$output = str_replace( 'Président – Adresse', 'Président – Adresse postale complète', $output );
-		$output = str_replace( 'Secrétaire – Adresse', 'Secrétaire – Adresse postale complète', $output );
-		$output = str_replace( 'Trésorier – Adresse', 'Trésorier – Adresse postale complète', $output );
 
-		$intro = self::stepper_html( 2 ) . '<div class="ufsc-onboarding-intro"><strong>' . esc_html__( 'Création de votre club UFSC', 'ufsc-clubs' ) . '</strong><p>' . esc_html__( 'Renseignez les informations du club et du bureau. Les adresses postales complètes du président, du secrétaire et du trésorier sont obligatoires.', 'ufsc-clubs' ) . '</p></div>';
+		$intro = self::stepper_html( 2 ) . '<div class="ufsc-onboarding-intro"><strong>' . esc_html__( 'Création de votre club UFSC', 'ufsc-clubs' ) . '</strong><p>' . esc_html__( 'Renseignez les informations du club et du bureau. Pour le président, le secrétaire et le trésorier, renseignez une adresse postale complète (numéro et voie, code postal et ville).', 'ufsc-clubs' ) . '</p></div>';
 		$honorability = '<div class="ufsc-onboarding-honorability"><strong>' . esc_html__( 'Honorabilité obligatoire pour le bureau', 'ufsc-clubs' ) . '</strong><p>' . esc_html__( 'Le président, le secrétaire, le trésorier et tout dirigeant soumis au contrôle d’honorabilité devront disposer d’une attestation dans leur dossier de licence. La validation utilise le dispositif d’honorabilité déjà présent dans le plugin : aucun dossier parallèle n’est créé.', 'ufsc-clubs' ) . '</p></div>';
 		return $intro . $output . $honorability;
 	}
@@ -244,7 +243,7 @@ final class UFSC_New_Club_Onboarding_Hardening {
 		wp_enqueue_style(
 			'ufsc-new-club-onboarding',
 			UFSC_CL_URL . 'assets/css/ufsc-new-club-onboarding.css',
-			array( 'ufsc-front' ),
+			array(),
 			function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/css/ufsc-new-club-onboarding.css' ) : UFSC_CL_VERSION
 		);
 	}
