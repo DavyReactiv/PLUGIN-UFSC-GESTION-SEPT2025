@@ -88,6 +88,14 @@ if ( file_exists( $ufsc_affiliation_order_state_bridge ) ) {
     require_once $ufsc_affiliation_order_state_bridge;
 }
 
+// New-club production hardening. Reuses the canonical annual state/bridge and
+// honorability model to prevent checkout loops and duplicate affiliations while
+// making the first-account -> club -> payment journey explicit.
+$ufsc_new_club_onboarding_hardening = dirname( __FILE__ ) . '/new-club-onboarding-hardening.php';
+if ( file_exists( $ufsc_new_club_onboarding_hardening ) ) {
+    require_once $ufsc_new_club_onboarding_hardening;
+}
+
 // Presentation-only French labels for affiliation workflow statuses.
 $ufsc_affiliation_status_labels_fr = dirname( __FILE__ ) . '/affiliation-status-labels-fr.php';
 if ( file_exists( $ufsc_affiliation_status_labels_fr ) ) {
