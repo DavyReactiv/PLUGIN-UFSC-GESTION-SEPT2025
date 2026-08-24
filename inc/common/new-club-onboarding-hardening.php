@@ -22,6 +22,7 @@ final class UFSC_New_Club_Onboarding_Hardening {
 		add_action( 'woocommerce_before_checkout_form', array( __CLASS__, 'render_checkout_journey_notice' ), 5 );
 		add_filter( 'gettext', array( __CLASS__, 'translate_checkout_labels' ), 90, 3 );
 
+		add_filter( 'do_shortcode_tag', array( __CLASS__, 'enhance_login_without_club' ), 25, 4 );
 		add_filter( 'do_shortcode_tag', array( __CLASS__, 'enhance_club_form' ), 30, 4 );
 		add_filter( 'do_shortcode_tag', array( __CLASS__, 'enhance_dashboard' ), 35, 4 );
 		add_action( 'admin_post_ufsc_save_club', array( __CLASS__, 'validate_officer_addresses' ), 1 );
@@ -176,6 +177,28 @@ final class UFSC_New_Club_Onboarding_Hardening {
 			'Place order'          => __( 'Valider mon affiliation', 'ufsc-clubs' ),
 		);
 		return isset( $map[ $text ] ) ? $map[ $text ] : $translated;
+	}
+
+	public static function enhance_login_without_club( $output, $tag, $attr, $m ) {
+		unset( $attr, $m );
+		if ( 'ufsc_login_form' !== $tag || ! is_user_logged_in() || self::user_club_id() > 0 ) { return $output; }
+
+		$user = wp_get_current_user();
+		$display_name = trim( (string) $user->display_name );
+		$heading = $display_name
+			? sprintf( __( 'Bienvenue %s', 'ufsc-clubs' ), $display_name )
+			: __( 'Votre compte Club UFSC est prêt', 'ufsc-clubs' );
+		$affiliation_url = self::affiliation_url();
+		$logout_url = wp_logout_url( home_url( '/' ) );
+
+		$html  = '<div class="ufsc-already-logged-in ufsc-card ufsc-no-club-onboarding">';
+		$html .= self::stepper_html( 2 );
+		$html .= '<h3>' . esc_html( $heading ) . '</h3>';
+		$html .= '<p>' . esc_html__( 'Votre compte utilisateur est bien créé, mais aucun club n’y est encore rattaché. Vous pouvez maintenant créer votre club et démarrer sa demande d’affiliation UFSC.', 'ufsc-clubs' ) . '</p>';
+		$html .= '<div class="ufsc-onboarding-intro"><strong>' . esc_html__( 'Étape suivante : créer et affilier votre club', 'ufsc-clubs' ) . '</strong><p>' . esc_html__( 'Préparez les informations de l’association, les coordonnées du bureau et les documents demandés. Le règlement de l’affiliation interviendra à la dernière étape.', 'ufsc-clubs' ) . '</p></div>';
+		$html .= '<div class="ufsc-login-actions"><a href="' . esc_url( $affiliation_url ) . '" class="ufsc-btn ufsc-btn-primary">' . esc_html__( 'Créer / affilier mon club', 'ufsc-clubs' ) . '</a><a href="' . esc_url( $logout_url ) . '" class="ufsc-btn ufsc-btn-secondary">' . esc_html__( 'Se déconnecter', 'ufsc-clubs' ) . '</a></div>';
+		$html .= '</div>';
+		return $html;
 	}
 
 	public static function validate_officer_addresses() {
