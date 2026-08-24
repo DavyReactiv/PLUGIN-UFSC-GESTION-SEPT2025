@@ -29,6 +29,7 @@ $checks = array(
     'annual statuses are reused' => strpos( $module, "pending_validation" ) !== false && strpos( $module, "pending_payment" ) !== false,
     'registration dead slug is not reintroduced' => strpos( $module, "/creation-du-club/" ) === false,
     'registration password email is explained' => strpos( $module, "wp_new_user_notification_email" ) !== false,
+    'no-club login offers canonical affiliation CTA' => strpos( $module, "enhance_login_without_club" ) !== false && strpos( $module, "Créer / affilier mon club" ) !== false && strpos( $module, "AFFILIATION_SLUG = 'affiliation-club'" ) !== false,
     'checkout wording is localized' => strpos( $module, "Finaliser mon affiliation" ) !== false && strpos( $module, "Informations du responsable" ) !== false,
     'office addresses are validated' => strpos( $module, "president_adresse" ) !== false && strpos( $module, "secretaire_adresse" ) !== false && strpos( $module, "tresorier_adresse" ) !== false,
     'canonical honorability remains authoritative' => strpos( $compliance, "function ufsc_role_requires_honorability" ) !== false && strpos( $compliance, "'president', 'secretaire', 'tresorier'" ) !== false,
