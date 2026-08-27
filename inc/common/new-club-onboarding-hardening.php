@@ -248,7 +248,7 @@ final class UFSC_New_Club_Onboarding_Hardening {
 		}
 
 		$intro = self::stepper_html( 2 ) . '<div class="ufsc-onboarding-intro"><strong>' . esc_html__( 'Création de votre club UFSC', 'ufsc-clubs' ) . '</strong><p>' . esc_html__( 'Renseignez les informations du club et du bureau. Pour le président, le secrétaire et le trésorier, renseignez une adresse postale complète (numéro et voie, code postal et ville).', 'ufsc-clubs' ) . '</p></div>';
-		$honorability = '<div class="ufsc-onboarding-honorability"><strong>' . esc_html__( 'Honorabilité obligatoire pour le bureau', 'ufsc-clubs' ) . '</strong><p>' . esc_html__( 'Le président, le secrétaire, le trésorier et tout dirigeant soumis au contrôle d’honorabilité devront disposer d’une attestation dans leur dossier de licence. La validation utilise le dispositif d’honorabilité déjà présent dans le plugin : aucun dossier parallèle n’est créé.', 'ufsc-clubs' ) . '</p></div>';
+		$honorability = '<div class="ufsc-onboarding-honorability"><strong>' . esc_html__( 'Honorabilité des membres du bureau', 'ufsc-clubs' ) . '</strong><p>' . esc_html__( 'Conformément aux obligations d’honorabilité applicables dans le cadre du Code du sport, le président, le secrétaire, le trésorier ainsi que tout dirigeant concerné devront fournir une attestation d’honorabilité. Ce document sera intégré au dossier du dirigeant et pourra être vérifié par l’UFSC lors de la validation de l’affiliation.', 'ufsc-clubs' ) . '</p></div>';
 		return $intro . $output . $honorability;
 	}
 
