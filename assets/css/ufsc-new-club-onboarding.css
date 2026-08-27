@@ -1,0 +1,124 @@
+.ufsc-onboarding-steps,
+.ufsc-onboarding-intro,
+.ufsc-onboarding-honorability,
+.ufsc-affiliation-pending-banner,
+.ufsc-checkout-journey {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto 20px;
+}
+
+.ufsc-onboarding-steps ol {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ufsc-onboarding-steps li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 58px;
+    padding: 10px 12px;
+    border: 1px solid #d7dce6;
+    border-radius: 10px;
+    background: #fff;
+    color: #465064;
+}
+
+.ufsc-onboarding-steps li > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 30px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #eef1f6;
+    font-weight: 700;
+}
+
+.ufsc-onboarding-steps li.is-active {
+    border-color: #202360;
+    color: #171a4d;
+    box-shadow: 0 5px 18px rgba(22, 27, 75, .08);
+}
+
+.ufsc-onboarding-steps li.is-active > span,
+.ufsc-onboarding-steps li.is-done > span {
+    background: #202360;
+    color: #fff;
+}
+
+.ufsc-onboarding-intro,
+.ufsc-onboarding-honorability,
+.ufsc-affiliation-pending-banner,
+.ufsc-checkout-journey {
+    padding: 16px 18px;
+    border: 1px solid #d7dce6;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 5px 18px rgba(22, 27, 75, .05);
+}
+
+.ufsc-onboarding-intro strong,
+.ufsc-onboarding-honorability strong,
+.ufsc-affiliation-pending-banner strong,
+.ufsc-checkout-journey strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #171a4d;
+    font-size: 1rem;
+}
+
+.ufsc-onboarding-intro p,
+.ufsc-onboarding-honorability p,
+.ufsc-affiliation-pending-banner p,
+.ufsc-checkout-journey p {
+    margin: 0;
+    line-height: 1.55;
+}
+
+.ufsc-onboarding-honorability {
+    margin-top: 18px;
+    border-left: 4px solid #202360;
+}
+
+.ufsc-affiliation-pending-banner {
+    margin-bottom: 22px;
+    border-left: 4px solid #b87900;
+    background: #fffaf0;
+}
+
+.ufsc-checkout-journey {
+    margin-bottom: 24px;
+    border-left: 4px solid #202360;
+}
+
+.woocommerce-checkout .ufsc-checkout-journey {
+    max-width: none;
+}
+
+.ufsc-registration-guide {
+    border-left: 4px solid #202360 !important;
+}
+
+@media (max-width: 760px) {
+    .ufsc-onboarding-steps ol {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ufsc-onboarding-steps li {
+        min-height: 52px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ufsc-onboarding-steps ol {
+        grid-template-columns: 1fr;
+    }
+}
