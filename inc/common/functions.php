@@ -85,7 +85,10 @@ function ufsc_render_honorability_onboarding_assets() {
         var noteUrl = <?php echo wp_json_encode( esc_url_raw( $note_url ) ); ?>;
 
         function norm(value){
-            return (value || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            value = (value || '').toString().toLowerCase();
+            return typeof value.normalize === 'function'
+                ? value.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                : value;
         }
         function hasWords(node, words){
             var text = norm(node && node.textContent);
@@ -109,33 +112,29 @@ function ufsc_render_honorability_onboarding_assets() {
                 '<p class="ufsc-honorability-onboarding__later">'+later+'</p>';
             return box;
         }
-        function closestSection(node){
-            if (!node) return null;
-            return node.closest('.ufsc-form-section,.ufsc-step-panel,.ufsc-step,.ufsc-card,.form-section,fieldset,section,.ufsc-compliance-section') || node.parentElement;
-        }
         function enhanceLicenceHonorability(){
             var checkbox = document.querySelector('input[name="honorability_confirmed"]');
             if (!checkbox) return;
-            var section = closestSection(checkbox);
+            var section = checkbox.closest('.ufsc-form-section,.ufsc-step-panel,.ufsc-step,.ufsc-card,.form-section,fieldset,section,.ufsc-compliance-section') || checkbox.parentElement;
             if (!section || section.querySelector('[data-ufsc-honorability-onboarding="licence"]')) return;
 
             var existingNoteButton = Array.prototype.slice.call(section.querySelectorAll('a,button')).find(function(el){
                 return hasWords(el, ['note sur le controle de l’honorabilite','note sur le contrôle de l’honorabilité']);
             });
-            var anchor = existingNoteButton ? existingNoteButton.parentElement : section.firstElementChild;
             var box = makeBox('licence');
-            if (anchor && anchor.parentNode === section) {
-                anchor.insertAdjacentElement('afterend', box);
+            if (existingNoteButton) {
+                var actionRow = existingNoteButton.closest('p,div');
+                if (actionRow && actionRow.parentNode) actionRow.parentNode.insertBefore(box, actionRow.nextSibling);
+                else section.insertBefore(box, checkbox.closest('label') || checkbox);
             } else {
-                section.insertBefore(box, section.firstChild);
+                section.insertBefore(box, checkbox.closest('label') || checkbox);
             }
 
             var label = checkbox.closest('label');
             if (label) {
-                var textNodes = Array.prototype.slice.call(label.childNodes).filter(function(n){ return n.nodeType === 3; });
-                textNodes.forEach(function(n){
-                    if (norm(n.nodeValue).indexOf('je confirme') !== -1) {
-                        n.nodeValue = ' Je reconnais avoir pris connaissance de l’obligation d’honorabilité applicable à cette fonction et du document à fournir.';
+                Array.prototype.slice.call(label.childNodes).forEach(function(node){
+                    if (node.nodeType === 3 && norm(node.nodeValue).indexOf('je confirme') !== -1) {
+                        node.nodeValue = ' Je reconnais avoir pris connaissance de l’obligation d’honorabilité applicable à cette fonction et du document à fournir.';
                     }
                 });
             }
@@ -144,24 +143,25 @@ function ufsc_render_honorability_onboarding_assets() {
             var action = document.querySelector('form input[name="action"][value="ufsc_save_club"]');
             return action ? action.closest('form') : document.querySelector('.ufsc-club-form-container form,.ufsc-club-form');
         }
+        function directClubTarget(form){
+            var nodes = Array.prototype.slice.call(form.querySelectorAll('fieldset,section,.ufsc-form-section,.ufsc-step-panel,.ufsc-step,.ufsc-card'));
+            return nodes.find(function(node){
+                return hasWords(node, ['membres du bureau','bureau','president','président','secretaire','secrétaire','tresorier','trésorier']);
+            }) || null;
+        }
         function enhanceClubCreation(){
             var form = findClubForm();
             if (!form || form.querySelector('[data-ufsc-honorability-onboarding="club"]')) return;
 
-            var candidates = Array.prototype.slice.call(form.querySelectorAll('fieldset,section,.ufsc-form-section,.ufsc-step-panel,.ufsc-step,.ufsc-card,div'));
-            var target = candidates.find(function(node){
-                if (node.children.length > 40) return false;
-                return hasWords(node, ['membres du bureau','bureau','president','président','secretaire','secrétaire','tresorier','trésorier']);
-            });
-            target = target || form;
+            var target = directClubTarget(form);
             var box = makeBox('club');
-            if (target === form) {
-                var submit = form.querySelector('button[type="submit"],input[type="submit"]');
-                if (submit && submit.parentNode) submit.parentNode.insertBefore(box, submit);
-                else form.appendChild(box);
-            } else {
+            if (target) {
                 target.insertBefore(box, target.firstChild);
+                return;
             }
+            var submit = form.querySelector('button[type="submit"],input[type="submit"]');
+            if (submit && submit.parentNode) submit.parentNode.insertBefore(box, submit);
+            else form.appendChild(box);
         }
         function init(){
             enhanceLicenceHonorability();
