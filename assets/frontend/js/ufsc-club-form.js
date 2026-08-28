@@ -142,6 +142,12 @@
         }
     }
 
+    function fieldsByName($scope, name) {
+        return $scope.find('input, select, textarea').filter(function() {
+            return this.name === name;
+        });
+    }
+
     function restoreDraft($form) {
         const draft = readDraft($form);
         if (!draft) return false;
@@ -149,12 +155,14 @@
 
         Object.keys(draft.data).forEach(function(name) {
             const value = draft.data[name];
-            const $fields = $form.find('[name="' + cssEscape(name) + '"]');
+            const $fields = fieldsByName($form, name);
             if (!$fields.length) return;
 
             const type = (($fields.first().attr('type') || '') + '').toLowerCase();
             if (type === 'radio') {
-                const $target = $fields.filter('[value="' + cssEscape(String(value)) + '"]');
+                const $target = $fields.filter(function() {
+                    return String(this.value) === String(value);
+                });
                 if ($target.length) {
                     $fields.prop('checked', false);
                     $target.prop('checked', true).trigger('change');
@@ -173,11 +181,6 @@
         });
 
         return restored;
-    }
-
-    function cssEscape(value) {
-        if (window.CSS && typeof window.CSS.escape === 'function') return window.CSS.escape(value);
-        return String(value).replace(/([ #;?%&,.+*~\':"!^$[\]()=>|\/])/g, '\\$1');
     }
 
     function initDraftPersistence($form) {
@@ -414,26 +417,38 @@
 
             const postalId = prefix + '_code_postal_ui';
             const cityId = prefix + '_ville_ui';
-            const requiredClass = required ? ' required' : '';
-            const requiredAttr = required ? ' required' : '';
 
-            const $postal = $(
-                '<div class="ufsc-field ufsc-officer-postal-field">' +
-                    '<label class="ufsc-label' + requiredClass + '" for="' + postalId + '">Code postal</label>' +
-                    '<input type="text" inputmode="numeric" maxlength="5" pattern="[0-9]{5}" id="' + postalId + '" name="' + postalId + '"' + requiredAttr + ' />' +
-                    '<div class="ufsc-field-error" aria-live="polite"></div>' +
-                '</div>'
-            );
-            const $city = $(
-                '<div class="ufsc-field ufsc-officer-postal-field">' +
-                    '<label class="ufsc-label' + requiredClass + '" for="' + cityId + '">Ville</label>' +
-                    '<input type="text" id="' + cityId + '" name="' + cityId + '"' + requiredAttr + ' />' +
-                    '<div class="ufsc-field-error" aria-live="polite"></div>' +
-                '</div>'
-            );
+            const $postal = $('<div>', { 'class': 'ufsc-field ufsc-officer-postal-field' });
+            $('<label>', {
+                'class': 'ufsc-label' + (required ? ' required' : ''),
+                'for': postalId,
+                'text': 'Code postal'
+            }).appendTo($postal);
+            const $postalInput = $('<input>', {
+                'type': 'text',
+                'inputmode': 'numeric',
+                'maxlength': '5',
+                'pattern': '[0-9]{5}',
+                'id': postalId,
+                'name': postalId
+            }).prop('required', required).appendTo($postal);
+            $('<div>', { 'class': 'ufsc-field-error', 'aria-live': 'polite' }).appendTo($postal);
 
-            $postal.find('input').val(parsed.postalCode);
-            $city.find('input').val(parsed.city);
+            const $city = $('<div>', { 'class': 'ufsc-field ufsc-officer-postal-field' });
+            $('<label>', {
+                'class': 'ufsc-label' + (required ? ' required' : ''),
+                'for': cityId,
+                'text': 'Ville'
+            }).appendTo($city);
+            const $cityInput = $('<input>', {
+                'type': 'text',
+                'id': cityId,
+                'name': cityId
+            }).prop('required', required).appendTo($city);
+            $('<div>', { 'class': 'ufsc-field-error', 'aria-live': 'polite' }).appendTo($city);
+
+            $postalInput.val(parsed.postalCode);
+            $cityInput.val(parsed.city);
 
             const $addressField = $address.closest('.ufsc-field');
             if ($addressField.length) {
@@ -445,9 +460,11 @@
             // The card heading already tells the user whether this person is the
             // president, secretary, treasurer or coach. "Poste" therefore means
             // profession here, not the person's function in the club.
-            const $job = $card.find('input[name="' + prefix + '_poste"]').first();
+            const $job = fieldsByName($card, prefix + '_poste').first();
             if ($job.length) {
-                const $jobLabel = $card.find('label[for="' + prefix + '_poste"]').first();
+                const $jobLabel = $card.find('label').filter(function() {
+                    return $(this).attr('for') === prefix + '_poste';
+                }).first();
                 if ($jobLabel.length) $jobLabel.text('Profession');
             }
         });
@@ -460,8 +477,8 @@
                 const prefix = ($address.attr('name') || '').replace(/_adresse$/, '');
                 if (!prefix) return;
 
-                const $postal = $card.find('input[name="' + prefix + '_code_postal_ui"]').first();
-                const $city = $card.find('input[name="' + prefix + '_ville_ui"]').first();
+                const $postal = fieldsByName($card, prefix + '_code_postal_ui').first();
+                const $city = fieldsByName($card, prefix + '_ville_ui').first();
                 if (!$postal.length || !$city.length) return;
 
                 const parsed = splitStoredOfficerAddress($address.val());
@@ -487,7 +504,9 @@
     function fieldHasValue(el) {
         const type = (el.type || '').toLowerCase();
         if (type === 'checkbox' || type === 'radio') {
-            return $(el.form).find('[name="' + cssEscape(el.name) + '"]:checked').length > 0;
+            return $(el.form).find('input, select, textarea').filter(function() {
+                return this.name === el.name && this.checked;
+            }).length > 0;
         }
         if (type === 'file') return !!(el.files && el.files.length);
         return $.trim($(el).val() || '') !== '';
