@@ -124,6 +124,37 @@ if ( file_exists( $ufsc_production_admin_compat ) ) {
     require_once $ufsc_production_admin_compat;
 }
 
+// Additive federation access layer: existing WordPress users can be assigned a
+// strict read-only UFSC profile limited to one/many regions or to all regions.
+// It does not alter licence, affiliation, quota, WooCommerce or season flows.
+$ufsc_readonly_multiregion_admin = dirname( __FILE__ ) . '/readonly-multiregion-admin.php';
+if ( file_exists( $ufsc_readonly_multiregion_admin ) ) {
+    require_once $ufsc_readonly_multiregion_admin;
+}
+
+// Additional hardening for the read-only federation access layer: regional
+// dashboard scoping, direct-object scope checks and non-accounting UI cleanup.
+$ufsc_readonly_multiregion_admin_hardening = dirname( __FILE__ ) . '/readonly-multiregion-admin-hardening.php';
+if ( file_exists( $ufsc_readonly_multiregion_admin_hardening ) ) {
+    require_once $ufsc_readonly_multiregion_admin_hardening;
+}
+
+// Clear user-facing messages for forbidden read-only routes. Hidden menus stay
+// hidden; direct URLs/bookmarks receive an explicit French "droits nécessaires"
+// explanation before the generic guard runs.
+$ufsc_readonly_access_denied_messages = dirname( __FILE__ ) . '/readonly-access-denied-messages.php';
+if ( file_exists( $ufsc_readonly_access_denied_messages ) ) {
+    require_once $ufsc_readonly_access_denied_messages;
+}
+
+// Presentation-only compatibility: WordPress keeps both callbacks when a submenu
+// slug is re-registered. Remove only the legacy renderer so the access page is
+// displayed once while retaining the hardened overview callback.
+$ufsc_readonly_access_admin_page_dedup = dirname( __FILE__ ) . '/readonly-access-admin-page-dedup.php';
+if ( file_exists( $ufsc_readonly_access_admin_page_dedup ) ) {
+    require_once $ufsc_readonly_access_admin_page_dedup;
+}
+
 function ufsc_quotas_enabled() {
     return (bool) apply_filters( 'ufsc_quotas_enabled', true );
 }
