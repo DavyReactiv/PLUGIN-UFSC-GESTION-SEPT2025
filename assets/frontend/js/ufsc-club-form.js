@@ -261,6 +261,11 @@
         $anchor.after($wizard);
         panes.forEach(function($pane) { $wizard.after($pane); });
 
+        // Improve the bureau cards without changing the historical database model:
+        // postal code and city are entered separately in the UI, then stored in
+        // the existing *_adresse value as a conventional two-line postal address.
+        enhanceOfficerCards($form);
+
         // Move the honorability message inside the Bureau step instead of leaving
         // a detached notice below the full form.
         const $honorability = $('.ufsc-onboarding-honorability').first();
@@ -269,10 +274,14 @@
         }
 
         // Hide now-empty legacy wrappers created by the historical nested markup.
+        // The old "Documents légaux" fieldset is only a structural wrapper around
+        // "Mes documents" and must never remain as an empty card in the wizard.
         $allSections.each(function() {
             const $section = $(this);
-            if (!$section.closest('.ufsc-wizard-pane').length && $section.find(':input').length === 0) {
-                $section.hide();
+            const legend = $.trim($section.children('legend').first().text());
+            const isLegacyDocumentsWrapper = legend === 'Documents légaux';
+            if (!$section.closest('.ufsc-wizard-pane').length && (isLegacyDocumentsWrapper || $section.find(':input').length === 0)) {
+                $section.hide().attr('aria-hidden', 'true');
             }
         });
 
@@ -367,6 +376,104 @@
         showStep(0, false);
     }
 
+    function splitStoredOfficerAddress(value) {
+        const lines = String(value || '')
+            .split(/\r?\n/)
+            .map(function(line) { return $.trim(line); })
+            .filter(Boolean);
+        let postalCode = '';
+        let city = '';
+        if (lines.length > 1) {
+            const match = lines[lines.length - 1].match(/^(\d{5})\s+(.+)$/);
+            if (match) {
+                postalCode = match[1];
+                city = match[2];
+                lines.pop();
+            }
+        }
+        return {
+            street: lines.join(' '),
+            postalCode: postalCode,
+            city: city
+        };
+    }
+
+    function enhanceOfficerCards($form) {
+        $form.find('.ufsc-dirigeant-section').each(function() {
+            const $card = $(this);
+            const $address = $card.find('input[name$="_adresse"]').first();
+            if (!$address.length || $card.find('.ufsc-officer-postal-field').length) return;
+
+            const addressName = $address.attr('name') || '';
+            const prefix = addressName.replace(/_adresse$/, '');
+            if (!prefix) return;
+
+            const required = $address.prop('required');
+            const parsed = splitStoredOfficerAddress($address.val());
+            $address.val(parsed.street);
+
+            const postalId = prefix + '_code_postal_ui';
+            const cityId = prefix + '_ville_ui';
+            const requiredClass = required ? ' required' : '';
+            const requiredAttr = required ? ' required' : '';
+
+            const $postal = $(
+                '<div class="ufsc-field ufsc-officer-postal-field">' +
+                    '<label class="ufsc-label' + requiredClass + '" for="' + postalId + '">Code postal</label>' +
+                    '<input type="text" inputmode="numeric" maxlength="5" pattern="[0-9]{5}" id="' + postalId + '" name="' + postalId + '"' + requiredAttr + ' />' +
+                    '<div class="ufsc-field-error" aria-live="polite"></div>' +
+                '</div>'
+            );
+            const $city = $(
+                '<div class="ufsc-field ufsc-officer-postal-field">' +
+                    '<label class="ufsc-label' + requiredClass + '" for="' + cityId + '">Ville</label>' +
+                    '<input type="text" id="' + cityId + '" name="' + cityId + '"' + requiredAttr + ' />' +
+                    '<div class="ufsc-field-error" aria-live="polite"></div>' +
+                '</div>'
+            );
+
+            $postal.find('input').val(parsed.postalCode);
+            $city.find('input').val(parsed.city);
+
+            const $addressField = $address.closest('.ufsc-field');
+            if ($addressField.length) {
+                $addressField.after($city).after($postal);
+            } else {
+                $card.append($postal, $city);
+            }
+
+            // The card heading already tells the user whether this person is the
+            // president, secretary, treasurer or coach. "Poste" therefore means
+            // profession here, not the person's function in the club.
+            const $job = $card.find('input[name="' + prefix + '_poste"]').first();
+            if ($job.length) {
+                const $jobLabel = $card.find('label[for="' + prefix + '_poste"]').first();
+                if ($jobLabel.length) $jobLabel.text('Profession');
+            }
+        });
+
+        $form.on('submit.ufscOfficerAddress', function() {
+            $form.find('.ufsc-dirigeant-section').each(function() {
+                const $card = $(this);
+                const $address = $card.find('input[name$="_adresse"]').first();
+                if (!$address.length) return;
+                const prefix = ($address.attr('name') || '').replace(/_adresse$/, '');
+                if (!prefix) return;
+
+                const $postal = $card.find('input[name="' + prefix + '_code_postal_ui"]').first();
+                const $city = $card.find('input[name="' + prefix + '_ville_ui"]').first();
+                if (!$postal.length || !$city.length) return;
+
+                const parsed = splitStoredOfficerAddress($address.val());
+                const street = $.trim(parsed.street || $address.val() || '');
+                const postalCode = $.trim($postal.val() || '');
+                const city = $.trim($city.val() || '');
+                const locality = $.trim(postalCode + ' ' + city);
+                $address.val([street, locality].filter(Boolean).join('\n'));
+            });
+        });
+    }
+
     function sectionByLegend($sections, labels) {
         let found = $();
         $sections.each(function() {
@@ -396,7 +503,7 @@
             else clearFieldError($(this));
         });
 
-        $form.find('input[name="code_postal"]').on('blur.ufscClub', function() {
+        $form.on('blur.ufscClub', 'input[name="code_postal"], input[name$="_code_postal_ui"]', function() {
             const postalCode = $.trim($(this).val());
             if (postalCode && !/^\d{5}$/.test(postalCode)) showFieldError($(this), 'Le code postal doit contenir 5 chiffres');
             else clearFieldError($(this));
