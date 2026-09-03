@@ -7,6 +7,17 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 class UFSC_User_Club_Mapping {
 
+    /** Request-local caches: one portal page asks for the same mapping many times. */
+    private static $resolution_cache = array();
+    private static $club_cache = array();
+
+    /** Reset request-local values after a relation write. */
+    private static function clear_user_cache( $user_id ) {
+        $user_id = absint( $user_id );
+        if ( $user_id < 1 ) { return; }
+        unset( self::$resolution_cache[ $user_id ], self::$club_cache[ $user_id ] );
+    }
+
     /**
      * Return the canonical clubs table used by admin, front-end and mapping.
      *
@@ -45,8 +56,19 @@ class UFSC_User_Club_Mapping {
      * Email matches are returned as diagnostic-only and never become an automatic link.
      */
     public static function resolve_user_club( $user_id ) {
+        $user_id = absint( $user_id );
+        if ( $user_id < 1 ) {
+            return array( 'found' => false, 'club_id' => 0, 'source' => 'none', 'confidence' => 'none', 'diagnostic_code' => 'invalid_user' );
+        }
+
+        if ( array_key_exists( $user_id, self::$resolution_cache ) ) {
+            return self::$resolution_cache[ $user_id ];
+        }
+
         if ( class_exists( 'UFSC_Storage_Resolver' ) ) {
-            return UFSC_Storage_Resolver::resolve_club_for_user( $user_id );
+            $result = UFSC_Storage_Resolver::resolve_club_for_user( $user_id );
+            self::$resolution_cache[ $user_id ] = is_array( $result ) ? $result : array( 'found' => false, 'club_id' => 0, 'source' => 'none', 'confidence' => 'none', 'diagnostic_code' => 'resolver_invalid_result' );
+            return self::$resolution_cache[ $user_id ];
         }
 
         global $wpdb;
@@ -54,7 +76,10 @@ class UFSC_User_Club_Mapping {
         $pk_col          = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id';
         $responsable_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id';
         $club_id = $wpdb->get_var( $wpdb->prepare( "SELECT `{$pk_col}` FROM `{$clubs_table}` WHERE `{$responsable_col}` = %d LIMIT 1", $user_id ) );
-        return $club_id ? array( 'found' => true, 'club_id' => (int) $club_id, 'source' => 'club_column:responsable_id', 'confidence' => 'high', 'diagnostic_code' => 'explicit_column_match' ) : array( 'found' => false, 'club_id' => 0, 'source' => 'none', 'confidence' => 'none', 'diagnostic_code' => 'no_relation' );
+        self::$resolution_cache[ $user_id ] = $club_id
+            ? array( 'found' => true, 'club_id' => (int) $club_id, 'source' => 'club_column:responsable_id', 'confidence' => 'high', 'diagnostic_code' => 'explicit_column_match' )
+            : array( 'found' => false, 'club_id' => 0, 'source' => 'none', 'confidence' => 'none', 'diagnostic_code' => 'no_relation' );
+        return self::$resolution_cache[ $user_id ];
     }
 
     /**
@@ -66,12 +91,22 @@ class UFSC_User_Club_Mapping {
     public static function get_user_club( $user_id ) {
         global $wpdb;
 
+        $user_id = absint( $user_id );
+        if ( $user_id < 1 ) { return false; }
+        if ( array_key_exists( $user_id, self::$club_cache ) ) {
+            return self::$club_cache[ $user_id ];
+        }
+
         $club_id = self::get_user_club_id( $user_id );
-        if ( ! $club_id ) { return false; }
+        if ( ! $club_id ) {
+            self::$club_cache[ $user_id ] = false;
+            return false;
+        }
         $clubs_table = self::get_clubs_table();
         $pk_col = class_exists( 'UFSC_Storage_Resolver' ) ? UFSC_Storage_Resolver::first_existing_column( $clubs_table, array( 'id', 'club_id', 'ID' ) ) : ( function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id' );
         $club = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$clubs_table}` WHERE `{$pk_col}` = %d LIMIT 1", $club_id ) );
-        return $club ?: false;
+        self::$club_cache[ $user_id ] = $club ?: false;
+        return self::$club_cache[ $user_id ];
     }
 
     /**
@@ -84,14 +119,15 @@ class UFSC_User_Club_Mapping {
     public static function associate_user_with_club( $user_id, $club_id ) {
         global $wpdb;
 
-        $user = get_user_by( 'id', (int) $user_id );
-        if ( ! $user ) { return false; }
+        $user_id = absint( $user_id );
+        $club_id = absint( $club_id );
+        $user = get_user_by( 'id', $user_id );
+        if ( ! $user || $club_id < 1 ) { return false; }
 
         $clubs_table     = self::get_clubs_table();
         $pk_col          = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id';
         $responsable_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id';
 
-        // Le club existe-t-il ?
         $exists = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT `{$pk_col}` FROM `{$clubs_table}` WHERE `{$pk_col}` = %d LIMIT 1",
@@ -100,7 +136,6 @@ class UFSC_User_Club_Mapping {
         );
         if ( ! $exists ) { return false; }
 
-        // L'utilisateur est-il déjà responsable d'un autre club ?
         $existing = self::get_user_club_id( $user_id );
         if ( $existing && (int) $existing !== (int) $club_id ) {
             return false;
@@ -108,13 +143,17 @@ class UFSC_User_Club_Mapping {
 
         $res = $wpdb->update(
             $clubs_table,
-            array( $responsable_col => (int) $user_id ),
-            array( $pk_col => (int) $club_id ),
+            array( $responsable_col => $user_id ),
+            array( $pk_col => $club_id ),
             array( '%d' ),
             array( '%d' )
         );
 
-        return $res !== false;
+        if ( false !== $res ) {
+            self::clear_user_cache( $user_id );
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -126,16 +165,16 @@ class UFSC_User_Club_Mapping {
     public static function remove_user_club_association( $user_id ) {
         global $wpdb;
 
+        $user_id = absint( $user_id );
         $club_id = self::get_user_club_id( $user_id );
         if ( ! $club_id ) {
-            return true; // déjà sans association
+            return true;
         }
 
         $clubs_table     = self::get_clubs_table();
         $pk_col          = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'id' ) : 'id';
         $responsable_col = function_exists( 'ufsc_club_col' ) ? ufsc_club_col( 'responsable_id' ) : 'responsable_id';
 
-        // Mettre explicitement la colonne à NULL pour éviter les problèmes de format.
         $result = $wpdb->query(
             $wpdb->prepare(
                 "UPDATE `{$clubs_table}` SET `{$responsable_col}` = NULL WHERE `{$pk_col}` = %d",
@@ -144,9 +183,10 @@ class UFSC_User_Club_Mapping {
         );
 
         if ( $result !== false ) {
+            self::clear_user_cache( $user_id );
             if ( function_exists( 'ufsc_audit_log' ) ) {
                 ufsc_audit_log( 'user_club_dissociated', array(
-                    'user_id'       => (int) $user_id,
+                    'user_id'       => $user_id,
                     'club_id'       => (int) $club_id,
                     'admin_user_id' => get_current_user_id(),
                 ) );
@@ -219,7 +259,6 @@ class UFSC_User_Club_Mapping {
      * @return bool
      */
     public static function user_can_manage_club( $user_id, $club_id ) {
-        // Les administrateurs peuvent tout gérer.
         if ( current_user_can( 'manage_options' ) ) {
             return true;
         }
@@ -240,7 +279,6 @@ class UFSC_User_Club_Mapping {
 
         $clubs_table = self::get_clubs_table();
 
-        // Validation de la région via la liste déclarée par le plugin.
         $valid_regions = function_exists( 'ufsc_get_regions_list' ) ? ufsc_get_regions_list() : array();
         if ( ! in_array( $region, $valid_regions, true ) ) {
             return false;
