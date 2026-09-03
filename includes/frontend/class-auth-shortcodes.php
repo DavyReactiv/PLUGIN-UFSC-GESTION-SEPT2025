@@ -35,7 +35,7 @@ class UFSC_Auth_Shortcodes {
 
         $atts = shortcode_atts( array(
             'redirect_admin' => admin_url( 'admin.php?page=ufsc-gestion' ),
-            'redirect_club' => home_url( '/club-dashboard/' ),
+            'redirect_club' => self::get_club_dashboard_url(),
             'redirect_default' => home_url(),
             'show_register' => 'true',
             'show_lost_password' => 'true',
@@ -240,6 +240,15 @@ class UFSC_Auth_Shortcodes {
         );
     }
 
+    /** Canonical public club dashboard URL. */
+    private static function get_club_dashboard_url() {
+        /**
+         * Filter the public club dashboard URL without duplicating slugs in the
+         * authentication flow. Production currently uses /tableau-de-bord-club/.
+         */
+        return apply_filters( 'ufsc_club_dashboard_url', home_url( '/tableau-de-bord-club/' ) );
+    }
+
     /** Get already logged in message. */
     private static function render_already_logged_in() {
         $user = wp_get_current_user();
@@ -270,7 +279,7 @@ class UFSC_Auth_Shortcodes {
             $status_label = $is_renewal ? __( 'À renouveler', 'ufsc-clubs' ) : __( 'Nouvelle affiliation en cours', 'ufsc-clubs' );
         }
 
-        $dashboard_url = home_url( '/tableau-de-bord-club/' );
+        $dashboard_url = self::get_club_dashboard_url();
         ob_start();
         ?>
         <div class="ufsc-already-logged-in ufsc-card">
@@ -309,7 +318,7 @@ class UFSC_Auth_Shortcodes {
 
             $club_id = ufsc_get_user_club_id( $user->ID );
             if ( $club_id ) {
-                return home_url( '/club-dashboard/' );
+                return self::get_club_dashboard_url();
             }
 
             return home_url();
@@ -326,7 +335,7 @@ class UFSC_Auth_Shortcodes {
 
         $club_id = ufsc_get_user_club_id( $user->ID );
         if ( $club_id ) {
-            return home_url( '/club-dashboard/' );
+            return self::get_club_dashboard_url();
         }
 
         return home_url();
