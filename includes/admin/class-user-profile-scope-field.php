@@ -75,3 +75,17 @@ class UFSC_User_Profile_Scope_Field {
         update_user_meta( $user_id, UFSC_Scope::USER_META_KEY, $value );
     }
 }
+
+// Admin-only FFST paperwork workspace. Loaded from an already-required admin module
+// to avoid adding any front-office dependency or shortcode exposure.
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin.php';
+add_action( 'admin_menu', static function() {
+    add_submenu_page(
+        'ufsc-dashboard',
+        __( 'Dossiers FFST', 'ufsc-clubs' ),
+        __( 'Dossiers FFST', 'ufsc-clubs' ),
+        UFSC_Permissions::CAP_GESTION_MANAGE,
+        'ufsc-ffst-documents',
+        array( 'UFSC_FFST_Documents_Admin', 'render' )
+    );
+}, 25 );
