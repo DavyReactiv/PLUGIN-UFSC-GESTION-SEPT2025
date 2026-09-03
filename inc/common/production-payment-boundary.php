@@ -69,9 +69,26 @@ final class UFSC_Production_Payment_Boundary {
 		}
 
 		if ( function_exists( 'ufsc_is_club_affiliated_for_season' ) && ufsc_is_club_affiliated_for_season( $club_id, $season ) ) {
-			return $location;
+			self::notice( __( 'Votre club est déjà affilié pour cette saison. Aucune nouvelle commande n’est nécessaire.', 'ufsc-clubs' ), 'notice' );
+			return home_url( '/tableau-de-bord-club/' );
 		}
+
+		// Never create a second affiliation order for the same club and season.
+		if ( function_exists( 'ufsc_wc_has_pending_renewal_order' ) && ufsc_wc_has_pending_renewal_order( 'renew_affiliation', $club_id, $season ) ) {
+			$payment_url = function_exists( 'ufsc_get_pending_affiliation_payment_url' )
+				? (string) ufsc_get_pending_affiliation_payment_url( $club_id, $season )
+				: '';
+			if ( '' !== $payment_url ) {
+				self::notice( __( 'Une demande d’affiliation existe déjà. Reprenez simplement le paiement de la commande existante.', 'ufsc-clubs' ), 'notice' );
+				return $payment_url;
+			}
+
+			self::notice( __( 'Votre demande d’affiliation est déjà enregistrée et en attente de traitement. Ne créez pas une nouvelle commande.', 'ufsc-clubs' ), 'notice' );
+			return home_url( '/tableau-de-bord-club/' );
+		}
+
 		if ( function_exists( 'ufsc_cart_has_renewal_item' ) && ufsc_cart_has_renewal_item( 'renew_affiliation', $club_id, $season ) ) {
+			self::notice( __( 'Votre affiliation est déjà dans le panier. Vous pouvez finaliser la commande sans l’ajouter une seconde fois.', 'ufsc-clubs' ), 'notice' );
 			return function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : $location;
 		}
 
