@@ -20,7 +20,7 @@ class UFSC_Auth_Shortcodes {
 
     /**
      * Render login form with role-aware redirects
-     * 
+     *
      * @param array $atts Shortcode attributes
      * @return string HTML output
      */
@@ -47,7 +47,6 @@ class UFSC_Auth_Shortcodes {
             return self::render_already_logged_in();
         }
 
-
         $error_message = '';
         if ( isset( $_GET['login'] ) && $_GET['login'] === 'failed' ) {
             $error_message = __( 'Identifiant ou mot de passe incorrect.', 'ufsc-clubs' );
@@ -65,13 +64,11 @@ class UFSC_Auth_Shortcodes {
                 $username_error = __( 'Identifiants invalides.', 'ufsc-clubs' );
                 $password_error = __( 'Identifiants invalides.', 'ufsc-clubs' );
             }
-
         }
 
         ob_start();
         ?>
         <div class="<?php echo esc_attr( $atts['class'] ); ?>">
-
             <div class="ufsc-card ufsc-col-span-2 ufsc-login-card">
                 <?php if ( ! empty( $atts['title'] ) ): ?>
                     <h3 class="ufsc-login-title"><?php echo esc_html( $atts['title'] ); ?></h3>
@@ -85,7 +82,6 @@ class UFSC_Auth_Shortcodes {
 
                 <form method="post" action="<?php echo esc_url( site_url( 'wp-login.php', 'login_post' ) ); ?>" class="ufsc-form ufsc-login-form">
                     <?php wp_nonce_field( 'ufsc_login', 'ufsc_login_nonce' ); ?>
-
                     <input type="hidden" name="redirect_to" value="<?php echo esc_url( self::get_dynamic_redirect_url( $atts ) ); ?>" />
 
                     <div class="ufsc-field">
@@ -131,15 +127,11 @@ class UFSC_Auth_Shortcodes {
                 </form>
             </div>
         </div>
-
-
         <?php
         return ob_get_clean();
     }
 
-    /**
-     * Redirect back to form on failed login
-     */
+    /** Redirect back to form on failed login. */
     public static function handle_login_failed() {
         $referrer = (string) ( wp_get_referer() ?? '' );
         if ( '' !== $referrer && false === strpos( $referrer, 'wp-login.php' ) && false === strpos( $referrer, 'wp-admin' ) ) {
@@ -148,12 +140,7 @@ class UFSC_Auth_Shortcodes {
         }
     }
 
-    /**
-     * Render logout button
-     * 
-     * @param array $atts Shortcode attributes
-     * @return string HTML output
-     */
+    /** Render logout button. */
     public static function render_logout_button( $atts = array() ) {
         $atts = shortcode_atts( array(
             'text' => __( 'Se déconnecter', 'ufsc-clubs' ),
@@ -167,9 +154,9 @@ class UFSC_Auth_Shortcodes {
         }
 
         $logout_url = wp_logout_url( $atts['redirect'] );
-        $onclick = $atts['confirm'] === 'true' ? 
-            'return confirm(\'' . esc_js( __( 'Êtes-vous sûr de vouloir vous déconnecter ?', 'ufsc-clubs' ) ) . '\')' : 
-            '';
+        $onclick = $atts['confirm'] === 'true'
+            ? 'return confirm(\'' . esc_js( __( 'Êtes-vous sûr de vouloir vous déconnecter ?', 'ufsc-clubs' ) ) . '\')'
+            : '';
 
         return sprintf(
             '<a href="%s" class="%s" onclick="%s">%s</a>',
@@ -180,12 +167,7 @@ class UFSC_Auth_Shortcodes {
         );
     }
 
-    /**
-     * Render user status information
-     * 
-     * @param array $atts Shortcode attributes
-     * @return string HTML output
-     */
+    /** Render user status information. */
     public static function render_user_status( $atts = array() ) {
         wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), UFSC_CL_VERSION );
 
@@ -198,9 +180,7 @@ class UFSC_Auth_Shortcodes {
         ), $atts, 'ufsc_user_status' );
 
         if ( ! is_user_logged_in() ) {
-            return '<div class="ufsc-user-status ufsc-not-logged-in">' .
-                   esc_html__( 'Non connecté', 'ufsc-clubs' ) .
-                   '</div>';
+            return '<div class="ufsc-user-status ufsc-not-logged-in">' . esc_html__( 'Non connecté', 'ufsc-clubs' ) . '</div>';
         }
 
         $user = wp_get_current_user();
@@ -210,33 +190,21 @@ class UFSC_Auth_Shortcodes {
         ?>
         <div class="ufsc-user-status ufsc-logged-in">
             <?php if ( $atts['show_avatar'] === 'true' ): ?>
-                <div class="ufsc-user-avatar">
-                    <?php echo get_avatar( $user->ID, $atts['avatar_size'] ); ?>
-                </div>
+                <div class="ufsc-user-avatar"><?php echo get_avatar( $user->ID, $atts['avatar_size'] ); ?></div>
             <?php endif; ?>
-
             <div class="ufsc-user-info">
-                <div class="ufsc-user-name">
-                    <strong><?php echo esc_html( $user->display_name ); ?></strong>
-                </div>
-
+                <div class="ufsc-user-name"><strong><?php echo esc_html( $user->display_name ); ?></strong></div>
                 <?php if ( $atts['show_role'] === 'true' ): ?>
-                    <div class="ufsc-user-role">
-                        <?php echo esc_html( ucfirst( implode( ', ', $user->roles ) ) ); ?>
-                    </div>
+                    <div class="ufsc-user-role"><?php echo esc_html( ucfirst( implode( ', ', $user->roles ) ) ); ?></div>
                 <?php endif; ?>
-
                 <?php if ( $atts['show_club'] === 'true' && $club ): ?>
                     <div class="ufsc-user-club">
                         <small><?php echo esc_html( $club->nom ); ?></small>
                         <?php echo UFSC_Badge_Helper::render_region_badge( $club->region ); ?>
                     </div>
                 <?php endif; ?>
-
                 <?php if ( $atts['show_logout'] === 'true' ): ?>
-                    <div class="ufsc-user-actions">
-                        <?php echo self::render_logout_button( array( 'text' => __( 'Déconnexion', 'ufsc-clubs' ) ) ); ?>
-                    </div>
+                    <div class="ufsc-user-actions"><?php echo self::render_logout_button( array( 'text' => __( 'Déconnexion', 'ufsc-clubs' ) ) ); ?></div>
                 <?php endif; ?>
             </div>
         </div>
@@ -245,74 +213,112 @@ class UFSC_Auth_Shortcodes {
     }
 
     /**
-     * Get already logged in message
+     * Determine whether the club already owns any annual affiliation record.
+     * This is deliberately a cheap EXISTS-style query: the login summary only
+     * needs to distinguish a first affiliation from a renewal.
      */
-    private static function render_already_logged_in() {
-        $user = wp_get_current_user();
-		$club_id = function_exists( 'ufsc_get_user_club_id' ) ? absint( ufsc_get_user_club_id( $user->ID ) ) : 0;
-		$club = $club_id && function_exists( 'ufsc_get_user_club' ) ? ufsc_get_user_club( $user->ID ) : null;
-		if ( ! $club_id || ! $club ) {
-			return '<div class="ufsc-already-logged-in ufsc-card"><h3>' . esc_html__( 'Vous êtes déjà connecté', 'ufsc-clubs' ) . '</h3><p>' . esc_html__( 'Votre compte n’est actuellement rattaché à aucun club. Veuillez contacter l’UFSC.', 'ufsc-clubs' ) . '</p>' . self::render_logout_button() . '</div>';
-		}
-		$season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
-		$annual = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season ) : null;
-		$status = $annual ? sanitize_key( (string) $annual->status ) : 'a_renouveler';
-		$licence_count = 0;
-		if ( class_exists( 'UFSC_Stats' ) ) {
-			$stats = UFSC_Stats::get_club_stats( $club_id, $season );
-			$licence_count = absint( $stats['total_licences'] ?? 0 );
-		}
-		$dashboard_url = home_url( '/tableau-de-bord-club/' );
-		ob_start();
-		?>
-		<div class="ufsc-already-logged-in ufsc-card">
-			<h3><?php esc_html_e( 'Vous êtes déjà connecté', 'ufsc-clubs' ); ?></h3>
-			<p><?php echo esc_html( sprintf( __( 'Vous êtes connecté en tant que %1$s pour le club %2$s.', 'ufsc-clubs' ), $user->display_name, $club->nom ) ); ?></p>
-			<dl><dt><?php esc_html_e( 'Saison courante', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $season ); ?></dd><dt><?php esc_html_e( 'Statut annuel', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( 'a_renouveler' === $status ? __( 'À renouveler', 'ufsc-clubs' ) : $status ); ?></dd><dt><?php esc_html_e( 'Licences courantes', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $licence_count ); ?></dd></dl>
-			<?php if ( 'a_renouveler' === $status ) : ?><div class="ufsc-alert ufsc-alert-warning"><?php echo esc_html( sprintf( __( 'Affiliation %s à renouveler', 'ufsc-clubs' ), $season ) ); ?></div><?php endif; ?>
-			<div class="ufsc-login-actions"><a href="<?php echo esc_url( $dashboard_url ); ?>" class="ufsc-btn ufsc-btn-primary"><?php esc_html_e( 'Accéder au tableau de bord du club', 'ufsc-clubs' ); ?></a><?php echo self::render_logout_button(); ?></div>
-		</div>
-		<?php
-		return ob_get_clean();
+    private static function club_has_affiliation_history( $club_id ) {
+        global $wpdb;
+
+        $club_id = absint( $club_id );
+        if ( $club_id < 1 || ! class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+            return false;
+        }
+
+        $table = UFSC_Season_Archive_Manager::get_affiliations_table();
+        $columns = class_exists( 'UFSC_Storage_Resolver' )
+            ? (array) UFSC_Storage_Resolver::get_columns( $table )
+            : ( function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : array() );
+        $club_column = in_array( 'club_id', $columns, true ) ? 'club_id' : ( in_array( 'id_club', $columns, true ) ? 'id_club' : '' );
+
+        if ( '' === $club_column ) {
+            return false;
+        }
+
+        return (bool) $wpdb->get_var(
+            $wpdb->prepare( "SELECT 1 FROM `{$table}` WHERE `{$club_column}` = %d LIMIT 1", $club_id )
+        );
     }
 
-    /**
-     * Get dynamic redirect URL based on user role
-     */
+    /** Get already logged in message. */
+    private static function render_already_logged_in() {
+        $user = wp_get_current_user();
+        $club_id = function_exists( 'ufsc_get_user_club_id' ) ? absint( ufsc_get_user_club_id( $user->ID ) ) : 0;
+        $club = $club_id && function_exists( 'ufsc_get_user_club' ) ? ufsc_get_user_club( $user->ID ) : null;
+
+        if ( ! $club_id || ! $club ) {
+            return '<div class="ufsc-already-logged-in ufsc-card"><h3>' . esc_html__( 'Vous êtes déjà connecté', 'ufsc-clubs' ) . '</h3><p>' . esc_html__( 'Votre compte n’est actuellement rattaché à aucun club. Veuillez contacter l’UFSC.', 'ufsc-clubs' ) . '</p>' . self::render_logout_button() . '</div>';
+        }
+
+        $season = class_exists( 'UFSC_Season_Service' )
+            ? UFSC_Season_Service::get_current_season()
+            : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+        $annual = class_exists( 'UFSC_Season_Archive_Manager' ) ? UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season ) : null;
+
+        if ( $annual ) {
+            $status = sanitize_key( (string) ( $annual->status ?? '' ) );
+            if ( function_exists( 'ufsc_get_affiliation_renewal_state' ) ) {
+                $state = ufsc_get_affiliation_renewal_state( $club_id, $season );
+                $status = sanitize_key( (string) ( $state['status'] ?? $status ) );
+                $status_label = (string) ( $state['label'] ?? $status );
+            } else {
+                $status_label = 'a_renouveler' === $status ? __( 'À renouveler', 'ufsc-clubs' ) : $status;
+            }
+        } else {
+            $is_renewal = self::club_has_affiliation_history( $club_id );
+            $status = $is_renewal ? 'renewal_required' : 'new_affiliation';
+            $status_label = $is_renewal ? __( 'À renouveler', 'ufsc-clubs' ) : __( 'Nouvelle affiliation en cours', 'ufsc-clubs' );
+        }
+
+        $dashboard_url = home_url( '/tableau-de-bord-club/' );
+        ob_start();
+        ?>
+        <div class="ufsc-already-logged-in ufsc-card">
+            <h3><?php esc_html_e( 'Vous êtes déjà connecté', 'ufsc-clubs' ); ?></h3>
+            <p><?php echo esc_html( sprintf( __( 'Vous êtes connecté en tant que %1$s pour le club %2$s.', 'ufsc-clubs' ), $user->display_name, $club->nom ) ); ?></p>
+            <dl>
+                <dt><?php esc_html_e( 'Saison courante', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $season ); ?></dd>
+                <dt><?php esc_html_e( 'Statut annuel', 'ufsc-clubs' ); ?></dt><dd><?php echo esc_html( $status_label ); ?></dd>
+            </dl>
+            <?php if ( 'new_affiliation' === $status ) : ?>
+                <div class="ufsc-alert ufsc-alert-info"><?php echo esc_html( sprintf( __( 'Affiliation %s à finaliser', 'ufsc-clubs' ), $season ) ); ?></div>
+            <?php elseif ( in_array( $status, array( 'a_renouveler', 'renewal_required' ), true ) ) : ?>
+                <div class="ufsc-alert ufsc-alert-warning"><?php echo esc_html( sprintf( __( 'Affiliation %s à renouveler', 'ufsc-clubs' ), $season ) ); ?></div>
+            <?php endif; ?>
+            <div class="ufsc-login-actions">
+                <a href="<?php echo esc_url( $dashboard_url ); ?>" class="ufsc-btn ufsc-btn-primary"><?php esc_html_e( 'Accéder au tableau de bord du club', 'ufsc-clubs' ); ?></a>
+                <?php echo self::render_logout_button(); ?>
+            </div>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
+    /** Get dynamic redirect URL based on user role. */
     private static function get_dynamic_redirect_url( $atts ) {
-        // For login form, we need to determine redirect after login
-        // We'll use a custom login redirect hook
         add_filter( 'login_redirect', array( __CLASS__, 'handle_login_redirect' ), 10, 3 );
-        
         return $atts['redirect_default'];
     }
 
-    /**
-     * Handle login redirect based on user role
-     */
+    /** Handle login redirect based on user role. */
     public static function handle_login_redirect( $redirect_to, $request, $user ) {
         if ( ! is_wp_error( $user ) ) {
-            // Admin users go to admin dashboard
             if ( user_can( $user, 'manage_options' ) ) {
                 return admin_url( 'admin.php?page=ufsc-gestion' );
             }
-            
-            // Club managers go to club dashboard
+
             $club_id = ufsc_get_user_club_id( $user->ID );
             if ( $club_id ) {
                 return home_url( '/club-dashboard/' );
             }
-            
-            // Regular users go to homepage
+
             return home_url();
         }
-        
+
         return $redirect_to;
     }
 
-    /**
-     * Get appropriate dashboard URL for user
-     */
+    /** Get appropriate dashboard URL for user. */
     private static function get_user_dashboard_url( $user ) {
         if ( user_can( $user, 'manage_options' ) ) {
             return admin_url( 'admin.php?page=ufsc-gestion' );
@@ -327,13 +333,7 @@ class UFSC_Auth_Shortcodes {
     }
 }
 
-
-/**
- * Redirect newly registered users to the club creation page.
- *
- * @param string $redirect_to Default redirect URL.
- * @return string Modified redirect URL.
- */
+/** Redirect newly registered users to the club creation page. */
 function ufsc_handle_registration_form( $redirect_to ) {
     return home_url( '/creation-du-club/' );
 }
