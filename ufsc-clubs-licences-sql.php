@@ -187,7 +187,7 @@ final class UFSC_CL_Bootstrap {
         add_action( 'init', array( 'UFSC_Permissions', 'init' ) );
         add_action( 'init', array( 'UFSC_Simplified_Admin', 'init' ) );
         add_action( 'init', array( 'UFSC_User_Profile_Scope_Field', 'init' ) );
-        add_action( 'plugins_loaded', array( 'UFSC_DB_Migrations', 'run_migrations' ) );
+        add_action( 'admin_init', array( 'UFSC_DB_Migrations', 'run_migrations' ) );
 
         // Initialize UFSC Gestion WooCommerce hooks
         add_action( 'plugins_loaded', 'ufsc_init_woocommerce_hooks' );
