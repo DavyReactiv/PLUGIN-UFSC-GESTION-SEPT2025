@@ -80,6 +80,7 @@ class UFSC_User_Profile_Scope_Field {
 // to avoid adding any front-office dependency or shortcode exposure.
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-compliance-admin.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-print-admin.php';
 add_action( 'admin_menu', static function() {
     add_submenu_page(
         'ufsc-dashboard',
