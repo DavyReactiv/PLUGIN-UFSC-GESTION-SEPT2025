@@ -168,13 +168,16 @@ final class UFSC_New_Club_Onboarding_Hardening {
 	public static function translate_checkout_labels( $translated, $text, $domain ) {
 		unset( $domain );
 		if ( is_admin() || ! function_exists( 'is_checkout' ) || ! is_checkout() ) { return $translated; }
+
+		// Do not call translation helpers from inside the gettext filter: doing so
+		// would trigger gettext again and recurse indefinitely on checkout requests.
 		$map = array(
-			'Checkout'             => __( 'Finaliser mon affiliation', 'ufsc-clubs' ),
-			'Customer information' => __( 'Informations du responsable', 'ufsc-clubs' ),
-			'Your order'           => __( 'Votre affiliation', 'ufsc-clubs' ),
-			'Payment'              => __( 'Paiement', 'ufsc-clubs' ),
-			'Billing details'      => __( 'Coordonnées de facturation', 'ufsc-clubs' ),
-			'Place order'          => __( 'Valider mon affiliation', 'ufsc-clubs' ),
+			'Checkout'             => 'Finaliser mon affiliation',
+			'Customer information' => 'Informations du responsable',
+			'Your order'           => 'Votre affiliation',
+			'Payment'              => 'Paiement',
+			'Billing details'      => 'Coordonnées de facturation',
+			'Place order'          => 'Valider mon affiliation',
 		);
 		return isset( $map[ $text ] ) ? $map[ $text ] : $translated;
 	}
@@ -217,7 +220,6 @@ final class UFSC_New_Club_Onboarding_Hardening {
 			if ( '' === $value ) { $missing[] = $label; }
 		}
 		if ( ! $missing ) { return; }
-
 		$redirect = wp_get_referer() ?: self::affiliation_url();
 		$message = sprintf( __( 'Adresse postale complète obligatoire pour : %s.', 'ufsc-clubs' ), implode( ', ', $missing ) );
 		wp_safe_redirect( add_query_arg( 'ufsc_error', rawurlencode( $message ), $redirect ) );
