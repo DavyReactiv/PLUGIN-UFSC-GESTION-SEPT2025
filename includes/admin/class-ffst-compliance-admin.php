@@ -47,7 +47,17 @@ final class UFSC_FFST_Compliance_Admin {
         $state = self::get_state( $club_id, $season );
         $return_url = admin_url( 'admin.php?page=ufsc-ffst-documents&club_id=' . $club_id );
 
-        echo '<div class="wrap" style="margin-top:18px"><div class="postbox" style="padding:18px">';
+        echo '<style>
+            .ufsc-ffst-section{max-width:1180px;margin:18px 20px 0 0;box-sizing:border-box}
+            .ufsc-ffst-section .postbox{padding:20px;border-radius:10px;overflow:hidden;box-sizing:border-box}
+            .ufsc-ffst-section .form-table{table-layout:fixed;width:100%}
+            .ufsc-ffst-section .form-table th{width:220px}
+            .ufsc-ffst-section textarea.large-text{width:100%;max-width:100%;box-sizing:border-box;min-height:110px}
+            .ufsc-ffst-section form{max-width:100%}
+            @media(max-width:1100px){.ufsc-ffst-section{max-width:none;margin-right:12px}.ufsc-ffst-section .form-table th{width:180px}}
+            @media(max-width:782px){.ufsc-ffst-section .form-table,.ufsc-ffst-section .form-table tbody,.ufsc-ffst-section .form-table tr,.ufsc-ffst-section .form-table th,.ufsc-ffst-section .form-table td{display:block;width:100%}.ufsc-ffst-section .form-table th{padding-bottom:4px}.ufsc-ffst-section .form-table td{padding-top:4px}}
+        </style>';
+        echo '<div class="ufsc-ffst-section"><div class="postbox">';
         echo '<h2 style="margin-top:0">' . esc_html__( '4. Attestations, signatures et pièces signées', 'ufsc-clubs' ) . '</h2>';
         echo '<p>' . esc_html__( 'Suivi interne UFSC uniquement. Utilisez cet écran pour savoir si le dossier signé et les attestations d’assurance ont été reçus.', 'ufsc-clubs' ) . '</p>';
 
