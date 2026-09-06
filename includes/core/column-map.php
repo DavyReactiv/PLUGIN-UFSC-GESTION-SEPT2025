@@ -8,11 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 class UFSC_Column_Map {
 
-    /**
-     * Get default clubs column mapping.
-     *
-     * @return array Default column mappings for clubs table
-     */
+    /** Get default clubs column mapping. */
     public static function get_default_clubs_columns() {
         return array(
             'id'                         => 'id',
@@ -55,6 +51,10 @@ class UFSC_Column_Map {
             'attestation_cer'            => 'attestation_cer',
             'doc_attestation_affiliation'=> 'doc_attestation_affiliation',
             'num_affiliation'            => 'num_affiliation',
+            'numero_affiliation_ufsc'    => 'numero_affiliation_ufsc',
+            'numero_affiliation_ffst'    => 'numero_affiliation_ffst',
+            // Legacy storage key kept for historical seasons only.
+            'numero_affiliation_asptt'   => 'numero_affiliation_asptt',
             'quota_licences'             => 'quota_licences',
             'statut'                     => 'statut',
             'date_creation'              => 'date_creation',
@@ -76,11 +76,7 @@ class UFSC_Column_Map {
         );
     }
 
-    /**
-     * Get default licences column mapping.
-     *
-     * @return array Default column mappings for licences table
-     */
+    /** Get default licences column mapping. */
     public static function get_default_licences_columns() {
         return array(
             'id'                          => 'id',
@@ -102,18 +98,13 @@ class UFSC_Column_Map {
             'tel_mobile'                  => 'tel_mobile',
             'reduction_benevole'          => 'reduction_benevole',
             'reduction_benevole_num'      => 'reduction_benevole_num',
-            'reduction_postier'           => 'reduction_postier',
-            'reduction_postier_num'       => 'reduction_postier_num',
-            'identifiant_laposte_flag'    => 'identifiant_laposte_flag',
-            'identifiant_laposte'         => 'identifiant_laposte',
             'profession'                  => 'profession',
             'fonction_publique'           => 'fonction_publique',
             'competition'                 => 'competition',
-            'licence_delegataire'         => 'licence_delegataire',
-            'numero_licence_delegataire'  => 'numero_licence_delegataire',
+            'numero_licence_ufsc'         => 'numero_licence_ufsc',
+            'numero_licence_ffst'         => 'numero_licence_ffst',
             'diffusion_image'             => 'diffusion_image',
-            'infos_fsasptt'               => 'infos_fsasptt',
-            'infos_asptt'                 => 'infos_asptt',
+            'infos_ffst'                  => 'infos_ffst',
             'infos_cr'                    => 'infos_cr',
             'infos_partenaires'           => 'infos_partenaires',
             'honorabilite'                => 'honorabilite',
@@ -127,50 +118,36 @@ class UFSC_Column_Map {
             'responsable_id'              => 'responsable_id',
             'certificat_date'             => 'certificat_date',
             'certificat_url'              => 'certificat_url',
+
+            // Legacy columns remain mapped so historical data is still readable
+            // by diagnostics/import compatibility code, but they are no longer
+            // exposed by the current licence field whitelist.
+            'reduction_postier'           => 'reduction_postier',
+            'reduction_postier_num'       => 'reduction_postier_num',
+            'identifiant_laposte_flag'    => 'identifiant_laposte_flag',
+            'identifiant_laposte'         => 'identifiant_laposte',
+            'licence_delegataire'         => 'licence_delegataire',
+            'numero_licence_delegataire'  => 'numero_licence_delegataire',
+            'infos_fsasptt'               => 'infos_fsasptt',
+            'infos_asptt'                 => 'infos_asptt',
+            'numero_licence_asptt'        => 'numero_licence_asptt',
         );
     }
 
-    /**
-     * Get clubs column mapping with filter hook.
-     *
-     * @return array Filtered column mappings for clubs table
-     */
     public static function get_clubs_columns() {
         return apply_filters( 'ufsc_clubs_columns_map', self::get_default_clubs_columns() );
     }
 
-    /**
-     * Get licences column mapping with filter hook.
-     *
-     * @return array Filtered column mappings for licences table
-     */
     public static function get_licences_columns() {
         return apply_filters( 'ufsc_licences_columns_map', self::get_default_licences_columns() );
     }
 }
 
-/*
- * Column mapping helpers for flexible database column names.
- * These functions return the actual column name for a logical key.
- */
-
-/**
- * Get mapped column name for clubs table.
- *
- * @param string $key Logical key (e.g., 'email', 'ville').
- * @return string The actual column name, or the key if not found.
- */
 function ufsc_club_col( $key ) {
     $columns = UFSC_Column_Map::get_clubs_columns();
     return isset( $columns[ $key ] ) ? $columns[ $key ] : $key;
 }
 
-/**
- * Get mapped column name for licences table.
- *
- * @param string $key Logical key (e.g., 'prenom', 'statut').
- * @return string The actual column name, or the key if not found.
- */
 function ufsc_lic_col( $key ) {
     $columns = UFSC_Column_Map::get_licences_columns();
     return isset( $columns[ $key ] ) ? $columns[ $key ] : $key;
@@ -179,9 +156,6 @@ function ufsc_lic_col( $key ) {
 /**
  * Back-compat shim: return a mapping array per table type.
  * NOTE: Keys ici sont des synonymes "logiques" utilisés par du code legacy.
- *
- * @param string $table_type 'clubs' or 'licences'
- * @return array
  */
 function ufsc_sql_columns_map( $table_type ) {
     if ( $table_type === 'clubs' ) {
@@ -219,14 +193,6 @@ function ufsc_sql_columns_map( $table_type ) {
     return array();
 }
 
-/**
- * Check if a column exists in a table and return the mapped name.
- *
- * @param string $table_name Database table name (with prefix).
- * @param string $logical_key Logical column key.
- * @param string $table_type 'clubs' or 'licences'.
- * @return string|false Actual column name if exists, false otherwise.
- */
 function ufsc_get_mapped_column_if_exists( $table_name, $logical_key, $table_type ) {
     global $wpdb;
 
