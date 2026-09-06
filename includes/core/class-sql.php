@@ -30,19 +30,15 @@ class UFSC_SQL {
                 'president_nom'=>array('Président – Nom','text'),
                 'president_tel'=>array('Président – Téléphone','text'),
                 'president_email'=>array('Président – Email','text'),
-                
                 'president_date_naissance'=>array('Président – Date de naissance','date'),
                 'president_adresse'=>array('Président – Adresse','text'),
                 'president_poste'=>array('Président – Poste','text'),
-
                 'secretaire_date_naissance'=>array('Secrétaire – Date de naissance','date'),
                 'secretaire_adresse'=>array('Secrétaire – Adresse','text'),
                 'secretaire_poste'=>array('Secrétaire – Poste','text'),
-
                 'tresorier_date_naissance'=>array('Trésorier – Date de naissance','date'),
                 'tresorier_adresse'=>array('Trésorier – Adresse','text'),
                 'tresorier_poste'=>array('Trésorier – Poste','text'),
-                
                 'secretaire_prenom'=>array('Secrétaire – Prénom','text'),
                 'secretaire_nom'=>array('Secrétaire – Nom','text'),
                 'secretaire_tel'=>array('Secrétaire – Téléphone','text'),
@@ -63,6 +59,7 @@ class UFSC_SQL {
                 'attestation_cer'=>array('Attestation CER','text'),
                 'doc_attestation_affiliation'=>array('Attestation UFSC','text'),
                 'num_affiliation'=>array('N° Affiliation','text'),
+                'numero_affiliation_ffst'=>array('N° affiliation FFST','text'),
                 'quota_licences'=>array('Quota licences','number'),
                 'statut'=>array('Statut','licence_status'),
                 'date_creation'=>array('Date création','date'),
@@ -105,19 +102,13 @@ class UFSC_SQL {
                 'tel_mobile'=>array('Téléphone mobile','text'),
                 'reduction_benevole'=>array('Réduction bénévole','bool'),
                 'reduction_benevole_num'=>array('Numéro bénévole','text'),
-                'reduction_postier'=>array('Réduction postier','bool'),
-                'reduction_postier_num'=>array('Numéro postier','text'),
-                'identifiant_laposte_flag'=>array('Identifiant La Poste fourni','bool'),
-                'identifiant_laposte'=>array('Identifiant La Poste','text'),
                 'profession'=>array('Profession','text'),
                 'fonction_publique'=>array('Fonction publique','bool'),
                 'competition'=>array('Compétition','bool'),
                 'role'=>array('Rôle dans le club','text'),
-                'licence_delegataire'=>array('Licence délégataire','bool'),
-                'numero_licence_delegataire'=>array('N° licence délégataire','text'),
+                'numero_licence_ffst'=>array('N° licence FFST','text'),
                 'diffusion_image'=>array('Autoriser diffusion image','bool'),
-                'infos_fsasptt'=>array('Infos FSASPTT','bool'),
-                'infos_asptt'=>array('Infos ASPTT','bool'),
+                'infos_ffst'=>array('Infos FFST','bool'),
                 'infos_cr'=>array('Infos CR','bool'),
                 'infos_partenaires'=>array('Infos partenaires','bool'),
                 'honorabilite'=>array('Honorabilité','bool'),
@@ -137,6 +128,7 @@ class UFSC_SQL {
             )
         );
     }
+
     public static function get_settings(){
         $defaults = self::default_settings();
         $opts = get_option( 'ufsc_sql_settings', array() );
@@ -168,35 +160,39 @@ class UFSC_SQL {
         }
         return apply_filters( 'ufsc_sql_settings', $settings );
     }
-    
-    public static function statuses(){ 
-        $s = self::get_settings(); 
+
+    public static function statuses(){
+        $s = self::get_settings();
         return apply_filters( 'ufsc_status_values', $s['status_values'] );
     }
-    
-    /**
-     * Hook pour personnaliser les champs de club
-     */
+
     public static function get_club_fields() {
         $s = self::get_settings();
-        return apply_filters( 'ufsc_club_fields', $s['club_fields'] );
+        $fields = $s['club_fields'];
+        // Stored options from old deployments may still contain the old partner
+        // field. Keep its database value, but never expose it in current screens.
+        unset( $fields['numero_affiliation_asptt'] );
+        return apply_filters( 'ufsc_club_fields', $fields );
     }
-    
-    /**
-     * Hook pour personnaliser les champs de licence
-     */
+
     public static function get_licence_fields() {
         $s = self::get_settings();
-        return apply_filters( 'ufsc_licence_fields', $s['licence_fields'] );
+        $fields = $s['licence_fields'];
+        // Historical fields remain physically stored for prior seasons but are
+        // not part of the active form/write whitelist anymore.
+        foreach ( array(
+            'reduction_postier', 'reduction_postier_num', 'identifiant_laposte_flag',
+            'identifiant_laposte', 'licence_delegataire', 'numero_licence_delegataire',
+            'infos_fsasptt', 'infos_asptt', 'numero_licence_asptt'
+        ) as $legacy_field ) {
+            unset( $fields[ $legacy_field ] );
+        }
+        $fields['numero_licence_ffst'] = array( 'N° licence FFST', 'text' );
+        $fields['infos_ffst'] = array( 'Infos FFST', 'bool' );
+        return apply_filters( 'ufsc_licence_fields', $fields );
     }
 
-    /**
-
-     * Count licences marked as included for a club.
-     *
-     * @param int $club_id Club identifier.
-     * @return int Number of included licences.
-     */
+    /** Count licences marked as included for a club. */
     public static function count_included_licences( $club_id ) {
         global $wpdb;
         $settings       = self::get_settings();
@@ -210,12 +206,7 @@ class UFSC_SQL {
         return $count;
     }
 
-    /**
-     * Mark a licence as included in the quota.
-     *
-     * @param int $licence_id Licence identifier.
-     * @return int|false Number of rows updated or false on failure.
-     */
+    /** Mark a licence as included in the quota. */
     public static function mark_licence_as_included( $licence_id ) {
         global $wpdb;
         $settings       = self::get_settings();
@@ -232,10 +223,6 @@ class UFSC_SQL {
 
     /**
      * Mark a licence as paid and validated.
-     *
-     * @param int    $licence_id Licence ID.
-     * @param string $season     Season identifier.
-     * @return bool True on success, false on failure.
      */
     public static function mark_licence_as_paid_and_validated( $licence_id, $season ) {
         global $wpdb;
@@ -253,7 +240,6 @@ class UFSC_SQL {
         );
         $types = array( '%s', '%d', '%s', '%s' );
 
-        // UFSC PATCH: Store season end year when column exists.
         if ( function_exists( 'ufsc_get_season_end_year_from_label' ) ) {
             $has_col = false;
 
@@ -266,7 +252,7 @@ class UFSC_SQL {
 
             if ( $has_col ) {
                 $data['season_end_year'] = ufsc_get_season_end_year_from_label( $season );
-                $types[]                 = '%d';
+                $types[] = '%d';
             }
         }
 
@@ -281,13 +267,7 @@ class UFSC_SQL {
         return false !== $updated;
     }
 
-    /**
-     * Mark a club affiliation as active.
-     *
-     * @param int    $club_id Club ID.
-     * @param string $season  Season identifier.
-     * @return bool True on success, false on failure.
-     */
+    /** Mark a club affiliation as active. */
     public static function mark_club_affiliation_active( $club_id, $season ) {
         global $wpdb;
 
