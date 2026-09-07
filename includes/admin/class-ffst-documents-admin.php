@@ -8,6 +8,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * l'espace du représentant du club. Le module consolide progressivement les
  * données déjà présentes dans UFSC Gestion avant génération des modèles
  * officiels FFST.
+ * Aucune donnée ni document FFST n’est exposé dans l’espace du représentant du club.
  */
 final class UFSC_FFST_Documents_Admin {
 
