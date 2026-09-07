@@ -51,7 +51,7 @@ final class UFSC_FFST_Documents_Admin {
         self::render_summary( $club, $season, $readiness );
         self::render_affiliation_section( $readiness );
         self::render_licences_section( $readiness );
-        self::render_documents_section( $readiness );
+        self::render_documents_section( $club_id, $season, $readiness );
         echo '</div>';
     }
 
@@ -144,15 +144,15 @@ final class UFSC_FFST_Documents_Admin {
         } else {
             echo '<div class="notice notice-warning inline"><p><strong>' . esc_html( sprintf( __( 'Minimum FFST non atteint : %1$d licence(s) enregistrée(s), 10 requises.', 'ufsc-clubs' ), $readiness['licence_count'] ) ) . '</strong></p></div>';
         }
-        echo '<p>' . esc_html__( 'Le président, le secrétaire, le trésorier et le ou les entraîneurs doivent être identifiés parmi les licences de la saison avant génération du bordereau.', 'ufsc-clubs' ) . '</p></div>';
+        echo '<p>' . esc_html__( 'Le président, le secrétaire, le trésorier et le ou les entraîneurs doivent être identifiés parmi les licences de la saison. Une donnée manquante est signalée mais ne bloque plus la génération administrateur.', 'ufsc-clubs' ) . '</p></div>';
     }
 
-    private static function render_documents_section( $readiness ) {
-        echo '<div class="postbox" style="padding:18px;"><h2 style="margin-top:0;">' . esc_html__( '3. Génération des documents', 'ufsc-clubs' ) . '</h2>';
-        echo '<p>' . esc_html__( 'Cette étape contrôle et prépare les données. Les modèles FFST officiels seront générés depuis ce même écran dans la prochaine PR.', 'ufsc-clubs' ) . '</p>';
-        $disabled = $readiness['percent'] < 100 ? ' disabled' : '';
-        echo '<button type="button" class="button button-primary"' . $disabled . '>' . esc_html__( 'Générer le dossier FFST (à brancher)', 'ufsc-clubs' ) . '</button>';
-        echo '<p class="description">' . esc_html__( 'Aucune donnée ni document FFST n’est exposé dans l’espace du représentant du club.', 'ufsc-clubs' ) . '</p></div>';
+    private static function render_documents_section( $club_id, $season, $readiness ) {
+        if ( class_exists( 'UFSC_FFST_Export_Admin' ) ) {
+            UFSC_FFST_Export_Admin::render_actions( $club_id, $season, $readiness );
+            return;
+        }
+        echo '<div class="notice notice-error inline"><p>' . esc_html__( 'Le module de génération FFST n’est pas disponible. Aucun document n’a été modifié.', 'ufsc-clubs' ) . '</p></div>';
     }
 
     private static function find_role_licence( $licences, $aliases ) {
