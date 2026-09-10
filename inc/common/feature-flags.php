@@ -190,3 +190,10 @@ function ufsc_allow_cart_before_honorability_completion( $required, $normalized_
     return in_array( $intent, array( 'add_to_cart', 'submit_for_validation' ), true ) ? false : $required;
 }
 add_filter( 'ufsc_role_requires_honorability', 'ufsc_allow_cart_before_honorability_completion', 10, 3 );
+
+// Production licence portal hotfix: included-quota handoff, FFST form cleanup,
+// contextual help and cache-safe logout. No schema/data migration.
+$ufsc_licence_portal_production_hotfix = dirname( __FILE__ ) . '/licence-portal-production-hotfix.php';
+if ( file_exists( $ufsc_licence_portal_production_hotfix ) ) {
+    require_once $ufsc_licence_portal_production_hotfix;
+}
