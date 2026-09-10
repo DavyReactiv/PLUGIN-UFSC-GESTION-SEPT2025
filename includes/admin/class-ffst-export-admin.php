@@ -113,7 +113,7 @@ final class UFSC_FFST_Export_Admin {
 
     public static function handle_generate_licences() {
         list( $club_id, $season ) = self::guard_request( 'ufsc_ffst_generate_licences' );
-        if ( ! class_exists( '\\PhpOffice\\PhpSpreadsheet\\Spreadsheet' ) || ! class_exists( '\\PhpOffice\\PhpSpreadsheet\\IOFactory' ) ) {
+        if ( ! class_exists( '\PhpOffice\PhpSpreadsheet\Spreadsheet' ) || ! class_exists( '\PhpOffice\PhpSpreadsheet\IOFactory' ) ) {
             self::redirect_with_message( $club_id, 'spreadsheet_unavailable' );
         }
 
@@ -301,8 +301,8 @@ final class UFSC_FFST_Export_Admin {
             if ( ! empty( $mapping[ $key ] ) ) { $sheet->setCellValueByColumnAndRow( (int) $mapping[ $key ], $row, $value ); }
         }
         if ( ! empty( $mapping['numero_generic'] ) ) {
-            $number = $values['numero_ffst'] ?: $values['numero_ufsc'];
-            $sheet->setCellValueByColumnAndRow( (int) $mapping['numero_generic'], $row, $number );
+            // Une colonne générique d'un modèle FFST ne doit jamais recevoir un numéro UFSC par substitution.
+            $sheet->setCellValueByColumnAndRow( (int) $mapping['numero_generic'], $row, $values['numero_ffst'] );
         }
     }
 
@@ -378,7 +378,7 @@ final class UFSC_FFST_Export_Admin {
 
     private static function value( $object, $keys ) {
         foreach ( (array) $keys as $key ) {
-            if ( is_object( $object ) && isset( $object->{$key} ) && '' !== trim( (string) $object->{$key} ) ) { return (string) $object->{$key}; }
+            if ( is_object( $object ) && isset( $object->{$key} ) && '' !== trim( (string) $object->{$key} ) ) { return (string) $object->{$key};
             if ( is_array( $object ) && isset( $object[ $key ] ) && '' !== trim( (string) $object[ $key ] ) ) { return (string) $object[ $key ]; }
         }
         return '';
