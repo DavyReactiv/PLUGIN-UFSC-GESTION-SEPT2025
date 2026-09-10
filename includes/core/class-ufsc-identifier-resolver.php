@@ -1,13 +1,23 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-/** Canonical map; legacy fields are read aliases only and are never cross-copied. */
+/**
+ * Canonical identifier map.
+ *
+ * UFSC and FFST identifiers are the active namespaces. ASPTT identifiers remain
+ * readable for historical compatibility only: they are never reclassified,
+ * copied or migrated into FFST fields.
+ */
 final class UFSC_Identifier_Resolver {
     const FIELDS = array(
-        'club_ufsc'    => array( 'numero_affiliation_ufsc', 'num_affiliation', 'numero_affiliation' ),
-        'club_asptt'   => array( 'numero_affiliation_asptt' ),
-        'licence_ufsc' => array( 'numero_licence_ufsc', 'numero_licence', 'num_licence', 'licence_number' ),
-        'licence_asptt'=> array( 'numero_licence_asptt' ),
+        'club_ufsc'     => array( 'numero_affiliation_ufsc', 'num_affiliation', 'numero_affiliation' ),
+        'club_ffst'     => array( 'numero_affiliation_ffst' ),
+        'licence_ufsc'  => array( 'numero_licence_ufsc', 'numero_licence', 'num_licence', 'licence_number' ),
+        'licence_ffst'  => array( 'numero_licence_ffst' ),
+
+        // Legacy read-only namespaces retained to preserve previous seasons.
+        'club_asptt'    => array( 'numero_affiliation_asptt' ),
+        'licence_asptt' => array( 'numero_licence_asptt' ),
     );
 
     const AMBIGUOUS_FIELDS = array(
