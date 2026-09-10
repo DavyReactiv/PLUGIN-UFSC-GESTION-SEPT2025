@@ -197,3 +197,10 @@ $ufsc_licence_portal_production_hotfix = dirname( __FILE__ ) . '/licence-portal-
 if ( file_exists( $ufsc_licence_portal_production_hotfix ) ) {
     require_once $ufsc_licence_portal_production_hotfix;
 }
+
+// Read-only statistics presentation: replaces misleading empty legacy charts
+// with a compact current-season view built from every dossier entered by the club.
+$ufsc_club_stats_dashboard_v2 = dirname( __FILE__ ) . '/club-stats-dashboard-v2.php';
+if ( file_exists( $ufsc_club_stats_dashboard_v2 ) ) {
+    require_once $ufsc_club_stats_dashboard_v2;
+}
