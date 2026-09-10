@@ -5,6 +5,7 @@ $sql = file_get_contents( $root . '/includes/core/class-sql.php' );
 $sanitizer = file_get_contents( $root . '/inc/form-license-sanitizer.php' );
 $renewal = file_get_contents( $root . '/includes/core/class-ufsc-renewal-service.php' );
 $template = file_get_contents( $root . '/templates/frontend/licence-form.php' );
+$identifiers = file_get_contents( $root . '/includes/core/class-ufsc-identifier-service.php' );
 
 $assert = static function ( $ok, $message ) {
     if ( ! $ok ) { fwrite( STDERR, "FAIL: {$message}\n" ); exit( 1 ); }
@@ -32,6 +33,10 @@ $payload_end = strpos( $renewal, 'public static function create_target_draft', $
 $payload = false !== $payload_start && false !== $payload_end ? substr( $renewal, $payload_start, $payload_end - $payload_start ) : '';
 $assert( '' !== $payload && false === strpos( $payload, "'numero_licence_ffst'" ), 'Renewal does not auto-copy a FFST licence number into the next season.' );
 $assert( false !== strpos( $renewal, "'numero_licence_asptt'" ) && false !== strpos( $renewal, 'if ( in_array( $field, $legacy_fields, true ) ) { continue; }' ), 'Historical partner identifiers are explicitly blocked from renewal copy.' );
+
+$assert( false !== strpos( $identifiers, 'save_ffst' ), 'FFST identifiers have a dedicated save service.' );
+$assert( false !== strpos( $identifiers, "admin_post_ufsc_save_ffst_identifier" ) && false !== strpos( $identifiers, 'handle_ffst_request' ), 'FFST administrator save endpoint is registered and connected to the guarded handler.' );
+$assert( false !== strpos( $identifiers, 'check_admin_referer' ) && false !== strpos( $identifiers, "'POST' !== strtoupper" ), 'FFST identifier administration remains protected by POST, capability and nonce checks.' );
 
 $assert( false !== strpos( $template, 'Recevoir les informations FFST' ), 'Licence form uses FFST wording.' );
 $assert( false === stripos( $template, 'ASPTT' ) && false === stripos( $template, 'FSASPTT' ), 'Licence form no longer exposes ASPTT/FSASPTT.' );
