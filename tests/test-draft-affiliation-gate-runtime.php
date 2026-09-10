@@ -40,9 +40,9 @@ foreach ( $cases as $case ) {
 }
 
 $source = file_get_contents( dirname( __DIR__ ) . '/inc/common/season.php' );
-$helper_pos = strpos( $source, "function ufsc_is_new_licence_draft_request()" );
+$helper_pos = strpos( $source, 'function ufsc_is_new_licence_draft_request()' );
 $bypass_pos = strpos( $source, "'licence_draft_allowed'" );
-$resolution_pos = strpos( $source, "resolve_affiliation( $club_id, $normalized_season )" );
+$resolution_pos = strpos( $source, 'resolve_affiliation( $club_id, $normalized_season )' );
 
 if ( false === $helper_pos || false === $bypass_pos || false === $resolution_pos || $bypass_pos > $resolution_pos ) {
     fwrite( STDERR, "FAIL: draft bypass must remain explicit and run before affiliation resolution.\n" );
