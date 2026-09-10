@@ -141,10 +141,11 @@ function ufsc_portal_hotfix_strip_legacy_optin_label( $output, $field ) {
     return (string) preg_replace( $pattern, '', $output );
 }
 
-/** Add concise guidance and remove obsolete partner choices from active FFST UI. */
+/** Add concise guidance and remove obsolete partner choices from every active club licence renderer. */
 function ufsc_portal_hotfix_filter_licence_ui( $output, $tag, $attr, $m ) {
     unset( $attr, $m );
-    if ( ! in_array( $tag, array( 'ufsc_add_licence', 'ufsc_club_licences' ), true ) ) {
+    $licence_tags = array( 'ufsc_club_dashboard', 'ufsc_club_licences', 'ufsc_add_licence', 'ufsc_licences' );
+    if ( ! in_array( $tag, $licence_tags, true ) ) {
         return $output;
     }
 
