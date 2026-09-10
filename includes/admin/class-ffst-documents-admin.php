@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Réservé à l'administration UFSC : aucun document FFST n'est exposé dans
  * l'espace du représentant du club. La page est strictement en lecture seule
  * pour les filtres, recherches et indicateurs de complétude.
+ * Aucune donnée ni document FFST n’est exposé dans l’espace du représentant du club.
  */
 final class UFSC_FFST_Documents_Admin {
 
