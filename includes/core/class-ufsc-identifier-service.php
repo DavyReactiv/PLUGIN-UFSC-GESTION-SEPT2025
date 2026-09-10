@@ -217,3 +217,7 @@ final class UFSC_Identifier_Service {
         wp_safe_redirect( add_query_arg( $args, $url ) ); exit;
     }
 }
+
+// Register the FFST administrator endpoint with the service itself so the route
+// cannot be omitted by an older bootstrap registration list.
+add_action( 'admin_post_ufsc_save_ffst_identifier', array( 'UFSC_Identifier_Service', 'handle_ffst_request' ) );
