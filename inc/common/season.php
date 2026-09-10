@@ -501,6 +501,43 @@ if ( ! function_exists( 'ufsc_is_club_affiliated_for_season' ) ) {
     }
 }
 
+/**
+ * Return true only for a NEW licence draft save request.
+ *
+ * Draft persistence is deliberately non-payable: it must remain available while
+ * an affiliation is pending, but it must never unlock cart, quota, renewal or
+ * validation actions. Restricting the bypass to the exact licence-save endpoint
+ * and explicit save_draft intent keeps the annual gate fail-closed everywhere else.
+ */
+if ( ! function_exists( 'ufsc_is_new_licence_draft_request' ) ) {
+    function ufsc_is_new_licence_draft_request() {
+        $method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : '';
+        if ( 'POST' !== $method ) {
+            return false;
+        }
+
+        $action = isset( $_POST['action'] ) && ! is_array( $_POST['action'] )
+            ? sanitize_key( wp_unslash( $_POST['action'] ) )
+            : '';
+        if ( ! in_array( $action, array( 'ufsc_save_licence', 'ufsc_add_licence' ), true ) ) {
+            return false;
+        }
+
+        $licence_id = isset( $_POST['licence_id'] ) && ! is_array( $_POST['licence_id'] )
+            ? absint( wp_unslash( $_POST['licence_id'] ) )
+            : 0;
+        if ( $licence_id > 0 ) {
+            return false;
+        }
+
+        $intent = isset( $_POST['ufsc_submit_action'] ) && ! is_array( $_POST['ufsc_submit_action'] )
+            ? sanitize_key( wp_unslash( $_POST['ufsc_submit_action'] ) )
+            : '';
+
+        return 'save_draft' === $intent;
+    }
+}
+
 if ( ! function_exists( 'ufsc_club_can_manage_licences_for_season' ) ) {
     /**
      * Central fail-closed annual affiliation gate for every licence creation,
@@ -530,6 +567,15 @@ if ( ! function_exists( 'ufsc_club_can_manage_licences_for_season' ) ) {
 
         if ( $club_id <= 0 || '' === $normalized_season || ! class_exists( 'UFSC_Season_Archive_Manager' ) ) {
             $result['message'] = __( 'L’état de votre affiliation n’a pas pu être déterminé. Veuillez contacter l’UFSC.', 'ufsc-clubs' );
+            return $result;
+        }
+
+        // P0 production: a new draft is a non-payable persistence action. It may
+        // be saved while affiliation is pending; all finalisation paths remain gated.
+        if ( function_exists( 'ufsc_is_new_licence_draft_request' ) && ufsc_is_new_licence_draft_request() ) {
+            $result['allowed'] = true;
+            $result['code']    = 'licence_draft_allowed';
+            $result['message'] = __( 'Brouillon de licence enregistré sans finalisation de l’affiliation.', 'ufsc-clubs' );
             return $result;
         }
 
