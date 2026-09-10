@@ -8,6 +8,7 @@ $assert = static function( $condition, $message ) use ( &$failures ) { if ( ! $c
 
 $assert( false !== strpos( $flags, 'licence-portal-production-hotfix.php' ), 'Portal hotfix must be loaded by feature flags.' );
 $assert( false !== strpos( $hotfix, "'infos_fsasptt', 'infos_asptt', 'infos_cr'" ), 'The three obsolete partner opt-ins must be targeted together.' );
+$assert( false !== strpos( $hotfix, "'ufsc_club_dashboard', 'ufsc_club_licences', 'ufsc_add_licence', 'ufsc_licences'" ), 'Legacy partner opt-ins must be filtered from every club licence renderer, including the dashboard wrapper used by edit screens.' );
 $assert( false !== strpos( $hotfix, 'ufsc_portal_hotfix_preserve_existing_legacy_optins' ), 'Existing legacy opt-in values must be preserved on edit.' );
 $assert( false !== strpos( $hotfix, "\$_POST['ufsc_submit_action'] = 'add_to_cart'" ), 'A confirmed included reservation must restore the final intent.' );
 $assert( false !== strpos( $hotfix, 'SELECT is_included' ), 'Included intent restoration must verify the persisted quota reservation.' );
