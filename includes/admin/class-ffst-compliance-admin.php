@@ -28,6 +28,9 @@ final class UFSC_FFST_Compliance_Admin {
     }
 
     private static function normalize_season( $season ) {
+        if ( class_exists( 'UFSC_Season_Service' ) ) {
+            return (string) UFSC_Season_Service::normalize_season( $season );
+        }
         $season = sanitize_text_field( (string) $season );
         return preg_match( '/^\d{4}-\d{4}$/', $season ) ? $season : '';
     }
@@ -66,34 +69,60 @@ final class UFSC_FFST_Compliance_Admin {
 
     public static function render_panel() {
         if ( ! self::can_manage() || ! is_admin() ) { return; }
-        $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- affichage lecture seule.
+        $page = isset( $_GET['page'] ) && ! is_array( $_GET['page'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- affichage lecture seule.
+            ? sanitize_key( wp_unslash( $_GET['page'] ) )
+            : '';
         if ( 'ufsc-ffst-documents' !== $page ) { return; }
 
-        $club_id = isset( $_GET['club_id'] ) ? absint( $_GET['club_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- affichage lecture seule.
+        $club_id = isset( $_GET['club_id'] ) ? absint( wp_unslash( $_GET['club_id'] ) ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- affichage lecture seule.
         if ( ! $club_id || ! self::club_exists( $club_id ) ) { return; }
 
-        $season = self::normalize_season( self::current_season() );
+        $requested_season = isset( $_GET['season'] ) && ! is_array( $_GET['season'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- affichage lecture seule.
+            ? wp_unslash( $_GET['season'] )
+            : self::current_season();
+        $season = self::normalize_season( $requested_season );
+        if ( ! $season ) {
+            $season = self::normalize_season( self::current_season() );
+        }
         if ( ! $season ) { return; }
 
         $state = self::get_state( $club_id, $season );
-        $return_url = add_query_arg(
-            array( 'page' => 'ufsc-ffst-documents', 'club_id' => $club_id ),
-            admin_url( 'admin.php' )
+        $return_args = array(
+            'page' => 'ufsc-ffst-documents',
+            'club_id' => $club_id,
+            'season' => $season,
         );
+        foreach ( array( 's', 'paged', 'per_page' ) as $key ) {
+            if ( isset( $_GET[ $key ] ) && ! is_array( $_GET[ $key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- conservation de filtres lecture seule.
+                $value = sanitize_text_field( wp_unslash( $_GET[ $key ] ) );
+                if ( '' !== $value ) {
+                    $return_args[ $key ] = $value;
+                }
+            }
+        }
+        $return_url = add_query_arg( $return_args, admin_url( 'admin.php' ) );
 
         echo '<style>
-            .ufsc-ffst-compliance{max-width:1180px;margin:18px 20px 0 0;box-sizing:border-box}
-            .ufsc-ffst-compliance .postbox{padding:20px;border-radius:10px;overflow:hidden;box-sizing:border-box}
+            .ufsc-ffst-compliance{width:auto;max-width:none;margin:18px 0 0;box-sizing:border-box}
+            .ufsc-ffst-compliance .postbox{width:100%;max-width:none;padding:20px;border-radius:10px;overflow:hidden;box-sizing:border-box}
             .ufsc-ffst-compliance .form-table{table-layout:fixed;width:100%}
             .ufsc-ffst-compliance .form-table th{width:220px}
             .ufsc-ffst-compliance textarea.large-text{width:100%;max-width:100%;box-sizing:border-box;min-height:110px}
             .ufsc-ffst-compliance form{max-width:100%}
-            @media(max-width:782px){.ufsc-ffst-compliance .form-table,.ufsc-ffst-compliance .form-table tbody,.ufsc-ffst-compliance .form-table tr,.ufsc-ffst-compliance .form-table th,.ufsc-ffst-compliance .form-table td{display:block;width:100%}.ufsc-ffst-compliance .form-table th{padding-bottom:4px}.ufsc-ffst-compliance .form-table td{padding-top:4px}}
+            @media(max-width:782px){
+                .ufsc-ffst-compliance .form-table,
+                .ufsc-ffst-compliance .form-table tbody,
+                .ufsc-ffst-compliance .form-table tr,
+                .ufsc-ffst-compliance .form-table th,
+                .ufsc-ffst-compliance .form-table td{display:block;width:100%}
+                .ufsc-ffst-compliance .form-table th{padding-bottom:4px}
+                .ufsc-ffst-compliance .form-table td{padding-top:4px}
+            }
         </style>';
 
         echo '<div class="ufsc-ffst-compliance"><div class="postbox">';
         echo '<h2 style="margin-top:0">' . esc_html__( '4. Suivi, signatures et pièces FFST', 'ufsc-clubs' ) . '</h2>';
-        echo '<p>' . esc_html__( 'Suivi interne UFSC uniquement. Ces informations n’altèrent ni les fiches clubs, ni les licences, ni les commandes WooCommerce.', 'ufsc-clubs' ) . '</p>';
+        echo '<p>' . esc_html( sprintf( __( 'Suivi interne UFSC — saison %s. Ces informations n’altèrent ni les fiches clubs, ni les licences, ni les commandes WooCommerce.', 'ufsc-clubs' ), $season ) ) . '</p>';
 
         echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
         wp_nonce_field( 'ufsc_ffst_save_compliance_' . $club_id . '_' . $season );
@@ -159,16 +188,16 @@ final class UFSC_FFST_Compliance_Admin {
         $state['updated_at'] = current_time( 'mysql' );
         $state['updated_by'] = get_current_user_id();
         update_option( self::key( $club_id, $season ), $state, false );
-        self::redirect_back( 'saved', $club_id );
+        self::redirect_back( 'saved', $club_id, $season );
     }
 
     public static function handle_upload() {
         list( $club_id, $season ) = self::guard_post( 'ufsc_ffst_upload_signed_document' );
         if ( empty( $_FILES['signed_document'] ) || empty( $_FILES['signed_document']['name'] ) ) {
-            self::redirect_back( 'missing_file', $club_id );
+            self::redirect_back( 'missing_file', $club_id, $season );
         }
         if ( ! empty( $_FILES['signed_document']['size'] ) && (int) $_FILES['signed_document']['size'] > self::MAX_UPLOAD_BYTES ) {
-            self::redirect_back( 'file_too_large', $club_id );
+            self::redirect_back( 'file_too_large', $club_id, $season );
         }
 
         $type = isset( $_POST['document_type'] ) && ! is_array( $_POST['document_type'] ) ? sanitize_key( wp_unslash( $_POST['document_type'] ) ) : 'autre';
@@ -185,7 +214,7 @@ final class UFSC_FFST_Compliance_Admin {
         );
         $upload = wp_handle_upload( $_FILES['signed_document'], $overrides );
         if ( ! is_array( $upload ) || isset( $upload['error'] ) || empty( $upload['url'] ) || empty( $upload['file'] ) ) {
-            self::redirect_back( 'upload_error', $club_id );
+            self::redirect_back( 'upload_error', $club_id, $season );
         }
 
         $labels = array(
@@ -213,11 +242,19 @@ final class UFSC_FFST_Compliance_Admin {
         if ( function_exists( 'ufsc_audit_log' ) ) {
             ufsc_audit_log( 'ffst_signed_document_archived', array( 'club_id' => $club_id, 'season' => $season, 'type' => $type ) );
         }
-        self::redirect_back( 'uploaded', $club_id );
+        self::redirect_back( 'uploaded', $club_id, $season );
     }
 
-    private static function redirect_back( $status, $club_id ) {
-        $fallback = add_query_arg( array( 'page' => 'ufsc-ffst-documents', 'club_id' => absint( $club_id ) ), admin_url( 'admin.php' ) );
+    private static function redirect_back( $status, $club_id, $season = '' ) {
+        $args = array(
+            'page' => 'ufsc-ffst-documents',
+            'club_id' => absint( $club_id ),
+        );
+        $season = self::normalize_season( $season );
+        if ( $season ) {
+            $args['season'] = $season;
+        }
+        $fallback = add_query_arg( $args, admin_url( 'admin.php' ) );
         $redirect = isset( $_REQUEST['redirect_to'] ) && ! is_array( $_REQUEST['redirect_to'] )
             ? wp_validate_redirect( wp_unslash( $_REQUEST['redirect_to'] ), $fallback )
             : $fallback;
