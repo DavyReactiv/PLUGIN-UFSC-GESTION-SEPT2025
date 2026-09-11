@@ -179,6 +179,32 @@
     });
   }
 
+  /*
+   * Persist the explicit licence submit intent before the browser serializes the
+   * form. The server-rendered wizard already exposes #ufsc_submit_action as the
+   * canonical hidden state, but historical/programmatic submits can lose the
+   * clicked submitter name/value. Keeping the hidden field successful makes the
+   * POST deterministic without changing quota or WooCommerce logic.
+   */
+  function bindLicenceSubmitIntent() {
+    document.querySelectorAll('form.ufsc-licence-form').forEach(function (form) {
+      var hidden = form.querySelector('#ufsc_submit_action');
+      if (!hidden) return;
+      hidden.setAttribute('name', 'ufsc_submit_action');
+
+      form.addEventListener('click', function (event) {
+        var button = event.target && event.target.closest ? event.target.closest('[name="ufsc_submit_action"]') : null;
+        if (!button || button.form !== form) return;
+        hidden.value = button.value || 'continue';
+      }, true);
+
+      form.addEventListener('submit', function (event) {
+        var submitter = event.submitter || (event.originalEvent && event.originalEvent.submitter);
+        if (submitter && submitter.name === 'ufsc_submit_action') hidden.value = submitter.value || 'continue';
+      }, true);
+    });
+  }
+
   function bindValidationFeedback() {
     document.addEventListener('invalid', function (event) {
       var form = event.target && event.target.form;
@@ -204,6 +230,7 @@
     watchRenewalProfiles();
     normalizeExistingMessages();
     insertQueryNotice();
+    bindLicenceSubmitIntent();
     bindValidationFeedback();
   }
 

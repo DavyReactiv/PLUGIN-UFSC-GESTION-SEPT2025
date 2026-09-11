@@ -170,9 +170,9 @@
     if (!box) {
       box = document.createElement('div');
       box.setAttribute('data-ufsc-final-submit-status', '1');
-      box.setAttribute('role', 'status');
-      box.setAttribute('aria-live', 'polite');
-      var actions = f.querySelector('.ufsc-renewal-actions');
+      box.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+      box.setAttribute('aria-live', kind === 'error' ? 'assertive' : 'polite');
+      var actions = f.querySelector('.ufsc-renewal-actions[data-ufsc-step-actions="3"]') || f.querySelector('.ufsc-renewal-actions');
       if (actions && actions.parentNode) actions.parentNode.insertBefore(box, actions);
       else f.appendChild(box);
     }
@@ -200,7 +200,8 @@
     }
     if (button) {
       button.disabled = !canSubmit;
-      button.setAttribute('aria-disabled', canSubmit ? 'false' : 'true');
+      var ariaDisabled = canSubmit ? 'false' : 'true';
+      if (button.getAttribute('aria-disabled') !== ariaDisabled) button.setAttribute('aria-disabled', ariaDisabled);
       button.textContent = paid ? 'Confirmer — ' + included + ' incluse(s), ' + paid + ' payante(s)' : 'Envoyer pour validation — inclus dans votre affiliation';
     }
     if (info) {
@@ -223,6 +224,11 @@
     f.noValidate = true;
     finalStatus(f, 'Traitement du renouvellement en cours…', 'info');
     return true;
+  }
+
+  function detachLegacyFinalSubmit(f) {
+    if (!f || !window.jQuery) return;
+    window.jQuery(f).off('submit');
   }
 
   function sync() {
@@ -255,6 +261,13 @@
   function init() {
     var f = form(); if (!f || f.getAttribute('data-ufsc-renewal-overlay') === '1') return;
     f.setAttribute('data-ufsc-renewal-overlay','1'); ensurePanels(f); rememberIntent(f, ''); sync();
+
+    /* The production controller is the sole final-submit owner. Remove the old
+     * jQuery submit handler from this specific renewal form; the legacy script
+     * keeps navigation/profile validation only. Repeat once after ready handlers
+     * have run so script-order differences cannot reattach the obsolete submit. */
+    detachLegacyFinalSubmit(f);
+    window.setTimeout(function () { detachLegacyFinalSubmit(f); }, 0);
 
     /* Keep the final action as a normal HTML form POST. The controller only
      * validates the selected dossiers and prepares the fallback intent; it does
