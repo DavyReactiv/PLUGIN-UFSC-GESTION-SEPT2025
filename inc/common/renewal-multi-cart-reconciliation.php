@@ -180,6 +180,13 @@ function ufsc_renewal_multi_cart_reconcile_before_bulk_final_request() {
         return;
     }
 
+    $nonce = isset( $_POST['_wpnonce'] ) && ! is_array( $_POST['_wpnonce'] )
+        ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) )
+        : '';
+    if ( '' === $nonce || ! wp_verify_nonce( $nonce, 'ufsc_bulk_renew_licences_' . $club_id ) ) {
+        return;
+    }
+
     $season = function_exists( 'ufsc_renewal_recovery_current_season' )
         ? ufsc_renewal_recovery_current_season()
         : ( class_exists( 'UFSC_Season_Service' ) ? (string) UFSC_Season_Service::get_current_season() : '' );
