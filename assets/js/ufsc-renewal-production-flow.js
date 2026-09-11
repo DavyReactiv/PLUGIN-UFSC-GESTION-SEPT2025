@@ -152,6 +152,21 @@
     button.setAttribute('aria-disabled', allowed ? 'false' : 'true');
   }
 
+  function finalStatus(f, message, kind) {
+    var box = f.querySelector('[data-ufsc-final-submit-status="1"]');
+    if (!box) {
+      box = document.createElement('div');
+      box.setAttribute('data-ufsc-final-submit-status', '1');
+      box.setAttribute('role', 'status');
+      box.setAttribute('aria-live', 'polite');
+      var actions = f.querySelector('.ufsc-renewal-actions');
+      if (actions && actions.parentNode) actions.parentNode.insertBefore(box, actions);
+      else f.appendChild(box);
+    }
+    box.className = 'ufsc-message ' + (kind === 'error' ? 'ufsc-error' : 'ufsc-info');
+    box.textContent = message;
+  }
+
   function finalReview(f, w, c) {
     var step = stepNumber(f);
     if (step !== 3) return;
@@ -218,13 +233,12 @@
     f.setAttribute('data-ufsc-native-final-submit', '1');
     rememberIntent(f, 'add_to_cart');
     ensureCanonicalIntent(f, 'add_to_cart', reason);
+    button.disabled = true;
+    button.setAttribute('aria-disabled', 'true');
+    finalStatus(f, 'Traitement du renouvellement en cours…', 'info');
 
-    /*
-     * The server is the authority for product availability, nonce, club, season,
-     * completeness, quota and WooCommerce. The final fallback deliberately uses
-     * native submit so stale browser validation or legacy JS cannot swallow the
-     * request without any feedback.
-     */
+    /* Server-side validation remains authoritative; native submit only avoids
+     * competing legacy JS handlers swallowing the final request. */
     f.noValidate = true;
     HTMLFormElement.prototype.submit.call(f);
   }
@@ -253,24 +267,25 @@
     var f = form(); if (!f || f.getAttribute('data-ufsc-renewal-overlay') === '1') return;
     f.setAttribute('data-ufsc-renewal-overlay','1'); ensurePanels(f); rememberIntent(f, ''); sync();
 
-    f.addEventListener('click', function (e) {
-      var submitter = e.target && e.target.closest ? e.target.closest('button[type="submit"][name="ufsc_renew_intent"],input[type="submit"][name="ufsc_renew_intent"]') : null;
-      if (!submitter) return;
+    /* This controller is the single owner of the final click. Listening on
+     * document capture runs before legacy form-level handlers. */
+    document.addEventListener('click', function (e) {
+      var submitter = e.target && e.target.closest ? e.target.closest('button[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"],input[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"]') : null;
+      if (!submitter || submitter.form !== f || stepNumber(f) !== 3) return;
 
-      rememberIntent(f, submitter.value || '');
-      if (submitter.value !== 'add_to_cart' || stepNumber(f) !== 3) return;
-
+      e.preventDefault();
+      e.stopImmediatePropagation();
       enforceFinalButton(f);
-      if (!canFinalSubmit(f)) return;
 
-      f._ufscFinalSubmitObserved = false;
-      window.setTimeout(function () {
-        if (!f._ufscFinalSubmitObserved && document.documentElement.contains(f)) {
-          nativeFinalSubmit(f, 'click_without_submit');
-        }
-      }, 0);
+      if (!canFinalSubmit(f)) {
+        finalStatus(f, 'Impossible de finaliser : un dossier sélectionné est incomplet ou bloqué. Revenez à l’étape de vérification.', 'error');
+        return;
+      }
+
+      nativeFinalSubmit(f, 'direct_capture_submit');
     }, true);
 
+    /* Keyboard/programmatic submits still use the same native finaliser. */
     f.addEventListener('submit', function (e) {
       var submitter = e.submitter || null;
       var intent = submitter && submitter.name === 'ufsc_renew_intent' ? String(submitter.value || '') : '';
@@ -281,12 +296,8 @@
       if (intent) rememberIntent(f, intent);
 
       if (intent === 'add_to_cart' && stepNumber(f) === 3) {
-        f._ufscFinalSubmitObserved = true;
-        window.setTimeout(function () {
-          if (e.defaultPrevented && document.documentElement.contains(f)) {
-            nativeFinalSubmit(f, 'submit_prevented');
-          }
-        }, 0);
+        e.preventDefault();
+        if (canFinalSubmit(f)) nativeFinalSubmit(f, 'submit_event');
       }
     }, true);
 
