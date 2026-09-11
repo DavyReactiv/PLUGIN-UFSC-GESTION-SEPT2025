@@ -22,4 +22,4 @@ $assert( false !== strpos( $file, "\$_POST['ufsc_submit_action'] = 'continue'" )
 $assert( false !== strpos( $file, "remove_cart_item( \$line['key'] )" ), 'only the exact stale target cart line may be removed' );
 $assert( false === strpos( $file, 'empty_cart(' ), 'existing cart is never emptied' );
 $assert( false === stripos( $file, 'ALTER TABLE' ), 'no schema migration is introduced' );
-$assert( false === preg_match( '/\bDELETE\s+FROM\b/i', $file ), 'no licence/history row deletion is introduced' );
+$assert( 0 === preg_match( '/\bDELETE\s+FROM\b/i', $file ), 'no licence/history row deletion is introduced' );
