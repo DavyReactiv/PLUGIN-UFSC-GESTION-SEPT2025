@@ -41,7 +41,7 @@ $assert(
 );
 
 $assistantPos = strpos($front, 'private static function render_renewal_assistant');
-$assistant = $assistantPos === false ? '' : substr($front, $assistantPos, 22000);
+$assistant = $assistantPos === false ? '' : substr($front, $assistantPos, 70000);
 $assert(
     false !== strpos($assistant, 'data-ufsc-selection-count'),
     'renewal renderer must retain the live selection target used by the production controller'
