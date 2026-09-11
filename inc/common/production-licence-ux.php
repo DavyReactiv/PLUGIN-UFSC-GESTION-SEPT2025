@@ -8,6 +8,90 @@ if ( file_exists( $ufsc_production_dbdelta_compat ) ) {
 unset( $ufsc_production_dbdelta_compat );
 
 /**
+ * Return one request-scoped, pagination-independent renewal state summary.
+ *
+ * This is intentionally built from the canonical season-context resolver used by
+ * the renewal workflow itself. It does not write licences, consume quota or touch
+ * WooCommerce. Dashboard and assistant UX may therefore display the same state
+ * vocabulary without deriving totals from the current 10/20-row page.
+ *
+ * @return array{renewable:int,renewed:int,pending:int,payable:int,blocked:int,total:int}
+ */
+function ufsc_production_renewal_state_counts() {
+    static $cached = null;
+    if ( null !== $cached ) {
+        return $cached;
+    }
+
+    $cached = array(
+        'renewable' => 0,
+        'renewed'   => 0,
+        'pending'   => 0,
+        'payable'   => 0,
+        'blocked'   => 0,
+        'total'     => 0,
+    );
+
+    if ( ! is_user_logged_in() || ! function_exists( 'ufsc_get_user_club_id' ) || ! function_exists( 'ufsc_get_licences_table' ) ) {
+        return $cached;
+    }
+
+    $club_id = absint( ufsc_get_user_club_id( get_current_user_id() ) );
+    if ( $club_id < 1 ) {
+        return $cached;
+    }
+
+    $target = class_exists( 'UFSC_Season_Service' )
+        ? (string) UFSC_Season_Service::get_current_season()
+        : ( function_exists( 'ufsc_get_current_season' ) ? (string) ufsc_get_current_season() : '' );
+    if ( ! preg_match( '/^(\d{4})-(\d{4})$/', $target, $matches ) ) {
+        return $cached;
+    }
+    $source = sprintf( '%d-%d', (int) $matches[1] - 1, (int) $matches[1] );
+
+    global $wpdb;
+    $table = (string) ufsc_get_licences_table();
+    if ( '' === $table ) {
+        return $cached;
+    }
+
+    $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE club_id = %d", $club_id ) );
+    foreach ( (array) $rows as $row ) {
+        if ( ! is_object( $row ) ) {
+            continue;
+        }
+
+        if ( function_exists( 'ufsc_get_licence_season_label' ) ) {
+            $row_season = (string) ufsc_get_licence_season_label( $row );
+        } elseif ( function_exists( 'ufsc_get_licence_season' ) ) {
+            $row_season = (string) ufsc_get_licence_season( $row );
+        } else {
+            $row_season = (string) ( $row->season ?? ( $row->saison ?? '' ) );
+        }
+        $row_season = trim( str_replace( '/', '-', $row_season ) );
+        if ( $source !== $row_season ) {
+            continue;
+        }
+
+        $cached['total']++;
+        if ( function_exists( 'ufsc_get_licence_season_context_status' ) ) {
+            $context = (array) ufsc_get_licence_season_context_status( $row, $target );
+            $state   = sanitize_key( (string) ( $context['renewal_state'] ?? '' ) );
+            if ( ! isset( $cached[ $state ] ) ) {
+                $state = ! empty( $context['renewal_allowed'] ) ? 'renewable' : 'blocked';
+            }
+        } elseif ( is_callable( array( 'UFSC_Renewal_Service', 'can_renew' ) ) && true === UFSC_Renewal_Service::can_renew( $row, $club_id, $target ) ) {
+            $state = 'renewable';
+        } else {
+            $state = 'blocked';
+        }
+        $cached[ $state ]++;
+    }
+
+    return $cached;
+}
+
+/**
  * Production UX consolidation for licence pages.
  *
  * Keeps the existing renderers and data flows, but provides one stable navigation
@@ -51,6 +135,7 @@ function ufsc_production_licence_ux_urls() {
         ) . '#ufsc-club-licences' : $base,
         'season'    => $season,
         'previousSeason' => $previous,
+        'renewalCounts'  => ufsc_production_renewal_state_counts(),
     );
 }
 
