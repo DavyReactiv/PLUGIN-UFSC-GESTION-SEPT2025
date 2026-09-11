@@ -17,6 +17,14 @@ if ( file_exists( $ufsc_renewal_multi_cart_reconciliation ) ) {
     require_once $ufsc_renewal_multi_cart_reconciliation;
 }
 
+// The debug-confirmed malformed Woo row can also occur when a renewal draft is
+// reopened through the unified licence form. Capture/repair that exact row on
+// this route without touching other cart lines.
+$ufsc_renewal_draft_cart_integrity_bridge = dirname( __FILE__ ) . '/renewal-draft-cart-integrity-bridge.php';
+if ( file_exists( $ufsc_renewal_draft_cart_integrity_bridge ) ) {
+    require_once $ufsc_renewal_draft_cart_integrity_bridge;
+}
+
 /**
  * Restore the renewal submit intent before the canonical admin-post handler runs.
  *
