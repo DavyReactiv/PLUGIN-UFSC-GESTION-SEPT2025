@@ -11,10 +11,14 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * line can make the current draft look "already in cart" even though its own
  * target licence ID is absent.
  *
- * This layer removes only the stale cart line(s) that match the SAME club,
- * season and historical source, and only when the current target licence is not
- * already present. Every unrelated product/licence line remains untouched.
- * No licence/history row is deleted and no cart-wide limit is introduced.
+ * This module owns that reconciliation for both renewal entry points:
+ * - a reopened current-season draft;
+ * - the final bulk-renewal handoff before the native WooCommerce controller.
+ *
+ * It removes only stale cart line(s) that match the SAME club, season and
+ * historical source, and only when the exact current target licence is absent.
+ * Every unrelated product/licence line remains untouched. No licence/history
+ * row is deleted and no cart-wide limit is introduced.
  */
 
 /** Resolve a renewal source ID carried by one cart item. */
@@ -56,50 +60,26 @@ function ufsc_renewal_multi_cart_item_matches_source( $item, $club_id, $season, 
 }
 
 /**
- * Remove only stale same-source renewal cart lines before the draft handoff.
+ * Canonical stale-line reconciliation used by every renewal handoff.
  *
- * The current opened draft remains authoritative for this explicit user action.
- * Unrelated cart lines are never removed or replaced.
+ * @return int Number of stale lines removed.
  */
-function ufsc_renewal_multi_cart_reconcile_before_draft_handoff( $club_id ) {
-    if ( ! function_exists( 'ufsc_renewal_draft_cart_is_final_request' ) || ! ufsc_renewal_draft_cart_is_final_request() ) {
-        return;
+function ufsc_renewal_multi_cart_reconcile_target( $target_id, $club_id, $season, $source_id ) {
+    $target_id = absint( $target_id );
+    $club_id   = absint( $club_id );
+    $source_id = absint( $source_id );
+    $season    = str_replace( '/', '-', sanitize_text_field( (string) $season ) );
+
+    if ( $target_id < 1 || $club_id < 1 || $source_id < 1 || '' === $season ) {
+        return 0;
     }
     if ( ! function_exists( 'WC' ) || ! WC() || ! WC()->cart || ! method_exists( WC()->cart, 'get_cart' ) ) {
-        return;
+        return 0;
     }
 
-    $target_id = isset( $_POST['licence_id'] ) && ! is_array( $_POST['licence_id'] )
-        ? absint( wp_unslash( $_POST['licence_id'] ) )
-        : 0;
-    $club_id = absint( $club_id );
-    if ( $target_id < 1 || $club_id < 1 || ! function_exists( 'ufsc_get_licences_table' ) ) {
-        return;
-    }
-
-    // If the exact target is already there, nothing must be touched.
+    // If the exact target is already present, the cart is already coherent.
     if ( function_exists( 'ufsc_renewal_recovery_cart_contains_target' ) && ufsc_renewal_recovery_cart_contains_target( $target_id ) ) {
-        return;
-    }
-
-    global $wpdb;
-    $table = ufsc_get_licences_table();
-    $target = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d AND club_id = %d LIMIT 1", $target_id, $club_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-    if ( ! $target || ! function_exists( 'ufsc_renewal_draft_cart_source_id' ) ) {
-        return;
-    }
-
-    $source_id = absint( ufsc_renewal_draft_cart_source_id( $target ) );
-    if ( $source_id < 1 ) {
-        return; // Ordinary licence draft: do not touch its cart flow.
-    }
-
-    $season = class_exists( 'UFSC_Season_Service' )
-        ? (string) UFSC_Season_Service::get_current_season()
-        : ( function_exists( 'ufsc_get_current_season' ) ? (string) ufsc_get_current_season() : '' );
-    $season = str_replace( '/', '-', sanitize_text_field( $season ) );
-    if ( '' === $season ) {
-        return;
+        return 0;
     }
 
     $removed = array();
@@ -133,5 +113,106 @@ function ufsc_renewal_multi_cart_reconcile_before_draft_handoff( $club_id ) {
             'warning'
         );
     }
+
+    return count( $removed );
+}
+
+/**
+ * Remove only stale same-source renewal cart lines before the draft handoff.
+ *
+ * The current opened draft remains authoritative for this explicit user action.
+ * Unrelated cart lines are never removed or replaced.
+ */
+function ufsc_renewal_multi_cart_reconcile_before_draft_handoff( $club_id ) {
+    if ( ! function_exists( 'ufsc_renewal_draft_cart_is_final_request' ) || ! ufsc_renewal_draft_cart_is_final_request() ) {
+        return;
+    }
+    if ( ! function_exists( 'WC' ) || ! WC() || ! WC()->cart || ! method_exists( WC()->cart, 'get_cart' ) ) {
+        return;
+    }
+
+    $target_id = isset( $_POST['licence_id'] ) && ! is_array( $_POST['licence_id'] )
+        ? absint( wp_unslash( $_POST['licence_id'] ) )
+        : 0;
+    $club_id = absint( $club_id );
+    if ( $target_id < 1 || $club_id < 1 || ! function_exists( 'ufsc_get_licences_table' ) ) {
+        return;
+    }
+
+    global $wpdb;
+    $table = ufsc_get_licences_table();
+    $target = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d AND club_id = %d LIMIT 1", $target_id, $club_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    if ( ! $target || ! function_exists( 'ufsc_renewal_draft_cart_source_id' ) ) {
+        return;
+    }
+
+    $source_id = absint( ufsc_renewal_draft_cart_source_id( $target ) );
+    if ( $source_id < 1 ) {
+        return; // Ordinary licence draft: do not touch its cart flow.
+    }
+
+    $season = class_exists( 'UFSC_Season_Service' )
+        ? (string) UFSC_Season_Service::get_current_season()
+        : ( function_exists( 'ufsc_get_current_season' ) ? (string) ufsc_get_current_season() : '' );
+
+    ufsc_renewal_multi_cart_reconcile_target( $target_id, $club_id, $season, $source_id );
 }
 add_action( 'ufsc_licence_updated', 'ufsc_renewal_multi_cart_reconcile_before_draft_handoff', 15, 1 );
+
+/**
+ * Reconcile stale same-source lines immediately before the final bulk-renewal
+ * controller runs. This closes the gap where the native handoff could otherwise
+ * see an old same-source cart line and incorrectly treat the NEW target as
+ * already present.
+ */
+function ufsc_renewal_multi_cart_reconcile_before_bulk_final_request() {
+    if ( ! function_exists( 'ufsc_renewal_native_handoff_is_final_request' ) || ! ufsc_renewal_native_handoff_is_final_request() ) {
+        return;
+    }
+    if ( ! function_exists( 'WC' ) || ! WC() || ! WC()->cart || ! function_exists( 'ufsc_get_licences_table' ) ) {
+        return;
+    }
+
+    $club_id = isset( $_POST['ufsc_club_id'] ) && ! is_array( $_POST['ufsc_club_id'] )
+        ? absint( wp_unslash( $_POST['ufsc_club_id'] ) )
+        : 0;
+    if ( $club_id < 1 ) {
+        return;
+    }
+
+    $nonce = isset( $_POST['_wpnonce'] ) && ! is_array( $_POST['_wpnonce'] )
+        ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) )
+        : '';
+    if ( '' === $nonce || ! wp_verify_nonce( $nonce, 'ufsc_bulk_renew_licences_' . $club_id ) ) {
+        return;
+    }
+
+    $season = function_exists( 'ufsc_renewal_recovery_current_season' )
+        ? ufsc_renewal_recovery_current_season()
+        : ( class_exists( 'UFSC_Season_Service' ) ? (string) UFSC_Season_Service::get_current_season() : '' );
+    $source_ids = function_exists( 'ufsc_renewal_recovery_posted_source_ids' )
+        ? ufsc_renewal_recovery_posted_source_ids()
+        : array();
+    if ( '' === trim( (string) $season ) || ! $source_ids ) {
+        return;
+    }
+
+    global $wpdb;
+    $table = ufsc_get_licences_table();
+
+    foreach ( $source_ids as $source_id ) {
+        $source = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE id = %d AND club_id = %d LIMIT 1", absint( $source_id ), $club_id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+        if ( ! $source || ! function_exists( 'ufsc_renewal_recovery_existing_target' ) ) {
+            continue;
+        }
+
+        $target = ufsc_renewal_recovery_existing_target( $source, $club_id, str_replace( '/', '-', (string) $season ) );
+        $target_id = absint( $target->id ?? 0 );
+        if ( $target_id < 1 ) {
+            continue; // No current target yet: native handler will create it.
+        }
+
+        ufsc_renewal_multi_cart_reconcile_target( $target_id, $club_id, $season, $source_id );
+    }
+}
+add_action( 'admin_post_ufsc_bulk_renew_licences', 'ufsc_renewal_multi_cart_reconcile_before_bulk_final_request', 0 );

@@ -12,7 +12,10 @@ $assert = static function ( $condition, $message ) {
 };
 
 $assert( false !== strpos( $compat, "'/renewal-multi-cart-reconciliation.php'" ), 'multi-cart reconciliation is loaded in renewal runtime' );
-$assert( false !== strpos( $file, "add_action( 'ufsc_licence_updated', 'ufsc_renewal_multi_cart_reconcile_before_draft_handoff', 15, 1 )" ), 'reconciliation runs before draft cart handoff priority 20' );
+$assert( false !== strpos( $file, 'function ufsc_renewal_multi_cart_reconcile_target' ), 'one canonical reconciliation helper owns stale same-source cleanup' );
+$assert( false !== strpos( $file, "add_action( 'ufsc_licence_updated', 'ufsc_renewal_multi_cart_reconcile_before_draft_handoff', 15, 1 )" ), 'draft reconciliation keeps its existing hook' );
+$assert( false !== strpos( $file, "add_action( 'admin_post_ufsc_bulk_renew_licences', 'ufsc_renewal_multi_cart_reconcile_before_bulk_final_request', 0 )" ), 'bulk final renewal reconciles before the native priority-1 handler' );
+$assert( false !== strpos( $file, "wp_verify_nonce( \$nonce, 'ufsc_bulk_renew_licences_' . \$club_id )" ), 'bulk pre-handoff cart mutation is nonce protected' );
 $assert( false !== strpos( $file, "'ufsc_renew_from_licence_id'" ), 'same historical renewal source is identified' );
 $assert( false !== strpos( $file, "'ufsc_club_id'" ), 'club scope is mandatory' );
 $assert( false !== strpos( $file, "'ufsc_target_season'" ), 'season scope is mandatory' );
