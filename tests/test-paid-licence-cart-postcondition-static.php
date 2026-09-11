@@ -13,7 +13,8 @@ $assert = static function( $condition, $message ) use ( &$errors ) {
 $assert( false !== strpos( $flags, 'paid-licence-cart-postcondition.php' ), 'P0 cart postcondition must be loaded by feature flags.' );
 $assert( false !== strpos( $guard, "add_filter( 'wp_redirect', 'ufsc_paid_cart_enforce_redirect_postcondition', 999, 2 )" ), 'Guard must run as the final paid cart redirect postcondition.' );
 $assert( false !== strpos( $guard, 'ufsc_paid_cart_is_cart_redirect' ), 'Guard must run only for a declared Woo cart redirect.' );
-$assert( false !== strpos( $guard, "if ( ! empty( $row->is_included ) )" ), 'Included licences must be excluded from paid recovery.' );
+$included_guard = 'if ( ! empty( $row->is_included ) )';
+$assert( false !== strpos( $guard, $included_guard ), 'Included licences must be excluded from paid recovery.' );
 $assert( false !== strpos( $guard, 'ufsc_add_licence_ids_to_cart_idempotent' ), 'Recovery must reuse the canonical idempotent cart helper.' );
 $assert( false !== strpos( $guard, 'ufsc_persist_woocommerce_cart' ), 'Native Woo session must be persisted after status hooks.' );
 $assert( false !== strpos( $guard, 'ufsc_paid_cart_contains_licence' ), 'Success must be verified against the live native cart.' );
