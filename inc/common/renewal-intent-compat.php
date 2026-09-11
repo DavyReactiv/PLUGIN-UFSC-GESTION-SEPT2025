@@ -1,6 +1,14 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+// admin-post.php can create WooCommerce's cart after wp_loaded, too late for
+// WC_Cart_Session to restore the stored cart. Register the narrowly-scoped
+// priority-1 bootstrap before wp_loaded fires.
+$ufsc_renewal_cart_session_preload = dirname( __FILE__ ) . '/renewal-cart-session-preload.php';
+if ( file_exists( $ufsc_renewal_cart_session_preload ) ) {
+    require_once $ufsc_renewal_cart_session_preload;
+}
+
 /**
  * Restore the renewal submit intent before the canonical admin-post handler runs.
  *
