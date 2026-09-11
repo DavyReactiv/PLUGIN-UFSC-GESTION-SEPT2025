@@ -157,7 +157,7 @@
     if (step !== 3) return;
     var selected = ids(f), remaining = quota(w), included = Math.min(selected.length, remaining), paid = Math.max(0, selected.length - included);
     var button = f.querySelector('button[name="ufsc_renew_intent"][value="add_to_cart"]');
-    var productIsReady = productReady(w, button);
+    var productIsReady = paid === 0 || productReady(w, button);
     var canSubmit = selected.length > 0 && c.ready === selected.length && c.blocked === 0;
     var panel = f.querySelector('[data-ufsc-step-review="3"]'), title = panel && panel.querySelector('[data-ufsc-review-title]'), status = panel && panel.querySelector('[data-ufsc-review-status]'), list = panel && panel.querySelector('ul'), info = f.querySelector('#ufsc-cart-readiness');
     if (title) title.textContent = 'Vérification finale';
