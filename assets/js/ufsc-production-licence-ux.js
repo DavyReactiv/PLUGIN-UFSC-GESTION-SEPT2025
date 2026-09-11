@@ -179,6 +179,56 @@
     });
   }
 
+  function canonicalRenewalCounts() {
+    var counts = config().renewalCounts;
+    if (!counts || typeof counts !== 'object') return null;
+    return {
+      renewable: Math.max(0, Number(counts.renewable) || 0),
+      renewed: Math.max(0, Number(counts.renewed) || 0),
+      pending: Math.max(0, Number(counts.pending) || 0),
+      payable: Math.max(0, Number(counts.payable) || 0),
+      blocked: Math.max(0, Number(counts.blocked) || 0),
+      total: Math.max(0, Number(counts.total) || 0)
+    };
+  }
+
+  /*
+   * The PHP assistant historically counted only the current 10/20-row page.
+   * Replace that page-local sentence with the request-scoped canonical state
+   * summary localized by production-licence-ux.php. The existing selection span
+   * is preserved so the renewal controller can continue updating it live.
+   */
+  function applyCanonicalRenewalSummary() {
+    var counts = canonicalRenewalCounts();
+    var summary = document.querySelector('.ufsc-renewal-summary');
+    if (!counts || !summary) return;
+
+    var selection = summary.querySelector('[data-ufsc-selection-count]');
+    var selectionText = selection ? (selection.textContent || '').trim() : 'Aucune licence sélectionnée.';
+    summary.innerHTML = '';
+
+    var title = document.createElement('strong');
+    title.textContent = 'Résumé global';
+    summary.appendChild(title);
+    summary.appendChild(document.createTextNode(' — '));
+
+    var global = document.createElement('span');
+    global.setAttribute('data-ufsc-global-renewal-counts', '1');
+    global.textContent = counts.renewable + ' à renouveler · ' + counts.renewed + ' déjà renouvelée(s) · ' + counts.pending + ' demande(s) en cours · ' + counts.payable + ' paiement(s) à finaliser · ' + counts.blocked + ' bloquée(s).';
+    summary.appendChild(global);
+    summary.appendChild(document.createTextNode(' '));
+
+    var scope = document.createElement('span');
+    scope.className = 'ufsc-renewal-selection-scope';
+    scope.appendChild(document.createTextNode('Sélection courante — '));
+    selection = document.createElement('span');
+    selection.setAttribute('data-ufsc-selection-count', '');
+    selection.setAttribute('data-ufsc-selection-scope', 'current');
+    selection.textContent = selectionText || 'Aucune licence sélectionnée.';
+    scope.appendChild(selection);
+    summary.appendChild(scope);
+  }
+
   /*
    * Persist the explicit licence submit intent before the browser serializes the
    * form. The server-rendered wizard already exposes #ufsc_submit_action as the
@@ -230,6 +280,7 @@
     watchRenewalProfiles();
     normalizeExistingMessages();
     insertQueryNotice();
+    applyCanonicalRenewalSummary();
     bindLicenceSubmitIntent();
     bindValidationFeedback();
   }
