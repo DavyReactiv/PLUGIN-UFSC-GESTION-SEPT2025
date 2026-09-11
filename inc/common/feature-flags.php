@@ -204,3 +204,10 @@ $ufsc_club_stats_dashboard_v2 = dirname( __FILE__ ) . '/club-stats-dashboard-v2.
 if ( file_exists( $ufsc_club_stats_dashboard_v2 ) ) {
     require_once $ufsc_club_stats_dashboard_v2;
 }
+
+// Compact contextual guidance across club and UFSC admin screens. Presentation
+// only: no licence, affiliation, quota, payment or historical data mutation.
+$ufsc_contextual_help = dirname( __FILE__ ) . '/contextual-help.php';
+if ( file_exists( $ufsc_contextual_help ) ) {
+    require_once $ufsc_contextual_help;
+}
