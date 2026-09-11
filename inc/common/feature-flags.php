@@ -219,6 +219,13 @@ if ( file_exists( $ufsc_renewal_cart_integrity ) ) {
     require_once $ufsc_renewal_cart_integrity;
 }
 
+// P0 retry handoff: append payable renewal targets directly to the native Woo
+// cart and persist exactly once after all selected renewals.
+$ufsc_renewal_native_cart_handoff = dirname( __FILE__ ) . '/renewal-native-cart-handoff.php';
+if ( file_exists( $ufsc_renewal_native_cart_handoff ) ) {
+    require_once $ufsc_renewal_native_cart_handoff;
+}
+
 // Read-only statistics presentation: replaces misleading empty legacy charts
 // with a compact current-season view built from every dossier entered by the club.
 $ufsc_club_stats_dashboard_v2 = dirname( __FILE__ ) . '/club-stats-dashboard-v2.php';
