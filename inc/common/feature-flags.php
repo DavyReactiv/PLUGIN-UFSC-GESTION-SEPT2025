@@ -212,6 +212,13 @@ if ( file_exists( $ufsc_renewal_cart_recovery ) ) {
     require_once $ufsc_renewal_cart_recovery;
 }
 
+// P0 debug-confirmed Woo cart integrity guard: preserve valid lines, repair a
+// malformed renewal row before totals and use Woo's supported session removal hook.
+$ufsc_renewal_cart_integrity = dirname( __FILE__ ) . '/renewal-cart-integrity.php';
+if ( file_exists( $ufsc_renewal_cart_integrity ) ) {
+    require_once $ufsc_renewal_cart_integrity;
+}
+
 // Read-only statistics presentation: replaces misleading empty legacy charts
 // with a compact current-season view built from every dossier entered by the club.
 $ufsc_club_stats_dashboard_v2 = dirname( __FILE__ ) . '/club-stats-dashboard-v2.php';
