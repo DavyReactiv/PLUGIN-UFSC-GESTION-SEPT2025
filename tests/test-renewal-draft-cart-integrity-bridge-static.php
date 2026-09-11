@@ -18,7 +18,7 @@ $assert( false !== strpos( $file, "add_action( 'woocommerce_add_to_cart', 'ufsc_
 $assert( false !== strpos( $file, "add_action( 'woocommerce_add_to_cart', 'ufsc_renewal_draft_integrity_repair_after_add', 999999, 1 )" ), 'renewal row is repaired before add_to_cart returns' );
 $assert( false !== strpos( $file, "add_action( 'woocommerce_before_calculate_totals', 'ufsc_renewal_draft_integrity_repair_before_totals', 2, 1 )" ), 'second repair guard runs before totals' );
 $assert( false === strpos( $file, 'empty_cart(' ), 'existing cart is never emptied' );
-$assert( false === preg_match( '/\bDELETE\s+FROM\b/i', $file ), 'no licence/history deletion is introduced' );
+$assert( 0 === preg_match( '/\bDELETE\s+FROM\b/i', $file ), 'no licence/history deletion is introduced' );
 $assert( false === stripos( $file, 'ALTER TABLE' ), 'no schema migration is introduced' );
 $assert( false === strpos( $file, 'ufsc_allocate_pack_credit' ), 'bridge does not alter pack quota' );
 $assert( false === strpos( $file, 'wc_create_order' ), 'bridge does not create orders' );
