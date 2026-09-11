@@ -28,13 +28,16 @@ function ufsc_portal_cleanup_assets() {
     $css = 'assets/css/ufsc-portal-clean.css';
     $js  = 'assets/js/ufsc-portal-clean.js';
     $renewal_js = 'assets/js/ufsc-renewal-production-flow.js';
+    $renewal_guard_js = 'assets/js/ufsc-renewal-final-submit-guard.js';
     $version_css = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $css ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
     $version_js  = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $js ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
     $version_renewal_js = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $renewal_js ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
+    $version_renewal_guard_js = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $renewal_guard_js ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
 
     wp_enqueue_style( 'ufsc-portal-clean', UFSC_CL_URL . $css, array(), $version_css );
     wp_enqueue_script( 'ufsc-portal-clean', UFSC_CL_URL . $js, array(), $version_js, true );
     wp_enqueue_script( 'ufsc-renewal-production-flow', UFSC_CL_URL . $renewal_js, array( 'ufsc-portal-clean' ), $version_renewal_js, true );
+    wp_enqueue_script( 'ufsc-renewal-final-submit-guard', UFSC_CL_URL . $renewal_guard_js, array( 'ufsc-renewal-production-flow' ), $version_renewal_guard_js, true );
 }
 add_action( 'wp_enqueue_scripts', 'ufsc_portal_cleanup_assets', 999 );
 
@@ -81,6 +84,7 @@ function ufsc_production_log_renewal_post() {
     $intent = isset( $_POST['ufsc_renew_intent'] ) && ! is_array( $_POST['ufsc_renew_intent'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_renew_intent'] ) ) : '';
     $season = isset( $_POST['ufsc_target_season'] ) && ! is_array( $_POST['ufsc_target_season'] ) ? sanitize_text_field( wp_unslash( $_POST['ufsc_target_season'] ) ) : '';
     $club_id = isset( $_POST['ufsc_club_id'] ) ? absint( wp_unslash( $_POST['ufsc_club_id'] ) ) : 0;
+    $client_trace = isset( $_POST['ufsc_client_submit_trace'] ) && ! is_array( $_POST['ufsc_client_submit_trace'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_client_submit_trace'] ) ) : '';
     $ids = array();
     foreach ( array( 'ufsc_renew_ids', 'source_ids', 'renew_licence_ids' ) as $key ) {
         if ( isset( $_POST[ $key ] ) && is_array( $_POST[ $key ] ) ) {
@@ -94,6 +98,7 @@ function ufsc_production_log_renewal_post() {
         'club_id' => $club_id,
         'target_season' => $season,
         'source_ids' => $ids,
+        'client_trace' => $client_trace,
     ) ) );
 }
 add_action( 'admin_init', 'ufsc_production_log_renewal_post', 1 );
@@ -108,7 +113,7 @@ function ufsc_production_log_renewal_shutdown_result() {
     $season = class_exists( 'UFSC_Season_Service' ) ? (string) UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? (string) ufsc_get_current_season() : '' );
     $ids = array();
     if ( isset( $_POST['ufsc_renew_ids'] ) && is_array( $_POST['ufsc_renew_ids'] ) ) {
-        $ids = array_values( array_unique( array_filter( array_map( 'absint', wp_unslash( $_POST['ufsc_renew_ids'] ) ) ) ) );
+        $ids = array_values( array_unique( array_filter( array_map( 'absint', wp_unslash( $_POST['ufsc_renew_ids'] ) ) ) );
     }
     $markers = array();
     if ( function_exists( 'ufsc_get_renewed_licence_marker' ) ) {
