@@ -12,6 +12,7 @@ test('paid renewal real 1-2-3 journey performs one native admin-post POST', asyn
   await page.route('https://ufsc.test/wp-admin/admin-post.php', async (route) => {
     const request = route.request();
     posts.push({ method: request.method(), body: request.postData() || '' });
+    await new Promise((resolve) => setTimeout(resolve, 150));
     await route.fulfill({
       status: 200,
       contentType: 'text/html',
@@ -101,7 +102,11 @@ test('paid renewal real 1-2-3 journey performs one native admin-post POST', asyn
   const submit = form.locator('button[name="ufsc_renew_intent"][value="add_to_cart"]');
   await expect(submit).toBeVisible();
   await expect(submit).toBeEnabled();
-  await submit.click();
+  await submit.click({ noWaitAfter: true });
+
+  const status = form.locator('[data-ufsc-final-submit-status="1"]');
+  await expect(status).toBeVisible();
+  await expect(status).toContainText('Traitement du renouvellement en cours');
 
   await expect.poll(() => posts.length, { timeout: 5000 }).toBe(1);
   expect(posts[0].method).toBe('POST');
