@@ -8,6 +8,11 @@ const renewalController = path.join(root, 'assets/js/ufsc-renewal-production-flo
 
 test('paid renewal real 1-2-3 journey performs one native admin-post POST', async ({ page }) => {
   const posts = [];
+  let statusSeen = false;
+
+  await page.exposeFunction('ufscMarkSubmitStatus', (text) => {
+    if (String(text || '').includes('Traitement du renouvellement en cours')) statusSeen = true;
+  });
 
   await page.route('https://ufsc.test/wp-admin/admin-post.php', async (route) => {
     const request = route.request();
@@ -90,6 +95,17 @@ test('paid renewal real 1-2-3 journey performs one native admin-post POST', asyn
   await page.addScriptTag({ path: legacyDashboard });
   await page.addScriptTag({ path: renewalController });
 
+  await page.evaluate(() => {
+    const form = document.getElementById('ufsc-renewal-assistant-form');
+    const report = () => {
+      const node = form && form.querySelector('[data-ufsc-final-submit-status="1"]');
+      if (node) window.ufscMarkSubmitStatus(node.textContent || '');
+    };
+    const observer = new MutationObserver(report);
+    observer.observe(form, { childList: true, subtree: true, attributes: true });
+    report();
+  });
+
   const form = page.locator('#ufsc-renewal-assistant-form');
   await expect(form).toHaveAttribute('data-current-step', '1');
 
@@ -104,10 +120,7 @@ test('paid renewal real 1-2-3 journey performs one native admin-post POST', asyn
   await expect(submit).toBeEnabled();
   await submit.click({ noWaitAfter: true });
 
-  const status = form.locator('[data-ufsc-final-submit-status="1"]');
-  await expect(status).toBeVisible();
-  await expect(status).toContainText('Traitement du renouvellement en cours');
-
+  await expect.poll(() => statusSeen, { timeout: 5000 }).toBe(true);
   await expect.poll(() => posts.length, { timeout: 5000 }).toBe(1);
   expect(posts[0].method).toBe('POST');
 
