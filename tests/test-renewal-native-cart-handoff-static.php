@@ -19,7 +19,8 @@ $assert( false !== strpos( $file, "ufsc_persist_woocommerce_cart()" ), 'handler 
 $assert( false !== strpos( $file, "ufsc_renewal_recovery_cart_contains_target" ), 'cart presence must be verified before success' );
 $assert( false !== strpos( $file, "ufsc_is_licence_linked_to_order" ), 'existing order protection must remain' );
 $assert( false !== strpos( $file, "ufsc_renewal_recovery_keep_editable" ), 'failed handoff must keep the dossier recoverable' );
-$assert( false !== strpos( $file, "'ufsc_operation_type'          = 'renewal'" ) || false !== strpos( $file, "$item_data['ufsc_operation_type']          = 'renewal';" ), 'renewal metadata must remain explicit' );
+$assert( false !== strpos( $file, "ufsc_operation_type']          = 'renewal'" ), 'renewal operation metadata must remain explicit' );
+$assert( false !== strpos( $file, "ufsc_renew_from_licence_id']   = $source_id" ), 'historical renewal source metadata must remain explicit' );
 
 if ( $errors ) {
     foreach ( $errors as $error ) { fwrite( STDERR, "FAIL: {$error}\n" ); }
