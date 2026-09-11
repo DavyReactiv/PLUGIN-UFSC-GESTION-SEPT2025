@@ -75,9 +75,6 @@ function ufsc_renewal_native_handoff_add_target( $source, $target, $club_id, $se
     if ( function_exists( 'ufsc_renewal_recovery_cart_contains_target' ) && ufsc_renewal_recovery_cart_contains_target( $target_id ) ) {
         return array( 'existing' => true, 'target_id' => $target_id );
     }
-    if ( function_exists( 'ufsc_cart_has_renewal_item' ) && ufsc_cart_has_renewal_item( 'renew_licence', $club_id, $season, $source_id ) ) {
-        return array( 'existing' => true, 'target_id' => $target_id );
-    }
 
     $missing = function_exists( 'ufsc_renewal_recovery_missing_fields' )
         ? ufsc_renewal_recovery_missing_fields( $target )
