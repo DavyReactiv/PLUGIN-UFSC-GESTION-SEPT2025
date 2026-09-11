@@ -252,3 +252,10 @@ $ufsc_contextual_help = dirname( __FILE__ ) . '/contextual-help.php';
 if ( file_exists( $ufsc_contextual_help ) ) {
     require_once $ufsc_contextual_help;
 }
+
+// Bank transfer checkout information: display the official UFSC Crédit Mutuel
+// account details on checkout, confirmation and customer e-mails only for BACS.
+$ufsc_bacs_bank_details = dirname( __FILE__ ) . '/bacs-bank-details.php';
+if ( file_exists( $ufsc_bacs_bank_details ) ) {
+    require_once $ufsc_bacs_bank_details;
+}
