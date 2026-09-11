@@ -182,7 +182,7 @@ add_action( 'init', 'ufsc_fix_new_licence_cart_route', 20 );
 
 function ufsc_allow_cart_before_honorability_completion( $required, $normalized_role, $raw_role ) {
     unset( $normalized_role, $raw_role );
-    if ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) { return $required; }
+    if ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) { return $required; }
     $intent = isset( $_POST['ufsc_submit_action'] ) && ! is_array( $_POST['ufsc_submit_action'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_submit_action'] ) ) : '';
     if ( ! $intent && isset( $_POST['ufsc_final_intent'] ) && ! is_array( $_POST['ufsc_final_intent'] ) ) {
         $intent = sanitize_key( wp_unslash( $_POST['ufsc_final_intent'] ) );
@@ -217,6 +217,13 @@ if ( file_exists( $ufsc_renewal_cart_recovery ) ) {
 $ufsc_renewal_cart_integrity = dirname( __FILE__ ) . '/renewal-cart-integrity.php';
 if ( file_exists( $ufsc_renewal_cart_integrity ) ) {
     require_once $ufsc_renewal_cart_integrity;
+}
+
+// P0 retry handoff: append payable renewal targets directly to the native Woo
+// cart and persist exactly once after all selected renewals.
+$ufsc_renewal_native_cart_handoff = dirname( __FILE__ ) . '/renewal-native-cart-handoff.php';
+if ( file_exists( $ufsc_renewal_native_cart_handoff ) ) {
+    require_once $ufsc_renewal_native_cart_handoff;
 }
 
 // Read-only statistics presentation: replaces misleading empty legacy charts
