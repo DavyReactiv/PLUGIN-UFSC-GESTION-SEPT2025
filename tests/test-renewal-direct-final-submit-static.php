@@ -1,6 +1,6 @@
 <?php
 $root = dirname( __DIR__ );
-$guard = file_get_contents( $root . '/assets/js/ufsc-renewal-final-submit-guard.js' );
+$flow = file_get_contents( $root . '/assets/js/ufsc-renewal-production-flow.js' );
 $loader = file_get_contents( $root . '/inc/common/portal-ui-cleanup.php' );
 
 $assert = static function ( $condition, $message ) {
@@ -10,13 +10,13 @@ $assert = static function ( $condition, $message ) {
     }
 };
 
-$assert( false !== strpos( $loader, 'ufsc-renewal-final-submit-guard.js' ), 'final renewal capture guard must be enqueued' );
-$assert( false !== strpos( $guard, "document.addEventListener('click'" ) && false !== strpos( $guard, '}, true);' ), 'guard must observe the final click in capture phase' );
-$assert( false !== strpos( $guard, 'event.stopImmediatePropagation()' ), 'legacy click handlers must not own the final renewal action' );
-$assert( false !== strpos( $guard, "HTMLFormElement.prototype.submit.call(form)" ), 'final renewal must use native POST after front checks' );
-$assert( false !== strpos( $guard, "ufsc_client_submit_trace" ) && false !== strpos( $guard, 'direct_capture_submit' ), 'direct submit must carry a privacy-safe server trace' );
-$assert( false !== strpos( $guard, 'Traitement du renouvellement en cours' ), 'club user must receive immediate visible feedback' );
-$assert( false !== strpos( $guard, 'data-complete' ) && false !== strpos( $guard, 'data-blocked' ), 'guard must still fail closed for incomplete or blocked dossiers' );
-$assert( false === strpos( $guard, 'empty_cart' ) && false === strpos( $guard, 'remove_cart_item' ), 'front guard must not mutate unrelated cart lines' );
+$assert( false !== strpos( $loader, 'ufsc-renewal-production-flow.js' ), 'canonical renewal controller must remain enqueued' );
+$assert( false === strpos( $loader, 'ufsc-renewal-final-submit-guard.js' ), 'no duplicate renewal submit guard may be enqueued' );
+$assert( false !== strpos( $flow, "document.addEventListener('click'" ) && false !== strpos( $flow, 'e.stopImmediatePropagation()' ), 'canonical controller must own the final click in capture phase' );
+$assert( false !== strpos( $flow, "nativeFinalSubmit(f, 'direct_capture_submit')" ), 'final click must use the canonical native submit path' );
+$assert( false !== strpos( $flow, 'HTMLFormElement.prototype.submit.call(f)' ), 'final renewal must issue a native POST after front checks' );
+$assert( false !== strpos( $flow, 'Traitement du renouvellement en cours' ), 'club user must receive immediate visible feedback' );
+$assert( false !== strpos( $flow, 'data-complete' ) && false !== strpos( $flow, 'data-blocked' ), 'final submit must still fail closed for incomplete or blocked dossiers' );
+$assert( false === strpos( $flow, 'empty_cart(' ) && false === strpos( $flow, 'remove_cart_item' ), 'front controller must not mutate unrelated cart lines' );
 
 echo "Renewal direct final submit safeguards OK\n";
