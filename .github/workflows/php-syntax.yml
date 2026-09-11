@@ -40,6 +40,16 @@ jobs:
       - name: Check JavaScript syntax
         run: find assets tests -name '*.js' -type f -print0 | xargs -0 -r -n1 node --check
 
+      - name: Install Playwright renewal gate
+        run: |
+          npm install --no-save @playwright/test@1.55.0 jquery@3.7.1
+          npx playwright install --with-deps chromium
+
+      - name: Playwright renewal final submit gate
+        run: npx playwright test tests/playwright/renewal-final-submit.spec.js --reporter=line
+        env:
+          CI: true
+
       - name: Run standalone and runtime regression tests
         run: composer test:standalone
 
