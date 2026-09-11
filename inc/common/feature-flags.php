@@ -226,6 +226,19 @@ if ( file_exists( $ufsc_renewal_native_cart_handoff ) ) {
     require_once $ufsc_renewal_native_cart_handoff;
 }
 
+// P0 reopened renewal draft: route the unified edit form through the native
+// renewal cart handoff without touching ordinary current-season licence edits.
+$ufsc_renewal_draft_cart_handoff = dirname( __FILE__ ) . '/renewal-draft-cart-handoff.php';
+if ( file_exists( $ufsc_renewal_draft_cart_handoff ) ) {
+    require_once $ufsc_renewal_draft_cart_handoff;
+}
+
+// Admin-only FFST layout repair. Presentation only; no business/data mutation.
+$ufsc_ffst_admin_layout_hotfix = dirname( __FILE__ ) . '/ffst-admin-layout-hotfix.php';
+if ( file_exists( $ufsc_ffst_admin_layout_hotfix ) ) {
+    require_once $ufsc_ffst_admin_layout_hotfix;
+}
+
 // Read-only statistics presentation: replaces misleading empty legacy charts
 // with a compact current-season view built from every dossier entered by the club.
 $ufsc_club_stats_dashboard_v2 = dirname( __FILE__ ) . '/club-stats-dashboard-v2.php';
