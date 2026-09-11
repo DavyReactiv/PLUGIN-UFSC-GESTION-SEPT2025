@@ -12,11 +12,13 @@ $assert = static function ( $condition, $message ) {
 
 $assert( false !== strpos( $loader, 'ufsc-renewal-production-flow.js' ), 'canonical renewal controller must remain enqueued' );
 $assert( false === strpos( $loader, 'ufsc-renewal-final-submit-guard.js' ), 'no duplicate renewal submit guard may be enqueued' );
-$assert( false !== strpos( $flow, "document.addEventListener('click'" ) && false !== strpos( $flow, 'e.stopImmediatePropagation()' ), 'canonical controller must own the final click in capture phase' );
-$assert( false !== strpos( $flow, "nativeFinalSubmit(f, 'direct_capture_submit')" ), 'final click must use the canonical native submit path' );
-$assert( false !== strpos( $flow, 'HTMLFormElement.prototype.submit.call(f)' ), 'final renewal must issue a native POST after front checks' );
+$assert( false !== strpos( $flow, 'function prepareNativeFinalSubmit' ), 'canonical controller prepares one native HTML submit contract' );
+$assert( false !== strpos( $flow, "rememberIntent(f, 'add_to_cart')" ), 'final step must persist the canonical fallback intent before native submit' );
+$assert( false !== strpos( $flow, "submitTrace(f, reason || 'native_html_submit')" ), 'final submit must remain observable when it reaches the server' );
+$assert( false === strpos( $flow, 'HTMLFormElement.prototype.submit.call(f)' ), 'controller must not replace the browser native submit anymore' );
+$assert( false === strpos( $flow, 'e.stopImmediatePropagation()' ), 'controller must not swallow the native click event' );
 $assert( false !== strpos( $flow, 'Traitement du renouvellement en cours' ), 'club user must receive immediate visible feedback' );
 $assert( false !== strpos( $flow, 'data-complete' ) && false !== strpos( $flow, 'data-blocked' ), 'final submit must still fail closed for incomplete or blocked dossiers' );
 $assert( false === strpos( $flow, 'empty_cart(' ) && false === strpos( $flow, 'remove_cart_item' ), 'front controller must not mutate unrelated cart lines' );
 
-echo "Renewal direct final submit safeguards OK\n";
+echo "Renewal native HTML final submit safeguards OK\n";

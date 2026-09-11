@@ -29,6 +29,18 @@
     intentFallback(f).value = value || '';
   }
 
+  function submitTrace(f, value) {
+    var input = f.querySelector('input[data-ufsc-client-submit-trace="1"]');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'ufsc_client_submit_trace';
+      input.setAttribute('data-ufsc-client-submit-trace', '1');
+      f.appendChild(input);
+    }
+    input.value = value || '';
+  }
+
   function stepNumber(f) {
     var step = Number(f.getAttribute('data-current-step') || f.getAttribute('data-initial-step') || 1);
     return step === 2 || step === 3 ? step : 1;
@@ -203,44 +215,13 @@
     }
   }
 
-  function ensureCanonicalIntent(f, value, reason) {
-    var input = f.querySelector('input[data-ufsc-native-final-intent="1"]');
-    if (!input) {
-      input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = 'ufsc_renew_intent';
-      input.setAttribute('data-ufsc-native-final-intent', '1');
-      f.appendChild(input);
-    }
-    input.value = value;
-
-    var trace = f.querySelector('input[data-ufsc-client-submit-trace="1"]');
-    if (!trace) {
-      trace = document.createElement('input');
-      trace.type = 'hidden';
-      trace.name = 'ufsc_client_submit_trace';
-      trace.setAttribute('data-ufsc-client-submit-trace', '1');
-      f.appendChild(trace);
-    }
-    trace.value = reason || 'native_fallback';
-  }
-
-  function nativeFinalSubmit(f, reason) {
-    if (!f || f.getAttribute('data-ufsc-native-final-submit') === '1') return;
-    var button = f.querySelector('button[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"]');
-    if (stepNumber(f) !== 3 || !button || !ids(f).length || !canFinalSubmit(f)) return;
-
-    f.setAttribute('data-ufsc-native-final-submit', '1');
+  function prepareNativeFinalSubmit(f, reason) {
+    if (!f || stepNumber(f) !== 3 || !ids(f).length || !canFinalSubmit(f)) return false;
     rememberIntent(f, 'add_to_cart');
-    ensureCanonicalIntent(f, 'add_to_cart', reason);
-    button.disabled = true;
-    button.setAttribute('aria-disabled', 'true');
-    finalStatus(f, 'Traitement du renouvellement en cours…', 'info');
-
-    /* Server-side validation remains authoritative; native submit only avoids
-     * competing legacy JS handlers swallowing the final request. */
+    submitTrace(f, reason || 'native_html_submit');
     f.noValidate = true;
-    HTMLFormElement.prototype.submit.call(f);
+    finalStatus(f, 'Traitement du renouvellement en cours…', 'info');
+    return true;
   }
 
   function sync() {
@@ -250,7 +231,14 @@
     w.setAttribute('data-ufsc-current-step', String(step));
     var selected = ids(f);
 
-    if (step !== 3) rememberIntent(f, '');
+    if (step !== 3) {
+      rememberIntent(f, '');
+      submitTrace(f, '');
+      f.noValidate = false;
+    } else if (canFinalSubmit(f)) {
+      rememberIntent(f, 'add_to_cart');
+      f.noValidate = true;
+    }
 
     Array.prototype.slice.call(w.querySelectorAll('.ufsc-renewal-filters,.ufsc-renewal-list-tools,.ufsc-renewal-pagination')).forEach(function (el) { el.style.display = step === 1 ? '' : 'none'; });
     var wrap = f.querySelector('.ufsc-front-table-scroll'); if (wrap) wrap.style.display = step === 1 ? '' : 'none';
@@ -267,45 +255,33 @@
     var f = form(); if (!f || f.getAttribute('data-ufsc-renewal-overlay') === '1') return;
     f.setAttribute('data-ufsc-renewal-overlay','1'); ensurePanels(f); rememberIntent(f, ''); sync();
 
-    /* This controller is the single owner of the final click. Listening on
-     * document capture runs before legacy form-level handlers. */
+    /* Keep the final action as a normal HTML form POST. The controller only
+     * validates the selected dossiers and prepares the fallback intent; it does
+     * not prevent, replace or re-dispatch the browser submit. */
     document.addEventListener('click', function (e) {
-      var submitter = e.target && e.target.closest ? e.target.closest('button[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"],input[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"]') : null;
+      var submitter = e.target && e.target.closest ? e.target.closest('button[name="ufsc_renew_intent"][value="add_to_cart"],input[name="ufsc_renew_intent"][value="add_to_cart"]') : null;
       if (!submitter || submitter.form !== f || stepNumber(f) !== 3) return;
 
-      e.preventDefault();
-      e.stopImmediatePropagation();
       enforceFinalButton(f);
-
-      if (!canFinalSubmit(f)) {
+      if (!prepareNativeFinalSubmit(f, 'native_click_submit')) {
+        e.preventDefault();
         finalStatus(f, 'Impossible de finaliser : un dossier sélectionné est incomplet ou bloqué. Revenez à l’étape de vérification.', 'error');
-        return;
       }
-
-      nativeFinalSubmit(f, 'direct_capture_submit');
     }, true);
 
-    /* Keyboard/programmatic submits still use the same native finaliser. */
+    /* Keyboard/programmatic final submits use the same native form contract.
+     * Nothing here calls preventDefault() when the dossier is valid. */
     f.addEventListener('submit', function (e) {
       var submitter = e.submitter || null;
       var intent = submitter && submitter.name === 'ufsc_renew_intent' ? String(submitter.value || '') : '';
-      if (!intent && stepNumber(f) === 3) {
-        var finalButton = f.querySelector('button[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"]');
-        if (finalButton && canFinalSubmit(f)) intent = 'add_to_cart';
+      if (!intent && stepNumber(f) === 3) intent = 'add_to_cart';
+      if (intent !== 'add_to_cart' || stepNumber(f) !== 3) {
+        if (intent) rememberIntent(f, intent);
+        return;
       }
-      if (intent) rememberIntent(f, intent);
-
-      if (intent === 'add_to_cart' && stepNumber(f) === 3) {
+      if (!prepareNativeFinalSubmit(f, 'native_submit_event')) {
         e.preventDefault();
-        if (canFinalSubmit(f)) nativeFinalSubmit(f, 'submit_event');
-      }
-    }, true);
-
-    f.addEventListener('invalid', function () {
-      if (stepNumber(f) === 3 && canFinalSubmit(f)) {
-        window.setTimeout(function () {
-          nativeFinalSubmit(f, 'native_validation_blocked');
-        }, 0);
+        finalStatus(f, 'Impossible de finaliser : un dossier sélectionné est incomplet ou bloqué. Revenez à l’étape de vérification.', 'error');
       }
     }, true);
 
@@ -313,7 +289,7 @@
     f.addEventListener('input', function () { window.setTimeout(sync,0); });
     f.addEventListener('click', function (e) { if (e.target && e.target.closest && e.target.closest('[data-ufsc-next-step],[data-ufsc-renew-one],[data-ufsc-select-all],[data-ufsc-select-none]')) window.setTimeout(sync,0); });
 
-    var finalButton = f.querySelector('button[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"]');
+    var finalButton = f.querySelector('button[name="ufsc_renew_intent"][value="add_to_cart"]');
     if (window.MutationObserver && finalButton) {
       new MutationObserver(function () {
         if (stepNumber(f) === 3) enforceFinalButton(f);
