@@ -6,15 +6,12 @@ const jquery = require.resolve('jquery/dist/jquery.min.js');
 const legacyDashboard = path.join(root, 'assets/js/frontend-dashboard.js');
 const renewalController = path.join(root, 'assets/js/ufsc-renewal-production-flow.js');
 
-test('paid renewal final CTA performs one native admin-post POST', async ({ page }) => {
+test('paid renewal real 1-2-3 journey performs one native admin-post POST', async ({ page }) => {
   const posts = [];
 
   await page.route('https://ufsc.test/wp-admin/admin-post.php', async (route) => {
     const request = route.request();
-    posts.push({
-      method: request.method(),
-      body: request.postData() || '',
-    });
+    posts.push({ method: request.method(), body: request.postData() || '' });
     await route.fulfill({
       status: 200,
       contentType: 'text/html',
@@ -26,28 +23,58 @@ test('paid renewal final CTA performs one native admin-post POST', async ({ page
   <html><body>
     <div id="ufsc-renewal-wizard" class="ufsc-renewal-wizard">
       <ol class="ufsc-renewal-steps">
-        <li data-ufsc-step-indicator="1"><strong>1</strong></li>
-        <li data-ufsc-step-indicator="2"><strong>2</strong></li>
-        <li data-ufsc-step-indicator="3"><strong>3</strong></li>
+        <li data-ufsc-step-indicator="1"><strong>1</strong> Sélectionner</li>
+        <li data-ufsc-step-indicator="2"><strong>2</strong> Vérifier</li>
+        <li data-ufsc-step-indicator="3"><strong>3</strong> Finaliser</li>
       </ol>
       <div class="ufsc-journey-renewal-quota">10 / 10 utilisées — 0 restante</div>
-      <form id="ufsc-renewal-assistant-form" method="post" action="https://ufsc.test/wp-admin/admin-post.php" data-current-step="3" data-initial-step="3">
+      <form id="ufsc-renewal-assistant-form" method="post" action="https://ufsc.test/wp-admin/admin-post.php" data-current-step="1" data-initial-step="1">
         <input type="hidden" name="action" value="ufsc_bulk_renew_licences">
         <input type="hidden" name="ufsc_club_id" value="1">
         <input type="hidden" name="target_season" value="2026-2027">
-        <input class="ufsc-renewal-checkbox" type="checkbox" name="ufsc_renew_ids[]" value="1326" checked>
+
+        <div data-ufsc-selection-count></div>
         <div class="ufsc-front-table-scroll">
-          <table class="ufsc-renewal-table"><thead><tr><th>Sélection</th><th>Identité</th></tr></thead><tbody>
-            <tr class="ufsc-renewal-source-row" data-source-id="1326" data-complete="1" data-cart-eligible="1" data-blocked="0"><td></td><td data-label="Identité">Licence test</td></tr>
-          </tbody></table>
+          <table class="ufsc-renewal-table">
+            <thead><tr><th>Sélection</th><th>Identité</th></tr></thead>
+            <tbody>
+              <tr class="ufsc-renewal-source-row" data-source-id="1326" data-complete="1" data-cart-eligible="1" data-blocked="0">
+                <td><input class="ufsc-renewal-checkbox" type="checkbox" name="ufsc_renew_ids[]" value="1326" checked></td>
+                <td data-label="Identité">Licence test</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
+
         <section class="ufsc-renewal-profile-row" data-profile-id="1326" hidden>
+          <div data-ufsc-completeness><strong>Dossier complet</strong></div>
           <input required name="profiles[1326][nom]" value="TEST">
           <input required name="profiles[1326][prenom]" value="Licence">
+          <input required type="email" name="profiles[1326][email]" value="licence@example.test">
+          <input required type="date" name="profiles[1326][date_naissance]" value="1990-01-01">
+          <select required name="profiles[1326][sexe]"><option value="M" selected>Homme</option></select>
+          <input required name="profiles[1326][adresse]" value="1 rue du Test">
+          <input required name="profiles[1326][ville]" value="Montluçon">
+          <input required name="profiles[1326][code_postal]" value="03100">
+          <select required name="profiles[1326][fighter_level]"><option value="classe_c" selected>Classe C</option></select>
+          <input required type="number" min="20" max="300" name="profiles[1326][poids]" value="70">
         </section>
-        <div data-ufsc-step-review="3"><strong data-ufsc-review-title></strong><span data-ufsc-review-status></span><ul></ul></div>
+
+        <div class="ufsc-renewal-actions" data-ufsc-step-actions="1">
+          <button type="button" data-ufsc-select-all>Tout sélectionner</button>
+          <button type="button" data-ufsc-select-none>Tout désélectionner</button>
+          <button type="button" data-ufsc-next-step="2">Vérifier</button>
+        </div>
+        <div class="ufsc-renewal-actions" data-ufsc-step-actions="2" hidden>
+          <button type="button" data-ufsc-next-step="3">Continuer</button>
+        </div>
+        <div data-ufsc-step-review="3" hidden>
+          <strong data-ufsc-review-title></strong>
+          <span data-ufsc-review-status></span>
+          <ul></ul>
+        </div>
         <span id="ufsc-cart-readiness"></span>
-        <div class="ufsc-renewal-actions" data-ufsc-step-actions="3">
+        <div class="ufsc-renewal-actions" data-ufsc-step-actions="3" hidden>
           <button type="submit" name="ufsc_renew_intent" value="add_to_cart" data-ufsc-product-ready="1">Confirmer</button>
         </div>
       </form>
@@ -63,9 +90,16 @@ test('paid renewal final CTA performs one native admin-post POST', async ({ page
   await page.addScriptTag({ path: renewalController });
 
   const form = page.locator('#ufsc-renewal-assistant-form');
+  await expect(form).toHaveAttribute('data-current-step', '1');
+
+  await form.locator('[data-ufsc-next-step="2"]').click();
+  await expect(form).toHaveAttribute('data-current-step', '2');
+
+  await form.locator('[data-ufsc-next-step="3"]').click();
   await expect(form).toHaveAttribute('data-current-step', '3');
 
   const submit = form.locator('button[name="ufsc_renew_intent"][value="add_to_cart"]');
+  await expect(submit).toBeVisible();
   await expect(submit).toBeEnabled();
   await submit.click();
 
