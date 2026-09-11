@@ -133,12 +133,32 @@
     return {selected:selected.length, ready:r, incomplete:incomplete, blocked:b};
   }
 
+  function canFinalSubmit(f) {
+    var selected = ids(f);
+    if (!selected.length) return false;
+    for (var i = 0; i < selected.length; i++) {
+      var row = source(f, selected[i]);
+      if (blocked(row) || !profileComplete(f, selected[i])) return false;
+    }
+    return true;
+  }
+
+  function enforceFinalButton(f) {
+    if (!f || stepNumber(f) !== 3) return;
+    var button = f.querySelector('button[name="ufsc_renew_intent"][value="add_to_cart"]');
+    if (!button) return;
+    var allowed = canFinalSubmit(f);
+    if (button.disabled === allowed) button.disabled = !allowed;
+    button.setAttribute('aria-disabled', allowed ? 'false' : 'true');
+  }
+
   function finalReview(f, w, c) {
     var step = stepNumber(f);
     if (step !== 3) return;
     var selected = ids(f), remaining = quota(w), included = Math.min(selected.length, remaining), paid = Math.max(0, selected.length - included);
     var button = f.querySelector('button[name="ufsc_renew_intent"][value="add_to_cart"]');
-    var paidReady = paid === 0 || productReady(w, button), canSubmit = selected.length > 0 && c.ready === selected.length && c.blocked === 0 && paidReady;
+    var productIsReady = productReady(w, button);
+    var canSubmit = selected.length > 0 && c.ready === selected.length && c.blocked === 0;
     var panel = f.querySelector('[data-ufsc-step-review="3"]'), title = panel && panel.querySelector('[data-ufsc-review-title]'), status = panel && panel.querySelector('[data-ufsc-review-status]'), list = panel && panel.querySelector('ul'), info = f.querySelector('#ufsc-cart-readiness');
     if (title) title.textContent = 'Vérification finale';
     if (status) status.textContent = c.ready !== selected.length ? 'Un ou plusieurs dossiers restent incomplets.' : (paid ? included + ' renouvellement(s) inclus + ' + paid + ' payant(s).' : included + ' renouvellement(s) inclus — aucun paiement.');
@@ -155,7 +175,17 @@
       button.setAttribute('aria-disabled', canSubmit ? 'false' : 'true');
       button.textContent = paid ? 'Confirmer — ' + included + ' incluse(s), ' + paid + ' payante(s)' : 'Envoyer pour validation — inclus dans votre affiliation';
     }
-    if (info) info.textContent = c.ready !== selected.length ? 'Complétez tous les dossiers sélectionnés avant de confirmer.' : (paid ? (paidReady ? 'Le quota est utilisé d’abord. Seules ' + paid + ' licence(s) seront ajoutées au panier.' : 'Le produit Licence UFSC est indisponible pour la partie payante.') : 'Aucun paiement : ' + included + ' place(s) du quota inclus seront utilisées.');
+    if (info) {
+      if (c.ready !== selected.length) {
+        info.textContent = 'Complétez tous les dossiers sélectionnés avant de confirmer.';
+      } else if (paid) {
+        info.textContent = productIsReady
+          ? 'Le quota est utilisé d’abord. Seules ' + paid + ' licence(s) seront ajoutées au panier.'
+          : 'La disponibilité du produit Licence UFSC sera vérifiée par le serveur à la confirmation.';
+      } else {
+        info.textContent = 'Aucun paiement : ' + included + ' place(s) du quota inclus seront utilisées.';
+      }
+    }
   }
 
   function ensureCanonicalIntent(f, value, reason) {
@@ -183,17 +213,19 @@
   function nativeFinalSubmit(f, reason) {
     if (!f || f.getAttribute('data-ufsc-native-final-submit') === '1') return;
     var button = f.querySelector('button[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"]');
-    if (stepNumber(f) !== 3 || !button || button.disabled || !ids(f).length) return;
+    if (stepNumber(f) !== 3 || !button || !ids(f).length || !canFinalSubmit(f)) return;
 
     f.setAttribute('data-ufsc-native-final-submit', '1');
     rememberIntent(f, 'add_to_cart');
     ensureCanonicalIntent(f, 'add_to_cart', reason);
 
     /*
-     * Use the browser's native form submit only as a last-resort escape hatch.
-     * This bypasses legacy JS submit handlers, never server validation. The PHP
-     * endpoint still owns nonce, club, season, completeness, quota and Woo rules.
+     * The server is the authority for product availability, nonce, club, season,
+     * completeness, quota and WooCommerce. The final fallback deliberately uses
+     * native submit so stale browser validation or legacy JS cannot swallow the
+     * request without any feedback.
      */
+    f.noValidate = true;
     HTMLFormElement.prototype.submit.call(f);
   }
 
@@ -214,7 +246,7 @@
       if (show) { var d = panel.querySelector('details'); if (d) { d.open = true; d.setAttribute('aria-expanded','true'); } }
     });
     Array.prototype.slice.call(f.querySelectorAll('[data-ufsc-renew-one]')).forEach(function (el) { el.textContent = 'Vérifier ce dossier'; });
-    var c = counts(f); note(w, step, c.selected); finalReview(f, w, c);
+    var c = counts(f); note(w, step, c.selected); finalReview(f, w, c); enforceFinalButton(f);
   }
 
   function init() {
@@ -226,7 +258,10 @@
       if (!submitter) return;
 
       rememberIntent(f, submitter.value || '');
-      if (submitter.value !== 'add_to_cart' || stepNumber(f) !== 3 || submitter.disabled) return;
+      if (submitter.value !== 'add_to_cart' || stepNumber(f) !== 3) return;
+
+      enforceFinalButton(f);
+      if (!canFinalSubmit(f)) return;
 
       f._ufscFinalSubmitObserved = false;
       window.setTimeout(function () {
@@ -241,7 +276,7 @@
       var intent = submitter && submitter.name === 'ufsc_renew_intent' ? String(submitter.value || '') : '';
       if (!intent && stepNumber(f) === 3) {
         var finalButton = f.querySelector('button[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"]');
-        if (finalButton && !finalButton.disabled) intent = 'add_to_cart';
+        if (finalButton && canFinalSubmit(f)) intent = 'add_to_cart';
       }
       if (intent) rememberIntent(f, intent);
 
@@ -255,9 +290,24 @@
       }
     }, true);
 
+    f.addEventListener('invalid', function () {
+      if (stepNumber(f) === 3 && canFinalSubmit(f)) {
+        window.setTimeout(function () {
+          nativeFinalSubmit(f, 'native_validation_blocked');
+        }, 0);
+      }
+    }, true);
+
     f.addEventListener('change', function () { window.setTimeout(sync,0); });
     f.addEventListener('input', function () { window.setTimeout(sync,0); });
     f.addEventListener('click', function (e) { if (e.target && e.target.closest && e.target.closest('[data-ufsc-next-step],[data-ufsc-renew-one],[data-ufsc-select-all],[data-ufsc-select-none]')) window.setTimeout(sync,0); });
+
+    var finalButton = f.querySelector('button[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"]');
+    if (window.MutationObserver && finalButton) {
+      new MutationObserver(function () {
+        if (stepNumber(f) === 3) enforceFinalButton(f);
+      }).observe(finalButton, {attributes:true, attributeFilter:['disabled','aria-disabled','data-ufsc-product-ready']});
+    }
     if (window.MutationObserver) new MutationObserver(function () { window.setTimeout(sync,0); }).observe(f,{attributes:true,attributeFilter:['data-current-step']});
   }
 
