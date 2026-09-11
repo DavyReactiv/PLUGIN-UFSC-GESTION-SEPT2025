@@ -18,8 +18,8 @@ $assert( false !== strpos( $file, "'ufsc_update_licence'" ), 'reopened renewal d
 $assert( false === strpos( $file, "'save_draft'" ), 'draft save is not treated as a payment intent' );
 $assert( false !== strpos( $file, 'wc_load_cart();' ), 'native WooCommerce cart loader is used' );
 $assert( false === strpos( $file, 'empty_cart(' ), 'existing cart is never emptied' );
-$assert( false === preg_match( '/\bDELETE\s+FROM\b/i', $file ), 'no licence/history deletion is introduced' );
-$assert( false === preg_match( '/\bUPDATE\s+[^;]*\bSET\b/i', $file ), 'no database mutation is introduced' );
+$assert( 0 === preg_match( '/\bDELETE\s+FROM\b/i', $file ), 'no licence/history deletion is introduced' );
+$assert( 0 === preg_match( '/\bUPDATE\s+[^;]*\bSET\b/i', $file ), 'no database mutation is introduced' );
 $assert( false === stripos( $file, 'ALTER TABLE' ), 'no schema migration is introduced' );
 
 echo "Renewal cart early-session preload static safeguards: OK\n";
