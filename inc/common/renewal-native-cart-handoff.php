@@ -2,13 +2,12 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
- * P0 renewal -> native WooCommerce handoff.
+ * P0 renewal -> canonical WooCommerce handoff.
  *
- * The generic licence cart helper is intentionally not used here. A retrying
- * renewal can already own a current-season row that generic status guards may
- * consider locked even though no Woo order exists. This layer validates the
- * renewal server-side, appends exactly one native Woo line, persists once after
- * all selected renewals, and never deletes licence/history rows.
+ * Renewal keeps its dedicated server-side validation/finalization flow, but paid
+ * targets use the same idempotent licence cart helper as working new licences.
+ * This avoids a second direct WC()->cart->add_to_cart implementation while
+ * preserving renewal metadata, existing cart lines and historical source rows.
  */
 
 /** Resolve final renewal intent including the browser fallback field. */
@@ -51,14 +50,15 @@ function ufsc_renewal_native_handoff_bind() {
 }
 add_action( 'wp_loaded', 'ufsc_renewal_native_handoff_bind', 1010 );
 
-/** Add a payable renewal target directly to the native Woo cart. No persistence here. */
+/** Add a payable renewal target through the canonical idempotent licence cart helper. */
 function ufsc_renewal_native_handoff_add_target( $source, $target, $club_id, $season ) {
     $source    = (object) $source;
     $target    = (object) $target;
     $club_id   = absint( $club_id );
     $target_id = absint( $target->id ?? 0 );
+    $source_id = absint( $source->id ?? 0 );
 
-    if ( $club_id < 1 || $target_id < 1 ) {
+    if ( $club_id < 1 || $target_id < 1 || $source_id < 1 ) {
         return new WP_Error( 'ufsc_renewal_native_invalid_target', __( 'Le dossier renouvelé est introuvable.', 'ufsc-clubs' ) );
     }
 
@@ -75,7 +75,7 @@ function ufsc_renewal_native_handoff_add_target( $source, $target, $club_id, $se
     if ( function_exists( 'ufsc_renewal_recovery_cart_contains_target' ) && ufsc_renewal_recovery_cart_contains_target( $target_id ) ) {
         return array( 'existing' => true, 'target_id' => $target_id );
     }
-    if ( function_exists( 'ufsc_cart_has_renewal_item' ) && ufsc_cart_has_renewal_item( 'renew_licence', $club_id, $season, absint( $source->id ?? 0 ) ) ) {
+    if ( function_exists( 'ufsc_cart_has_renewal_item' ) && ufsc_cart_has_renewal_item( 'renew_licence', $club_id, $season, $source_id ) ) {
         return array( 'existing' => true, 'target_id' => $target_id );
     }
 
@@ -92,54 +92,52 @@ function ufsc_renewal_native_handoff_add_target( $source, $target, $club_id, $se
         );
     }
 
-    $product_id = function_exists( 'ufsc_get_licence_product_id' ) ? absint( ufsc_get_licence_product_id() ) : 0;
-    if ( $product_id < 1 || ! function_exists( 'ufsc_get_cart_product_arguments' ) ) {
-        return new WP_Error( 'ufsc_renewal_native_product_unavailable', __( 'Le produit Licence UFSC est indisponible.', 'ufsc-clubs' ) );
+    $resolution = function_exists( 'ufsc_get_licence_product_resolution' )
+        ? ufsc_get_licence_product_resolution()
+        : array();
+    $product_id = absint( $resolution['configured_id'] ?? ( function_exists( 'ufsc_get_licence_product_id' ) ? ufsc_get_licence_product_id() : 0 ) );
+    if ( $product_id < 1 || ( isset( $resolution['valid'] ) && empty( $resolution['valid'] ) ) ) {
+        $message = function_exists( 'ufsc_get_licence_product_message' )
+            ? ufsc_get_licence_product_message( $resolution )
+            : __( 'Le produit Licence UFSC est indisponible.', 'ufsc-clubs' );
+        return new WP_Error( 'ufsc_renewal_native_product_unavailable', $message );
     }
 
-    $ready = function_exists( 'ufsc_ensure_woocommerce_cart' )
-        ? ufsc_ensure_woocommerce_cart()
-        : new WP_Error( 'ufsc_renewal_native_cart_unavailable', __( 'Le panier WooCommerce est indisponible.', 'ufsc-clubs' ) );
-    if ( is_wp_error( $ready ) ) {
-        return $ready;
-    }
-
-    $product_args = ufsc_get_cart_product_arguments( $product_id );
-    if ( is_wp_error( $product_args ) ) {
-        return $product_args;
+    if ( ! function_exists( 'ufsc_add_licence_ids_to_cart_idempotent' ) ) {
+        return new WP_Error( 'ufsc_renewal_native_cart_helper_missing', __( 'Le service panier des licences est indisponible.', 'ufsc-clubs' ) );
     }
 
     $item_data = function_exists( 'ufsc_renewal_recovery_cart_metadata' )
         ? ufsc_renewal_recovery_cart_metadata( $source, $target, $club_id, $season )
         : array();
-    $item_data['ufsc_club_id']     = $club_id;
-    $item_data['ufsc_licence_id']  = $target_id;
-    $item_data['ufsc_license_ids'] = array( $target_id );
-    $item_data['ufsc_cart_identity'] = hash( 'sha256', $club_id . '|' . absint( $source->id ?? 0 ) . '|' . $target_id . '|' . $season );
-
-    // The UFSC add-to-cart validation filter reads browser request fields, not
-    // the programmatic metadata above. Server validation has already happened,
-    // so remove only that one UFSC filter for this native insertion.
-    $validation_removed = remove_filter( 'woocommerce_add_to_cart_validation', 'ufsc_validate_licence_affiliation_add_to_cart', 10 );
+    $item_data['ufsc_action']                  = 'renew_licence';
+    $item_data['ufsc_operation_type']          = 'renewal';
+    $item_data['ufsc_request_type']            = 'renewal';
+    $item_data['ufsc_item_type']               = 'licence_renewal';
+    $item_data['ufsc_club_id']                 = $club_id;
+    $item_data['ufsc_licence_id']              = $target_id;
+    $item_data['ufsc_license_ids']             = array( $target_id );
+    $item_data['ufsc_target_season']           = $season;
+    $item_data['ufsc_season']                  = $season;
+    $item_data['ufsc_renew_from_licence_id']   = $source_id;
+    $item_data['ufsc_previous_licence_id']     = $source_id;
+    $item_data['ufsc_cart_identity']           = hash( 'sha256', $club_id . '|' . $source_id . '|' . $target_id . '|' . $season );
+    $item_data['quantity']                     = 1;
 
     try {
-        $cart_item_key = WC()->cart->add_to_cart(
-            absint( $product_args['product_id'] ?? 0 ),
-            1,
-            absint( $product_args['variation_id'] ?? 0 ),
-            (array) ( $product_args['variation'] ?? array() ),
+        $added = ufsc_add_licence_ids_to_cart_idempotent(
+            $product_id,
+            $club_id,
+            array( $target_id ),
             $item_data
         );
     } catch ( Throwable $error ) {
-        if ( $validation_removed ) {
-            add_filter( 'woocommerce_add_to_cart_validation', 'ufsc_validate_licence_affiliation_add_to_cart', 10, 5 );
-        }
         if ( function_exists( 'ufsc_renewal_recovery_log' ) ) {
             ufsc_renewal_recovery_log(
                 'ufsc_renewal_native_add_throwable',
                 array(
                     'club_id'       => $club_id,
-                    'source_id'     => absint( $source->id ?? 0 ),
+                    'source_id'     => $source_id,
                     'target_id'     => $target_id,
                     'error_class'   => get_class( $error ),
                     'error_message' => sanitize_text_field( $error->getMessage() ),
@@ -150,17 +148,10 @@ function ufsc_renewal_native_handoff_add_target( $source, $target, $club_id, $se
         return new WP_Error( 'ufsc_renewal_native_add_exception', __( 'Le renouvellement a été conservé mais son ajout au panier a rencontré une erreur technique.', 'ufsc-clubs' ) );
     }
 
-    if ( $validation_removed ) {
-        add_filter( 'woocommerce_add_to_cart_validation', 'ufsc_validate_licence_affiliation_add_to_cart', 10, 5 );
+    if ( is_wp_error( $added ) ) {
+        return $added;
     }
 
-    if ( ! $cart_item_key ) {
-        return new WP_Error( 'ufsc_renewal_native_add_failed', __( 'Le renouvellement a été conservé, mais WooCommerce a refusé son ajout au panier.', 'ufsc-clubs' ) );
-    }
-
-    // add_to_cart() already receives quantity 1. Do not call set_quantity()
-    // again: the DEV debug showed the previous flow corrupting a just-added row
-    // before calculate_totals().
     if ( function_exists( 'ufsc_renewal_recovery_cart_contains_target' ) && ! ufsc_renewal_recovery_cart_contains_target( $target_id ) ) {
         return new WP_Error( 'ufsc_renewal_native_unconfirmed', __( 'Le renouvellement a été conservé, mais sa présence dans le panier n’a pas pu être confirmée.', 'ufsc-clubs' ) );
     }
@@ -170,14 +161,15 @@ function ufsc_renewal_native_handoff_add_target( $source, $target, $club_id, $se
             'ufsc_renewal_native_cart_added',
             array(
                 'club_id'   => $club_id,
-                'source_id' => absint( $source->id ?? 0 ),
+                'source_id' => $source_id,
                 'target_id' => $target_id,
+                'cart_path' => 'canonical_idempotent_helper',
             ),
             'info'
         );
     }
 
-    return array( 'added' => true, 'target_id' => $target_id, 'cart_item_key' => (string) $cart_item_key );
+    return array( 'added' => true, 'target_id' => $target_id );
 }
 
 /** Process one source renewal and reuse the annual target when it already exists. */
