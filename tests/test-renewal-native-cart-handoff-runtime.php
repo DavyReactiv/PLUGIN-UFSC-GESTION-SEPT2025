@@ -104,7 +104,7 @@ $assert( ufsc_renewal_native_handoff_is_final_request(), 'fallback add_to_cart i
 $source = (object) array( 'id' => 100, 'club_id' => 7 );
 $target = (object) array( 'id' => 200, 'club_id' => 7 );
 
-// Existing normal licence line must survive the renewal append.
+// Two existing products/licences must both survive the renewal append.
 WC()->cart->items['existing-normal'] = array(
     'product_id' => 55,
     'ufsc_licence_id' => 150,
@@ -112,11 +112,17 @@ WC()->cart->items['existing-normal'] = array(
     'quantity' => 1,
     'data' => new Native_Product(),
 );
+WC()->cart->items['existing-other-product'] = array(
+    'product_id' => 77,
+    'quantity' => 1,
+    'data' => new Native_Product(),
+);
 
 $result = ufsc_renewal_native_handoff_add_target( $source, $target, 7, '2026-2027' );
 $assert( ! is_wp_error( $result ) && ! empty( $result['added'] ), 'renewal target was not appended to native cart' );
-$assert( 2 === count( WC()->cart->items ), 'existing cart line was replaced or renewal line is missing' );
+$assert( 3 === count( WC()->cart->items ), 'existing cart lines were replaced or renewal line is missing' );
 $assert( isset( WC()->cart->items['existing-normal'] ), 'existing normal licence disappeared' );
+$assert( isset( WC()->cart->items['existing-other-product'] ), 'existing unrelated product disappeared' );
 $assert( ufsc_renewal_recovery_cart_contains_target( 200 ), 'renewal target is not discoverable in cart after add' );
 
 $renewal = end( WC()->cart->items );
@@ -125,9 +131,9 @@ $assert( 200 === absint( $renewal['ufsc_licence_id'] ?? 0 ), 'target licence id 
 $assert( 100 === absint( $renewal['ufsc_renew_from_licence_id'] ?? 0 ), 'source licence id missing from cart line' );
 $assert( 1 === absint( $renewal['quantity'] ?? 0 ), 'renewal quantity must be exactly one' );
 
-// Retry must detect the existing target and never create a third line.
+// Retry must detect the existing target and never create a fourth line.
 $retry = ufsc_renewal_native_handoff_add_target( $source, $target, 7, '2026-2027' );
 $assert( ! is_wp_error( $retry ) && ! empty( $retry['existing'] ), 'retry did not reuse existing cart target' );
-$assert( 2 === count( WC()->cart->items ), 'retry duplicated the renewal cart line' );
+$assert( 3 === count( WC()->cart->items ), 'retry duplicated the renewal cart line' );
 
 echo "Renewal native cart handoff runtime: OK\n";
