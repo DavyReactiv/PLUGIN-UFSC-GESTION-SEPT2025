@@ -1,7 +1,7 @@
 <?php
 $root = dirname( __DIR__ );
 $file = file_get_contents( $root . '/inc/common/renewal-cart-session-preload.php' );
-$flags = file_get_contents( $root . '/inc/common/feature-flags.php' );
+$compat = file_get_contents( $root . '/inc/common/renewal-intent-compat.php' );
 
 $assert = static function ( $condition, $message ) {
     if ( ! $condition ) {
@@ -11,12 +11,12 @@ $assert = static function ( $condition, $message ) {
     echo "PASS: {$message}\n";
 };
 
-$assert( false !== strpos( $flags, "'/renewal-cart-session-preload.php'" ), 'runtime loader includes early Woo cart preload' );
+$assert( false !== strpos( $compat, "'/renewal-cart-session-preload.php'" ), 'renewal compatibility loader includes early Woo cart preload' );
 $assert( false !== strpos( $file, "add_action( 'wp_loaded', 'ufsc_cart_preload_before_finalisation', 1 )" ), 'preload runs before Woo cart session priority 10' );
 $assert( false !== strpos( $file, "'ufsc_bulk_renew_licences'" ), 'bulk renewal finalization is covered' );
 $assert( false !== strpos( $file, "'ufsc_update_licence'" ), 'reopened renewal draft finalization is covered' );
-$assert( false !== strpos( $file, "'save_draft'" ) === false, 'preloader does not special-case drafts as payment actions' );
-$assert( false !== strpos( $file, "wc_load_cart();" ), 'native WooCommerce cart loader is used' );
+$assert( false === strpos( $file, "'save_draft'" ), 'draft save is not treated as a payment intent' );
+$assert( false !== strpos( $file, 'wc_load_cart();' ), 'native WooCommerce cart loader is used' );
 $assert( false === strpos( $file, 'empty_cart(' ), 'existing cart is never emptied' );
 $assert( false === preg_match( '/\bDELETE\s+FROM\b/i', $file ), 'no licence/history deletion is introduced' );
 $assert( false === preg_match( '/\bUPDATE\s+[^;]*\bSET\b/i', $file ), 'no database mutation is introduced' );
