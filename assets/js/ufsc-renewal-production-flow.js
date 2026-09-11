@@ -269,9 +269,8 @@
       }
     }, true);
 
-    /* The production controller is the single owner of the final submit.
-     * Stop later legacy submit listeners without cancelling the browser's
-     * native default action. This preserves the normal POST to admin-post.php. */
+    /* Keyboard/programmatic final submits use the same native form contract.
+     * Nothing here calls preventDefault() when the dossier is valid. */
     f.addEventListener('submit', function (e) {
       var submitter = e.submitter || null;
       var intent = submitter && submitter.name === 'ufsc_renew_intent' ? String(submitter.value || '') : '';
@@ -283,9 +282,7 @@
       if (!prepareNativeFinalSubmit(f, 'native_submit_event')) {
         e.preventDefault();
         finalStatus(f, 'Impossible de finaliser : un dossier sélectionné est incomplet ou bloqué. Revenez à l’étape de vérification.', 'error');
-        return;
       }
-      e.stopImmediatePropagation();
     }, true);
 
     f.addEventListener('change', function () { window.setTimeout(sync,0); });
