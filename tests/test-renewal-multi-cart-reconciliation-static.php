@@ -18,7 +18,7 @@ $assert( false !== strpos( $file, "'ufsc_club_id'" ), 'club scope is mandatory' 
 $assert( false !== strpos( $file, "'ufsc_target_season'" ), 'season scope is mandatory' );
 $assert( false !== strpos( $file, 'remove_cart_item' ), 'only targeted stale cart rows can be removed' );
 $assert( false === strpos( $file, 'empty_cart(' ), 'cart is never emptied' );
-$assert( false === preg_match( '/\bDELETE\s+FROM\b/i', $file ), 'no licence/history deletion is introduced' );
+$assert( 0 === preg_match( '/\bDELETE\s+FROM\b/i', $file ), 'no licence/history deletion is introduced' );
 $assert( false === stripos( $file, 'ALTER TABLE' ), 'no schema migration is introduced' );
 $assert( false === strpos( $file, 'ufsc_cart_max_licence_ids' ), 'no new business cart-size limit is introduced' );
 
