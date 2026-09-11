@@ -161,7 +161,8 @@
     if (!button) return;
     var allowed = canFinalSubmit(f);
     if (button.disabled === allowed) button.disabled = !allowed;
-    button.setAttribute('aria-disabled', allowed ? 'false' : 'true');
+    var ariaDisabled = allowed ? 'false' : 'true';
+    if (button.getAttribute('aria-disabled') !== ariaDisabled) button.setAttribute('aria-disabled', ariaDisabled);
   }
 
   function finalStatus(f, message, kind) {
