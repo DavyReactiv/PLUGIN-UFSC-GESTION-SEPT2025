@@ -12,13 +12,6 @@
   function blocked(row) { return !!row && row.getAttribute('data-blocked') === '1'; }
   function esc(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 
-  /*
-   * Browsers normally include the clicked submit button name/value in POST, but
-   * the renewal page still has legacy listeners and DOM promotion around the
-   * same form. On DEV we observed real requests containing the selected licence
-   * but no ufsc_renew_intent. Keep a separate fallback field so the server can
-   * restore the exact action without relying on event.submitter support.
-   */
   function intentFallback(f) {
     var input = f.querySelector('input[data-ufsc-renew-intent-fallback="1"]');
     if (!input) {
@@ -82,6 +75,38 @@
     return !unavailable && !!button && button.getAttribute('data-ufsc-product-ready') === '1';
   }
 
+  function profileComplete(f, id) {
+    var row = source(f, id);
+    if (ready(row)) return true;
+
+    var panel = f.querySelector('.ufsc-renewal-profile-row[data-profile-id="' + String(id).replace(/"/g, '') + '"]');
+    if (!panel || panel.querySelector('[aria-invalid="true"]')) return false;
+
+    var required = Array.prototype.slice.call(panel.querySelectorAll('input[required],select[required],textarea[required]')).filter(function (el) {
+      return !el.disabled;
+    });
+    if (!required.length) return false;
+
+    var valid = required.every(function (el) {
+      if ((el.type === 'checkbox' || el.type === 'radio') && !el.checked) return false;
+      if (typeof el.checkValidity === 'function' && !el.checkValidity()) return false;
+      return String(el.value == null ? '' : el.value).trim() !== '';
+    });
+
+    if (valid && row) {
+      row.setAttribute('data-complete', '1');
+      row.setAttribute('data-cart-eligible', '1');
+      var completeness = panel.querySelector('[data-ufsc-completeness]');
+      if (completeness) {
+        completeness.classList.remove('ufsc-warning');
+        completeness.classList.add('ufsc-success');
+        var strong = completeness.querySelector('strong');
+        if (strong) strong.textContent = 'Dossier complet';
+      }
+    }
+    return valid;
+  }
+
   function note(w, step, selected) {
     var n = w.querySelector('[data-ufsc-renewal-note]');
     if (!n) {
@@ -98,7 +123,11 @@
 
   function counts(f) {
     var selected = ids(f), r = 0, b = 0;
-    selected.forEach(function (id) { var row = source(f, id); if (ready(row)) r++; if (blocked(row)) b++; });
+    selected.forEach(function (id) {
+      var row = source(f, id);
+      if (profileComplete(f, id)) r++;
+      if (blocked(row)) b++;
+    });
     var incomplete = Math.max(0, selected.length - r - b), out = f.querySelector('[data-ufsc-selection-count]');
     if (out) out.textContent = selected.length ? selected.length + ' sélectionnée(s) · ' + r + ' prête(s) · ' + incomplete + ' à compléter' + (b ? ' · ' + b + ' bloquée(s)' : '') : 'Aucune licence sélectionnée.';
     return {selected:selected.length, ready:r, incomplete:incomplete, blocked:b};
@@ -129,6 +158,45 @@
     if (info) info.textContent = c.ready !== selected.length ? 'Complétez tous les dossiers sélectionnés avant de confirmer.' : (paid ? (paidReady ? 'Le quota est utilisé d’abord. Seules ' + paid + ' licence(s) seront ajoutées au panier.' : 'Le produit Licence UFSC est indisponible pour la partie payante.') : 'Aucun paiement : ' + included + ' place(s) du quota inclus seront utilisées.');
   }
 
+  function ensureCanonicalIntent(f, value, reason) {
+    var input = f.querySelector('input[data-ufsc-native-final-intent="1"]');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'ufsc_renew_intent';
+      input.setAttribute('data-ufsc-native-final-intent', '1');
+      f.appendChild(input);
+    }
+    input.value = value;
+
+    var trace = f.querySelector('input[data-ufsc-client-submit-trace="1"]');
+    if (!trace) {
+      trace = document.createElement('input');
+      trace.type = 'hidden';
+      trace.name = 'ufsc_client_submit_trace';
+      trace.setAttribute('data-ufsc-client-submit-trace', '1');
+      f.appendChild(trace);
+    }
+    trace.value = reason || 'native_fallback';
+  }
+
+  function nativeFinalSubmit(f, reason) {
+    if (!f || f.getAttribute('data-ufsc-native-final-submit') === '1') return;
+    var button = f.querySelector('button[type="submit"][name="ufsc_renew_intent"][value="add_to_cart"]');
+    if (stepNumber(f) !== 3 || !button || button.disabled || !ids(f).length) return;
+
+    f.setAttribute('data-ufsc-native-final-submit', '1');
+    rememberIntent(f, 'add_to_cart');
+    ensureCanonicalIntent(f, 'add_to_cart', reason);
+
+    /*
+     * Use the browser's native form submit only as a last-resort escape hatch.
+     * This bypasses legacy JS submit handlers, never server validation. The PHP
+     * endpoint still owns nonce, club, season, completeness, quota and Woo rules.
+     */
+    HTMLFormElement.prototype.submit.call(f);
+  }
+
   function sync() {
     var f = form(), w = wizard(f); if (!f || !w) return;
     ensurePanels(f);
@@ -136,7 +204,6 @@
     w.setAttribute('data-ufsc-current-step', String(step));
     var selected = ids(f);
 
-    // A previous final click must never leak into a later step-1/2 Enter submit.
     if (step !== 3) rememberIntent(f, '');
 
     Array.prototype.slice.call(w.querySelectorAll('.ufsc-renewal-filters,.ufsc-renewal-list-tools,.ufsc-renewal-pagination')).forEach(function (el) { el.style.display = step === 1 ? '' : 'none'; });
@@ -154,16 +221,21 @@
     var f = form(); if (!f || f.getAttribute('data-ufsc-renewal-overlay') === '1') return;
     f.setAttribute('data-ufsc-renewal-overlay','1'); ensurePanels(f); rememberIntent(f, ''); sync();
 
-    // Capture the clicked server action before older listeners can alter/disable
-    // the submit control. The field uses a distinct name to avoid duplicate-key
-    // ambiguity with the real submit button.
     f.addEventListener('click', function (e) {
       var submitter = e.target && e.target.closest ? e.target.closest('button[type="submit"][name="ufsc_renew_intent"],input[type="submit"][name="ufsc_renew_intent"]') : null;
-      if (submitter) rememberIntent(f, submitter.value || '');
+      if (!submitter) return;
+
+      rememberIntent(f, submitter.value || '');
+      if (submitter.value !== 'add_to_cart' || stepNumber(f) !== 3 || submitter.disabled) return;
+
+      f._ufscFinalSubmitObserved = false;
+      window.setTimeout(function () {
+        if (!f._ufscFinalSubmitObserved && document.documentElement.contains(f)) {
+          nativeFinalSubmit(f, 'click_without_submit');
+        }
+      }, 0);
     }, true);
 
-    // Keyboard submits and older browsers may expose no submitter at all. On the
-    // final review only, an enabled final button makes the intent unambiguous.
     f.addEventListener('submit', function (e) {
       var submitter = e.submitter || null;
       var intent = submitter && submitter.name === 'ufsc_renew_intent' ? String(submitter.value || '') : '';
@@ -172,6 +244,15 @@
         if (finalButton && !finalButton.disabled) intent = 'add_to_cart';
       }
       if (intent) rememberIntent(f, intent);
+
+      if (intent === 'add_to_cart' && stepNumber(f) === 3) {
+        f._ufscFinalSubmitObserved = true;
+        window.setTimeout(function () {
+          if (e.defaultPrevented && document.documentElement.contains(f)) {
+            nativeFinalSubmit(f, 'submit_prevented');
+          }
+        }, 0);
+      }
     }, true);
 
     f.addEventListener('change', function () { window.setTimeout(sync,0); });
