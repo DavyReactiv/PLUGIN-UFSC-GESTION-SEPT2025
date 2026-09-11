@@ -198,6 +198,13 @@ if ( file_exists( $ufsc_licence_portal_production_hotfix ) ) {
     require_once $ufsc_licence_portal_production_hotfix;
 }
 
+// P0: a payable licence may leave admin-post.php only when its native
+// WooCommerce cart line is really present and the session has been persisted.
+$ufsc_paid_licence_cart_postcondition = dirname( __FILE__ ) . '/paid-licence-cart-postcondition.php';
+if ( file_exists( $ufsc_paid_licence_cart_postcondition ) ) {
+    require_once $ufsc_paid_licence_cart_postcondition;
+}
+
 // Read-only statistics presentation: replaces misleading empty legacy charts
 // with a compact current-season view built from every dossier entered by the club.
 $ufsc_club_stats_dashboard_v2 = dirname( __FILE__ ) . '/club-stats-dashboard-v2.php';
