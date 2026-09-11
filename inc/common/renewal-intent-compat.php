@@ -9,6 +9,14 @@ if ( file_exists( $ufsc_renewal_cart_session_preload ) ) {
     require_once $ufsc_renewal_cart_session_preload;
 }
 
+// A reopened renewal draft must be able to join an already populated cart.
+// Reconcile only a stale line for the same club/season/source; unrelated cart
+// lines are preserved and no cart-wide business limit is introduced.
+$ufsc_renewal_multi_cart_reconciliation = dirname( __FILE__ ) . '/renewal-multi-cart-reconciliation.php';
+if ( file_exists( $ufsc_renewal_multi_cart_reconciliation ) ) {
+    require_once $ufsc_renewal_multi_cart_reconciliation;
+}
+
 /**
  * Restore the renewal submit intent before the canonical admin-post handler runs.
  *
