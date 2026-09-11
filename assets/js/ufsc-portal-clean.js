@@ -56,7 +56,6 @@
     if (txt(seasonValue) !== txt(validatedValue)) seasonValue.textContent = txt(validatedValue);
     seasonCard.setAttribute('aria-label', activeLabel + ' — ' + txt(validatedValue));
 
-    // Avoid presenting the same business count twice.
     if (!validated.hidden) validated.hidden = true;
     if (validated.getAttribute('aria-hidden') !== 'true') validated.setAttribute('aria-hidden', 'true');
   }
@@ -80,14 +79,27 @@
     });
   }
 
-  function scrollToUsefulTarget() {
+  function isAccountAnchor(id) {
+    return ['ufsc-club-information', 'ufsc-club-officers', 'ufsc-club-documents'].indexOf(id) !== -1;
+  }
+
+  function alignAccountAnchor() {
     if (!window.location.hash) return;
     var id = decodeURIComponent(window.location.hash.slice(1));
+    if (!isAccountAnchor(id)) return;
     var target = document.getElementById(id);
     if (!target) return;
-    window.setTimeout(function () {
+
+    var align = function () {
+      if (!document.documentElement.contains(target)) return;
       target.scrollIntoView({ block: 'start', behavior: 'auto' });
-    }, 80);
+      if (target.setAttribute) target.setAttribute('tabindex', '-1');
+    };
+
+    // Elementor/theme layout can still change after DOMContentLoaded. Re-align
+    // the same canonical target after those layout passes instead of creating a
+    // second routing system or guessing a footer offset.
+    [0, 80, 240, 600].forEach(function (delay) { window.setTimeout(align, delay); });
   }
 
   function quotaIncludedAvailable() {
@@ -165,9 +177,11 @@
     normalizeActionTargets();
     normalizeRenewalReview();
     watchRenewal();
-    scrollToUsefulTarget();
+    alignAccountAnchor();
   }
 
+  window.addEventListener('hashchange', alignAccountAnchor);
+  window.addEventListener('load', alignAccountAnchor);
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
