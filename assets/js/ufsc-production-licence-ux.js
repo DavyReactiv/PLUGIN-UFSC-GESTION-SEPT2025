@@ -128,11 +128,20 @@
     document.querySelectorAll('.ufsc-licence-table--current tbody tr').forEach(function (row) {
       var identity = row.querySelector('td[data-label="Identité"]');
       if (!identity || identity.querySelector('.ufsc-licence-person-name')) return;
+
+      // Metadata can already have been appended by the portal clean-up script.
+      // Detach it before reading the name so "NomNé(e) le..." can never be
+      // created by two presentation enhancers running in a different order.
+      var meta = identity.querySelector('.ufsc-licence-person-meta');
+      if (meta) meta.remove();
       var raw = (identity.textContent || '').trim();
+
       identity.textContent = '';
       var strong = document.createElement('strong');
-      strong.className = 'ufsc-licence-person-name'; strong.textContent = raw || 'Identité non renseignée';
+      strong.className = 'ufsc-licence-person-name';
+      strong.textContent = raw || 'Identité non renseignée';
       identity.appendChild(strong);
+      if (meta) identity.appendChild(meta);
       identity.classList.add('ufsc-licence-identity-cell');
     });
   }

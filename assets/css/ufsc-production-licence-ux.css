@@ -25,6 +25,7 @@
 /* Licence identity is the first thing a club must be able to scan. */
 .ufsc-licence-table--current .ufsc-licence-identity-cell{background:linear-gradient(90deg,#f5fbff 0,#fff 100%);border-radius:10px}
 .ufsc-licence-person-name{display:block;color:#073f68;font-size:17px;font-weight:800;line-height:1.25;letter-spacing:-.01em}
+.ufsc-licence-person-meta{display:block;margin-top:7px;color:#36596f;font-size:13px;font-weight:600;line-height:1.45}
 .ufsc-current-licence-filters [data-ufsc-category-filter]{min-width:150px}
 
 .ufsc-current-licence-filters,.ufsc-renewal-filters,.ufsc-filter-actions,.ufsc-renewal-page-size,.ufsc-renewal-list-tools,.ufsc-pagination,.ufsc-renewal-pagination,.ufsc-pagination-wrapper{box-sizing:border-box;max-width:100%;min-width:0}
