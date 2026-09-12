@@ -53,7 +53,7 @@ function ufsc_production_current_licence_meta() {
     global $wpdb;
     $table = (string) ufsc_get_licences_table();
     if ( '' === $table ) { return $cached; }
-    $rows = $wpdb->get_results( $wpdb->prepare( "SELECT id, date_naissance, sexe, competition, fighter_level, saison, season FROM `{$table}` WHERE club_id = %d", $club_id ) );
+    $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE club_id = %d", $club_id ) );
     foreach ( (array) $rows as $row ) {
         if ( ! is_object( $row ) ) { continue; }
         $row_season = function_exists( 'ufsc_get_licence_season_label' ) ? (string) ufsc_get_licence_season_label( $row ) : (string) ( $row->season ?? ( $row->saison ?? '' ) );
@@ -90,7 +90,7 @@ function ufsc_production_licence_ux_urls() {
         'previous' => $previous ? add_query_arg( array( 'ufsc_section' => 'club-licences', 'ufsc_season' => $previous ), $base ) . '#ufsc-club-licences' : $base,
         'season' => $season,
         'previousSeason' => $previous,
-        'renewalCounts' => ufsc_production_renewal_state_counts(),
+        'renewalCounts'  => ufsc_production_renewal_state_counts(),
         'licenceMeta' => ufsc_production_current_licence_meta(),
     );
 }
