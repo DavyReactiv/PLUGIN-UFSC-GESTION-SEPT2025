@@ -2207,6 +2207,9 @@ class UFSC_SQL_Admin
     {
         $label         = $conf[0];
         $type          = $conf[1];
+        if ( 'date' === $type && in_array( trim( (string) $val ), array( '0000-00-00', '0000-00-00 00:00:00' ), true ) ) {
+            $val = '';
+        }
         $readonly_attr = $readonly ? 'readonly disabled' : '';
         $disabled_attr = $readonly ? 'disabled' : '';
         echo '<div class="ufsc-field"><label>' . esc_html($label) . '</label>';
@@ -2214,6 +2217,8 @@ class UFSC_SQL_Admin
             echo '<textarea name="' . esc_attr($k) . '" rows="3" ' . $readonly_attr . '>' . esc_textarea($val) . '</textarea>';
         } elseif ($type === 'number') {
             echo '<input type="number" step="1" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
+        } elseif ($type === 'date') {
+            echo '<input type="date" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
         } elseif ($type === 'region') {
             echo '<select name="' . esc_attr($k) . '" ' . $disabled_attr . '>';
             $scope_slug  = UFSC_Scope::get_user_scope_region();
@@ -2408,6 +2413,16 @@ class UFSC_SQL_Admin
                 $data[$k] = sanitize_text_field(wp_unslash($_POST[$k]));
             }
         }
+        // A blank date input on an existing record must not overwrite a known
+        // value (or a legacy zero-date) implicitly. A newly entered valid date
+        // is still persisted through the normal update below.
+        if ( $id > 0 ) {
+            foreach ( $data as $key => $value ) {
+                if ( '' === trim( (string) $value ) && isset( $fields[ $key ][1] ) && 'date' === $fields[ $key ][1] ) {
+                    unset( $data[ $key ] );
+                }
+            }
+        }
         if ( $id ) {
             UFSC_Scope::assert_club_in_scope( $id );
             if ( ! self::current_user_can_access_club_region( $id ) ) {
@@ -2456,7 +2471,10 @@ class UFSC_SQL_Admin
         }
 
         // Validation des données
-        $validation_errors = UFSC_CL_Utils::validate_club_data($data, false);
+        // An existing club can be completed progressively. Missing values remain
+        // incomplete but never discard otherwise valid submitted data.
+        // New club creation keeps the historical strict validation contract.
+        $validation_errors = UFSC_CL_Utils::validate_club_data( $data, false, $id > 0 );
         if (! empty($validation_errors)) {
             UFSC_CL_Utils::log('Erreurs de validation club: ' . implode(', ', $validation_errors), 'warning');
             $error_message = implode(', ', $validation_errors);
