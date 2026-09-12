@@ -4073,9 +4073,11 @@ class UFSC_Frontend_Shortcodes {
     }
 }
 
-add_action( 'ufsc_licence_created', array( 'UFSC_Frontend_Shortcodes', 'clear_dashboard_renewable_count_cache' ), 90, 2 );
-add_action( 'ufsc_licence_updated', array( 'UFSC_Frontend_Shortcodes', 'clear_dashboard_renewable_count_cache' ), 90, 1 );
-add_action( 'ufsc_licence_deleted', array( 'UFSC_Frontend_Shortcodes', 'clear_dashboard_renewable_count_cache' ), 90, 1 );
+if ( function_exists( 'add_action' ) ) {
+    add_action( 'ufsc_licence_created', array( 'UFSC_Frontend_Shortcodes', 'clear_dashboard_renewable_count_cache' ), 90, 2 );
+    add_action( 'ufsc_licence_updated', array( 'UFSC_Frontend_Shortcodes', 'clear_dashboard_renewable_count_cache' ), 90, 1 );
+    add_action( 'ufsc_licence_deleted', array( 'UFSC_Frontend_Shortcodes', 'clear_dashboard_renewable_count_cache' ), 90, 1 );
+}
 
 // STUB FUNCTIONS - To be implemented according to existing database schema
 
