@@ -979,6 +979,95 @@ class UFSC_Clubs_List_Table {
     }
 
     /**
+     * Resolve annual affiliations once and load their WooCommerce orders in one
+     * HPOS-compatible query. This avoids adding one order query per table row.
+     */
+    private static function get_club_payment_context( $clubs ) {
+        $context = array( 'affiliations' => array(), 'orders' => array() );
+        $selected_season = self::get_selected_season_filter();
+        if ( in_array( $selected_season, array( 'all', '__archives' ), true ) || ! class_exists( 'UFSC_Season_Archive_Manager' ) ) {
+            return $context;
+        }
+
+        $season    = self::get_admin_season_label();
+        $order_ids = array();
+        foreach ( (array) $clubs as $club ) {
+            $club_id = absint( $club->id ?? 0 );
+            if ( $club_id < 1 ) { continue; }
+            $affiliation = UFSC_Season_Archive_Manager::get_affiliation( $club_id, $season );
+            if ( ! $affiliation ) { continue; }
+            $context['affiliations'][ $club_id ] = $affiliation;
+            $order_id = absint( $affiliation->wc_order_id ?? $affiliation->order_id ?? 0 );
+            if ( $order_id ) { $order_ids[] = $order_id; }
+        }
+
+        $order_ids = array_values( array_unique( $order_ids ) );
+        if ( $order_ids && function_exists( 'wc_get_orders' ) ) {
+            $orders = wc_get_orders( array( 'include' => $order_ids, 'limit' => count( $order_ids ), 'return' => 'objects' ) );
+            foreach ( (array) $orders as $order ) {
+                if ( is_object( $order ) && is_callable( array( $order, 'get_id' ) ) ) {
+                    $context['orders'][ absint( $order->get_id() ) ] = $order;
+                }
+            }
+        }
+        return $context;
+    }
+
+    private static function render_club_payment_overview( $affiliation, $context ) {
+        if ( ! $affiliation ) {
+            return '<span class="ufsc-payment-badge ufsc-payment-badge--none">' . esc_html__( 'Non renseigné', 'ufsc-clubs' ) . '</span>';
+        }
+
+        $order_id = absint( $affiliation->wc_order_id ?? $affiliation->order_id ?? 0 );
+        $order    = $order_id && isset( $context['orders'][ $order_id ] ) ? $context['orders'][ $order_id ] : null;
+        $gateway  = $order && is_callable( array( $order, 'get_payment_method' ) ) ? sanitize_key( $order->get_payment_method() ) : '';
+        $title    = $order && is_callable( array( $order, 'get_payment_method_title' ) ) ? (string) $order->get_payment_method_title() : '';
+        $status   = $order && is_callable( array( $order, 'get_status' ) ) ? sanitize_key( $order->get_status() ) : sanitize_key( (string) ( $affiliation->payment_status ?? '' ) );
+
+        if ( in_array( $gateway, array( 'bacs', 'bank_transfer', 'virement', 'virement_bancaire' ), true ) ) {
+            $group = 'transfer'; $label = __( 'Virement', 'ufsc-clubs' );
+        } elseif ( in_array( $gateway, array( 'monetico', 'stripe', 'mypos', 'woocommerce_payments', 'card', 'cb' ), true ) ) {
+            $group = 'card'; $label = __( 'Carte bancaire', 'ufsc-clubs' );
+        } elseif ( '' !== $gateway ) {
+            $group = 'other'; $label = $title ?: __( 'Autre', 'ufsc-clubs' );
+        } else {
+            $group = 'none'; $label = __( 'Non renseigné', 'ufsc-clubs' );
+        }
+
+        $status_label = $order && function_exists( 'wc_get_order_status_name' ) ? wc_get_order_status_name( $status ) : self::get_payment_status_label( $status );
+        $date = trim( (string) ( $affiliation->paid_at ?? '' ) );
+        if ( ( '' === $date || in_array( $date, array( '0000-00-00', '0000-00-00 00:00:00' ), true ) ) && $order && is_callable( array( $order, 'get_date_paid' ) ) ) {
+            $paid = $order->get_date_paid();
+            $date = $paid && is_callable( array( $paid, 'date' ) ) ? $paid->date( 'Y-m-d H:i:s' ) : '';
+        }
+        $date_label = ( '' !== $date && ! in_array( $date, array( '0000-00-00', '0000-00-00 00:00:00' ), true ) ) ? mysql2date( 'd/m/Y H:i', $date ) : '';
+        $transaction = $order && is_callable( array( $order, 'get_transaction_id' ) ) ? sanitize_text_field( (string) $order->get_transaction_id() ) : '';
+
+        $html  = '<span class="ufsc-payment-badge ufsc-payment-badge--' . esc_attr( $group ) . '">' . esc_html( $label ) . '</span>';
+        $html .= '<small class="ufsc-payment-meta">' . esc_html( $status_label ?: __( 'État inconnu', 'ufsc-clubs' ) );
+        if ( $order_id ) { $html .= ' · #' . esc_html( (string) $order_id ); }
+        if ( $date_label ) { $html .= '<br>' . esc_html( $date_label ); }
+        if ( $transaction ) { $html .= '<br>' . esc_html( sprintf( __( 'Transaction : %s', 'ufsc-clubs' ), $transaction ) ); }
+        $html .= '</small>';
+        if ( $order && is_callable( array( $order, 'get_edit_order_url' ) ) && $order->get_edit_order_url() ) {
+            $html .= '<a class="ufsc-payment-trace-link" href="' . esc_url( $order->get_edit_order_url() ) . '">' . esc_html__( 'Voir la trace', 'ufsc-clubs' ) . '</a>';
+        }
+        return $html;
+    }
+
+    private static function get_payment_status_label( $status ) {
+        $labels = array(
+            'paid' => __( 'Payé', 'ufsc-clubs' ), 'completed' => __( 'Payé', 'ufsc-clubs' ),
+            'processing' => __( 'En traitement', 'ufsc-clubs' ), 'pending' => __( 'En attente', 'ufsc-clubs' ),
+            'pending_payment' => __( 'Paiement en attente', 'ufsc-clubs' ), 'unpaid' => __( 'Non réglé', 'ufsc-clubs' ),
+            'failed' => __( 'Échec', 'ufsc-clubs' ), 'cancelled' => __( 'Annulé', 'ufsc-clubs' ),
+            'refunded' => __( 'Remboursé', 'ufsc-clubs' ),
+        );
+        $status = sanitize_key( (string) $status );
+        return $labels[ $status ] ?? ( $status ? ucfirst( str_replace( '_', ' ', $status ) ) : __( 'État inconnu', 'ufsc-clubs' ) );
+    }
+
+    /**
      * Render main clubs table
      */
     private static function render_clubs_table( $clubs, $sorting, $licence_counts ) {
@@ -994,6 +1083,7 @@ class UFSC_Clubs_List_Table {
 
         $can_manage_clubs = ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE );
         $table_mode_class = $can_manage_clubs ? 'ufsc-clubs-table-form--manage' : 'ufsc-clubs-table-form--readonly';
+        $payment_context  = self::get_club_payment_context( $clubs );
 
         echo '<form method="post" id="bulk-actions-form" class="ufsc-clubs-table-form ' . esc_attr( $table_mode_class ) . '">';
         echo '<input type="hidden" name="page" value="ufsc-sql-clubs" />';
@@ -1028,6 +1118,7 @@ class UFSC_Clubs_List_Table {
         echo '<th class="column-region">' . self::get_sortable_header( 'region', __( 'Région', 'ufsc-clubs' ), $sorting ) . '</th>';
         echo '<th class="column-affiliation">' . esc_html__( 'N° Affiliation', 'ufsc-clubs' ) . '</th>';
         echo '<th class="column-status">' . esc_html__( 'Statut', 'ufsc-clubs' ) . '</th>';
+        echo '<th class="column-payment">' . esc_html__( 'Règlement', 'ufsc-clubs' ) . '</th>';
         echo '<th class="column-licences">' . esc_html__( 'Licences', 'ufsc-clubs' ) . '</th>';
         echo '<th class="column-documents">' . esc_html__( 'Documents', 'ufsc-clubs' ) . '</th>';
         echo '<th class="column-created">' . self::get_sortable_header( 'date_creation', __( 'Créé le', 'ufsc-clubs' ), $sorting ) . '</th>';
@@ -1040,10 +1131,10 @@ class UFSC_Clubs_List_Table {
 
         if ( $clubs ) {
             foreach ( $clubs as $club ) {
-                self::render_club_row( $club, $licence_counts, $can_manage_clubs );
+                self::render_club_row( $club, $licence_counts, $can_manage_clubs, $payment_context );
             }
         } else {
-            echo '<tr><td colspan="' . ( $can_manage_clubs ? '10' : '9' ) . '"><div class="ufsc-empty-state"><strong>' . esc_html__( 'Aucun club ne correspond aux filtres actuels.', 'ufsc-clubs' ) . '</strong><p>' . esc_html__( 'Retirez un filtre ci-dessus ou revenez à une vue complète.', 'ufsc-clubs' ) . '</p><a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs' ) ) . '">' . esc_html__( 'Réinitialiser les filtres', 'ufsc-clubs' ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&club_view=permanent' ) ) . '">' . esc_html__( 'Voir tous les clubs permanents', 'ufsc-clubs' ) . '</a></div></td></tr>';
+            echo '<tr><td colspan="' . ( $can_manage_clubs ? '11' : '10' ) . '"><div class="ufsc-empty-state"><strong>' . esc_html__( 'Aucun club ne correspond aux filtres actuels.', 'ufsc-clubs' ) . '</strong><p>' . esc_html__( 'Retirez un filtre ci-dessus ou revenez à une vue complète.', 'ufsc-clubs' ) . '</p><a class="button button-primary" href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs' ) ) . '">' . esc_html__( 'Réinitialiser les filtres', 'ufsc-clubs' ) . '</a> <a class="button" href="' . esc_url( admin_url( 'admin.php?page=ufsc-sql-clubs&club_view=permanent' ) ) . '">' . esc_html__( 'Voir tous les clubs permanents', 'ufsc-clubs' ) . '</a></div></td></tr>';
         }
 
         echo '</tbody>';
@@ -1055,7 +1146,7 @@ class UFSC_Clubs_List_Table {
     /**
      * Render individual club row
      */
-    private static function render_club_row( $club, $licence_counts, $can_manage_clubs = null ) {
+    private static function render_club_row( $club, $licence_counts, $can_manage_clubs = null, $payment_context = array() ) {
     if ( null === $can_manage_clubs ) {
         $can_manage_clubs = ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE );
     }
@@ -1084,7 +1175,7 @@ class UFSC_Clubs_List_Table {
 
 	$current_season = self::get_admin_season_label();
 	$selected_season = self::get_selected_season_filter();
-	$annual_affiliation = ( ! in_array( $selected_season, array( 'all', '__archives' ), true ) && class_exists( 'UFSC_Season_Archive_Manager' ) ) ? UFSC_Season_Archive_Manager::get_affiliation( (int) ( $club->id ?? 0 ), $current_season ) : null;
+	$annual_affiliation = isset( $payment_context['affiliations'][ (int) ( $club->id ?? 0 ) ] ) ? $payment_context['affiliations'][ (int) ( $club->id ?? 0 ) ] : null;
 
     // Numéro d’affiliation annuel uniquement; no historical ASPTT carry-over.
     echo '<td class="column-affiliation">';
@@ -1106,6 +1197,10 @@ class UFSC_Clubs_List_Table {
         if ( ! $annual_affiliation ) { echo '<br><small title="' . esc_attr( sprintf( __( 'Ce club existe dans l’historique UFSC mais n’est pas encore affilié pour la saison %s.', 'ufsc-clubs' ), $current_season ) ) . '">' . esc_html__( 'Affiliation annuelle à renouveler', 'ufsc-clubs' ) . '</small>'; }
     }
     echo '</td>';
+
+    // Read-only payment overview sourced from the annual affiliation and its
+    // linked WooCommerce order. It never changes an order or affiliation.
+    echo '<td class="column-payment">' . self::render_club_payment_overview( $annual_affiliation, $payment_context ) . '</td>';
 
     // Licences validées
     $club_id = (int) ( $club->id ?? 0 );
