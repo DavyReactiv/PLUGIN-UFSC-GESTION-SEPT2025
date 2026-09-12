@@ -105,16 +105,17 @@ class UFSC_CL_Utils {
      *
      * @param array $data Club data to validate
      * @param bool $is_affiliation Whether this is for affiliation (stricter validation)
+     * @param bool $allow_incomplete Whether missing required values may be saved progressively.
      * @return array Array of validation errors
      */
-    public static function validate_club_data( $data, $is_affiliation = false ) {
+    public static function validate_club_data( $data, $is_affiliation = false, $allow_incomplete = false ) {
         $errors = array();
 
         // Required fields
         $required_fields = array('nom', 'region', 'adresse', 'code_postal', 'ville', 'email', 'telephone', 'num_declaration', 'date_declaration');
 
         foreach ( $required_fields as $field ) {
-            if ( empty( $data[$field] ) ) {
+            if ( ! $allow_incomplete && empty( $data[$field] ) ) {
                 $field_labels = array(
                     'nom' => __('Le nom du club', 'ufsc-clubs'),
                     'region' => __('La région', 'ufsc-clubs'),
@@ -136,7 +137,7 @@ class UFSC_CL_Utils {
             $required_dirigeant_fields = array('prenom', 'nom', 'email', 'tel');
             foreach ( $required_dirigeant_fields as $field ) {
                 $key = $dirigeant . '_' . $field;
-                if ( empty( $data[$key] ) ) {
+                if ( ! $allow_incomplete && empty( $data[$key] ) ) {
                     $errors[$key] = sprintf( __('%s du %s est requis', 'ufsc-clubs'), ucfirst($field), $dirigeant );
                 }
             }
