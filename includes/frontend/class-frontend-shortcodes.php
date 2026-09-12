@@ -238,7 +238,6 @@ class UFSC_Frontend_Shortcodes {
             );
         }
 
-        $wc_settings = ufsc_get_woocommerce_settings();
         $season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
         $stats = self::get_club_stats( $club_id, $season );
         $status_counts = (array) ( $stats['by_status'] ?? array() );
@@ -246,28 +245,28 @@ class UFSC_Frontend_Shortcodes {
 		$payable_licences = (int) ( $stats['pending_payments'] ?? array_sum( array_intersect_key( $status_counts, array_flip( array( 'a_regler', 'pending_payment', 'non_payee' ) ) ) ) );
         $season_start_year = (int) substr( $season, 0, 4 );
         $previous_season = $season_start_year ? ( $season_start_year - 1 ) . '-' . $season_start_year : '';
-        $renewable_licences = $previous_season ? count( self::get_renewable_sources( $club_id, $previous_season, $season ) ) : 0;
+        $renewable_licences = $previous_season ? self::get_dashboard_renewable_count( $club_id, $previous_season, $season ) : 0;
 		$pack_usage = function_exists( 'ufsc_get_pack_usage' ) ? ufsc_get_pack_usage( $club_id, $season ) : array( 'total' => 0, 'bureau' => 0, 'libres' => 0, 'payantes' => 0, 'roles' => array() );
-        $licence_stats_labels = array(
-            esc_html__( 'Total', 'ufsc-clubs' ),
-            esc_html__( 'Payées', 'ufsc-clubs' ),
-            esc_html__( 'Validées', 'ufsc-clubs' ),
-            esc_html__( 'Homme', 'ufsc-clubs' ),
-            esc_html__( 'Femme', 'ufsc-clubs' ),
-            esc_html__( 'Loisir', 'ufsc-clubs' ),
-            esc_html__( 'Compétition', 'ufsc-clubs' ),
-        );
-        $licence_stats_data = array(
-            (int) $stats['total_licences'],
-            (int) $stats['paid_licences'],
-            (int) $stats['validated_licences'],
-            (int) ( $stats['by_gender']['M'] ?? 0 ),
-            (int) ( $stats['by_gender']['F'] ?? 0 ),
-            (int) ( $stats['by_practice']['leisure'] ?? ( $stats['by_practice'][0] ?? 0 ) ),
-            (int) ( $stats['by_practice']['competition'] ?? ( $stats['by_practice'][1] ?? 0 ) ),
-        );
 
         if ( 'stats' === $requested_dashboard_section ) {
+            $licence_stats_labels = array(
+                esc_html__( 'Total', 'ufsc-clubs' ),
+                esc_html__( 'Payées', 'ufsc-clubs' ),
+                esc_html__( 'Validées', 'ufsc-clubs' ),
+                esc_html__( 'Homme', 'ufsc-clubs' ),
+                esc_html__( 'Femme', 'ufsc-clubs' ),
+                esc_html__( 'Loisir', 'ufsc-clubs' ),
+                esc_html__( 'Compétition', 'ufsc-clubs' ),
+            );
+            $licence_stats_data = array(
+                (int) $stats['total_licences'],
+                (int) $stats['paid_licences'],
+                (int) $stats['validated_licences'],
+                (int) ( $stats['by_gender']['M'] ?? 0 ),
+                (int) ( $stats['by_gender']['F'] ?? 0 ),
+                (int) ( $stats['by_practice']['leisure'] ?? ( $stats['by_practice'][0] ?? 0 ) ),
+                (int) ( $stats['by_practice']['competition'] ?? ( $stats['by_practice'][1] ?? 0 ) ),
+            );
             wp_localize_script(
                 'chart-js',
                 'ufscLicenceStats',
@@ -317,16 +316,28 @@ class UFSC_Frontend_Shortcodes {
         $club_status = ! empty( $annual_presentation['key'] ) ? $annual_presentation['key'] : $affiliation_state['status'];
 		$honorability_kpis = array( 'required' => 0, 'validated' => 0, 'pending' => 0, 'rejected' => 0, 'correction_required' => 0, 'missing' => 0, 'complete' => 0, 'incomplete' => 0 );
 		if ( function_exists( 'ufsc_get_honorability_document_kpis' ) ) {
-			$current_licences = self::get_club_licences( $club_id, array( 'season' => $current_season, 'page' => 1, 'per_page' => 2000 ) );
+			$current_licences = self::get_club_honorability_licences( $club_id, $current_season );
 			$honorability_kpis = ufsc_get_honorability_document_kpis( $current_licences, $current_season );
 			$missing_docs += $honorability_kpis['incomplete'];
 		}
-        $pending_order = function_exists( 'ufsc_wc_has_pending_renewal_order' ) ? ufsc_wc_has_pending_renewal_order( 'renew_affiliation', $club_id, $renewal_affiliation_season ) : false;
-        $pending_payment_url = function_exists( 'ufsc_get_pending_affiliation_payment_url' ) ? ufsc_get_pending_affiliation_payment_url( $club_id, $renewal_affiliation_season ) : '';
-        $renewal_url = function_exists( 'ufsc_get_affiliation_renewal_url' ) ? ufsc_get_affiliation_renewal_url( $club_id, $renewal_affiliation_season, $annual_affiliation->id ?? 0 ) : '';
-        $affiliation_product_id = function_exists( 'ufsc_get_affiliation_product_id' ) ? ufsc_get_affiliation_product_id() : 4823;
-        $affiliation_product_diagnostic = function_exists( 'ufsc_get_woocommerce_product_diagnostic' ) ? ufsc_get_woocommerce_product_diagnostic( $affiliation_product_id ) : array();
-        $affiliation_product_available = function_exists( 'ufsc_is_woocommerce_product_available' ) ? ufsc_is_woocommerce_product_available( $affiliation_product_id ) : false;
+        $pending_order = false;
+        $pending_payment_url = '';
+        $renewal_url = '';
+        $affiliation_product_id = 4823;
+        $affiliation_product_diagnostic = array();
+        $affiliation_product_available = false;
+        if ( ! $renewal_affiliation_done ) {
+            $pending_order = function_exists( 'ufsc_wc_has_pending_renewal_order' ) ? ufsc_wc_has_pending_renewal_order( 'renew_affiliation', $club_id, $renewal_affiliation_season ) : false;
+            if ( $affiliation_pending || $pending_order ) {
+                $pending_payment_url = function_exists( 'ufsc_get_pending_affiliation_payment_url' ) ? ufsc_get_pending_affiliation_payment_url( $club_id, $renewal_affiliation_season ) : '';
+            }
+            if ( 'renew' === ( $affiliation_state['action'] ?? '' ) && ! $pending_order ) {
+                $renewal_url = function_exists( 'ufsc_get_affiliation_renewal_url' ) ? ufsc_get_affiliation_renewal_url( $club_id, $renewal_affiliation_season, $annual_affiliation->id ?? 0 ) : '';
+                $affiliation_product_id = function_exists( 'ufsc_get_affiliation_product_id' ) ? ufsc_get_affiliation_product_id() : 4823;
+                $affiliation_product_diagnostic = function_exists( 'ufsc_get_woocommerce_product_diagnostic' ) ? ufsc_get_woocommerce_product_diagnostic( $affiliation_product_id ) : array();
+                $affiliation_product_available = function_exists( 'ufsc_is_woocommerce_product_available' ) ? ufsc_is_woocommerce_product_available( $affiliation_product_id ) : false;
+            }
+        }
         $can_manage_current_club = true;
         if ( class_exists( 'UFSC_CL_Permissions' ) && method_exists( 'UFSC_CL_Permissions', 'ufsc_user_can_edit_club' ) ) {
             $can_manage_current_club = UFSC_CL_Permissions::ufsc_user_can_edit_club( $club_id );
@@ -2863,6 +2874,77 @@ class UFSC_Frontend_Shortcodes {
         } ) );
     }
 
+    /**
+     * Return the exact renewal KPI while avoiding the same expensive eligibility
+     * scan on every navigation inside the club dashboard.
+     *
+     * This cache only affects a read-only counter. Renewal creation continues to
+     * call UFSC_Renewal_Service::can_renew() with live data.
+     */
+    private static function get_dashboard_renewable_count( $club_id, $source_season, $target_season ) {
+        $cache_key = self::get_dashboard_renewable_cache_key( $club_id, $source_season, $target_season );
+        $cached = get_transient( $cache_key );
+        if ( false !== $cached ) {
+            return max( 0, (int) $cached );
+        }
+
+        $count = count( self::get_renewable_sources( $club_id, $source_season, $target_season ) );
+        set_transient( $cache_key, $count, 2 * MINUTE_IN_SECONDS );
+        return $count;
+    }
+
+    /** Build the isolated transient key used by the read-only renewal KPI. */
+    private static function get_dashboard_renewable_cache_key( $club_id, $source_season, $target_season ) {
+        return 'ufsc_dash_renew_' . md5( absint( $club_id ) . '|' . $source_season . '|' . $target_season );
+    }
+
+    /** Immediately invalidate the KPI after a licence mutation for this club. */
+    public static function clear_dashboard_renewable_count_cache( $entity_id, $created_club_id = 0 ) {
+        // Creation hooks pass (licence_id, club_id); update/delete hooks pass club_id.
+        $club_id = absint( $created_club_id ?: $entity_id );
+        $target_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : '';
+        $start_year = (int) substr( (string) $target_season, 0, 4 );
+        if ( ! $club_id || ! $start_year ) {
+            return;
+        }
+
+        $source_season = ( $start_year - 1 ) . '-' . $start_year;
+        delete_transient( self::get_dashboard_renewable_cache_key( $club_id, $source_season, $target_season ) );
+    }
+
+    /**
+     * Fetch only the fields required by the honorability KPI.
+     *
+     * The canonical PHP role check remains in ufsc_get_honorability_document_kpis(),
+     * so aliases and filters keep exactly the same business behaviour.
+     */
+    private static function get_club_honorability_licences( $club_id, $season ) {
+        global $wpdb;
+
+        if ( ! function_exists( 'ufsc_get_licences_table' ) ) {
+            return array();
+        }
+
+        $table = ufsc_get_licences_table();
+        $columns = function_exists( 'ufsc_table_columns' )
+            ? (array) ufsc_table_columns( $table )
+            : (array) $wpdb->get_col( "DESCRIBE `{$table}`" );
+        $role_column = in_array( 'role', $columns, true ) ? 'role' : ( in_array( 'fonction', $columns, true ) ? 'fonction' : '' );
+        if ( ! in_array( 'id', $columns, true ) || '' === $role_column ) {
+            return array();
+        }
+
+        $clauses = array( 'club_id = %d' );
+        $values = array( absint( $club_id ) );
+        if ( in_array( 'deleted_at', $columns, true ) ) {
+            $clauses[] = "(deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')";
+        }
+        self::append_strict_season_clause( $clauses, $values, $table, $columns, $season );
+
+        $sql = "SELECT `id`, `{$role_column}` AS `role` FROM `{$table}` WHERE " . implode( ' AND ', $clauses );
+        return (array) $wpdb->get_results( $wpdb->prepare( $sql, $values ) );
+    }
+
     private static function get_club_licences( $club_id, $args ) {
         global $wpdb;
 
@@ -3990,6 +4072,10 @@ class UFSC_Frontend_Shortcodes {
         echo '<span class="ufsc-field-error" aria-live="polite"></span></div>';
     }
 }
+
+add_action( 'ufsc_licence_created', array( 'UFSC_Frontend_Shortcodes', 'clear_dashboard_renewable_count_cache' ), 90, 2 );
+add_action( 'ufsc_licence_updated', array( 'UFSC_Frontend_Shortcodes', 'clear_dashboard_renewable_count_cache' ), 90, 1 );
+add_action( 'ufsc_licence_deleted', array( 'UFSC_Frontend_Shortcodes', 'clear_dashboard_renewable_count_cache' ), 90, 1 );
 
 // STUB FUNCTIONS - To be implemented according to existing database schema
 
