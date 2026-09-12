@@ -17,6 +17,24 @@ body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-profile-main {
     min-height: 0 !important;
 }
 
+/* Keep account blocks content-sized. Older Elementor/grid declarations could
+ * stretch empty rows between the completion summary, affiliation trace, form
+ * and documents. */
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-profile-shell,
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-form.ufsc-club-profile {
+    grid-auto-rows: max-content !important;
+    align-content: start !important;
+    row-gap: 16px !important;
+}
+
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-profile-shell > *,
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-form.ufsc-club-profile > *,
+body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-account__documents {
+    align-self: start !important;
+    margin-block-start: 0 !important;
+    margin-block-end: 0 !important;
+}
+
 /* Account navigation: one clear row on desktop, responsive below. */
 body.ufsc-portal-clean-page .ufsc-club-account .ufsc-club-account__nav {
     display: grid !important;

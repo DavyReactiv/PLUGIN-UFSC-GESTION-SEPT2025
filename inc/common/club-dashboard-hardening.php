@@ -206,7 +206,7 @@ function ufsc_account_missing_profile_actions( $club_id, $season ) {
     $role_labels = array( 'president' => __( 'Président : licence à renseigner pour la saison', 'ufsc-clubs' ), 'secretaire' => __( 'Secrétaire : licence à renseigner pour la saison', 'ufsc-clubs' ), 'tresorier' => __( 'Trésorier : licence à renseigner pour la saison', 'ufsc-clubs' ) );
     foreach ( $role_counts as $role => $count ) {
         if ( $count < 1 ) {
-            $actions[] = array( 'type' => 'role', 'label' => $role_labels[ $role ] );
+            $actions[] = array( 'type' => 'role', 'role' => $role, 'label' => $role_labels[ $role ] );
         }
     }
 
@@ -236,9 +236,11 @@ function ufsc_render_account_action_box( $club_id, $season ) {
     if ( $actions ) {
         echo '<section class="ufsc-card ufsc-profile-actions" aria-labelledby="ufsc-profile-actions-title"><div class="ufsc-profile-actions__heading"><h4 id="ufsc-profile-actions-title">' . esc_html__( 'Éléments à compléter', 'ufsc-clubs' ) . '</h4><p>' . esc_html__( 'Voici exactement ce qu’il reste à corriger ou transmettre sur le profil du club.', 'ufsc-clubs' ) . '</p></div><ul>';
         foreach ( $actions as $action ) {
-            $target = 'role' === $action['type'] ? 'club-officers' : 'club-documents';
             $button = 'role' === $action['type'] ? __( 'Compléter le bureau', 'ufsc-clubs' ) : __( 'Ajouter le document', 'ufsc-clubs' );
-            echo '<li><span>' . ( 'role' === $action['type'] ? '👥 ' : '📄 ' ) . esc_html( $action['label'] ) . '</span><a class="ufsc-btn ufsc-btn-secondary" href="' . esc_url( UFSC_Frontend_Shortcodes::get_club_portal_url( $target ) ) . '">' . esc_html( $button ) . '</a></li>';
+            $target_url = 'role' === $action['type']
+                ? UFSC_Frontend_Shortcodes::get_add_licence_url( $action['role'] ?? '', $season )
+                : UFSC_Frontend_Shortcodes::get_club_portal_url( 'club-documents' );
+            echo '<li><span>' . ( 'role' === $action['type'] ? '👥 ' : '📄 ' ) . esc_html( $action['label'] ) . '</span><a class="ufsc-btn ufsc-btn-secondary" href="' . esc_url( $target_url ) . '">' . esc_html( $button ) . '</a></li>';
         }
         echo '</ul></section>';
     } else {
