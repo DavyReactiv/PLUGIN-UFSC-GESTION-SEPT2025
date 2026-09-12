@@ -2217,8 +2217,6 @@ class UFSC_SQL_Admin
             echo '<textarea name="' . esc_attr($k) . '" rows="3" ' . $readonly_attr . '>' . esc_textarea($val) . '</textarea>';
         } elseif ($type === 'number') {
             echo '<input type="number" step="1" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
-        } elseif ($type === 'date') {
-            echo '<input type="date" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
         } elseif ($type === 'region') {
             echo '<select name="' . esc_attr($k) . '" ' . $disabled_attr . '>';
             $scope_slug  = UFSC_Scope::get_user_scope_region();
