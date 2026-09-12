@@ -1,7 +1,11 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-/** Single authority for permanent UFSC identifiers and administrator-owned ASPTT values. */
+/**
+ * Single authority for permanent UFSC identifiers and administrator-owned FFST values.
+ * Historical partner identifiers remain available through a legacy compatibility
+ * wrapper, but are never copied or reclassified as FFST.
+ */
 final class UFSC_Identifier_Service {
     const TYPES = array( 'club' => 'UFSC-C-', 'licence' => 'UFSC-L-' );
 
@@ -59,21 +63,61 @@ final class UFSC_Identifier_Service {
         return $value;
     }
 
+    /** Save an administrator-owned FFST identifier without touching legacy partner data. */
+    public static function save_ffst( $type, $entity_id, $value, $user_id = 0 ) {
+        return self::save_partner_identifier( 'ffst', $type, $entity_id, $value, $user_id );
+    }
+
+    /**
+     * Legacy compatibility only. Existing integrations may still call this method;
+     * no active screen should expose it and its values are never copied to FFST.
+     */
     public static function save_asptt( $type, $entity_id, $value, $user_id = 0 ) {
+        return self::save_partner_identifier( 'asptt', $type, $entity_id, $value, $user_id );
+    }
+
+    private static function save_partner_identifier( $namespace, $type, $entity_id, $value, $user_id = 0 ) {
         global $wpdb;
+        $namespace = in_array( $namespace, array( 'ffst', 'asptt' ), true ) ? $namespace : '';
         $value = trim( sanitize_text_field( $value ) );
-        if ( ! isset( self::TYPES[ $type ] ) || ! absint( $entity_id ) ) { return new WP_Error( 'invalid_entity', __( 'Entité invalide.', 'ufsc-clubs' ) ); }
-        if ( 0 === stripos( $value, 'UFSC-' ) ) { return new WP_Error( 'mixed_identifier', __( 'Un numéro UFSC ne peut pas être enregistré comme numéro ASPTT.', 'ufsc-clubs' ) ); }
-		if ( ! self::entity_exists( $type, $entity_id ) ) { return new WP_Error( 'entity_not_found', __( 'L’entité demandée n’existe pas.', 'ufsc-clubs' ) ); }
-        list( $table, $field ) = self::entity_storage( $type, true );
+        if ( ! $namespace || ! isset( self::TYPES[ $type ] ) || ! absint( $entity_id ) ) {
+            return new WP_Error( 'invalid_entity', __( 'Entité invalide.', 'ufsc-clubs' ) );
+        }
+        if ( 0 === stripos( $value, 'UFSC-' ) ) {
+            return new WP_Error( 'mixed_identifier', 'ffst' === $namespace
+                ? __( 'Un numéro UFSC ne peut pas être enregistré comme numéro FFST.', 'ufsc-clubs' )
+                : __( 'Un numéro UFSC ne peut pas être enregistré comme identifiant partenaire historique.', 'ufsc-clubs' ) );
+        }
+        if ( ! self::entity_exists( $type, $entity_id ) ) {
+            return new WP_Error( 'entity_not_found', __( 'L’entité demandée n’existe pas.', 'ufsc-clubs' ) );
+        }
+
+        list( $table, $field ) = self::entity_storage( $type, $namespace );
+        $columns = (array) $wpdb->get_col( "SHOW COLUMNS FROM `{$table}`", 0 );
+        if ( ! in_array( $field, $columns, true ) ) {
+            return new WP_Error( 'identifier_schema_missing', 'ffst' === $namespace
+                ? __( 'Le stockage FFST n’est pas encore disponible. Rechargez l’administration après la migration.', 'ufsc-clubs' )
+                : __( 'Le stockage historique demandé n’est pas disponible.', 'ufsc-clubs' ) );
+        }
+
         if ( $value ) {
             $owner = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM `{$table}` WHERE `{$field}`=%s AND id<>%d LIMIT 1", $value, absint( $entity_id ) ) );
-            if ( $owner ) { self::audit( 'reject_duplicate_asptt', $type, $entity_id, '', $value, $user_id ); return new WP_Error( 'duplicate_asptt', __( 'Ce numéro ASPTT est déjà attribué.', 'ufsc-clubs' ) ); }
+            if ( $owner ) {
+                self::audit( 'reject_duplicate_' . $namespace, $type, $entity_id, '', $value, $user_id );
+                return new WP_Error( 'duplicate_partner_identifier', 'ffst' === $namespace
+                    ? __( 'Ce numéro FFST est déjà attribué.', 'ufsc-clubs' )
+                    : __( 'Cet identifiant partenaire historique est déjà attribué.', 'ufsc-clubs' ) );
+            }
         }
+
         $old = (string) $wpdb->get_var( $wpdb->prepare( "SELECT `{$field}` FROM `{$table}` WHERE id=%d", absint( $entity_id ) ) );
         $result = $wpdb->update( $table, array( $field => ( '' === $value ? null : $value ) ), array( 'id' => absint( $entity_id ) ), array( '%s' ), array( '%d' ) );
-        if ( false === $result ) { return new WP_Error( 'save_failed', __( 'Le numéro ASPTT n’a pas pu être enregistré.', 'ufsc-clubs' ) ); }
-        self::audit( 'update_asptt', $type, $entity_id, $old, $value, $user_id );
+        if ( false === $result ) {
+            return new WP_Error( 'save_failed', 'ffst' === $namespace
+                ? __( 'Le numéro FFST n’a pas pu être enregistré.', 'ufsc-clubs' )
+                : __( 'L’identifiant partenaire historique n’a pas pu être enregistré.', 'ufsc-clubs' ) );
+        }
+        self::audit( 'update_' . $namespace, $type, $entity_id, $old, $value, $user_id );
         return $value;
     }
 
@@ -82,32 +126,48 @@ final class UFSC_Identifier_Service {
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
         $checks = array(
-            'Numéros UFSC club'    => array($settings['table_clubs'],'numero_affiliation_ufsc'),
-            'Numéros ASPTT club'   => array($settings['table_clubs'],'numero_affiliation_asptt'),
-            'Numéros UFSC licence' => array($settings['table_licences'],'numero_licence_ufsc'),
-            'Numéros ASPTT licence'=> array($settings['table_licences'],'numero_licence_asptt'),
+            'Numéros UFSC club' => array( $settings['table_clubs'], 'numero_affiliation_ufsc' ),
+            'Numéros FFST club' => array( $settings['table_clubs'], 'numero_affiliation_ffst' ),
+            'Numéros UFSC licence' => array( $settings['table_licences'], 'numero_licence_ufsc' ),
+            'Numéros FFST licence' => array( $settings['table_licences'], 'numero_licence_ffst' ),
+            'Identifiants partenaire historiques club' => array( $settings['table_clubs'], 'numero_affiliation_asptt' ),
+            'Identifiants partenaire historiques licence' => array( $settings['table_licences'], 'numero_licence_asptt' ),
         );
         $report = array();
         foreach ( $checks as $label => $check ) {
-            list($table,$column)=$check;
-            $columns=(array)$wpdb->get_col("SHOW COLUMNS FROM `{$table}`",0);
-            if (!in_array($column,$columns,true)) { $report[$label]=array(); continue; }
-            $report[$label]=(array)$wpdb->get_results("SELECT `{$column}` value, GROUP_CONCAT(id ORDER BY id) ids, COUNT(*) count FROM `{$table}` WHERE `{$column}` IS NOT NULL AND TRIM(`{$column}`)<>'' GROUP BY `{$column}` HAVING COUNT(*)>1",ARRAY_A);
+            list( $table, $column ) = $check;
+            $columns = (array) $wpdb->get_col( "SHOW COLUMNS FROM `{$table}`", 0 );
+            if ( ! in_array( $column, $columns, true ) ) { $report[ $label ] = array(); continue; }
+            $report[ $label ] = (array) $wpdb->get_results( "SELECT `{$column}` value, GROUP_CONCAT(id ORDER BY id) ids, COUNT(*) count FROM `{$table}` WHERE `{$column}` IS NOT NULL AND TRIM(`{$column}`)<>'' GROUP BY `{$column}` HAVING COUNT(*)>1", ARRAY_A );
         }
-        $aff=$wpdb->prefix.'ufsc_affiliations_seasons';
-        $report['Affiliations annuelles']= (array)$wpdb->get_results("SELECT CONCAT(club_id,' / ',season) value,GROUP_CONCAT(id ORDER BY id) ids,COUNT(*) count FROM `{$aff}` GROUP BY club_id,season HAVING COUNT(*)>1",ARRAY_A);
-        $lic=$settings['table_licences']; $cols=(array)$wpdb->get_col("SHOW COLUMNS FROM `{$lic}`",0); $season=class_exists('UFSC_Renewal_Service')?self::first_column($cols,array('season','saison','paid_season','season_end_year')):'';
-        $report['Licences annuelles'] = ($season && in_array('person_identifier',$cols,true)) ? (array)$wpdb->get_results("SELECT CONCAT(club_id,' / ',person_identifier,' / ',`{$season}`) value,GROUP_CONCAT(id ORDER BY id) ids,COUNT(*) count FROM `{$lic}` WHERE person_identifier IS NOT NULL AND person_identifier<>'' GROUP BY club_id,person_identifier,`{$season}` HAVING COUNT(*)>1",ARRAY_A) : array();
+        $aff = $wpdb->prefix . 'ufsc_affiliations_seasons';
+        $report['Affiliations annuelles'] = (array) $wpdb->get_results( "SELECT CONCAT(club_id,' / ',season) value,GROUP_CONCAT(id ORDER BY id) ids,COUNT(*) count FROM `{$aff}` GROUP BY club_id,season HAVING COUNT(*)>1", ARRAY_A );
+        $lic = $settings['table_licences'];
+        $cols = (array) $wpdb->get_col( "SHOW COLUMNS FROM `{$lic}`", 0 );
+        $season = class_exists( 'UFSC_Renewal_Service' ) ? self::first_column( $cols, array( 'season', 'saison', 'paid_season', 'season_end_year' ) ) : '';
+        $report['Licences annuelles'] = ( $season && in_array( 'person_identifier', $cols, true ) ) ? (array) $wpdb->get_results( "SELECT CONCAT(club_id,' / ',person_identifier,' / ',`{$season}`) value,GROUP_CONCAT(id ORDER BY id) ids,COUNT(*) count FROM `{$lic}` WHERE person_identifier IS NOT NULL AND person_identifier<>'' GROUP BY club_id,person_identifier,`{$season}` HAVING COUNT(*)>1", ARRAY_A ) : array();
         return $report;
     }
 
-    private static function first_column($columns,$candidates) { foreach($candidates as $candidate){if(in_array($candidate,$columns,true)){return $candidate;}} return ''; }
+    private static function first_column( $columns, $candidates ) { foreach ( $candidates as $candidate ) { if ( in_array( $candidate, $columns, true ) ) { return $candidate; } } return ''; }
 
-    private static function entity_storage( $type, $asptt = false ) {
+    private static function entity_storage( $type, $namespace = 'ufsc' ) {
         $settings = UFSC_SQL::get_settings();
-        return 'club' === $type
-            ? array( $settings['table_clubs'], $asptt ? 'numero_affiliation_asptt' : 'numero_affiliation_ufsc' )
-            : array( $settings['table_licences'], $asptt ? 'numero_licence_asptt' : 'numero_licence_ufsc' );
+        $namespace = in_array( $namespace, array( 'ufsc', 'ffst', 'asptt' ), true ) ? $namespace : 'ufsc';
+        if ( 'club' === $type ) {
+            $fields = array(
+                'ufsc' => 'numero_affiliation_ufsc',
+                'ffst' => 'numero_affiliation_ffst',
+                'asptt' => 'numero_affiliation_asptt',
+            );
+            return array( $settings['table_clubs'], $fields[ $namespace ] );
+        }
+        $fields = array(
+            'ufsc' => 'numero_licence_ufsc',
+            'ffst' => 'numero_licence_ffst',
+            'asptt' => 'numero_licence_asptt',
+        );
+        return array( $settings['table_licences'], $fields[ $namespace ] );
     }
 
 	private static function entity_exists( $type, $entity_id ) {
@@ -125,7 +185,7 @@ final class UFSC_Identifier_Service {
     private static function audit( $action, $type, $id, $old, $new, $user_id, $justification = '' ) {
         global $wpdb;
         $season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : '';
-        $wpdb->insert( $wpdb->prefix . 'ufsc_identifier_audit', array( 'action'=>$action, 'entity_type'=>$type, 'entity_id'=>$id, 'old_value'=>$old, 'new_value'=>$new, 'user_id'=>absint($user_id), 'season'=>$season, 'justification'=>sanitize_text_field($justification), 'created_at'=>current_time('mysql') ) );
+        $wpdb->insert( $wpdb->prefix . 'ufsc_identifier_audit', array( 'action' => $action, 'entity_type' => $type, 'entity_id' => $id, 'old_value' => $old, 'new_value' => $new, 'user_id' => absint( $user_id ), 'season' => $season, 'justification' => sanitize_text_field( $justification ), 'created_at' => current_time( 'mysql' ) ) );
     }
 
     public static function handle_generate_request() {
@@ -136,6 +196,14 @@ final class UFSC_Identifier_Service {
         self::redirect_result( $result );
     }
 
+    public static function handle_ffst_request() {
+        if ( 'POST' !== strtoupper( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Action interdite.', 'ufsc-clubs' ), 403 ); }
+        $type = sanitize_key( wp_unslash( $_POST['entity_type'] ?? '' ) ); $id = absint( $_POST['entity_id'] ?? 0 );
+        check_admin_referer( 'ufsc_save_ffst_' . $type . '_' . $id );
+        self::redirect_result( self::save_ffst( $type, $id, wp_unslash( $_POST['ffst_identifier'] ?? '' ), get_current_user_id() ) );
+    }
+
+    /** Legacy action handler retained only so old bookmarked/admin forms do not fatal. */
     public static function handle_asptt_request() {
         if ( 'POST' !== strtoupper( $_SERVER['REQUEST_METHOD'] ?? '' ) || ! current_user_can( 'manage_options' ) ) { wp_die( esc_html__( 'Action interdite.', 'ufsc-clubs' ), 403 ); }
         $type = sanitize_key( wp_unslash( $_POST['entity_type'] ?? '' ) ); $id = absint( $_POST['entity_id'] ?? 0 );
@@ -149,3 +217,7 @@ final class UFSC_Identifier_Service {
         wp_safe_redirect( add_query_arg( $args, $url ) ); exit;
     }
 }
+
+// Register the FFST administrator endpoint with the service itself so the route
+// cannot be omitted by an older bootstrap registration list.
+add_action( 'admin_post_ufsc_save_ffst_identifier', array( 'UFSC_Identifier_Service', 'handle_ffst_request' ) );

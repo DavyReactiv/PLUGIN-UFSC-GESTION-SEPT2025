@@ -63,6 +63,7 @@ class UFSC_SQL {
                 'attestation_cer'=>array('Attestation CER','text'),
                 'doc_attestation_affiliation'=>array('Attestation UFSC','text'),
                 'num_affiliation'=>array('N° Affiliation','text'),
+                'numero_affiliation_ffst'=>array('N° affiliation FFST','text'),
                 'quota_licences'=>array('Quota licences','number'),
                 'statut'=>array('Statut','licence_status'),
                 'date_creation'=>array('Date création','date'),
@@ -115,9 +116,11 @@ class UFSC_SQL {
                 'role'=>array('Rôle dans le club','text'),
                 'licence_delegataire'=>array('Licence délégataire','bool'),
                 'numero_licence_delegataire'=>array('N° licence délégataire','text'),
+                'numero_licence_ffst'=>array('N° licence FFST','text'),
                 'diffusion_image'=>array('Autoriser diffusion image','bool'),
                 'infos_fsasptt'=>array('Infos FSASPTT','bool'),
                 'infos_asptt'=>array('Infos ASPTT','bool'),
+                'infos_ffst'=>array('Infos FFST','bool'),
                 'infos_cr'=>array('Infos CR','bool'),
                 'infos_partenaires'=>array('Infos partenaires','bool'),
                 'honorabilite'=>array('Honorabilité','bool'),
@@ -179,7 +182,9 @@ class UFSC_SQL {
      */
     public static function get_club_fields() {
         $s = self::get_settings();
-        return apply_filters( 'ufsc_club_fields', $s['club_fields'] );
+        $fields = $s['club_fields'];
+        unset( $fields['numero_affiliation_asptt'] );
+        return apply_filters( 'ufsc_club_fields', $fields );
     }
     
     /**
@@ -187,7 +192,15 @@ class UFSC_SQL {
      */
     public static function get_licence_fields() {
         $s = self::get_settings();
-        return apply_filters( 'ufsc_licence_fields', $s['licence_fields'] );
+        $fields = $s['licence_fields'];
+        foreach ( array(
+            'reduction_postier', 'reduction_postier_num', 'identifiant_laposte_flag',
+            'identifiant_laposte', 'licence_delegataire', 'numero_licence_delegataire',
+            'infos_fsasptt', 'infos_asptt', 'numero_licence_asptt'
+        ) as $legacy_field ) {
+            unset( $fields[ $legacy_field ] );
+        }
+        return apply_filters( 'ufsc_licence_fields', $fields );
     }
 
     /**
