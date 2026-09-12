@@ -743,3 +743,22 @@
 .ufsc-clubs-admin-page .ufsc-clubs-table tfoot .check-column input {
     accent-color: #ffffff;
 }
+/* Read-only affiliation payment summary. */
+.ufsc-clubs-table .column-payment { min-width: 142px; }
+.ufsc-payment-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+.ufsc-payment-badge--card { color: #075985; background: #e0f2fe; }
+.ufsc-payment-badge--transfer { color: #166534; background: #dcfce7; }
+.ufsc-payment-badge--other { color: #854d0e; background: #fef3c7; }
+.ufsc-payment-badge--none { color: #64748b; background: #f1f5f9; }
+.ufsc-payment-meta,
+.ufsc-payment-trace-link { display: block; margin-top: 5px; line-height: 1.35; }
+.ufsc-payment-meta { color: #475569; }
+.ufsc-payment-trace-link { font-weight: 700; }
