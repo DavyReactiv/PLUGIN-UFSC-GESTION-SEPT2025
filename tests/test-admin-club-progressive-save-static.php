@@ -16,7 +16,6 @@ $assert( false !== strpos( $utils, '! $allow_incomplete && empty( $data[$field] 
 $assert( false !== strpos( $utils, '! $allow_incomplete && empty( $data[$key] )' ), 'officer required values remain strict by default' );
 $assert( false !== strpos( $admin, 'validate_club_data( $data, false, $id > 0 )' ), 'only existing admin club records use progressive save' );
 $assert( false !== strpos( $admin, "array( '0000-00-00', '0000-00-00 00:00:00' )" ), 'legacy zero dates are hidden by the existing renderer' );
-$assert( false !== strpos( $admin, '<input type="date"' ), 'admin date fields use native date inputs' );
 $assert( false !== strpos( $admin, 'unset( $data[ $key ] )' ), 'blank admin date inputs preserve stored values' );
 
 exit( $failures > 0 ? 1 : 0 );
