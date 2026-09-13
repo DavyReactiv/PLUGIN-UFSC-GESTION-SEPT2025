@@ -41,6 +41,22 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
 					<label for="date_naissance"><?php esc_html_e( 'Date de naissance', 'ufsc-clubs' ); ?></label>
 					<input type="date" id="date_naissance" name="date_naissance" value="<?php echo esc_attr( $licence->date_naissance ?? '' ); ?>" required />
 				</div>
+
+				<div class="ufsc-field ufsc-ffst-birthplace-field">
+					<label for="ville_naissance"><?php esc_html_e( 'Ville de naissance', 'ufsc-clubs' ); ?></label>
+					<input type="text" id="ville_naissance" name="ville_naissance" value="<?php echo esc_attr( $licence->ville_naissance ?? '' ); ?>" autocomplete="off" />
+				</div>
+
+				<div class="ufsc-field ufsc-ffst-birthplace-field">
+					<label for="departement_naissance"><?php esc_html_e( 'Département de naissance', 'ufsc-clubs' ); ?></label>
+					<input type="text" id="departement_naissance" name="departement_naissance" value="<?php echo esc_attr( $licence->departement_naissance ?? '' ); ?>" placeholder="<?php echo esc_attr__( 'Ex. 03 – Allier', 'ufsc-clubs' ); ?>" autocomplete="off" />
+				</div>
+
+				<div class="ufsc-field ufsc-ffst-birthplace-field">
+					<label for="pays_naissance"><?php esc_html_e( 'Pays de naissance', 'ufsc-clubs' ); ?></label>
+					<input type="text" id="pays_naissance" name="pays_naissance" value="<?php echo esc_attr( $licence->pays_naissance ?? '' ); ?>" placeholder="<?php echo esc_attr__( 'France ou pays de naissance', 'ufsc-clubs' ); ?>" autocomplete="off" />
+					<small class="description"><?php esc_html_e( 'Ces informations permettent de renseigner « Ville + Dept (ou Pays) » sur les documents FFST.', 'ufsc-clubs' ); ?></small>
+				</div>
 			</div>
 		</section>
 
@@ -105,3 +121,22 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
 		</button>
 	</div>
 </form>
+
+<script>
+(function(){
+	var role = document.getElementById('role');
+	if (!role) return;
+	var fields = Array.prototype.slice.call(document.querySelectorAll('.ufsc-ffst-birthplace-field'));
+	var leaderRoles = ['president','secretaire','tresorier','entraineur','instructeur','coach','educateur','enseignant'];
+	function refresh(){
+		var required = leaderRoles.indexOf((role.value || '').toLowerCase()) !== -1;
+		fields.forEach(function(field){
+			field.style.display = required ? '' : 'none';
+			var input = field.querySelector('input');
+			if (input) input.required = required;
+		});
+	}
+	role.addEventListener('change', refresh);
+	refresh();
+})();
+</script>
