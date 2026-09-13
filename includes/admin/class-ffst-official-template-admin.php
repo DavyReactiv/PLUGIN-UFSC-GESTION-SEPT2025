@@ -226,6 +226,7 @@ final class UFSC_FFST_Official_Template_Admin {
         $wanted = array( 'president', 'secretaire', 'tresorier', 'coach', 'coach' );
         $result = array();
         $used = array();
+
         foreach ( $wanted as $index => $wanted_role ) {
             $found = array();
             foreach ( $licences as $key => $licence ) {
@@ -234,21 +235,41 @@ final class UFSC_FFST_Official_Template_Admin {
                 $match = 'coach' === $wanted_role
                     ? (bool) preg_match( '/entraineur|instructeur|coach|educateur|enseignant/', $role )
                     : false !== strpos( $role, $wanted_role );
-                if ( $match ) { $found = (array) $licence; $used[ $key ] = true; break; }
+                if ( $match ) {
+                    $found = (array) $licence;
+                    $used[ $key ] = true;
+                    break;
+                }
             }
-            if ( ! $found && $index < 3 ) {
-                $prefix = $wanted_role;
-                $found = array(
-                    'nom' => self::value( $club, array( $prefix . '_nom' ) ),
-                    'prenom' => self::value( $club, array( $prefix . '_prenom' ) ),
-                    'email' => self::value( $club, array( $prefix . '_email' ) ),
-                    'telephone' => self::value( $club, array( $prefix . '_tel', $prefix . '_telephone' ) ),
-                    'date_naissance' => self::value( $club, array( $prefix . '_date_naissance' ) ),
-                    'adresse' => self::value( $club, array( $prefix . '_adresse' ) ),
-                    'code_postal' => self::value( $club, array( $prefix . '_code_postal' ) ),
-                    'ville' => self::value( $club, array( $prefix . '_ville' ) ),
+
+            $prefix = 'coach' === $wanted_role ? 'entraineur' : $wanted_role;
+            $club_person = array();
+            if ( $index < 3 || ( 3 === $index && 'coach' === $wanted_role ) ) {
+                $club_person = array(
+                    'nom'                    => self::value( $club, array( $prefix . '_nom' ) ),
+                    'prenom'                 => self::value( $club, array( $prefix . '_prenom' ) ),
+                    'email'                  => self::value( $club, array( $prefix . '_email' ) ),
+                    'telephone'              => self::value( $club, array( $prefix . '_tel', $prefix . '_telephone' ) ),
+                    'date_naissance'         => self::value( $club, array( $prefix . '_date_naissance' ) ),
+                    'ville_naissance'        => self::value( $club, array( $prefix . '_ville_naissance' ) ),
+                    'departement_naissance'  => self::value( $club, array( $prefix . '_departement_naissance' ) ),
+                    'pays_naissance'         => self::value( $club, array( $prefix . '_pays_naissance' ) ),
+                    'adresse'                => self::value( $club, array( $prefix . '_adresse' ) ),
+                    'code_postal'            => self::value( $club, array( $prefix . '_code_postal' ) ),
+                    'ville'                  => self::value( $club, array( $prefix . '_ville' ) ),
                 );
             }
+
+            if ( ! $found ) {
+                $found = $club_person;
+            } elseif ( $club_person ) {
+                foreach ( $club_person as $key => $value ) {
+                    if ( ( ! isset( $found[ $key ] ) || '' === trim( (string) $found[ $key ] ) ) && '' !== trim( (string) $value ) ) {
+                        $found[ $key ] = $value;
+                    }
+                }
+            }
+
             $result[] = $found;
         }
         return $result;
