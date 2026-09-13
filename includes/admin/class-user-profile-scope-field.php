@@ -80,11 +80,12 @@ class UFSC_User_Profile_Scope_Field {
 // adding any front-office dependency or shortcode exposure.
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-export-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-documents-admin.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-template-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-compliance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-insurance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ufsc-bank-transfer-admin.php';
-UFSC_FFST_Official_Documents_Admin::init();
+UFSC_FFST_Official_Template_Admin::init();
 add_action( 'admin_menu', static function() {
     add_submenu_page(
         'ufsc-dashboard',
