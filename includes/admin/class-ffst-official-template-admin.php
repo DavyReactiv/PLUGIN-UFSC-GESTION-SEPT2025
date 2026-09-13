@@ -140,7 +140,7 @@ final class UFSC_FFST_Official_Template_Admin {
         $xp = new DOMXPath( $dom );
         $xp->registerNamespace( 'w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main' );
         $tables = $xp->query( '//w:tbl' );
-        if ( ! $tables || $tables->length < 9 ) { $zip->close(); throw new RuntimeException( 'Unexpected official FFST template structure.' ); }
+        if ( ! $tables || $tables->length < 10 ) { $zip->close(); throw new RuntimeException( 'Unexpected official FFST template structure.' ); }
 
         $affiliation = self::value( $club, array( 'numero_affiliation_ffst' ) );
         $discipline  = self::value( $club, array( 'discipline', 'disciplines', 'discipline_principale', 'activite_principale' ) );
@@ -174,21 +174,21 @@ final class UFSC_FFST_Official_Template_Admin {
 
     private static function fill_person_table( DOMXPath $xp, DOMNode $table, array $person ) {
         $name = self::join_non_empty( array(
-            self::person_value( $person, array( 'nom', 'nom_licence', 'last_name' ) ),
-            self::person_value( $person, array( 'prenom', 'first_name' ) ),
+            self::value( $person, array( 'nom', 'nom_licence', 'last_name' ) ),
+            self::value( $person, array( 'prenom', 'first_name' ) ),
         ), ' ' );
         self::set_table_cell( $xp, $table, 0, 1, self::fallback( $name ) );
-        self::set_table_cell( $xp, $table, 1, 1, 'Le : ' . self::fallback( self::person_value( $person, array( 'date_naissance', 'birth_date', 'dob' ) ) ) );
+        self::set_table_cell( $xp, $table, 1, 1, 'Le : ' . self::fallback( self::value( $person, array( 'date_naissance', 'birth_date', 'dob' ) ) ) );
         $birth_place = self::join_non_empty( array(
-            self::person_value( $person, array( 'ville_naissance', 'birth_city' ) ),
-            self::person_value( $person, array( 'departement_naissance', 'dept_naissance', 'birth_department', 'pays_naissance', 'birth_country' ) ),
+            self::value( $person, array( 'ville_naissance', 'birth_city' ) ),
+            self::value( $person, array( 'departement_naissance', 'dept_naissance', 'birth_department', 'pays_naissance', 'birth_country' ) ),
         ), ' - ' );
         self::set_table_cell( $xp, $table, 1, 2, 'Ville + Dept (ou Pays) : ' . self::fallback( $birth_place ) );
-        self::set_table_cell( $xp, $table, 2, 1, 'Père : ' . self::fallback( self::person_value( $person, array( 'pere_nom_prenom', 'nom_prenom_pere', 'pere' ) ) ) );
-        self::set_table_cell( $xp, $table, 2, 2, 'Mère : ' . self::fallback( self::person_value( $person, array( 'mere_nom_prenom', 'nom_prenom_mere', 'mere' ) ) ) );
+        self::set_table_cell( $xp, $table, 2, 1, 'Père : ' . self::fallback( self::value( $person, array( 'pere_nom_prenom', 'nom_prenom_pere', 'pere' ) ) ) );
+        self::set_table_cell( $xp, $table, 2, 2, 'Mère : ' . self::fallback( self::value( $person, array( 'mere_nom_prenom', 'nom_prenom_mere', 'mere' ) ) ) );
         self::set_table_cell( $xp, $table, 3, 1, self::fallback( self::person_address( $person ) ) );
-        self::set_table_cell( $xp, $table, 4, 1, self::fallback( self::person_value( $person, array( 'tel_mobile', 'telephone', 'tel', 'phone' ) ) ) );
-        self::set_table_cell( $xp, $table, 5, 1, self::fallback( self::person_value( $person, array( 'email', 'mail' ) ) ) );
+        self::set_table_cell( $xp, $table, 4, 1, self::fallback( self::value( $person, array( 'tel_mobile', 'telephone', 'tel', 'phone' ) ) ) );
+        self::set_table_cell( $xp, $table, 5, 1, self::fallback( self::value( $person, array( 'email', 'mail' ) ) ) );
     }
 
     private static function set_table_cell( DOMXPath $xp, DOMNode $table, $row_index, $cell_index, $value ) {
@@ -216,7 +216,7 @@ final class UFSC_FFST_Official_Template_Admin {
     private static function replace_text_fragment( DOMXPath $xp, $needle, $replacement ) {
         foreach ( $xp->query( '//w:t' ) as $node ) {
             if ( false !== stripos( (string) $node->nodeValue, $needle ) ) {
-                $node->nodeValue = preg_replace( '/' . preg_quote( $needle, '/' ) . '[^\r\n]*/iu', $replacement, (string) $node->nodeValue, 1 );
+                $node->nodeValue = preg_replace( '/' . preg_quote( $needle, '/' ) . '.*$/iu', $replacement, (string) $node->nodeValue, 1 );
                 return;
             }
         }
@@ -230,7 +230,7 @@ final class UFSC_FFST_Official_Template_Admin {
             $found = array();
             foreach ( $licences as $key => $licence ) {
                 if ( isset( $used[ $key ] ) ) { continue; }
-                $role = strtolower( remove_accents( self::person_value( $licence, array( 'role', 'fonction', 'poste', 'position' ) ) ) );
+                $role = strtolower( remove_accents( self::value( $licence, array( 'role', 'fonction', 'poste', 'position' ) ) ) );
                 $match = 'coach' === $wanted_role
                     ? (bool) preg_match( '/entraineur|instructeur|coach|educateur|enseignant/', $role )
                     : false !== strpos( $role, $wanted_role );
@@ -301,9 +301,9 @@ final class UFSC_FFST_Official_Template_Admin {
 
     private static function person_address( array $person ) {
         return self::join_non_empty( array(
-            self::person_value( $person, array( 'adresse', 'address' ) ),
-            self::person_value( $person, array( 'suite_adresse', 'complement_adresse' ) ),
-            self::join_non_empty( array( self::person_value( $person, array( 'code_postal', 'cp', 'postal_code' ) ), self::person_value( $person, array( 'ville', 'city' ) ) ), ' ' ),
+            self::value( $person, array( 'adresse', 'address' ) ),
+            self::value( $person, array( 'suite_adresse', 'complement_adresse' ) ),
+            self::join_non_empty( array( self::value( $person, array( 'code_postal', 'cp', 'postal_code' ) ), self::value( $person, array( 'ville', 'city' ) ) ), ' ' ),
         ), ', ' );
     }
 
@@ -318,10 +318,6 @@ final class UFSC_FFST_Official_Template_Admin {
             if ( is_array( $row ) && isset( $row[ $key ] ) && '' !== trim( (string) $row[ $key ] ) ) { return (string) $row[ $key ]; }
         }
         return '';
-    }
-
-    private static function person_value( array $row, array $keys ) {
-        return self::value( $row, $keys );
     }
 
     private static function fallback( $value ) {
