@@ -287,7 +287,7 @@ function ufsc_enrich_club_profile_shortcode_output( $output, $tag, $attr, $m ) {
 add_filter( 'do_shortcode_tag', 'ufsc_enrich_club_profile_shortcode_output', 20, 4 );
 
 function ufsc_enqueue_club_mobile_v2() {
-    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) ) { return; }
+    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) || ! function_exists( 'ufsc_is_club_portal_request' ) || ! ufsc_is_club_portal_request() ) { return; }
     wp_enqueue_style( 'ufsc-club-mobile-v2', UFSC_CL_URL . 'assets/css/ufsc-club-mobile-v2.css', array( 'ufsc-front' ), defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
 }
 add_action( 'wp_enqueue_scripts', 'ufsc_enqueue_club_mobile_v2', 30 );

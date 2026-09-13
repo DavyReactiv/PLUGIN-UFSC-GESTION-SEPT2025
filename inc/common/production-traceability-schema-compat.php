@@ -68,6 +68,11 @@ function ufsc_production_traceability_columns( $table, $force = false ) {
 function ufsc_production_ensure_licence_traceability_columns() {
     global $wpdb;
 
+    // Schema repair belongs to activation/admin requests, never to public page rendering.
+    if ( function_exists( 'is_admin' ) && ! is_admin() && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+        return;
+    }
+
     $table = ufsc_production_traceability_table();
     $table = function_exists( 'ufsc_sanitize_table_name' )
         ? ufsc_sanitize_table_name( $table )
@@ -139,3 +144,12 @@ function ufsc_production_replace_traceability_schema_hook() {
     add_action( 'init', 'ufsc_production_ensure_licence_traceability_columns', 6 );
 }
 ufsc_production_replace_traceability_schema_hook();
+
+// New-licence writes need a tiny mutation-only compatibility guard: optional
+// unique identifiers must never be reinserted as an empty string. Keeping this
+// include here preserves the public-render performance scope above while making
+// admin-post creation self-healing on DEV installations with a stale schema.
+$ufsc_licence_create_schema_compat = dirname( __FILE__ ) . '/licence-create-schema-compat.php';
+if ( file_exists( $ufsc_licence_create_schema_compat ) ) {
+    require_once $ufsc_licence_create_schema_compat;
+}

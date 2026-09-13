@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * stylesheet after the canonical ufsc-front.css base.
  */
 function ufsc_portal_cleanup_assets() {
-    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) ) { return; }
+    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) || ! function_exists( 'ufsc_is_club_portal_request' ) || ! ufsc_is_club_portal_request() ) { return; }
 
     // Historical presentation layers: keep their PHP/business logic and JS, but
     // never let their competing CSS participate in cascade resolution.

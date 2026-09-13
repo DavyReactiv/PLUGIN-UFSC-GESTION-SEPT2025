@@ -86,7 +86,7 @@ function ufsc_p0v2_shortcode_output( $output, $tag, $attr, $m ) {
 add_filter( 'do_shortcode_tag', 'ufsc_p0v2_shortcode_output', 90, 4 );
 
 function ufsc_p0v2_enqueue_assets() {
-    if ( is_admin() ) { return; }
+    if ( is_admin() || ! function_exists( 'ufsc_is_club_portal_request' ) || ! ufsc_is_club_portal_request() ) { return; }
     wp_enqueue_style(
         'ufsc-p0-dev-recipe-v2',
         plugins_url( '../../assets/css/ufsc-p0-dev-recipe-v2.css', __FILE__ ),

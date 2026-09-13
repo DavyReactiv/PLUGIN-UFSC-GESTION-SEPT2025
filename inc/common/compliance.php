@@ -246,6 +246,7 @@ function ufsc_can_validate_licence( $licence_id, &$reasons = array() ) {
 
 function ufsc_get_honorability_document_kpis( $licences, $season ) {
 	$stats = array( 'required' => 0, 'validated' => 0, 'pending' => 0, 'rejected' => 0, 'correction_required' => 0, 'missing' => 0, 'complete' => 0, 'incomplete' => 0 );
+	$required_licences = array();
 	foreach ( (array) $licences as $licence ) {
 		$licence_season = function_exists( 'ufsc_get_licence_season_label' ) ? ufsc_get_licence_season_label( $licence ) : ( is_object( $licence ) ? ( $licence->season ?? $licence->saison ?? '' ) : ( $licence['season'] ?? $licence['saison'] ?? '' ) );
 		$licence_season = str_replace( '/', '-', trim( (string) $licence_season ) );
@@ -253,6 +254,17 @@ function ufsc_get_honorability_document_kpis( $licences, $season ) {
 		$role = is_object( $licence ) ? ( $licence->role ?? 'pratiquant' ) : ( $licence['role'] ?? 'pratiquant' );
 		$id = absint( is_object( $licence ) ? ( $licence->id ?? 0 ) : ( $licence['id'] ?? 0 ) );
 		if ( ! ufsc_role_requires_honorability( $role ) ) { continue; }
+		$required_licences[] = $id;
+	}
+
+	// Avoid one options-table query per dirigeant/encadrant on dashboard loads.
+	if ( $required_licences && function_exists( 'wp_prime_option_caches' ) ) {
+		wp_prime_option_caches( array_map( static function ( $licence_id ) use ( $season ) {
+			return ufsc_honorability_document_option_key( $licence_id, $season );
+		}, $required_licences ) );
+	}
+
+	foreach ( $required_licences as $id ) {
 		$stats['required']++; $record = ufsc_get_honorability_document( $id, $season );
 		$key = isset( $stats[ $record['status'] ] ) ? $record['status'] : 'missing'; $stats[ $key ]++;
 		if ( 'validated' === $record['status'] ) { $stats['complete']++; } else { $stats['incomplete']++; }

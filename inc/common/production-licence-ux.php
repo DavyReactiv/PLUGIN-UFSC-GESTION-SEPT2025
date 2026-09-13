@@ -7,6 +7,28 @@ if ( file_exists( $ufsc_production_dbdelta_compat ) ) {
 }
 unset( $ufsc_production_dbdelta_compat );
 
+/** Build one strict, schema-compatible season clause for read-only front queries. */
+function ufsc_production_licence_season_query_context( $table, $season ) {
+    global $wpdb;
+    $columns = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : (array) $wpdb->get_col( "DESCRIBE `{$table}`" );
+    $column = function_exists( 'ufsc_get_detected_season_column' ) ? (string) ufsc_get_detected_season_column( $table ) : '';
+    if ( ! $column || ! in_array( $column, $columns, true ) ) {
+        foreach ( array( 'paid_season', 'season', 'saison', 'season_end_year' ) as $candidate ) {
+            if ( in_array( $candidate, $columns, true ) ) { $column = $candidate; break; }
+        }
+    }
+    if ( ! $column ) {
+        return array( 'columns' => $columns, 'sql' => '0 = %d', 'value' => 1 );
+    }
+
+    $season = str_replace( '/', '-', trim( (string) $season ) );
+    if ( 'season_end_year' === $column ) {
+        $value = preg_match( '/^\d{4}-(\d{4})$/', $season, $matches ) ? (int) $matches[1] : 0;
+        return array( 'columns' => $columns, 'sql' => $value ? "`{$column}` = %d" : '0 = %d', 'value' => $value ?: 1 );
+    }
+    return array( 'columns' => $columns, 'sql' => "REPLACE(TRIM(`{$column}`), '/', '-') = %s", 'value' => $season );
+}
+
 /** Return one request-scoped, pagination-independent renewal state summary. */
 function ufsc_production_renewal_state_counts() {
     static $cached = null;
@@ -21,14 +43,11 @@ function ufsc_production_renewal_state_counts() {
     global $wpdb;
     $table = (string) ufsc_get_licences_table();
     if ( '' === $table ) { return $cached; }
-    $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE club_id = %d", $club_id ) );
+    $query_context = ufsc_production_licence_season_query_context( $table, $source );
+    $deleted_sql = in_array( 'deleted_at', $query_context['columns'], true ) ? " AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')" : '';
+    $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE club_id = %d AND {$query_context['sql']}{$deleted_sql}", $club_id, $query_context['value'] ) );
     foreach ( (array) $rows as $row ) {
         if ( ! is_object( $row ) ) { continue; }
-        if ( function_exists( 'ufsc_get_licence_season_label' ) ) { $row_season = (string) ufsc_get_licence_season_label( $row ); }
-        elseif ( function_exists( 'ufsc_get_licence_season' ) ) { $row_season = (string) ufsc_get_licence_season( $row ); }
-        else { $row_season = (string) ( $row->season ?? ( $row->saison ?? '' ) ); }
-        $row_season = trim( str_replace( '/', '-', $row_season ) );
-        if ( $source !== $row_season ) { continue; }
         $cached['total']++;
         if ( function_exists( 'ufsc_get_licence_season_context_status' ) ) {
             $context = (array) ufsc_get_licence_season_context_status( $row, $target );
@@ -53,11 +72,14 @@ function ufsc_production_current_licence_meta() {
     global $wpdb;
     $table = (string) ufsc_get_licences_table();
     if ( '' === $table ) { return $cached; }
-    $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM `{$table}` WHERE club_id = %d", $club_id ) );
+    $query_context = ufsc_production_licence_season_query_context( $table, $season );
+    $wanted_columns = array_values( array_intersect( array( 'id', 'date_naissance', 'sexe', 'competition', 'fighter_level' ), $query_context['columns'] ) );
+    if ( ! in_array( 'id', $wanted_columns, true ) ) { return $cached; }
+    $select = implode( ', ', array_map( static function ( $column ) { return "`{$column}`"; }, $wanted_columns ) );
+    $deleted_sql = in_array( 'deleted_at', $query_context['columns'], true ) ? " AND (deleted_at IS NULL OR deleted_at = '0000-00-00 00:00:00')" : '';
+    $rows = $wpdb->get_results( $wpdb->prepare( "SELECT {$select} FROM `{$table}` WHERE club_id = %d AND {$query_context['sql']}{$deleted_sql}", $club_id, $query_context['value'] ) );
     foreach ( (array) $rows as $row ) {
         if ( ! is_object( $row ) ) { continue; }
-        $row_season = function_exists( 'ufsc_get_licence_season_label' ) ? (string) ufsc_get_licence_season_label( $row ) : (string) ( $row->season ?? ( $row->saison ?? '' ) );
-        if ( $season !== trim( str_replace( '/', '-', $row_season ) ) ) { continue; }
         $birth = trim( (string) ( $row->date_naissance ?? '' ) );
         $age_label = '';
         if ( '' !== $birth ) {
@@ -82,6 +104,16 @@ function ufsc_production_licence_ux_urls() {
     $season = class_exists( 'UFSC_Season_Service' ) ? (string) UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? (string) ufsc_get_current_season() : '' );
     $previous = '';
     if ( preg_match( '/^(\d{4})-(\d{4})$/', $season, $matches ) ) { $previous = sprintf( '%d-%d', (int) $matches[1] - 1, (int) $matches[1] ); }
+    $section = isset( $_GET['ufsc_section'] ) && ! is_array( $_GET['ufsc_section'] ) ? sanitize_key( wp_unslash( $_GET['ufsc_section'] ) ) : '';
+    $tab = isset( $_GET['ufsc_tab'] ) && ! is_array( $_GET['ufsc_tab'] ) ? sanitize_key( wp_unslash( $_GET['ufsc_tab'] ) ) : '';
+    $is_renewal_route = 'licences-renouvellement' === $section;
+    global $post;
+    $content = is_object( $post ) && is_string( $post->post_content ?? null ) ? $post->post_content : '';
+    $has_licence_shortcode = '' !== $content && function_exists( 'has_shortcode' ) && (
+        has_shortcode( $content, 'ufsc_club_dashboard' ) || has_shortcode( $content, 'ufsc_club_licences' )
+    );
+    $is_dashboard_page = function_exists( 'is_page' ) && is_page( array( 'tableau-de-bord-club', 'tableau-de-bord', 'club-dashboard' ) );
+    $is_current_route = 'club-licences' === $section || ( '' === $section && in_array( $tab, array( '', 'licences' ), true ) && ( $has_licence_shortcode || $is_dashboard_page ) );
     return array(
         'dashboard' => $base,
         'current' => add_query_arg( array( 'ufsc_section' => 'club-licences', 'ufsc_season' => $season ), $base ) . '#ufsc-club-licences',
@@ -90,13 +122,13 @@ function ufsc_production_licence_ux_urls() {
         'previous' => $previous ? add_query_arg( array( 'ufsc_section' => 'club-licences', 'ufsc_season' => $previous ), $base ) . '#ufsc-club-licences' : $base,
         'season' => $season,
         'previousSeason' => $previous,
-        'renewalCounts'  => ufsc_production_renewal_state_counts(),
-        'licenceMeta' => ufsc_production_current_licence_meta(),
+        'renewalCounts'  => $is_renewal_route ? ufsc_production_renewal_state_counts() : array(),
+        'licenceMeta' => $is_current_route ? ufsc_production_current_licence_meta() : array(),
     );
 }
 
 function ufsc_production_licence_ux_enqueue() {
-    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) ) { return; }
+    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) || ! function_exists( 'ufsc_is_club_portal_request' ) || ! ufsc_is_club_portal_request() ) { return; }
     $base_css = 'assets/css/ufsc-front.css'; $css = 'assets/css/ufsc-production-licence-ux.css'; $js = 'assets/js/ufsc-production-licence-ux.js';
     $base_css_version = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $base_css ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
     $css_version = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( $css ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );

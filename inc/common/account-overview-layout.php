@@ -6,7 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * This file deliberately contains no business, licence, quota or payment logic.
  */
 function ufsc_account_overview_layout_asset() {
-    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) ) {
+    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) || ! function_exists( 'ufsc_is_club_portal_request' ) || ! ufsc_is_club_portal_request() ) {
         return;
     }
 
