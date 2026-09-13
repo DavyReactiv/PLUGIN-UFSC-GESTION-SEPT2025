@@ -15,7 +15,7 @@ $assert( false !== strpos( $export, 'input[name="club_ids[]"]:checked' ), 'Les c
 $assert( false !== strpos( $export, 'Sélectionnez au moins un club' ), 'Un export vide est bloqué au lieu d’exporter tous les clubs.' );
 $assert( false !== strpos( $export, "wp_verify_nonce" ), 'L’export sélectionné vérifie un nonce.' );
 $assert( false !== strpos( $export, "id IN" ), 'La requête export est limitée aux identifiants sélectionnés.' );
-$assert( false !== strpos( $birth, "array( 'new', 'edit' )" ), 'Les champs FFST sont disponibles à la création et à la modification admin.' );
+$assert( false !== strpos( $birth, "array( 'new', 'edit', 'view' )" ), 'Les champs FFST sont disponibles à la création, à la modification et à la consultation admin.' );
 $assert( false !== strpos( $birth, 'wp_footer' ), 'Les champs FFST sont aussi disponibles dans le compte club en front.' );
 foreach ( array( 'president', 'secretaire', 'tresorier', 'entraineur' ) as $prefix ) {
     $assert( false !== strpos( $birth, $prefix ), "Le rôle {$prefix} est pris en charge." );
