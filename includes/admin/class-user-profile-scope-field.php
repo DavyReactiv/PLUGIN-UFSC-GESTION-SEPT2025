@@ -81,10 +81,12 @@ class UFSC_User_Profile_Scope_Field {
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-export-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-documents-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-template-admin.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-birthplace-fields.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-compliance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-insurance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ufsc-bank-transfer-admin.php';
+UFSC_FFST_Birthplace_Fields::init();
 UFSC_FFST_Official_Template_Admin::init();
 add_action( 'admin_menu', static function() {
     add_submenu_page(
