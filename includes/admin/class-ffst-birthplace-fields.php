@@ -24,7 +24,7 @@ final class UFSC_FFST_Birthplace_Fields {
         add_action( 'ufsc_club_updated', array( __CLASS__, 'save_club_birthplace_from_updated' ), 10, 1 );
         add_action( 'ufsc_club_created', array( __CLASS__, 'save_club_birthplace_from_created' ), 10, 2 );
 
-        // Ajout non destructif dans les formulaires admin existants, création ET modification.
+        // Ajout non destructif dans les écrans club admin : création, modification ET consultation.
         add_action( 'admin_footer', array( __CLASS__, 'render_admin_club_fields' ) );
         // Même bloc dans le compte club en front lorsque le formulaire expose les dirigeants.
         add_action( 'wp_footer', array( __CLASS__, 'render_front_club_fields' ), 30 );
@@ -50,7 +50,7 @@ final class UFSC_FFST_Birthplace_Fields {
             'secretaire_ville_naissance'       => "varchar(120) NULL DEFAULT NULL",
             'secretaire_departement_naissance' => "varchar(120) NULL DEFAULT NULL",
             'secretaire_pays_naissance'        => "varchar(120) NULL DEFAULT NULL",
-            'tresorier_ville_naissance'        => "varchar(120) NULL DEFAULT NULL",
+            'tresorier_ville_naissance'       => "varchar(120) NULL DEFAULT NULL",
             'tresorier_departement_naissance' => "varchar(120) NULL DEFAULT NULL",
             'tresorier_pays_naissance'        => "varchar(120) NULL DEFAULT NULL",
             'entraineur_date_naissance'       => "date NULL DEFAULT NULL",
@@ -174,17 +174,19 @@ final class UFSC_FFST_Birthplace_Fields {
         return $payload;
     }
 
-    private static function render_fields_script( array $payload ) {
+    private static function render_fields_script( array $payload, $readonly = false ) {
         ?>
         <script>
         (function(){
             var data=<?php echo wp_json_encode( $payload ); ?>;
+            var readonly=<?php echo $readonly ? 'true' : 'false'; ?>;
             function fieldWrap(input){return input.closest('.ufsc-field,.form-field,.field,.ufsc-admin-field,.ufsc-form-field,td')||input.parentNode;}
             function addField(after,name,label,value,type){
                 if(document.querySelector('[name="'+name+'"]')) return after;
                 var wrap=document.createElement('div');wrap.className='ufsc-field ufsc-ffst-birth-field';
                 var lab=document.createElement('label');lab.setAttribute('for',name);lab.textContent=label;
                 var inp=document.createElement('input');inp.type=type||'text';inp.id=name;inp.name=name;inp.value=value||'';inp.autocomplete='off';
+                if(readonly){inp.disabled=true;inp.setAttribute('aria-readonly','true');}
                 wrap.appendChild(lab);wrap.appendChild(inp);after.parentNode.insertBefore(wrap,after.nextSibling);return wrap;
             }
             function enhance(){
@@ -208,9 +210,9 @@ final class UFSC_FFST_Birthplace_Fields {
         if ( ! is_admin() ) { return; }
         $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         $action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        if ( 'ufsc-sql-clubs' !== $page || ! in_array( $action, array( 'new', 'edit' ), true ) ) { return; }
+        if ( 'ufsc-sql-clubs' !== $page || ! in_array( $action, array( 'new', 'edit', 'view' ), true ) ) { return; }
         $club_id = isset( $_GET['id'] ) ? absint( wp_unslash( $_GET['id'] ) ) : ( isset( $_GET['club_id'] ) ? absint( wp_unslash( $_GET['club_id'] ) ) : 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        self::render_fields_script( self::get_club_payload( $club_id ) );
+        self::render_fields_script( self::get_club_payload( $club_id ), 'view' === $action );
     }
 
     public static function render_front_club_fields() {
