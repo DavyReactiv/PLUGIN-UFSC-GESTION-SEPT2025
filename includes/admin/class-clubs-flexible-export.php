@@ -98,15 +98,15 @@ final class UFSC_Clubs_Flexible_Export {
             var fields=<?php echo wp_json_encode( $club_fields ); ?>;
             function ready(fn){if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',fn);}else{fn();}}
             ready(function(){
-                var form=document.querySelector('form[action*="admin-post.php"] input[name="action"][value="ufsc_export_data"]');
-                if(!form)return;
-                form=form.closest('form'); if(!form)return;
+                var actionInput=document.querySelector('form[action*="admin-post.php"] input[name="action"][value="ufsc_export_data"]');
+                if(!actionInput)return;
+                var form=actionInput.closest('form'); if(!form)return;
                 var heading=Array.from(form.querySelectorAll('h4')).find(function(h){return /Colonnes à exporter/i.test(h.textContent||'');});
                 if(!heading)return;
                 var licenceBox=heading.parentElement;
 
                 var switcher=document.createElement('div'); switcher.className='ufsc-export-entity-switch';
-                switcher.innerHTML='<label><strong>Type de données</strong><select name="export_entity" id="ufsc_export_entity"><option value="licences">Licences</option><option value="clubs">Clubs</option></select></label><span class="description">Choisissez les données à exporter. Tous les champs clubs sont sélectionnés par défaut.</span>';
+                switcher.innerHTML='<label><strong>Type de données</strong><select name="export_entity" id="ufsc_export_entity"><option value="licences">Licences</option><option value="clubs">Clubs</option></select></label><span class="description">Tous les champs clubs disponibles sont sélectionnés par défaut.</span>';
                 licenceBox.parentNode.insertBefore(switcher,licenceBox);
 
                 var clubBox=document.createElement('div'); clubBox.id='ufsc-club-export-columns'; clubBox.style.display='none';
@@ -146,9 +146,8 @@ final class UFSC_Clubs_Flexible_Export {
             wp_die( esc_html__( 'Sélectionnez au moins une colonne club à exporter.', 'ufsc-clubs' ), '', array( 'response' => 400 ) );
         }
 
-        $where = array( '1=1' );
+        $where  = array( '1=1' );
         $params = array();
-
         $scope = class_exists( 'UFSC_Scope' ) ? UFSC_Scope::build_scope_condition( 'region' ) : '';
         if ( $scope ) { $where[] = '(' . $scope . ')'; }
 
@@ -180,7 +179,7 @@ final class UFSC_Clubs_Flexible_Export {
 
         $headers = array();
         foreach ( $selected as $column ) { $headers[] = $labels[ $column ] ?? self::pretty_label( $column ); }
-        $format = isset( $_POST['export_format'] ) ? sanitize_key( wp_unslash( $_POST['export_format'] ) ) : 'csv';
+        $format   = isset( $_POST['export_format'] ) ? sanitize_key( wp_unslash( $_POST['export_format'] ) ) : 'csv';
         $filename = 'ufsc_clubs_' . gmdate( 'Y-m-d_H-i-s' );
         if ( 'xlsx' === $format ) { self::output_xlsx( $rows, $headers, $filename ); }
         self::output_csv( $rows, $headers, $filename );
@@ -202,18 +201,22 @@ final class UFSC_Clubs_Flexible_Export {
         if ( ! class_exists( '\\PhpOffice\\PhpSpreadsheet\\Spreadsheet' ) || ! class_exists( '\\PhpOffice\\PhpSpreadsheet\\IOFactory' ) ) {
             wp_die( esc_html__( 'Export XLSX indisponible : PhpSpreadsheet n’est pas chargé.', 'ufsc-clubs' ), '', array( 'response' => 500 ) );
         }
-        $spreadsheet = new \\PhpOffice\\PhpSpreadsheet\\Spreadsheet();
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle( 'Clubs' );
-        foreach ( $headers as $index => $header ) { $sheet->setCellValueByColumnAndRow( $index + 1, 1, $header ); }
+        foreach ( $headers as $index => $header ) {
+            $sheet->setCellValueExplicitByColumnAndRow( $index + 1, 1, (string) $header, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING );
+        }
         $r = 2;
         foreach ( $rows as $row ) {
             $c = 1;
-            foreach ( array_values( $row ) as $value ) { $sheet->setCellValueByColumnAndRow( $c++, $r, $value ); }
+            foreach ( array_values( $row ) as $value ) {
+                $sheet->setCellValueExplicitByColumnAndRow( $c++, $r, null === $value ? '' : (string) $value, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING );
+            }
             $r++;
         }
         foreach ( range( 1, count( $headers ) ) as $col ) { $sheet->getColumnDimensionByColumn( $col )->setAutoSize( true ); }
-        $writer = \\PhpOffice\\PhpSpreadsheet\\IOFactory::createWriter( $spreadsheet, 'Xlsx' );
+        $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter( $spreadsheet, 'Xlsx' );
         nocache_headers();
         header( 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' );
         header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '.xlsx"' );
