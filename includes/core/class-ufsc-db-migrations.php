@@ -25,6 +25,17 @@ class UFSC_DB_Migrations {
         $category_columns_option = 'ufsc_licence_category_columns_ready';
         $season_archive_option   = 'ufsc_season_archive_table_ready';
         $attestations_option     = 'ufsc_attestations_table_ready';
+        $ffst_schema_option      = 'ufsc_ffst_schema_ready';
+
+        // FFST is an additive namespace. Never rename, delete or copy historical
+        // partner fields: previous-season rows stay byte-for-byte untouched.
+        if ( '1' !== get_option( $ffst_schema_option, '' ) ) {
+            if ( self::ensure_ffst_schema() ) {
+                update_option( $ffst_schema_option, '1' );
+            } else {
+                self::log_migration_error( 'FFST schema migration incomplete; readiness flag not advanced.' );
+            }
+        }
 
         if ( version_compare( $current_version, self::MIGRATION_VERSION, '>=' ) && '1' !== get_option( $category_columns_option, '' ) ) {
             $category_columns_ready = self::ensure_licences_category_columns();
@@ -105,13 +116,48 @@ class UFSC_DB_Migrations {
         $settings = UFSC_SQL::get_settings();
         self::add_columns_if_missing( $settings['table_clubs'], array(
             'numero_affiliation_ufsc' => 'varchar(64) NULL DEFAULT NULL',
+            'numero_affiliation_ffst' => 'varchar(64) NULL DEFAULT NULL',
             'numero_affiliation_asptt' => 'varchar(64) NULL DEFAULT NULL',
         ) );
         self::add_columns_if_missing( $settings['table_licences'], array(
             'numero_licence_ufsc' => 'varchar(64) NULL DEFAULT NULL',
+            'numero_licence_ffst' => 'varchar(64) NULL DEFAULT NULL',
             'numero_licence_asptt' => 'varchar(64) NULL DEFAULT NULL',
+            'infos_ffst' => 'tinyint(1) NOT NULL DEFAULT 0',
             'person_identifier' => 'varchar(100) NULL DEFAULT NULL',
         ) );
+    }
+
+    /**
+     * Add only the FFST-era columns required by the active application.
+     *
+     * Historical ASPTT/FSASPTT columns are deliberately neither renamed nor
+     * removed, and no value is copied into FFST fields.
+     */
+    public static function ensure_ffst_schema() {
+        global $wpdb;
+        $settings = UFSC_SQL::get_settings();
+        $clubs_table = $settings['table_clubs'];
+        $licences_table = $settings['table_licences'];
+
+        if ( ! self::table_exists( $clubs_table ) || ! self::table_exists( $licences_table ) ) {
+            return false;
+        }
+
+        self::add_columns_if_missing( $clubs_table, array(
+            'numero_affiliation_ffst' => 'varchar(64) NULL DEFAULT NULL',
+        ) );
+        self::add_columns_if_missing( $licences_table, array(
+            'numero_licence_ffst' => 'varchar(64) NULL DEFAULT NULL',
+            'infos_ffst' => 'tinyint(1) NOT NULL DEFAULT 0',
+        ) );
+
+        $club_columns = (array) $wpdb->get_col( "SHOW COLUMNS FROM `{$clubs_table}`", 0 );
+        $licence_columns = (array) $wpdb->get_col( "SHOW COLUMNS FROM `{$licences_table}`", 0 );
+
+        return in_array( 'numero_affiliation_ffst', $club_columns, true )
+            && in_array( 'numero_licence_ffst', $licence_columns, true )
+            && in_array( 'infos_ffst', $licence_columns, true );
     }
 
     private static function add_columns_if_missing( $table, $definitions ) {
@@ -268,8 +314,8 @@ class UFSC_DB_Migrations {
     /**
      * Ensure the annual club affiliation seasons table exists.
      *
-     * This table is additive and idempotent; it preserves club IDs and keeps
-     * optional ASPTT affiliation numbers empty unless explicitly supplied.
+     * This table is additive and idempotent; it preserves club IDs and optional
+     * historical partner numbers without reclassifying them as FFST identifiers.
      */
     public static function ensure_season_archive_tables() {
         global $wpdb;
@@ -439,7 +485,7 @@ class UFSC_DB_Migrations {
         
         $settings = UFSC_SQL::get_settings();
 
-        // Check for duplicates in numero_licence_delegataire
+        // Legacy uniqueness remains in place for historical compatibility.
         if ( self::table_exists( $settings['table_licences'] ) ) {
             $duplicates = $wpdb->get_results( "
                 SELECT numero_licence_delegataire, COUNT(*) as count 
@@ -459,7 +505,7 @@ class UFSC_DB_Migrations {
             } else {
                 add_action( 'admin_notices', function() use ( $duplicates ) {
                     echo '<div class="notice notice-warning"><p>';
-                    echo esc_html__( 'UFSC: Duplicates détectés dans numero_licence_delegataire. Contrainte unique non appliquée.', 'ufsc-clubs' );
+                    echo esc_html__( 'UFSC: doublons détectés dans un ancien identifiant partenaire. La contrainte unique historique n’a pas été appliquée.', 'ufsc-clubs' );
                     echo ' (' . count( $duplicates ) . ' doublons)';
                     echo '</p></div>';
                 } );

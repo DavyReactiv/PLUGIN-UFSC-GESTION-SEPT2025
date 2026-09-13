@@ -62,18 +62,6 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
 
 				<div class="ufsc-field">
 					<label class="ufsc-checkbox">
-						<input type="checkbox" id="reduction_postier" name="reduction_postier" value="1" <?php checked( $licence->reduction_postier ?? 0, 1 ); ?> />
-						<?php esc_html_e( 'Réduction postier', 'ufsc-clubs' ); ?>
-					</label>
-				</div>
-
-				<div class="ufsc-field ufsc-field-identifiant-laposte" style="display:none;">
-					<label for="identifiant_laposte"><?php esc_html_e( 'Identifiant La Poste', 'ufsc-clubs' ); ?></label>
-					<input type="text" id="identifiant_laposte" name="identifiant_laposte" value="<?php echo esc_attr( $licence->identifiant_laposte ?? '' ); ?>" />
-				</div>
-
-				<div class="ufsc-field">
-					<label class="ufsc-checkbox">
 						<input type="checkbox" id="reduction_benevole" name="reduction_benevole" value="1" <?php checked( $licence->reduction_benevole ?? 0, 1 ); ?> />
 						<?php esc_html_e( 'Réduction bénévole', 'ufsc-clubs' ); ?>
 					</label>
@@ -81,14 +69,23 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
 
 				<div class="ufsc-field">
 					<label class="ufsc-checkbox">
-						<input type="checkbox" id="licence_delegataire" name="licence_delegataire" value="1" <?php checked( $licence->licence_delegataire ?? 0, 1 ); ?> />
-						<?php esc_html_e( 'Licence délégataire', 'ufsc-clubs' ); ?>
+						<input type="checkbox" id="fonction_publique" name="fonction_publique" value="1" <?php checked( $licence->fonction_publique ?? 0, 1 ); ?> />
+						<?php esc_html_e( 'Fonction publique', 'ufsc-clubs' ); ?>
 					</label>
 				</div>
 
-				<div class="ufsc-field ufsc-field-numero-delegataire" style="display:none;">
-					<label for="numero_licence_delegataire"><?php esc_html_e( 'Numéro de licence délégataire', 'ufsc-clubs' ); ?></label>
-					<input type="text" id="numero_licence_delegataire" name="numero_licence_delegataire" value="<?php echo esc_attr( $licence->numero_licence_delegataire ?? '' ); ?>" />
+				<?php if ( ! empty( $licence->numero_licence_ffst ) ) : ?>
+					<div class="ufsc-field">
+						<label><?php esc_html_e( 'N° licence FFST', 'ufsc-clubs' ); ?></label>
+						<input type="text" value="<?php echo esc_attr( $licence->numero_licence_ffst ); ?>" readonly aria-readonly="true" />
+					</div>
+				<?php endif; ?>
+
+				<div class="ufsc-field">
+					<label class="ufsc-checkbox">
+						<input type="checkbox" id="infos_ffst" name="infos_ffst" value="1" <?php checked( $licence->infos_ffst ?? 0, 1 ); ?> />
+						<?php esc_html_e( 'Recevoir les informations FFST', 'ufsc-clubs' ); ?>
+					</label>
 				</div>
 
 				<div class="ufsc-field">

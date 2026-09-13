@@ -11,6 +11,16 @@ $assert( false !== strpos( $admin, "esc_html__( 'Saison terminée'" ) && false !
 $historical_branch = substr( $admin, strpos( $admin, 'if ( $is_historical ) {' ), 3000 );
 $assert( false === strpos( $historical_branch, "esc_html__('Paiement'" ) && false === strpos( $historical_branch, "esc_html__( 'Annuler'" ), 'Historical branch contains no payment/cancel action.' );
 $assert( false !== strpos( $front, "ufsc_get_licence_season_context_status( \$licence" ) && false !== strpos( $front, "'blocked' === ( \$season_context['renewal_state']" ), 'Front archives use the shared contextual state.' );
-$assert( false !== strpos( $service, "'previous_licence_id'" ) && false === strpos( $service, "'numero_licence_asptt'" ), 'Renewal creates annual lineage without ASPTT copy.' );
+
+$payload_start = strpos( $service, 'public static function renewal_payload' );
+$payload_end = strpos( $service, 'public static function create_target_draft', $payload_start );
+$renewal_payload = false !== $payload_start && false !== $payload_end ? substr( $service, $payload_start, $payload_end - $payload_start ) : '';
+$assert(
+    false !== strpos( $service, "'previous_licence_id'" )
+    && '' !== $renewal_payload
+    && false === strpos( $renewal_payload, "'numero_licence_asptt'" )
+    && false !== strpos( $service, 'legacy_partner_fields' ),
+    'Renewal creates annual lineage while retaining ASPTT only as an explicit non-copy historical field.'
+);
 $assert( false === strpos( $service, 'UPDATE' ), 'Context and renewal service never update the historical source row.' );
 echo "Licence season context static safeguards passed.\n";

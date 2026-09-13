@@ -5,9 +5,23 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 final class UFSC_Renewal_Service {
     const DUPLICATE_MESSAGE = 'Cette licence est déjà renouvelée ou fait déjà l’objet d’une demande pour %s.';
 
-    /** Fields a club may propose for the new annual row; never applied to the source row. */
+    /**
+     * Fields a club may propose for the new annual row; never applied to the source row.
+     * Legacy partner/Postier fields are deliberately absent: they belong to their
+     * historical season and must never be carried into a new FFST-era row.
+     */
     public static function editable_renewal_fields() {
-        return array( 'adresse', 'suite_adresse', 'complement_adresse', 'code_postal', 'ville', 'pays', 'email', 'telephone', 'tel_fixe', 'tel_mobile', 'profession', 'contact_urgence', 'legal_representative_name', 'representant_legal_nom', 'representant_legal_email', 'representant_legal_telephone', 'fighter_level', 'poids', 'competition', 'discipline', 'pratique', 'role', 'reduction_benevole', 'reduction_benevole_num', 'reduction_postier', 'reduction_postier_num', 'identifiant_laposte_flag', 'identifiant_laposte', 'fonction_publique', 'licence_delegataire', 'diffusion_image', 'infos_fsasptt', 'infos_asptt', 'infos_cr', 'infos_partenaires', 'honorabilite', 'honorability_confirmed', 'assurance_dommage_corporel', 'assurance_assistance', 'health_questionnaire_confirmed', 'note', 'nom', 'prenom', 'date_naissance', 'sexe' );
+        return array( 'adresse', 'suite_adresse', 'complement_adresse', 'code_postal', 'ville', 'pays', 'email', 'telephone', 'tel_fixe', 'tel_mobile', 'profession', 'contact_urgence', 'legal_representative_name', 'representant_legal_nom', 'representant_legal_email', 'representant_legal_telephone', 'fighter_level', 'poids', 'competition', 'discipline', 'pratique', 'role', 'reduction_benevole', 'reduction_benevole_num', 'fonction_publique', 'diffusion_image', 'infos_ffst', 'infos_cr', 'infos_partenaires', 'honorabilite', 'honorability_confirmed', 'assurance_dommage_corporel', 'assurance_assistance', 'health_questionnaire_confirmed', 'note', 'nom', 'prenom', 'date_naissance', 'sexe' );
+    }
+
+    /** Historical fields that must stay attached to their original row/season. */
+    private static function legacy_partner_fields() {
+        return array(
+            'reduction_postier', 'reduction_postier_num',
+            'identifiant_laposte_flag', 'identifiant_laposte',
+            'licence_delegataire', 'numero_licence_delegataire',
+            'infos_fsasptt', 'infos_asptt', 'numero_licence_asptt',
+        );
     }
 
     /**
@@ -18,7 +32,7 @@ final class UFSC_Renewal_Service {
         $source = (object) $source;
         $raw = is_array( $raw ) ? $raw : array();
         $data = array(); $errors = array(); $changes = array(); $sensitive = false;
-        $text_fields = array( 'adresse', 'suite_adresse', 'complement_adresse', 'code_postal', 'ville', 'pays', 'profession', 'contact_urgence', 'legal_representative_name', 'representant_legal_nom', 'discipline', 'pratique', 'role', 'reduction_benevole_num', 'reduction_postier_num', 'identifiant_laposte', 'note', 'nom', 'prenom', 'sexe' );
+        $text_fields = array( 'adresse', 'suite_adresse', 'complement_adresse', 'code_postal', 'ville', 'pays', 'profession', 'contact_urgence', 'legal_representative_name', 'representant_legal_nom', 'discipline', 'pratique', 'role', 'reduction_benevole_num', 'note', 'nom', 'prenom', 'sexe' );
         foreach ( $text_fields as $field ) {
             if ( ! array_key_exists( $field, $raw ) ) { continue; }
             $data[$field] = sanitize_text_field( wp_unslash( $raw[$field] ) );
@@ -55,7 +69,7 @@ final class UFSC_Renewal_Service {
         $weight = UFSC_Category_Repository::normalize_weight( $raw['poids'] ?? $source->poids ?? '' );
         if ( null === $weight || $weight < 20 || $weight > 300 ) { $errors['poids'] = __( 'Le poids déclaré doit être compris entre 20 et 300 kg.', 'ufsc-clubs' ); }
         $data['poids'] = $weight;
-        foreach ( array( 'competition', 'reduction_benevole', 'reduction_postier', 'identifiant_laposte_flag', 'fonction_publique', 'licence_delegataire', 'diffusion_image', 'infos_fsasptt', 'infos_asptt', 'infos_cr', 'infos_partenaires', 'honorabilite', 'honorability_confirmed', 'assurance_dommage_corporel', 'assurance_assistance', 'health_questionnaire_confirmed' ) as $field ) { $data[$field] = empty( $raw[$field] ) ? 0 : 1; }
+        foreach ( array( 'competition', 'reduction_benevole', 'fonction_publique', 'diffusion_image', 'infos_ffst', 'infos_cr', 'infos_partenaires', 'honorabilite', 'honorability_confirmed', 'assurance_dommage_corporel', 'assurance_assistance', 'health_questionnaire_confirmed' ) as $field ) { $data[$field] = empty( $raw[$field] ) ? 0 : 1; }
         foreach ( array( 'nom', 'prenom', 'email', 'date_naissance', 'sexe', 'adresse', 'ville', 'code_postal' ) as $field ) {
             $value = $data[$field] ?? $source->{$field} ?? '';
             if ( '' === trim( (string) $value ) ) { $errors[$field] = sprintf( __( 'Le champ %s est obligatoire.', 'ufsc-clubs' ), $field ); }
@@ -113,11 +127,7 @@ final class UFSC_Renewal_Service {
         return 0;
     }
 
-    /**
-     * Present a seasonal status without ever changing the stored historical row.
-     *
-     * @return array<string,mixed>
-     */
+    /** Present a seasonal status without ever changing the stored historical row. */
     public static function season_context_status( $licence, $current_season = '' ) {
         $licence = is_object( $licence ) ? $licence : (object) $licence;
         $current_season = $current_season ?: ( class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : '' );
@@ -210,7 +220,7 @@ final class UFSC_Renewal_Service {
         return preg_match( '/^(\d{4})-\d{4}$/', (string) $season, $matches ) ? (int) $matches[1] : 0;
     }
 
-    /** Build an allow-list for a fresh annual row. ASPTT, payment and expiring documents are intentionally absent. */
+    /** Build an allow-list for a fresh annual row. Payment, expiring documents and partner history are intentionally absent. */
     public static function renewal_payload( $source, $club_id, $season ) {
         $source = (array) $source;
         $payload = array( 'club_id'=>absint($club_id), 'previous_licence_id'=>absint($source['id'] ?? 0), 'person_identifier'=>self::person_key($source,$club_id), 'statut'=>'pending_payment', 'payment_status'=>'pending' );
@@ -222,15 +232,7 @@ final class UFSC_Renewal_Service {
         return $payload;
     }
 
-    /**
-     * Create the target-season draft before checkout, without mutating history.
-     *
-     * A database advisory lock makes the source/season pair idempotent across
-     * concurrent requests. The returned row is therefore the single canonical
-     * open renewal request used by the cart and by the renewal counter.
-     *
-     * @return array|WP_Error {licence_id:int, created:bool}
-     */
+    /** Create the target-season draft before checkout, without mutating history. */
     public static function create_target_draft( $source, $club_id, $season, $updates = array() ) {
         global $wpdb;
 
@@ -271,7 +273,9 @@ final class UFSC_Renewal_Service {
             $copy_fields = function_exists( 'ufsc_get_renewal_copy_fields' )
                 ? (array) ufsc_get_renewal_copy_fields()
                 : self::editable_renewal_fields();
+            $legacy_fields = self::legacy_partner_fields();
             foreach ( array_unique( array_merge( $copy_fields, self::editable_renewal_fields() ) ) as $field ) {
+                if ( in_array( $field, $legacy_fields, true ) ) { continue; }
                 if ( in_array( $field, $columns, true ) && isset( $source->{$field} ) ) {
                     $data[ $field ] = $source->{$field};
                 }
