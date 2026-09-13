@@ -1,6 +1,7 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 include UFSC_CL_DIR . 'templates/partials/notice.php';
+$current_role = isset( $licence->role ) && '' !== (string) $licence->role ? (string) $licence->role : 'adherent';
 ?>
 
 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="ufsc-licence-form">
@@ -33,13 +34,29 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
 				</div>
 
 				<div class="ufsc-field">
-					<label for="email"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></label>
-					<input type="email" id="email" name="email" value="<?php echo esc_attr( $licence->email ?? '' ); ?>" required />
+					<label for="date_naissance"><?php esc_html_e( 'Date de naissance', 'ufsc-clubs' ); ?></label>
+					<input type="date" id="date_naissance" name="date_naissance" value="<?php echo esc_attr( $licence->date_naissance ?? '' ); ?>" required />
+				</div>
+
+				<div class="ufsc-field ufsc-field-role">
+					<label for="role"><?php esc_html_e( 'Rôle / fonction', 'ufsc-clubs' ); ?></label>
+					<select id="role" name="role" required>
+						<option value="adherent"<?php selected( $current_role, 'adherent' ); ?>><?php esc_html_e( 'Adhérent / pratiquant', 'ufsc-clubs' ); ?></option>
+						<option value="president"<?php selected( $current_role, 'president' ); ?>><?php esc_html_e( 'Président', 'ufsc-clubs' ); ?></option>
+						<option value="secretaire"<?php selected( $current_role, 'secretaire' ); ?>><?php esc_html_e( 'Secrétaire', 'ufsc-clubs' ); ?></option>
+						<option value="tresorier"<?php selected( $current_role, 'tresorier' ); ?>><?php esc_html_e( 'Trésorier', 'ufsc-clubs' ); ?></option>
+						<option value="entraineur"<?php selected( $current_role, 'entraineur' ); ?>><?php esc_html_e( 'Entraîneur', 'ufsc-clubs' ); ?></option>
+						<option value="instructeur"<?php selected( $current_role, 'instructeur' ); ?>><?php esc_html_e( 'Instructeur', 'ufsc-clubs' ); ?></option>
+						<option value="coach"<?php selected( $current_role, 'coach' ); ?>><?php esc_html_e( 'Coach', 'ufsc-clubs' ); ?></option>
+						<option value="educateur"<?php selected( $current_role, 'educateur' ); ?>><?php esc_html_e( 'Éducateur', 'ufsc-clubs' ); ?></option>
+						<option value="enseignant"<?php selected( $current_role, 'enseignant' ); ?>><?php esc_html_e( 'Enseignant', 'ufsc-clubs' ); ?></option>
+					</select>
+					<small class="description"><?php esc_html_e( 'Le rôle détermine si les informations complémentaires FFST sont nécessaires.', 'ufsc-clubs' ); ?></small>
 				</div>
 
 				<div class="ufsc-field">
-					<label for="date_naissance"><?php esc_html_e( 'Date de naissance', 'ufsc-clubs' ); ?></label>
-					<input type="date" id="date_naissance" name="date_naissance" value="<?php echo esc_attr( $licence->date_naissance ?? '' ); ?>" required />
+					<label for="email"><?php esc_html_e( 'Email', 'ufsc-clubs' ); ?></label>
+					<input type="email" id="email" name="email" value="<?php echo esc_attr( $licence->email ?? '' ); ?>" required />
 				</div>
 
 				<div class="ufsc-field ufsc-ffst-birthplace-field">
@@ -55,27 +72,15 @@ include UFSC_CL_DIR . 'templates/partials/notice.php';
 				<div class="ufsc-field ufsc-ffst-birthplace-field">
 					<label for="pays_naissance"><?php esc_html_e( 'Pays de naissance', 'ufsc-clubs' ); ?></label>
 					<input type="text" id="pays_naissance" name="pays_naissance" value="<?php echo esc_attr( $licence->pays_naissance ?? '' ); ?>" placeholder="<?php echo esc_attr__( 'France ou pays de naissance', 'ufsc-clubs' ); ?>" autocomplete="off" />
-					<small class="description"><?php esc_html_e( 'Ces informations permettent de renseigner « Ville + Dept (ou Pays) » sur les documents FFST.', 'ufsc-clubs' ); ?></small>
+					<small class="description"><?php esc_html_e( 'Demandé uniquement pour les dirigeants, entraîneurs et encadrants concernés par les documents FFST.', 'ufsc-clubs' ); ?></small>
 				</div>
 			</div>
 		</section>
 
 		<section class="ufsc-card">
-			<h2 class="ufsc-card-title"><?php esc_html_e( 'Rôle et activité', 'ufsc-clubs' ); ?></h2>
+			<h2 class="ufsc-card-title"><?php esc_html_e( 'Activité et informations complémentaires', 'ufsc-clubs' ); ?></h2>
 
 			<div class="ufsc-grid">
-				<div class="ufsc-field">
-					<label for="role"><?php esc_html_e( 'Rôle', 'ufsc-clubs' ); ?></label>
-					<select id="role" name="role">
-						<option value=""<?php selected( $licence->role ?? '', '' ); ?>><?php esc_html_e( 'Sélectionner', 'ufsc-clubs' ); ?></option>
-						<option value="president"<?php selected( $licence->role ?? '', 'president' ); ?>><?php esc_html_e( 'Président', 'ufsc-clubs' ); ?></option>
-						<option value="secretaire"<?php selected( $licence->role ?? '', 'secretaire' ); ?>><?php esc_html_e( 'Secrétaire', 'ufsc-clubs' ); ?></option>
-						<option value="tresorier"<?php selected( $licence->role ?? '', 'tresorier' ); ?>><?php esc_html_e( 'Trésorier', 'ufsc-clubs' ); ?></option>
-						<option value="entraineur"<?php selected( $licence->role ?? '', 'entraineur' ); ?>><?php esc_html_e( 'Entraîneur', 'ufsc-clubs' ); ?></option>
-						<option value="adherent"<?php selected( $licence->role ?? '', 'adherent' ); ?>><?php esc_html_e( 'Adhérent', 'ufsc-clubs' ); ?></option>
-					</select>
-				</div>
-
 				<div class="ufsc-field">
 					<label class="ufsc-checkbox">
 						<input type="checkbox" id="reduction_postier" name="reduction_postier" value="1" <?php checked( $licence->reduction_postier ?? 0, 1 ); ?> />
