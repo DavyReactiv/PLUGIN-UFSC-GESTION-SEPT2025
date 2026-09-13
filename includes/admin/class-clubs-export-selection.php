@@ -131,7 +131,7 @@ final class UFSC_Clubs_Export_Selection {
         $scope = class_exists( 'UFSC_Scope' ) ? UFSC_Scope::build_scope_condition( 'region' ) : '';
         if ( $scope ) { $where[] = '(' . $scope . ')'; }
 
-        $select_sql = implode( ', ', array_map( static function( $c ){ return '`' . str_replace( '`', '', $c ) . '`'; }, $selected ) );
+        $select_sql = implode( ', ', array_map( static function( $c ) { return '`' . str_replace( '`', '', $c ) . '`'; }, $selected ) );
         $order_col = in_array( 'nom', $columns, true ) ? 'nom' : 'id';
         $sql = $wpdb->prepare( "SELECT {$select_sql} FROM `{$table}` WHERE " . implode( ' AND ', $where ) . " ORDER BY `{$order_col}` ASC", $params ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $rows = (array) $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
@@ -139,18 +139,48 @@ final class UFSC_Clubs_Export_Selection {
 
         $labels = array();
         if ( class_exists( 'UFSC_SQL' ) ) {
-            foreach ( (array) UFSC_SQL::get_club_fields() as $key => $conf ) { $labels[$key]=is_array($conf)&&isset($conf[0])?(string)$conf[0]:$key; }
+            foreach ( (array) UFSC_SQL::get_club_fields() as $key => $conf ) {
+                $labels[ $key ] = is_array( $conf ) && isset( $conf[0] ) ? (string) $conf[0] : $key;
+            }
         }
-        $headers=array(); foreach($selected as $c){$headers[]=$labels[$c]??ucfirst(str_replace('_',' ',$c));}
-        $format=isset($_POST['export_format'])?sanitize_key(wp_unslash($_POST['export_format'])):'csv';
-        $filename='ufsc_clubs_selection_'.gmdate('Y-m-d_H-i-s');
+        $headers = array();
+        foreach ( $selected as $column ) {
+            $headers[] = $labels[ $column ] ?? ucfirst( str_replace( '_', ' ', $column ) );
+        }
+        $format = isset( $_POST['export_format'] ) ? sanitize_key( wp_unslash( $_POST['export_format'] ) ) : 'csv';
+        $filename = 'ufsc_clubs_selection_' . gmdate( 'Y-m-d_H-i-s' );
 
-        if ( 'xlsx' === $format && class_exists( '\\PhpOffice\\PhpSpreadsheet\\Spreadsheet' ) ) {
-            $ss=new \\PhpOffice\\PhpSpreadsheet\\Spreadsheet(); $sh=$ss->getActiveSheet(); $sh->setTitle('Clubs');
-            foreach($headers as $i=>$h){$sh->setCellValueExplicitByColumnAndRow($i+1,1,(string)$h,\\PhpOffice\\PhpSpreadsheet\\Cell\\DataType::TYPE_STRING);} $r=2;
-            foreach($rows as $row){$c=1;foreach(array_values($row) as $v){$sh->setCellValueExplicitByColumnAndRow($c++,$r,null===$v?'':(string)$v,\\PhpOffice\\PhpSpreadsheet\\Cell\\DataType::TYPE_STRING);}$r++;}
-            $writer=\\PhpOffice\\PhpSpreadsheet\\IOFactory::createWriter($ss,'Xlsx'); nocache_headers(); header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); header('Content-Disposition: attachment; filename="'.sanitize_file_name($filename).'.xlsx"'); $writer->save('php://output'); exit;
+        if ( 'xlsx' === $format && class_exists( '\PhpOffice\PhpSpreadsheet\Spreadsheet' ) ) {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle( 'Clubs' );
+            foreach ( $headers as $index => $header ) {
+                $sheet->setCellValueExplicitByColumnAndRow( $index + 1, 1, (string) $header, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING );
+            }
+            $row_number = 2;
+            foreach ( $rows as $row ) {
+                $column_number = 1;
+                foreach ( array_values( $row ) as $value ) {
+                    $sheet->setCellValueExplicitByColumnAndRow( $column_number++, $row_number, null === $value ? '' : (string) $value, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING );
+                }
+                $row_number++;
+            }
+            $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter( $spreadsheet, 'Xlsx' );
+            nocache_headers();
+            header( 'Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' );
+            header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '.xlsx"' );
+            $writer->save( 'php://output' );
+            exit;
         }
-        nocache_headers(); header('Content-Type: text/csv; charset=utf-8'); header('Content-Disposition: attachment; filename="'.sanitize_file_name($filename).'.csv"'); $out=fopen('php://output','w'); fwrite($out,"\xEF\xBB\xBF"); fputcsv($out,$headers,';'); foreach($rows as $row){fputcsv($out,array_values($row),';');} fclose($out); exit;
+
+        nocache_headers();
+        header( 'Content-Type: text/csv; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="' . sanitize_file_name( $filename ) . '.csv"' );
+        $out = fopen( 'php://output', 'w' );
+        fwrite( $out, "\xEF\xBB\xBF" );
+        fputcsv( $out, $headers, ';' );
+        foreach ( $rows as $row ) { fputcsv( $out, array_values( $row ), ';' ); }
+        fclose( $out );
+        exit;
     }
 }
