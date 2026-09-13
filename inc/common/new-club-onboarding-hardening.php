@@ -264,7 +264,7 @@ final class UFSC_New_Club_Onboarding_Hardening {
 	}
 
 	public static function enqueue_assets() {
-		if ( is_admin() ) { return; }
+		if ( is_admin() || ! function_exists( 'ufsc_is_club_portal_request' ) || ! ufsc_is_club_portal_request() ) { return; }
 		wp_enqueue_style(
 			'ufsc-new-club-onboarding',
 			UFSC_CL_URL . 'assets/css/ufsc-new-club-onboarding.css',

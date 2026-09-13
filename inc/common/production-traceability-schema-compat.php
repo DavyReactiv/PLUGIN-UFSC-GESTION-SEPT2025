@@ -68,6 +68,11 @@ function ufsc_production_traceability_columns( $table, $force = false ) {
 function ufsc_production_ensure_licence_traceability_columns() {
     global $wpdb;
 
+    // Schema repair belongs to activation/admin requests, never to public page rendering.
+    if ( function_exists( 'is_admin' ) && ! is_admin() && ! ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+        return;
+    }
+
     $table = ufsc_production_traceability_table();
     $table = function_exists( 'ufsc_sanitize_table_name' )
         ? ufsc_sanitize_table_name( $table )

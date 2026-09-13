@@ -157,7 +157,7 @@ add_action( 'admin_notices', 'ufsc_structural_admin_pending_notice', 21 );
 
 /** Front assets are scoped to UFSC components only. */
 function ufsc_structural_enqueue_front_assets() {
-    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) ) { return; }
+    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) || ! function_exists( 'ufsc_is_club_portal_request' ) || ! ufsc_is_club_portal_request() ) { return; }
     $version = function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/css/ufsc-structural-portal.css' ) : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : null );
     wp_enqueue_style( 'ufsc-structural-portal', UFSC_CL_URL . 'assets/css/ufsc-structural-portal.css', array( 'ufsc-front' ), $version );
     wp_enqueue_script( 'ufsc-structural-portal', UFSC_CL_URL . 'assets/js/ufsc-structural-portal.js', array(), $version, true );

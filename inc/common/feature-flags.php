@@ -5,6 +5,67 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Feature flags / runtime composition for UFSC Gestion.
  */
 
+/**
+ * Detect the public pages that actually render a UFSC club component.
+ *
+ * Several historical presentation modules are loaded together for backwards
+ * compatibility. Their enqueue callbacks must nevertheless stay off ordinary
+ * WordPress pages, and their database-backed localisation must run only inside
+ * the club portal.
+ */
+function ufsc_is_club_portal_request() {
+    if ( function_exists( 'is_admin' ) && is_admin() ) {
+        return false;
+    }
+
+    static $request_result = null;
+    if ( null !== $request_result ) {
+        return $request_result;
+    }
+
+    $request_result = false;
+    $portal_slugs = array(
+        'tableau-de-bord-club',
+        'compte-club',
+        'tableau-de-bord',
+        'club-dashboard',
+        'mon-club',
+        'affiliation-club',
+        'inscription-club',
+        'creer-mon-club',
+    );
+    if ( function_exists( 'is_page' ) && is_page( $portal_slugs ) ) {
+        $request_result = true;
+        return true;
+    }
+
+    global $post;
+    $content = is_object( $post ) && is_string( $post->post_content ?? null ) ? $post->post_content : '';
+    if ( '' !== $content && function_exists( 'has_shortcode' ) ) {
+        foreach ( array(
+            'ufsc_club_dashboard',
+            'ufsc_club_licences',
+            'ufsc_club_stats',
+            'ufsc_club_profile',
+            'ufsc_add_licence',
+            'ufsc_licences',
+            'ufsc_club_form',
+            'ufsc_affiliation_form',
+            'ufsc_honorability_documents',
+            'ufsc_sql_licence_form',
+            'ufsc_sql_my_club',
+        ) as $shortcode ) {
+            if ( has_shortcode( $content, $shortcode ) ) {
+                $request_result = true;
+                return true;
+            }
+        }
+    }
+
+    $request_result = (bool) apply_filters( 'ufsc_is_club_portal_request', false );
+    return $request_result;
+}
+
 $ufsc_finalization_service = UFSC_CL_DIR . 'includes/core/class-ufsc-licence-finalization-service.php';
 if ( file_exists( $ufsc_finalization_service ) ) {
     require_once $ufsc_finalization_service;

@@ -218,7 +218,7 @@ function ufsc_p0_enrich_shortcode_output( $output, $tag, $attr, $m ) {
 add_filter( 'do_shortcode_tag', 'ufsc_p0_enrich_shortcode_output', 30, 4 );
 
 function ufsc_p0_enqueue_layout_css() {
-    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) ) { return; }
+    if ( is_admin() || ! defined( 'UFSC_CL_URL' ) || ! function_exists( 'ufsc_is_club_portal_request' ) || ! ufsc_is_club_portal_request() ) { return; }
     wp_enqueue_style(
         'ufsc-p0-quota-cart-kpi',
         UFSC_CL_URL . 'assets/css/ufsc-p0-quota-cart-kpi.css',

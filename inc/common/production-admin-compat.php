@@ -163,6 +163,11 @@ add_action( 'wp_loaded', 'ufsc_production_remove_legacy_cart_quota_repricing', 5
 function ufsc_production_prepare_optional_unique_identifiers() {
     global $wpdb;
 
+    $repair_version = '20260913';
+    if ( $repair_version === (string) get_option( 'ufsc_optional_identifier_repair_version', '' ) ) {
+        return;
+    }
+
     if ( ! class_exists( 'UFSC_SQL' ) ) {
         return;
     }
@@ -173,6 +178,7 @@ function ufsc_production_prepare_optional_unique_identifiers() {
         array( (string) ( $settings['table_clubs'] ?? '' ), 'num_affiliation' ),
     );
 
+    $repair_complete = true;
     foreach ( $targets as $target ) {
         $table  = preg_replace( '/[^A-Za-z0-9_]/', '', $target[0] );
         $column = preg_replace( '/[^A-Za-z0-9_]/', '', $target[1] );
@@ -195,11 +201,20 @@ function ufsc_production_prepare_optional_unique_identifiers() {
                 continue;
             }
             // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table/column/type have strict validation.
-            $wpdb->query( "ALTER TABLE `{$table}` MODIFY COLUMN `{$column}` {$type} NULL DEFAULT NULL" );
+            if ( false === $wpdb->query( "ALTER TABLE `{$table}` MODIFY COLUMN `{$column}` {$type} NULL DEFAULT NULL" ) ) {
+                $repair_complete = false;
+                continue;
+            }
         }
 
         // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- identifiers are strictly allow-listed above.
-        $wpdb->query( "UPDATE `{$table}` SET `{$column}` = NULL WHERE `{$column}` IS NOT NULL AND TRIM(CAST(`{$column}` AS CHAR)) = ''" );
+        if ( false === $wpdb->query( "UPDATE `{$table}` SET `{$column}` = NULL WHERE `{$column}` IS NOT NULL AND TRIM(CAST(`{$column}` AS CHAR)) = ''" ) ) {
+            $repair_complete = false;
+        }
+    }
+
+    if ( $repair_complete ) {
+        update_option( 'ufsc_optional_identifier_repair_version', $repair_version, false );
     }
 }
 
@@ -209,7 +224,7 @@ function ufsc_production_prepare_optional_unique_identifiers() {
 if ( defined( 'UFSC_CL_DIR' ) ) {
     register_activation_hook( UFSC_CL_DIR . 'ufsc-clubs-licences-sql.php', 'ufsc_production_prepare_optional_unique_identifiers' );
 }
-add_action( 'plugins_loaded', 'ufsc_production_prepare_optional_unique_identifiers', 1 );
+add_action( 'admin_init', 'ufsc_production_prepare_optional_unique_identifiers', 1 );
 
 /**
  * Make legacy UFSC read-only date predicates compatible with strict MySQL.

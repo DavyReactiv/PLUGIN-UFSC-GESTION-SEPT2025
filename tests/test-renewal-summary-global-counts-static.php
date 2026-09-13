@@ -20,8 +20,8 @@ $assert(
     'renewal UX must expose one canonical global state counter'
 );
 $assert(
-    false !== strpos($uxPhp, "'renewalCounts'  => ufsc_production_renewal_state_counts()"),
-    'canonical renewal counters must be localized once for the front UX'
+    false !== strpos($uxPhp, "'renewalCounts'  => \$is_renewal_route ? ufsc_production_renewal_state_counts() : array()"),
+    'canonical renewal counters must be localized only on the renewal route'
 );
 $assert(
     false !== strpos($uxPhp, 'ufsc_get_licence_season_context_status'),
