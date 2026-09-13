@@ -49,6 +49,7 @@ require_once UFSC_CL_DIR . 'includes/admin/class-ffst-birthplace-fields.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-club-form-fields-bridge.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-clubs-selected-export.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-clubs-flexible-export.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-clubs-export-selection.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-compliance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-insurance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin.php';
@@ -57,6 +58,7 @@ UFSC_FFST_Birthplace_Fields::init();
 UFSC_FFST_Club_Form_Fields_Bridge::init();
 UFSC_Clubs_Selected_Export::init();
 UFSC_Clubs_Flexible_Export::init();
+UFSC_Clubs_Export_Selection::init();
 UFSC_FFST_Official_Template_Admin::init();
 add_action( 'admin_menu', static function() {
     add_submenu_page(
