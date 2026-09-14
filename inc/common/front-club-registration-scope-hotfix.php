@@ -100,3 +100,9 @@ $ufsc_prod_club_save_dashboard_hotfix = dirname( __FILE__ ) . '/prod-club-save-d
 if ( file_exists( $ufsc_prod_club_save_dashboard_hotfix ) ) {
     require_once $ufsc_prod_club_save_dashboard_hotfix;
 }
+
+// Isolate admin licence status edits from front-only finalisation/cart observers.
+$ufsc_admin_licence_status_save_hotfix = dirname( __FILE__ ) . '/admin-licence-status-save-hotfix.php';
+if ( file_exists( $ufsc_admin_licence_status_save_hotfix ) ) {
+    require_once $ufsc_admin_licence_status_save_hotfix;
+}
