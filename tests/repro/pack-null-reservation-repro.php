@@ -29,6 +29,12 @@ final class Repro_WPDB {
         return array();
     }
 
+    public function get_results( $sql ) {
+        // The allocator excludes the current licence from occupancy reads.
+        // This reproduction intentionally contains no other pack rows.
+        return array();
+    }
+
     public function get_var( $sql ) {
         if ( false !== strpos( $sql, 'GET_LOCK' ) || false !== strpos( $sql, 'RELEASE_LOCK' ) ) {
             return 1;

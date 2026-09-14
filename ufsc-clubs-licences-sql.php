@@ -109,6 +109,7 @@ require_once UFSC_CL_DIR.'inc/common/licence-status.php';
 require_once UFSC_CL_DIR.'inc/common/fighter-level.php';
 require_once UFSC_CL_DIR.'inc/common/licence-documents.php';
 require_once UFSC_CL_DIR.'inc/common/compliance.php';
+require_once UFSC_CL_DIR.'inc/common/admin-ffst-leaders-reporting.php';
 require_once UFSC_CL_DIR.'inc/common/attestations.php';
 require_once UFSC_CL_DIR.'inc/common/tables.php';
 require_once UFSC_CL_DIR.'inc/common/functions.php';
