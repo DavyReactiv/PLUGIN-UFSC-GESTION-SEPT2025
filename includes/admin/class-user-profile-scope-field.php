@@ -54,6 +54,7 @@ require_once UFSC_CL_DIR . 'includes/admin/class-clubs-export-selection.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-compliance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-insurance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin-v2.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ufsc-bank-transfer-admin.php';
 UFSC_FFST_Birthplace_Fields::init();
 UFSC_FFST_Licence_Role_UI::init();
@@ -69,6 +70,6 @@ add_action( 'admin_menu', static function() {
         __( 'Dossiers FFST', 'ufsc-clubs' ),
         UFSC_Permissions::CAP_GESTION_MANAGE,
         'ufsc-ffst-documents',
-        array( 'UFSC_FFST_Documents_Admin', 'render' )
+        array( 'UFSC_FFST_Documents_Admin_V2', 'render' )
     );
 }, 25 );
