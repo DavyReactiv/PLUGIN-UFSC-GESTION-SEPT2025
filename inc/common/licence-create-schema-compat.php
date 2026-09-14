@@ -2,13 +2,11 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
- * Creation-only compatibility for optional unique licence identifiers.
+ * Compatibility for optional unique licence identifiers.
  *
  * Historical schemas may carry a UNIQUE index on numero_licence_delegataire.
- * A new licence without a delegated number must therefore omit that field so
- * MySQL stores the nullable default instead of an empty string. Existing licence
- * updates keep their current behaviour so disabling the option can still clear a
- * previously stored delegated number.
+ * A missing delegated number must never be written as an empty string because
+ * several empty strings collide on that historical unique key.
  */
 
 /** Return true only for an authenticated new-licence admin-post request. */
@@ -37,17 +35,57 @@ function ufsc_production_is_new_licence_write_request() {
 }
 
 /**
- * Omit a missing delegated licence number from NEW inserts only.
+ * Detect the legacy SQL-admin edit form used by UFSC_SQL_Admin::handle_save_licence().
  *
- * The unified handler builds an empty string for the unchecked optional field.
- * Keeping that empty value in a UNIQUE column recreates the duplicate-key issue
- * that the schema preflight was designed to eliminate.
+ * That form posts back to the licences admin page (not admin-post.php) and uses
+ * `id` for the existing licence primary key.
+ *
+ * @return bool
+ */
+function ufsc_production_is_existing_admin_licence_update_request() {
+    if ( ! is_admin() || ! is_user_logged_in() ) {
+        return false;
+    }
+
+    $method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : '';
+    if ( 'POST' !== $method ) {
+        return false;
+    }
+
+    $page = isset( $_REQUEST['page'] ) && ! is_array( $_REQUEST['page'] )
+        ? sanitize_key( wp_unslash( $_REQUEST['page'] ) )
+        : '';
+    if ( 'ufsc_lc_licences' !== $page ) {
+        return false;
+    }
+
+    $licence_id = isset( $_POST['id'] ) && ! is_array( $_POST['id'] )
+        ? absint( wp_unslash( $_POST['id'] ) )
+        : 0;
+
+    return $licence_id > 0;
+}
+
+/**
+ * Omit a missing delegated licence number from NEW inserts and safe legacy
+ * admin updates.
+ *
+ * For existing licences we intentionally preserve the stored value instead of
+ * rewriting an empty string. This is the least destructive production hotfix:
+ * it avoids the UNIQUE-key collision without deleting or rewriting historical
+ * identifiers. A populated submitted number keeps the canonical behaviour.
  *
  * @param array $fields Canonical licence field map.
  * @return array
  */
-function ufsc_production_new_licence_optional_identifier_fields( $fields ) {
-    if ( ! is_array( $fields ) || ! ufsc_production_is_new_licence_write_request() ) {
+function ufsc_production_optional_identifier_fields( $fields ) {
+    if ( ! is_array( $fields ) ) {
+        return $fields;
+    }
+
+    $is_new_request    = ufsc_production_is_new_licence_write_request();
+    $is_admin_update   = ufsc_production_is_existing_admin_licence_update_request();
+    if ( ! $is_new_request && ! $is_admin_update ) {
         return $fields;
     }
 
@@ -62,7 +100,12 @@ function ufsc_production_new_licence_optional_identifier_fields( $fields ) {
 
     return $fields;
 }
-add_filter( 'ufsc_licence_fields', 'ufsc_production_new_licence_optional_identifier_fields', 999 );
+add_filter( 'ufsc_licence_fields', 'ufsc_production_optional_identifier_fields', 999 );
+
+/** Backward-compatible callback name kept for any external/internal references. */
+function ufsc_production_new_licence_optional_identifier_fields( $fields ) {
+    return ufsc_production_optional_identifier_fields( $fields );
+}
 
 /**
  * Guarantee the nullable schema immediately before a new licence mutation.
