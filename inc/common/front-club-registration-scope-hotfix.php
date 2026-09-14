@@ -93,3 +93,10 @@ function ufsc_front_club_registration_allow_region_choice( $allcaps, $caps, $arg
     return $allcaps;
 }
 add_filter( 'user_has_cap', 'ufsc_front_club_registration_allow_region_choice', 20, 4 );
+
+// Production-only companion hotfix: keep existing-club admin saves compatible
+// with strict MySQL and ensure the logged-in club portal is never served stale.
+$ufsc_prod_club_save_dashboard_hotfix = dirname( __FILE__ ) . '/prod-club-save-dashboard-hotfix.php';
+if ( file_exists( $ufsc_prod_club_save_dashboard_hotfix ) ) {
+    require_once $ufsc_prod_club_save_dashboard_hotfix;
+}
