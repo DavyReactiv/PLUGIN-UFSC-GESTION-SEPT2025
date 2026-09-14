@@ -39,11 +39,17 @@ final class UFSC_FFST_Affiliation_Action_Bridge {
             wp_die( esc_html__( 'Le générateur du modèle officiel FFST est indisponible.', 'ufsc-clubs' ), '', array( 'response' => 500 ) );
         }
 
-        // Le générateur officiel conserve sa propre validation. On lui fournit
-        // un nonce interne correspondant à son action, après validation du nonce
-        // historique ci-dessus.
-        $_POST['action']   = UFSC_FFST_Official_Template_Admin::AFFILIATION_ACTION;
-        $_POST['_wpnonce'] = wp_create_nonce( UFSC_FFST_Official_Template_Admin::AFFILIATION_ACTION . '_' . $club_id . '_' . $season );
+        // Le générateur officiel conserve sa propre validation. Après validation
+        // du nonce historique, on crée un nonce interne pour l'action officielle.
+        // check_admin_referer() consulte $_REQUEST : il faut donc synchroniser
+        // explicitement $_POST ET $_REQUEST dans cette même requête.
+        $official_action = UFSC_FFST_Official_Template_Admin::AFFILIATION_ACTION;
+        $official_nonce  = wp_create_nonce( $official_action . '_' . $club_id . '_' . $season );
+
+        $_POST['action']      = $official_action;
+        $_POST['_wpnonce']    = $official_nonce;
+        $_REQUEST['action']   = $official_action;
+        $_REQUEST['_wpnonce'] = $official_nonce;
 
         UFSC_FFST_Official_Template_Admin::handle_affiliation();
         exit;
