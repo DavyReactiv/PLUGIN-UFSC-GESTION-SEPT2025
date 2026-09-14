@@ -7,6 +7,7 @@ final class UFSC_Identifier_Resolver {
         'club_ufsc'    => array( 'numero_affiliation_ufsc', 'num_affiliation', 'numero_affiliation' ),
         'club_asptt'   => array( 'numero_affiliation_asptt' ),
         'licence_ufsc' => array( 'numero_licence_ufsc', 'numero_licence', 'num_licence', 'licence_number' ),
+        'licence_ffst' => array( 'numero_licence_ffst' ),
         'licence_asptt'=> array( 'numero_licence_asptt' ),
     );
 
