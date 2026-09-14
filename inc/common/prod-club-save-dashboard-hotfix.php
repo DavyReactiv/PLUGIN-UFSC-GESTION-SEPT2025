@@ -105,6 +105,38 @@ function ufsc_prod_hotfix_prepare_admin_club_update_payload() {
 add_action( 'admin_init', 'ufsc_prod_hotfix_prepare_admin_club_update_payload', 1 );
 
 /**
+ * Journaliser la vraie erreur SQL en fin de requête admin-post, sans la rendre
+ * visible dans l'URL ni dans l'interface. Le handler canonique conserve son
+ * message utilisateur générique.
+ */
+function ufsc_prod_hotfix_log_admin_club_update_sql_error() {
+    if ( 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) {
+        return;
+    }
+    $action = isset( $_POST['action'] ) && ! is_array( $_POST['action'] )
+        ? sanitize_key( wp_unslash( $_POST['action'] ) )
+        : '';
+    if ( 'ufsc_sql_save_club' !== $action ) {
+        return;
+    }
+
+    global $wpdb;
+    $last_error = trim( (string) $wpdb->last_error );
+    if ( '' === $last_error ) {
+        return;
+    }
+
+    $club_id = isset( $_POST['id'] ) ? absint( wp_unslash( $_POST['id'] ) ) : 0;
+    $message = sprintf( 'Club admin update SQL failure (club #%d): %s', $club_id, $last_error );
+    if ( class_exists( 'UFSC_CL_Utils' ) ) {
+        UFSC_CL_Utils::log( $message, 'error' );
+    } elseif ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+        error_log( '[UFSC Gestion] ' . $message );
+    }
+}
+add_action( 'shutdown', 'ufsc_prod_hotfix_log_admin_club_update_sql_error', 1 );
+
+/**
  * Le tableau de bord club contient des compteurs et tableaux SQL en temps réel.
  * Il ne doit jamais être servi depuis un cache HTML pour un utilisateur connecté.
  */
