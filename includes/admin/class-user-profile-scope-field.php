@@ -57,6 +57,7 @@ require_once UFSC_CL_DIR . 'includes/admin/class-ffst-compliance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-insurance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin-v2.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-layout-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ufsc-bank-transfer-admin.php';
 UFSC_FFST_Birthplace_Fields::init();
 UFSC_FFST_Licence_Role_UI::init();
