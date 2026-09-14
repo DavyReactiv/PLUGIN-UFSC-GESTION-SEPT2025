@@ -23,6 +23,6 @@ $assert( false !== strpos( $module, 'ufsc_get_pack_included_limit' ) && false !=
 $assert( false !== strpos( $module, '3 places identifiées pour le bureau' ), 'quota explicitly presents three office places' );
 $assert( false === stripos( $module, 'DELETE FROM' ), 'reporting layer never deletes data' );
 $assert( false === stripos( $module, 'TRUNCATE' ), 'reporting layer never truncates data' );
-$assert( false === preg_match( '/\$wpdb->(?:update|insert|delete|replace)\s*\(/i', $module ), 'reporting layer performs no row mutation' );
+$assert( 0 === preg_match( '/\$wpdb->(?:update|insert|delete|replace)\s*\(/i', $module ), 'reporting layer performs no row mutation' );
 
 fwrite( STDOUT, "Admin FFST leaders reporting safeguards OK\n" );
