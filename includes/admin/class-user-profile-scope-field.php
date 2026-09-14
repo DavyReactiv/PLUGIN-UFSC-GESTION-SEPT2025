@@ -51,6 +51,7 @@ require_once UFSC_CL_DIR . 'includes/admin/class-ffst-club-form-fields-bridge.ph
 require_once UFSC_CL_DIR . 'includes/admin/class-clubs-selected-export.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-clubs-flexible-export.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-clubs-export-selection.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-club-manual-renewal-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-compliance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-insurance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin.php';
