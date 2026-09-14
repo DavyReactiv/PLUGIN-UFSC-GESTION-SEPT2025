@@ -62,6 +62,56 @@ function ufsc_get_pack_season_storage_context( $table, $season ) {
 	return array( 'column' => $column, 'value' => $value );
 }
 
+/** Normalize a row status for quota occupancy without mutating stored data. */
+function ufsc_pack_row_status( $row ) {
+	$data = is_object( $row ) ? get_object_vars( $row ) : (array) $row;
+	if ( function_exists( 'ufsc_get_licence_status_from_record' ) ) {
+		$status = ufsc_get_licence_status_from_record( $data );
+		if ( is_string( $status ) && '' !== trim( $status ) ) {
+			return sanitize_key( $status );
+		}
+	}
+	$status = $data['statut'] ?? ( $data['status'] ?? '' );
+	if ( function_exists( 'ufsc_normalize_license_status' ) ) {
+		$status = ufsc_normalize_license_status( $status );
+	}
+	return sanitize_key( (string) $status );
+}
+
+/** True when one historical/current row must consume a place in the ten-licence pack. */
+function ufsc_pack_row_consumes_slot( $row ) {
+	$data = is_object( $row ) ? get_object_vars( $row ) : (array) $row;
+	if ( ! empty( $data['deleted_at'] ) && '0000-00-00 00:00:00' !== (string) $data['deleted_at'] ) {
+		return false;
+	}
+	if ( ! empty( $data['is_included'] ) ) {
+		return true;
+	}
+
+	$status = ufsc_pack_row_status( $data );
+	if ( ! in_array( $status, array( 'en_attente', 'valide', 'validee', 'validated' ), true ) ) {
+		return false;
+	}
+
+	$payment = sanitize_key( (string) ( $data['payment_link_status'] ?? ( $data['payment_status'] ?? '' ) ) );
+	$paid_or_payable = array( 'pending', 'pending_payment', 'requis', 'required', 'paid', 'payee', 'completed', 'processing' );
+	return ! in_array( $payment, $paid_or_payable, true );
+}
+
+/** Return effective pack rows in deterministic order, excluding deleted history. */
+function ufsc_get_effective_pack_rows( $table, $club_id, $season_column, $season_value, $exclude_id = 0 ) {
+	global $wpdb;
+	$sql = "SELECT * FROM `{$table}` WHERE club_id = %d AND `{$season_column}` = %s";
+	$params = array( absint( $club_id ), $season_value );
+	if ( $exclude_id ) {
+		$sql .= ' AND id <> %d';
+		$params[] = absint( $exclude_id );
+	}
+	$sql .= ' ORDER BY id ASC';
+	$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ) );
+	return array_values( array_filter( (array) $rows, 'ufsc_pack_row_consumes_slot' ) );
+}
+
 /** Atomically reserve the season's appropriate pack credit for one licence. */
 function ufsc_allocate_pack_credit( $licence_id, $club_id, $season, $role ) {
 	global $wpdb;
@@ -76,7 +126,9 @@ function ufsc_allocate_pack_credit( $licence_id, $club_id, $season, $role ) {
 	$lock_name = 'ufsc_pack_' . absint( $club_id ) . '_' . sanitize_key( $season );
 	$locked = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $lock_name ) );
 	if ( 1 !== $locked ) { return new WP_Error( 'ufsc_pack_busy', __( 'Le pack est en cours de mise à jour. Réessayez dans quelques secondes.', 'ufsc-clubs' ) ); }
-	$roles = $wpdb->get_col( $wpdb->prepare( "SELECT role FROM `{$table}` WHERE club_id = %d AND `{$season_column}` = %s AND is_included = 1 AND id <> %d", $club_id, $season_value, $licence_id ) );
+
+	$effective_rows = ufsc_get_effective_pack_rows( $table, $club_id, $season_column, $season_value, $licence_id );
+	$roles = array_map( static function ( $row ) { return $row->role ?? ''; }, $effective_rows );
 	$allocation = ufsc_resolve_pack_credit( $role, $roles );
 	if ( empty( $allocation['included'] ) ) { $wpdb->get_var( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock_name ) ); return $allocation; }
 
@@ -93,8 +145,6 @@ function ufsc_allocate_pack_credit( $licence_id, $club_id, $season, $role ) {
 		return new WP_Error( 'ufsc_pack_reservation_failed', __( 'Le crédit inclus n’a pas pu être réservé.', 'ufsc-clubs' ) );
 	}
 
-	// Re-read while the club/season lock is still held. A previous identical
-	// request is accepted only when this exact licence is already reserved.
 	$reserved = (int) $wpdb->get_var(
 		$wpdb->prepare(
 			"SELECT is_included FROM `{$table}` WHERE id = %d AND club_id = %d AND `{$season_column}` = %s LIMIT 1",
@@ -122,14 +172,17 @@ function ufsc_get_pack_usage( $club_id, $season ) {
 	$season_column  = $season_storage['column'];
 	$season_value   = $season_storage['value'];
 	if ( ! $season_column ) { return $empty; }
-	$rows = $wpdb->get_results( $wpdb->prepare( "SELECT role, is_included FROM `{$table}` WHERE club_id = %d AND `{$season_column}` = %s", absint( $club_id ), $season_value ) );
-	$included_roles = array();
-	foreach ( (array) $rows as $row ) { if ( ! empty( $row->is_included ) ) { $included_roles[] = ufsc_normalize_club_role( $row->role ?? '' ); } }
+
+	$rows = ufsc_get_effective_pack_rows( $table, $club_id, $season_column, $season_value );
+	$limit = ufsc_get_pack_included_limit();
+	$included_rows = array_slice( $rows, 0, $limit );
+	$included_roles = array_map( static function ( $row ) { return ufsc_normalize_club_role( $row->role ?? '' ); }, $included_rows );
+
 	foreach ( array_keys( $empty['roles'] ) as $office_role ) { $empty['roles'][ $office_role ] = in_array( $office_role, $included_roles, true ); }
 	$empty['bureau'] = count( array_filter( $empty['roles'] ) );
-	$empty['total'] = count( $included_roles );
+	$empty['total'] = count( $included_rows );
 	$empty['libres'] = max( 0, $empty['total'] - $empty['bureau'] );
-	$empty['payantes'] = max( 0, count( (array) $rows ) - $empty['total'] );
+	$empty['payantes'] = max( 0, count( $rows ) - $empty['total'] );
 	return $empty;
 }
 
@@ -257,7 +310,6 @@ function ufsc_get_honorability_document_kpis( $licences, $season ) {
 		$required_licences[] = $id;
 	}
 
-	// Avoid one options-table query per dirigeant/encadrant on dashboard loads.
 	if ( $required_licences && function_exists( 'wp_prime_option_caches' ) ) {
 		wp_prime_option_caches( array_map( static function ( $licence_id ) use ( $season ) {
 			return ufsc_honorability_document_option_key( $licence_id, $season );
