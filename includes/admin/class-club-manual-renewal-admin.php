@@ -47,7 +47,7 @@ final class UFSC_Club_Manual_Renewal_Admin {
         echo '<input type="hidden" name="action" value="' . esc_attr( self::ACTION ) . '">';
         echo '<input type="hidden" name="club_id" value="' . esc_attr( $club_id ) . '">';
         echo '<input type="hidden" name="season" value="' . esc_attr( $season ) . '">';
-        echo '<input type="hidden" name="return_to" value="' . esc_url( self::current_url() ) . '">';
+        echo '<input type="hidden" name="return_to" value="' . esc_url( self::edit_url( $club_id ) ) . '">';
         wp_nonce_field( self::ACTION . '_' . $club_id . '_' . $season );
         echo '<button type="submit" class="button button-primary" onclick="return confirm(\'' . esc_js( sprintf( __( 'Confirmer le renouvellement manuel du club pour la saison %s ?', 'ufsc-clubs' ), $season ) ) . '\')">' . esc_html( sprintf( __( 'Renouveler manuellement pour %s', 'ufsc-clubs' ), $season ) ) . '</button>';
         echo '</form></div>';
@@ -119,18 +119,18 @@ final class UFSC_Club_Manual_Renewal_Admin {
     private static function redirect_back( $club_id, $season, $status, $message = '' ) {
         $return_to = isset( $_POST['return_to'] ) && ! is_array( $_POST['return_to'] ) ? wp_unslash( $_POST['return_to'] ) : '';
         $return_to = wp_validate_redirect( $return_to, '' );
-        if ( ! $return_to ) {
-            $return_to = add_query_arg( array( 'page' => 'ufsc-sql-clubs', 'action' => 'edit', 'id' => absint( $club_id ) ), admin_url( 'admin.php' ) );
-        }
+        if ( ! $return_to ) { $return_to = self::edit_url( $club_id ); }
         $args = array( 'ufsc_manual_renewal' => sanitize_key( $status ), 'renewed_club_id' => absint( $club_id ) );
         if ( $message ) { $args['ufsc_manual_renewal_message'] = sanitize_text_field( $message ); }
         wp_safe_redirect( add_query_arg( $args, $return_to ) );
         exit;
     }
 
-    private static function current_url() {
-        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
-        return $request_uri ? admin_url( ltrim( $request_uri, '/' ) ) : admin_url( 'admin.php?page=ufsc-sql-clubs' );
+    private static function edit_url( $club_id ) {
+        return add_query_arg(
+            array( 'page' => 'ufsc-sql-clubs', 'action' => 'edit', 'id' => absint( $club_id ), 'tab' => 'affiliation' ),
+            admin_url( 'admin.php' )
+        );
     }
 
     private static function normalize_season( $season ) {
