@@ -17,9 +17,10 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Normaliser uniquement le POST d'édition admin d'un club avant le handler canonique.
  *
  * Le handler historique transmet les champs postés directement à wpdb::update().
- * Sous MySQL strict, une chaîne vide envoyée vers une colonne numérique ou date
- * peut faire retourner false à wpdb::update(). Sur une édition existante, une
- * valeur vide signifie ici "ne pas écraser la valeur existante".
+ * Sous MySQL strict, une chaîne vide envoyée vers une colonne numérique/date ou
+ * vers certains identifiants optionnels UNIQUE peut faire retourner false à
+ * wpdb::update(). Sur une édition existante, une valeur vide signifie ici
+ * "ne pas écraser la valeur existante" pour ces champs sensibles uniquement.
  */
 function ufsc_prod_hotfix_prepare_admin_club_update_payload() {
     if ( ! is_admin() || 'POST' !== strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) {
@@ -39,6 +40,13 @@ function ufsc_prod_hotfix_prepare_admin_club_update_payload() {
     }
 
     $fields = (array) UFSC_SQL::get_club_fields();
+    $blank_sensitive_identifiers = array(
+        'num_affiliation',
+        'rna_number',
+        'siren',
+        'num_declaration',
+    );
+
     foreach ( $fields as $key => $conf ) {
         if ( ! array_key_exists( $key, $_POST ) || is_array( $_POST[ $key ] ) ) {
             continue;
@@ -56,6 +64,15 @@ function ufsc_prod_hotfix_prepare_admin_club_update_payload() {
         // Optional numeric fields can be empty in the admin form. Preserve the
         // stored value instead of forcing an invalid empty string into INT/BIGINT.
         if ( 'number' === $type && '' === $value ) {
+            unset( $_POST[ $key ], $_REQUEST[ $key ] );
+            continue;
+        }
+
+        // Production databases can still carry historical UNIQUE constraints on
+        // optional identifiers. Rewriting a missing identifier as '' may collide
+        // with another legacy row. Do not mutate the stored value when the admin
+        // leaves these exact optional fields blank.
+        if ( '' === $value && in_array( $key, $blank_sensitive_identifiers, true ) ) {
             unset( $_POST[ $key ], $_REQUEST[ $key ] );
             continue;
         }
