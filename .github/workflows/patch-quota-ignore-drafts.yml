@@ -1,0 +1,40 @@
+name: Temporary quota status patch
+
+on:
+  push:
+    branches:
+      - fix/quota-ignore-drafts
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: contains(github.event.head_commit.message, '[apply-quota-status-patch]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/quota-ignore-drafts
+          fetch-depth: 0
+      - name: Patch canonical quota status rule
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('inc/common/compliance.php')
+          text = path.read_text()
+          old = """\tif ( ! empty( $data['is_included'] ) ) {\n\t\treturn true;\n\t}\n\n\t$status = ufsc_pack_row_status( $data );\n\tif ( ! in_array( $status, array( 'en_attente', 'valide', 'validee', 'validated' ), true ) ) {\n\t\treturn false;\n\t}\n"""
+          new = """\t$status = ufsc_pack_row_status( $data );\n\tif ( ! in_array( $status, array( 'en_attente', 'valide', 'validee', 'validated' ), true ) ) {\n\t\treturn false;\n\t}\n\n\tif ( ! empty( $data['is_included'] ) ) {\n\t\treturn true;\n\t}\n"""
+          if old not in text:
+              raise SystemExit('Expected quota block not found; refusing broad patch')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name "DavyReactiv"
+          git config user.email "davycteam@gmail.com"
+          git add inc/common/compliance.php
+          git commit -m "fix(quota): ignorer les brouillons même marqués inclus"
+          git push origin HEAD:fix/quota-ignore-drafts
