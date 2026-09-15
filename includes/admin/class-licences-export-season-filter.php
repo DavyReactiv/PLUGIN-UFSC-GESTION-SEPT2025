@@ -53,6 +53,14 @@ final class UFSC_Licences_Export_Season_Filter {
         if ( '' === $current ) { return; }
         $seasons = self::seasons();
         ?>
+        <style>
+            .ufsc-export-primary-filters{display:grid!important;grid-template-columns:repeat(3,minmax(190px,1fr))!important;gap:14px 18px!important;align-items:end!important;padding:16px!important;background:#f8fafc!important;border:1px solid #dfe7ef!important;border-radius:10px!important}
+            .ufsc-export-primary-filters>div,.ufsc-export-primary-filters>label{min-width:0!important;margin:0!important}
+            .ufsc-export-primary-filters select,.ufsc-export-primary-filters input{width:100%!important;max-width:none!important;min-height:38px!important}
+            .ufsc-export-season-filter label,.ufsc-export-active-club-filter label{font-weight:600!important;color:#1d2327!important}
+            @media (max-width:1180px){.ufsc-export-primary-filters{grid-template-columns:repeat(2,minmax(190px,1fr))!important}}
+            @media (max-width:782px){.ufsc-export-primary-filters{grid-template-columns:1fr!important;padding:12px!important}}
+        </style>
         <script>
         (function(){
             var currentSeason=<?php echo wp_json_encode( $current ); ?>;
@@ -68,10 +76,10 @@ final class UFSC_Licences_Export_Season_Filter {
                 var anchor=visibility.parentElement;
                 var row=anchor&&anchor.parentElement?anchor.parentElement:null;
                 if(!row)return;
+                row.classList.add('ufsc-export-primary-filters');
 
                 var seasonWrap=document.createElement('div');
                 seasonWrap.className='ufsc-export-season-filter';
-                seasonWrap.style.minWidth='190px';
 
                 var seasonLabel=document.createElement('label');
                 seasonLabel.htmlFor='ufsc_filter_season';
@@ -84,8 +92,6 @@ final class UFSC_Licences_Export_Season_Filter {
                     seasonSelect=document.createElement('select');
                     seasonSelect.id='ufsc_filter_season';
                     seasonSelect.name='filter_season';
-                    seasonSelect.style.width='100%';
-                    seasonSelect.style.minHeight='32px';
 
                     seasons.forEach(function(season){
                         var option=document.createElement('option');
@@ -107,25 +113,26 @@ final class UFSC_Licences_Export_Season_Filter {
                     seasonWrap=seasonSelect.closest('.ufsc-export-season-filter')||seasonSelect.parentElement;
                 }
 
-                var clubWrap=document.createElement('div');
-                clubWrap.className='ufsc-export-active-club-filter';
-                clubWrap.style.minWidth='190px';
+                var clubSelect=form.querySelector('select[name="filter_club_affiliation"]');
+                var clubWrap=clubSelect?clubSelect.closest('.ufsc-export-active-club-filter'):null;
+                if(!clubSelect){
+                    clubWrap=document.createElement('div');
+                    clubWrap.className='ufsc-export-active-club-filter';
 
-                var clubLabel=document.createElement('label');
-                clubLabel.htmlFor='ufsc_filter_club_affiliation';
-                clubLabel.textContent='Clubs';
-                clubLabel.style.display='block';
-                clubLabel.style.marginBottom='6px';
+                    var clubLabel=document.createElement('label');
+                    clubLabel.htmlFor='ufsc_filter_club_affiliation';
+                    clubLabel.textContent='Affiliation du club';
+                    clubLabel.style.display='block';
+                    clubLabel.style.marginBottom='6px';
 
-                var clubSelect=document.createElement('select');
-                clubSelect.id='ufsc_filter_club_affiliation';
-                clubSelect.name='filter_club_affiliation';
-                clubSelect.style.width='100%';
-                clubSelect.style.minHeight='32px';
-                clubSelect.innerHTML='<option value="active" selected>Actifs — par défaut</option><option value="inactive">Non actifs</option><option value="all">Tous les clubs</option>';
-                clubWrap.appendChild(clubLabel);
-                clubWrap.appendChild(clubSelect);
-                row.appendChild(clubWrap);
+                    clubSelect=document.createElement('select');
+                    clubSelect.id='ufsc_filter_club_affiliation';
+                    clubSelect.name='filter_club_affiliation';
+                    clubSelect.innerHTML='<option value="active" selected>Clubs actifs — par défaut</option><option value="inactive">Clubs non actifs</option><option value="all">Tous les clubs</option>';
+                    clubWrap.appendChild(clubLabel);
+                    clubWrap.appendChild(clubSelect);
+                    row.appendChild(clubWrap);
+                }
 
                 function syncVisibility(){
                     var isLicences=!entity||entity.value!=='clubs';
