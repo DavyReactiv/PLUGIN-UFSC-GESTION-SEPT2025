@@ -53,6 +53,7 @@ require_once UFSC_CL_DIR . 'includes/admin/class-clubs-selected-export.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-clubs-flexible-export.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-clubs-export-selection.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-licences-canonical-export.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-licences-export-season-filter.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-club-manual-renewal-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-compliance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-insurance-admin.php';
@@ -66,6 +67,7 @@ UFSC_FFST_Club_Form_Fields_Bridge::init();
 UFSC_Clubs_Selected_Export::init();
 UFSC_Clubs_Flexible_Export::init();
 UFSC_Clubs_Export_Selection::init();
+UFSC_Licences_Export_Season_Filter::init();
 UFSC_Licences_Canonical_Export::init();
 UFSC_FFST_Official_Template_Admin::init();
 add_action( 'admin_menu', static function() {

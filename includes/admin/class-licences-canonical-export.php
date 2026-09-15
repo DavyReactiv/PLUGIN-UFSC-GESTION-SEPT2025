@@ -36,6 +36,21 @@ final class UFSC_Licences_Canonical_Export {
             && ufsc_user_can( UFSC_Permissions::CAP_GESTION_MANAGE );
     }
 
+    private static function current_season() {
+        if ( class_exists( 'UFSC_Season_Service' ) ) {
+            return str_replace( '/', '-', (string) UFSC_Season_Service::get_current_season() );
+        }
+        return function_exists( 'ufsc_get_current_season' ) ? str_replace( '/', '-', (string) ufsc_get_current_season() ) : '';
+    }
+
+    private static function affiliations_table() {
+        global $wpdb;
+        if ( class_exists( 'UFSC_Storage_Resolver' ) && method_exists( 'UFSC_Storage_Resolver', 'get_annual_affiliations_table' ) ) {
+            return preg_replace( '/[^A-Za-z0-9_]/', '', (string) UFSC_Storage_Resolver::get_annual_affiliations_table() );
+        }
+        return $wpdb->prefix . 'ufsc_affiliations_seasons';
+    }
+
     private static function table_columns( $table ) {
         global $wpdb;
         if ( function_exists( 'ufsc_table_columns' ) ) {
@@ -128,13 +143,32 @@ final class UFSC_Licences_Canonical_Export {
             elseif ( 'all' !== $visibility ) { $where[] = "(l.deleted_at IS NULL OR l.deleted_at='0000-00-00 00:00:00')"; }
         }
 
-        $filter_season = isset( $_POST['filter_season'] ) && ! is_array( $_POST['filter_season'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_season'] ) ) : '';
-        if ( '' !== $filter_season && 'all' !== $filter_season && '__current' !== $filter_season ) {
+        $filter_season = isset( $_POST['filter_season'] ) && ! is_array( $_POST['filter_season'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_season'] ) ) : self::current_season();
+        if ( '' === $filter_season || '__current' === $filter_season ) { $filter_season = self::current_season(); }
+        $filter_season = str_replace( '/', '-', $filter_season );
+
+        if ( 'all' !== $filter_season && '' !== $filter_season ) {
             $season_column = '';
             foreach ( array( 'season', 'saison', 'paid_season', 'season_end_year' ) as $candidate ) {
                 if ( in_array( $candidate, $licence_columns, true ) ) { $season_column = $candidate; break; }
             }
-            if ( $season_column ) { $where[] = "REPLACE(l.`{$season_column}`,'/','-')=%s"; $params[] = str_replace( '/', '-', $filter_season ); }
+            if ( $season_column ) { $where[] = "REPLACE(l.`{$season_column}`,'/','-')=%s"; $params[] = $filter_season; }
+        }
+
+        $club_affiliation = isset( $_POST['filter_club_affiliation'] ) && ! is_array( $_POST['filter_club_affiliation'] )
+            ? sanitize_key( wp_unslash( $_POST['filter_club_affiliation'] ) )
+            : 'active';
+        if ( ! in_array( $club_affiliation, array( 'active', 'inactive', 'all' ), true ) ) { $club_affiliation = 'active'; }
+
+        if ( $has_club_id && 'all' !== $club_affiliation ) {
+            $affiliation_season = ( 'all' === $filter_season || '' === $filter_season ) ? self::current_season() : $filter_season;
+            $affiliations_table = self::affiliations_table();
+            $active_statuses    = array( 'active', 'validated', 'valide' );
+            $placeholders       = implode( ',', array_fill( 0, count( $active_statuses ), '%s' ) );
+            $active_sql         = "EXISTS (SELECT 1 FROM `{$affiliations_table}` a WHERE a.club_id=l.club_id AND REPLACE(a.season,'/','-')=%s AND LOWER(a.status) IN ({$placeholders}))";
+            $where[]            = ( 'active' === $club_affiliation ) ? $active_sql : 'NOT ' . $active_sql;
+            $params[]           = $affiliation_season;
+            foreach ( $active_statuses as $active_status ) { $params[] = $active_status; }
         }
 
         $sql = "SELECT l.*";
