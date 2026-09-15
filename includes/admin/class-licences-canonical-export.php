@@ -8,13 +8,15 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 final class UFSC_Licences_Canonical_Export {
     private static $canonical_fields = array(
-        'numero_licence'       => 'N° licence UFSC',
-        'numero_licence_ffst'  => 'N° licence FFST',
-        'role'                 => 'Rôle au club',
-        'ville_naissance'      => 'Ville de naissance',
-        'departement_naissance'=> 'Département de naissance',
-        'pays_naissance'       => 'Pays de naissance',
-        'season'               => 'Saison',
+        'numero_licence'        => 'N° licence UFSC',
+        'numero_licence_ffst'   => 'N° licence FFST',
+        'role'                  => 'Rôle au club',
+        'ville_naissance'       => 'Ville de naissance',
+        'departement_naissance' => 'Département de naissance',
+        'pays_naissance'        => 'Pays de naissance',
+        'season'                => 'Saison',
+        'age_export'            => 'Âge au jour de l’export',
+        'moins_12_ans'          => 'Moins de 12 ans',
     );
 
     private static $legacy_hidden = array(
@@ -208,11 +210,43 @@ final class UFSC_Licences_Canonical_Export {
             );
             return $labels[ $role ] ?? ucfirst( str_replace( '_', ' ', $role ) );
         }
+        if ( 'age_export' === $key || 'moins_12_ans' === $key ) {
+            $age = self::age_from_birthdate( $row['date_naissance'] ?? '' );
+            if ( null === $age ) { return ''; }
+            return 'age_export' === $key ? (string) $age : ( $age < 12 ? 'Oui' : 'Non' );
+        }
         $booleans = array( 'fonction_publique','diffusion_image','infos_cr','infos_partenaires','honorabilite','competition','licence_delegataire','reduction_benevole','reduction_postier','assurance_dommage_corporel','assurance_assistance' );
         if ( in_array( $key, $booleans, true ) ) { return ! empty( $row[ $key ] ) ? 'Oui' : 'Non'; }
         if ( 'fighter_level' === $key && function_exists( 'ufsc_fighter_level_label' ) ) { return ufsc_fighter_level_label( $row[ $key ] ?? '' ); }
         if ( 'statut' === $key && function_exists( 'ufsc_license_status_label' ) ) { return ufsc_license_status_label( $row[ $key ] ?? '' ); }
         return isset( $row[ $key ] ) ? (string) $row[ $key ] : '';
+    }
+
+    /**
+     * Calculate age on the local WordPress export date from the stored birth date.
+     * Returns null for a missing, invalid or future birth date so the export never
+     * classifies an uncertain record as an under-12 licence.
+     */
+    private static function age_from_birthdate( $value ) {
+        $value = trim( (string) $value );
+        if ( '' === $value ) { return null; }
+
+        $year = $month = $day = 0;
+        if ( preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', $value, $matches ) ) {
+            $year = (int) $matches[1]; $month = (int) $matches[2]; $day = (int) $matches[3];
+        } elseif ( preg_match( '/^(\d{2})\/(\d{2})\/(\d{4})$/', $value, $matches ) ) {
+            $day = (int) $matches[1]; $month = (int) $matches[2]; $year = (int) $matches[3];
+        } else {
+            return null;
+        }
+        if ( ! checkdate( $month, $day, $year ) ) { return null; }
+
+        $timezone = function_exists( 'wp_timezone' ) ? wp_timezone() : null;
+        $birth     = new DateTimeImmutable( sprintf( '%04d-%02d-%02d', $year, $month, $day ), $timezone );
+        $today     = new DateTimeImmutable( current_time( 'Y-m-d' ), $timezone );
+        if ( $birth > $today ) { return null; }
+
+        return (int) $birth->diff( $today )->y;
     }
 
     private static function send_export( $format, array $headers, array $rows ) {
