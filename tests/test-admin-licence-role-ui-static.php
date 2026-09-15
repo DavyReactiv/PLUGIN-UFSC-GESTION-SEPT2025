@@ -29,7 +29,7 @@ foreach ( array( 'ville_naissance', 'departement_naissance', 'pays_naissance' ) 
 $role_pos   = strpos( $front, 'name="role"' );
 $prenom_pos = strpos( $front, 'name="prenom"' );
 $assert( false !== $role_pos && false !== $prenom_pos && $role_pos < $prenom_pos, 'front role is rendered before identity input fields' );
-$assert( false !== strpos( $front, "var leaderRoles = ['president','secretaire','tresorier','dirigeant','entraineur','encadrant','responsable_technique'" ), 'front birth-place visibility is role-driven' );
+$assert( false !== strpos( $front, "var leaderRoles = ['president','secretaire','tresorier','entraineur','dirigeant','encadrant','responsable_technique'" ), 'front birth-place visibility is role-driven' );
 $assert( false !== strpos( $front, "field.style.display = required ? '' : 'none'" ), 'front hides birth-place fields for ordinary adherents' );
 $assert( false !== strpos( $admin, 'input.required=required' ), 'admin requirement follows the selected leadership role' );
 
