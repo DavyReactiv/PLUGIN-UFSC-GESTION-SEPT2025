@@ -27,7 +27,7 @@ $assert( false !== strpos( $canonical, ": 'active';" ), 'server defaults the clu
 $assert( false !== strpos( $canonical, "array( 'active', 'validated', 'valide' )" ), 'canonical active affiliation statuses are reused' );
 $assert( false !== strpos( $canonical, 'get_annual_affiliations_table' ), 'annual affiliation storage resolver is reused' );
 $assert( false !== strpos( $canonical, "REPLACE(a.season,'/','-')=%s" ), 'club active filter is scoped to the selected season' );
-$assert( false !== strpos( $canonical, "? $active_sql : 'NOT ' . $active_sql" ), 'active and inactive server filters share the same source of truth' );
+$assert( false !== strpos( $canonical, '? $active_sql : \'NOT \' . $active_sql' ), 'active and inactive server filters share the same source of truth' );
 
 $assert( false !== strpos( $loader, "class-licences-export-season-filter.php" ), 'season filter module is loaded' );
 $assert( false !== strpos( $loader, 'UFSC_Licences_Export_Season_Filter::init();' ), 'season filter module is initialized' );
