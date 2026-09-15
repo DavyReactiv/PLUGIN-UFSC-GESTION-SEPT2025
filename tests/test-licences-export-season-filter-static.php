@@ -29,7 +29,7 @@ $assert( false !== strpos( $canonical, 'ufsc_get_pack_season_storage_context' ),
 $assert( false !== strpos( $canonical, 'UFSC_Season_Archive_Manager::resolve_affiliation' ), 'club active filter reuses canonical annual affiliation resolver' );
 $assert( false !== strpos( $canonical, 'UFSC_Season_Archive_Manager::normalize_status' ), 'club active filter reuses canonical status normalization' );
 $assert( false !== strpos( $canonical, "array( 'active', 'validated' )" ), 'canonical active annual states are used after normalization' );
-$assert( false !== strpos( $canonical, "self::filter_rows_by_club_affiliation( $rows, $club_affiliation, $filter_season )" ), 'active and inactive filters share one resolver-backed source of truth' );
+$assert( false !== strpos( $canonical, 'self::filter_rows_by_club_affiliation( $rows, $club_affiliation, $filter_season )' ), 'active and inactive filters share one resolver-backed source of truth' );
 $assert( false !== strpos( $canonical, "grid.classList.add('ufsc-export-columns-grid')" ), 'export columns use a responsive grid' );
 
 $assert( false !== strpos( $loader, "class-licences-export-season-filter.php" ), 'season filter module is loaded' );
