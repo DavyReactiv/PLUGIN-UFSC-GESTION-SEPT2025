@@ -35,6 +35,38 @@ function ufsc_production_is_new_licence_write_request() {
 }
 
 /**
+ * Detect the legacy SQL-admin create form used by UFSC_SQL_Admin::handle_save_licence().
+ *
+ * This form posts directly back to admin.php?page=ufsc_lc_licences and uses
+ * `id=0` / no id for a new licence, so it does not pass through admin-post.php.
+ *
+ * @return bool
+ */
+function ufsc_production_is_new_admin_sql_licence_request() {
+    if ( ! is_admin() || ! is_user_logged_in() ) {
+        return false;
+    }
+
+    $method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) ) : '';
+    if ( 'POST' !== $method ) {
+        return false;
+    }
+
+    $page = isset( $_REQUEST['page'] ) && ! is_array( $_REQUEST['page'] )
+        ? sanitize_key( wp_unslash( $_REQUEST['page'] ) )
+        : '';
+    if ( 'ufsc_lc_licences' !== $page ) {
+        return false;
+    }
+
+    $licence_id = isset( $_POST['id'] ) && ! is_array( $_POST['id'] )
+        ? absint( wp_unslash( $_POST['id'] ) )
+        : 0;
+
+    return 0 === $licence_id;
+}
+
+/**
  * Detect the legacy SQL-admin edit form used by UFSC_SQL_Admin::handle_save_licence().
  *
  * That form posts back to the licences admin page (not admin-post.php) and uses
@@ -67,7 +99,7 @@ function ufsc_production_is_existing_admin_licence_update_request() {
 }
 
 /**
- * Omit a missing delegated licence number from NEW inserts and safe legacy
+ * Omit a missing delegated licence number from new inserts and safe legacy
  * admin updates.
  *
  * For existing licences we intentionally preserve the stored value instead of
@@ -83,9 +115,10 @@ function ufsc_production_optional_identifier_fields( $fields ) {
         return $fields;
     }
 
-    $is_new_request    = ufsc_production_is_new_licence_write_request();
-    $is_admin_update   = ufsc_production_is_existing_admin_licence_update_request();
-    if ( ! $is_new_request && ! $is_admin_update ) {
+    $is_new_request      = ufsc_production_is_new_licence_write_request();
+    $is_admin_new        = ufsc_production_is_new_admin_sql_licence_request();
+    $is_admin_update     = ufsc_production_is_existing_admin_licence_update_request();
+    if ( ! $is_new_request && ! $is_admin_new && ! $is_admin_update ) {
         return $fields;
     }
 
@@ -107,15 +140,20 @@ function ufsc_production_new_licence_optional_identifier_fields( $fields ) {
     return ufsc_production_optional_identifier_fields( $fields );
 }
 
+/** True for every supported new-licence mutation route. */
+function ufsc_production_is_any_new_licence_request() {
+    return ufsc_production_is_new_licence_write_request() || ufsc_production_is_new_admin_sql_licence_request();
+}
+
 /**
  * Guarantee the nullable schema immediately before a new licence mutation.
  *
  * The normal repair stays off public page rendering for performance. This hook
- * runs only on the authenticated admin-post creation request and only forces the
- * existing canonical repair when the live column is still NOT NULL.
+ * runs only on authenticated creation requests and only forces the existing
+ * canonical repair when the live column is still NOT NULL.
  */
 function ufsc_production_preflight_new_licence_identifier_schema() {
-    if ( ! ufsc_production_is_new_licence_write_request() || ! class_exists( 'UFSC_SQL' ) ) {
+    if ( ! ufsc_production_is_any_new_licence_request() || ! class_exists( 'UFSC_SQL' ) ) {
         return;
     }
     if ( ! function_exists( 'ufsc_production_prepare_optional_unique_identifiers' ) ) {
@@ -145,3 +183,4 @@ function ufsc_production_preflight_new_licence_identifier_schema() {
 }
 add_action( 'admin_post_ufsc_add_licence', 'ufsc_production_preflight_new_licence_identifier_schema', -100 );
 add_action( 'admin_post_ufsc_save_licence', 'ufsc_production_preflight_new_licence_identifier_schema', -100 );
+add_action( 'admin_init', 'ufsc_production_preflight_new_licence_identifier_schema', -100 );
