@@ -23,6 +23,25 @@ $current_role = isset( $licence->role ) && '' !== (string) $licence->role ? (str
 			<h2 class="ufsc-card-title"><?php esc_html_e( 'Informations personnelles', 'ufsc-clubs' ); ?></h2>
 
 			<div class="ufsc-grid">
+				<div class="ufsc-field ufsc-field-role">
+					<label for="role"><?php esc_html_e( 'Rôle / fonction au club', 'ufsc-clubs' ); ?></label>
+					<select id="role" name="role" required>
+						<option value="adherent"<?php selected( $current_role, 'adherent' ); ?>><?php esc_html_e( 'Adhérent / pratiquant', 'ufsc-clubs' ); ?></option>
+						<option value="president"<?php selected( $current_role, 'president' ); ?>><?php esc_html_e( 'Président', 'ufsc-clubs' ); ?></option>
+						<option value="secretaire"<?php selected( $current_role, 'secretaire' ); ?>><?php esc_html_e( 'Secrétaire', 'ufsc-clubs' ); ?></option>
+						<option value="tresorier"<?php selected( $current_role, 'tresorier' ); ?>><?php esc_html_e( 'Trésorier', 'ufsc-clubs' ); ?></option>
+						<option value="dirigeant"<?php selected( $current_role, 'dirigeant' ); ?>><?php esc_html_e( 'Dirigeant', 'ufsc-clubs' ); ?></option>
+						<option value="entraineur"<?php selected( $current_role, 'entraineur' ); ?>><?php esc_html_e( 'Entraîneur', 'ufsc-clubs' ); ?></option>
+						<option value="encadrant"<?php selected( $current_role, 'encadrant' ); ?>><?php esc_html_e( 'Encadrant', 'ufsc-clubs' ); ?></option>
+						<option value="responsable_technique"<?php selected( $current_role, 'responsable_technique' ); ?>><?php esc_html_e( 'Responsable technique', 'ufsc-clubs' ); ?></option>
+						<option value="instructeur"<?php selected( $current_role, 'instructeur' ); ?>><?php esc_html_e( 'Instructeur', 'ufsc-clubs' ); ?></option>
+						<option value="coach"<?php selected( $current_role, 'coach' ); ?>><?php esc_html_e( 'Coach', 'ufsc-clubs' ); ?></option>
+						<option value="educateur"<?php selected( $current_role, 'educateur' ); ?>><?php esc_html_e( 'Éducateur', 'ufsc-clubs' ); ?></option>
+						<option value="enseignant"<?php selected( $current_role, 'enseignant' ); ?>><?php esc_html_e( 'Enseignant', 'ufsc-clubs' ); ?></option>
+					</select>
+					<small class="description"><?php esc_html_e( 'Le rôle détermine si les informations complémentaires de naissance sont nécessaires.', 'ufsc-clubs' ); ?></small>
+				</div>
+
 				<div class="ufsc-field">
 					<label for="prenom"><?php esc_html_e( 'Prénom', 'ufsc-clubs' ); ?></label>
 					<input type="text" id="prenom" name="prenom" value="<?php echo esc_attr( $licence->prenom ?? '' ); ?>" required />
@@ -36,22 +55,6 @@ $current_role = isset( $licence->role ) && '' !== (string) $licence->role ? (str
 				<div class="ufsc-field">
 					<label for="date_naissance"><?php esc_html_e( 'Date de naissance', 'ufsc-clubs' ); ?></label>
 					<input type="date" id="date_naissance" name="date_naissance" value="<?php echo esc_attr( $licence->date_naissance ?? '' ); ?>" required />
-				</div>
-
-				<div class="ufsc-field ufsc-field-role">
-					<label for="role"><?php esc_html_e( 'Rôle / fonction', 'ufsc-clubs' ); ?></label>
-					<select id="role" name="role" required>
-						<option value="adherent"<?php selected( $current_role, 'adherent' ); ?>><?php esc_html_e( 'Adhérent / pratiquant', 'ufsc-clubs' ); ?></option>
-						<option value="president"<?php selected( $current_role, 'president' ); ?>><?php esc_html_e( 'Président', 'ufsc-clubs' ); ?></option>
-						<option value="secretaire"<?php selected( $current_role, 'secretaire' ); ?>><?php esc_html_e( 'Secrétaire', 'ufsc-clubs' ); ?></option>
-						<option value="tresorier"<?php selected( $current_role, 'tresorier' ); ?>><?php esc_html_e( 'Trésorier', 'ufsc-clubs' ); ?></option>
-						<option value="entraineur"<?php selected( $current_role, 'entraineur' ); ?>><?php esc_html_e( 'Entraîneur', 'ufsc-clubs' ); ?></option>
-						<option value="instructeur"<?php selected( $current_role, 'instructeur' ); ?>><?php esc_html_e( 'Instructeur', 'ufsc-clubs' ); ?></option>
-						<option value="coach"<?php selected( $current_role, 'coach' ); ?>><?php esc_html_e( 'Coach', 'ufsc-clubs' ); ?></option>
-						<option value="educateur"<?php selected( $current_role, 'educateur' ); ?>><?php esc_html_e( 'Éducateur', 'ufsc-clubs' ); ?></option>
-						<option value="enseignant"<?php selected( $current_role, 'enseignant' ); ?>><?php esc_html_e( 'Enseignant', 'ufsc-clubs' ); ?></option>
-					</select>
-					<small class="description"><?php esc_html_e( 'Le rôle détermine si les informations complémentaires FFST sont nécessaires.', 'ufsc-clubs' ); ?></small>
 				</div>
 
 				<div class="ufsc-field">
@@ -132,11 +135,12 @@ $current_role = isset( $licence->role ) && '' !== (string) $licence->role ? (str
 	var role = document.getElementById('role');
 	if (!role) return;
 	var fields = Array.prototype.slice.call(document.querySelectorAll('.ufsc-ffst-birthplace-field'));
-	var leaderRoles = ['president','secretaire','tresorier','entraineur','instructeur','coach','educateur','enseignant'];
+	var leaderRoles = ['president','secretaire','tresorier','dirigeant','entraineur','encadrant','responsable_technique','instructeur','coach','educateur','enseignant'];
 	function refresh(){
 		var required = leaderRoles.indexOf((role.value || '').toLowerCase()) !== -1;
 		fields.forEach(function(field){
 			field.style.display = required ? '' : 'none';
+			field.setAttribute('aria-hidden', required ? 'false' : 'true');
 			var input = field.querySelector('input');
 			if (input) input.required = required;
 		});
