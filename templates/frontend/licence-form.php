@@ -135,7 +135,7 @@ $current_role = isset( $licence->role ) && '' !== (string) $licence->role ? (str
 	var role = document.getElementById('role');
 	if (!role) return;
 	var fields = Array.prototype.slice.call(document.querySelectorAll('.ufsc-ffst-birthplace-field'));
-	var leaderRoles = ['president','secretaire','tresorier','dirigeant','entraineur','encadrant','responsable_technique','instructeur','coach','educateur','enseignant'];
+	var leaderRoles = ['president','secretaire','tresorier','entraineur','dirigeant','encadrant','responsable_technique','instructeur','coach','educateur','enseignant'];
 	function refresh(){
 		var required = leaderRoles.indexOf((role.value || '').toLowerCase()) !== -1;
 		fields.forEach(function(field){
