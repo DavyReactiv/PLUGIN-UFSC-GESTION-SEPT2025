@@ -11,9 +11,17 @@ $assert = static function ( $condition, $message ) use ( &$failed ) {
     }
 };
 
-foreach ( array( 'role', 'ville_naissance', 'departement_naissance', 'pays_naissance', 'numero_licence_ffst', 'numero_licence', 'season' ) as $field ) {
+foreach ( array( 'role', 'ville_naissance', 'departement_naissance', 'pays_naissance', 'numero_licence_ffst', 'numero_licence', 'season', 'age_export', 'moins_12_ans' ) as $field ) {
     $assert( false !== strpos( $module, "'{$field}'" ), "canonical export field {$field} is present" );
 }
+
+$assert( false !== strpos( $module, "'age_export'            => 'Âge au jour de l’export'" ), 'export exposes age at export date' );
+$assert( false !== strpos( $module, "'moins_12_ans'          => 'Moins de 12 ans'" ), 'export exposes under-12 marker' );
+$assert( false !== strpos( $module, "self::age_from_birthdate( \$row['date_naissance'] ?? '' )" ), 'age derives only from stored birth date' );
+$assert( false !== strpos( $module, "\$age < 12 ? 'Oui' : 'Non'" ), 'under-12 rule is strictly age below 12' );
+$assert( false !== strpos( $module, "current_time( 'Y-m-d' )" ), 'age uses the local WordPress export date' );
+$assert( false !== strpos( $module, 'checkdate(' ), 'invalid birth dates are rejected' );
+$assert( false !== strpos( $module, 'if ( $birth > $today ) { return null; }' ), 'future birth dates are not classified' );
 
 $assert( false !== strpos( $module, "'infos_fsasptt'" ), 'legacy FSASPTT field is explicitly hidden from the current export UI' );
 $assert( false !== strpos( $module, "'infos_asptt'" ), 'legacy ASPTT field is explicitly hidden from the current export UI' );
