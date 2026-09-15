@@ -19,15 +19,18 @@ $assert( false !== strpos( $module, "seasonSelect.name='filter_season'" ), 'seas
 $assert( false !== strpos( $module, "option.selected=season===currentSeason" ), 'current season is selected by default' );
 $assert( false !== strpos( $module, "all.value='all'" ), 'all seasons remains an explicit opt-in choice' );
 $assert( false !== strpos( $module, "clubSelect.name='filter_club_affiliation'" ), 'club affiliation selector is present' );
-$assert( false !== strpos( $module, '<option value="active" selected>Actifs — par défaut</option>' ), 'active clubs are selected by default' );
-$assert( false !== strpos( $module, '<option value="inactive">Non actifs</option>' ), 'inactive clubs remain selectable' );
+$assert( false !== strpos( $module, '<option value="active" selected>Clubs actifs — par défaut</option>' ), 'active clubs are selected by default' );
+$assert( false !== strpos( $module, '<option value="inactive">Clubs non actifs</option>' ), 'inactive clubs remain selectable' );
 $assert( false !== strpos( $module, '<option value="all">Tous les clubs</option>' ), 'all clubs remains an explicit choice' );
+$assert( false !== strpos( $module, "row.classList.add('ufsc-export-primary-filters')" ), 'filter layout is compact and responsive' );
 
 $assert( false !== strpos( $canonical, ": 'active';" ), 'server defaults the club affiliation filter to active' );
-$assert( false !== strpos( $canonical, "array( 'active', 'validated', 'valide' )" ), 'canonical active affiliation statuses are reused' );
-$assert( false !== strpos( $canonical, 'get_annual_affiliations_table' ), 'annual affiliation storage resolver is reused' );
-$assert( false !== strpos( $canonical, "REPLACE(a.season,'/','-')=%s" ), 'club active filter is scoped to the selected season' );
-$assert( false !== strpos( $canonical, '? $active_sql : \'NOT \' . $active_sql' ), 'active and inactive server filters share the same source of truth' );
+$assert( false !== strpos( $canonical, 'ufsc_get_pack_season_storage_context' ), 'licence season filter reuses canonical storage context' );
+$assert( false !== strpos( $canonical, 'UFSC_Season_Archive_Manager::resolve_affiliation' ), 'club active filter reuses canonical annual affiliation resolver' );
+$assert( false !== strpos( $canonical, 'UFSC_Season_Archive_Manager::normalize_status' ), 'club active filter reuses canonical status normalization' );
+$assert( false !== strpos( $canonical, "array( 'active', 'validated' )" ), 'canonical active annual states are used after normalization' );
+$assert( false !== strpos( $canonical, "self::filter_rows_by_club_affiliation( $rows, $club_affiliation, $filter_season )" ), 'active and inactive filters share one resolver-backed source of truth' );
+$assert( false !== strpos( $canonical, "grid.classList.add('ufsc-export-columns-grid')" ), 'export columns use a responsive grid' );
 
 $assert( false !== strpos( $loader, "class-licences-export-season-filter.php" ), 'season filter module is loaded' );
 $assert( false !== strpos( $loader, 'UFSC_Licences_Export_Season_Filter::init();' ), 'season filter module is initialized' );
