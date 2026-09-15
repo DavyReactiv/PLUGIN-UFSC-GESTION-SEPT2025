@@ -2,10 +2,10 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
- * Adds a season selector to the licences export screen.
+ * Adds season and active-club selectors to the licences export screen.
  *
- * UI-only/read-only: the selected season is posted through the existing
- * filter_season parameter already handled by UFSC_Licences_Canonical_Export.
+ * UI-only/read-only: values are posted through filters handled by
+ * UFSC_Licences_Canonical_Export. No licence or club data is mutated here.
  */
 final class UFSC_Licences_Export_Season_Filter {
     public static function init() {
@@ -63,55 +63,76 @@ final class UFSC_Licences_Export_Season_Filter {
                 if(!form)return;
 
                 var entity=form.querySelector('[name="export_entity"]');
-                var existing=form.querySelector('select[name="filter_season"]');
-                if(existing){
-                    if(!existing.value||existing.value==='__current')existing.value=currentSeason;
-                    return;
-                }
-
                 var visibility=form.querySelector('select[name="filter_visibility"]');
                 if(!visibility)return;
                 var anchor=visibility.parentElement;
                 var row=anchor&&anchor.parentElement?anchor.parentElement:null;
                 if(!row)return;
 
-                var wrap=document.createElement('div');
-                wrap.className='ufsc-export-season-filter';
-                wrap.style.minWidth='190px';
+                var seasonWrap=document.createElement('div');
+                seasonWrap.className='ufsc-export-season-filter';
+                seasonWrap.style.minWidth='190px';
 
-                var label=document.createElement('label');
-                label.htmlFor='ufsc_filter_season';
-                label.textContent='Saison';
-                label.style.display='block';
-                label.style.marginBottom='6px';
+                var seasonLabel=document.createElement('label');
+                seasonLabel.htmlFor='ufsc_filter_season';
+                seasonLabel.textContent='Saison';
+                seasonLabel.style.display='block';
+                seasonLabel.style.marginBottom='6px';
 
-                var select=document.createElement('select');
-                select.id='ufsc_filter_season';
-                select.name='filter_season';
-                select.style.width='100%';
-                select.style.minHeight='32px';
+                var seasonSelect=form.querySelector('select[name="filter_season"]');
+                if(!seasonSelect){
+                    seasonSelect=document.createElement('select');
+                    seasonSelect.id='ufsc_filter_season';
+                    seasonSelect.name='filter_season';
+                    seasonSelect.style.width='100%';
+                    seasonSelect.style.minHeight='32px';
 
-                seasons.forEach(function(season){
-                    var option=document.createElement('option');
-                    option.value=season;
-                    option.textContent=season+(season===currentSeason?' — saison en cours':'');
-                    option.selected=season===currentSeason;
-                    select.appendChild(option);
-                });
+                    seasons.forEach(function(season){
+                        var option=document.createElement('option');
+                        option.value=season;
+                        option.textContent=season+(season===currentSeason?' — saison en cours':'');
+                        option.selected=season===currentSeason;
+                        seasonSelect.appendChild(option);
+                    });
 
-                var all=document.createElement('option');
-                all.value='all';
-                all.textContent='Toutes les saisons';
-                select.appendChild(all);
+                    var all=document.createElement('option');
+                    all.value='all';
+                    all.textContent='Toutes les saisons';
+                    seasonSelect.appendChild(all);
+                    seasonWrap.appendChild(seasonLabel);
+                    seasonWrap.appendChild(seasonSelect);
+                    row.appendChild(seasonWrap);
+                }else{
+                    if(!seasonSelect.value||seasonSelect.value==='__current')seasonSelect.value=currentSeason;
+                    seasonWrap=seasonSelect.closest('.ufsc-export-season-filter')||seasonSelect.parentElement;
+                }
 
-                wrap.appendChild(label);
-                wrap.appendChild(select);
-                row.appendChild(wrap);
+                var clubWrap=document.createElement('div');
+                clubWrap.className='ufsc-export-active-club-filter';
+                clubWrap.style.minWidth='190px';
+
+                var clubLabel=document.createElement('label');
+                clubLabel.htmlFor='ufsc_filter_club_affiliation';
+                clubLabel.textContent='Clubs';
+                clubLabel.style.display='block';
+                clubLabel.style.marginBottom='6px';
+
+                var clubSelect=document.createElement('select');
+                clubSelect.id='ufsc_filter_club_affiliation';
+                clubSelect.name='filter_club_affiliation';
+                clubSelect.style.width='100%';
+                clubSelect.style.minHeight='32px';
+                clubSelect.innerHTML='<option value="active" selected>Actifs — par défaut</option><option value="inactive">Non actifs</option><option value="all">Tous les clubs</option>';
+                clubWrap.appendChild(clubLabel);
+                clubWrap.appendChild(clubSelect);
+                row.appendChild(clubWrap);
 
                 function syncVisibility(){
                     var isLicences=!entity||entity.value!=='clubs';
-                    wrap.style.display=isLicences?'block':'none';
-                    select.disabled=!isLicences;
+                    seasonWrap.style.display=isLicences?'block':'none';
+                    clubWrap.style.display=isLicences?'block':'none';
+                    seasonSelect.disabled=!isLicences;
+                    clubSelect.disabled=!isLicences;
                 }
                 if(entity)entity.addEventListener('change',syncVisibility);
                 syncVisibility();
