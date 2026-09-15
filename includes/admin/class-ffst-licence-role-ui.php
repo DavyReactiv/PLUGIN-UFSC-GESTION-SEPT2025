@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
- * Harmonise l'UX du rôle licence dans l'admin UFSC.
+ * Harmonise l'UX du rôle licence dans l'admin UFSC et le wizard club réel.
  *
  * Une seule source de vérité est utilisée : la colonne licence `role` déjà
  * existante. Ce module ne crée aucune donnée et ne modifie aucune licence.
@@ -10,6 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * - le rôle est placé en tête des informations personnelles ;
  * - les champs FFST de lieu de naissance restent masqués pour les adhérents ;
  * - ils sont affichés pour les dirigeants / encadrants concernés ;
+ * - les valeurs historiques de lieu de naissance sont relues sans être vidées ;
  * - la liste admin affiche le rôle via une seule lecture groupée, sans requête
  *   par ligne et sans modifier la requête principale de la page Licences.
  */
@@ -24,6 +25,7 @@ final class UFSC_FFST_Licence_Role_UI {
 
     public static function init() {
         add_action( 'admin_footer', array( __CLASS__, 'render' ), 60 );
+        add_action( 'wp_footer', array( __CLASS__, 'render_front_wizard_script' ), 60 );
         add_action( 'wp_ajax_ufsc_admin_licence_roles', array( __CLASS__, 'ajax_roles' ) );
     }
 
@@ -41,6 +43,14 @@ final class UFSC_FFST_Licence_Role_UI {
             'coach'                 => __( 'Coach', 'ufsc-clubs' ),
             'educateur'             => __( 'Éducateur', 'ufsc-clubs' ),
             'enseignant'            => __( 'Enseignant', 'ufsc-clubs' ),
+        );
+    }
+
+    private static function leader_roles() {
+        return array(
+            'president', 'secretaire', 'tresorier', 'dirigeant', 'entraineur',
+            'encadrant', 'responsable_technique', 'instructeur', 'coach',
+            'educateur', 'enseignant',
         );
     }
 
@@ -67,6 +77,69 @@ final class UFSC_FFST_Licence_Role_UI {
             ? sanitize_key( wp_unslash( $_GET['page'] ) )
             : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         return in_array( $page, self::$pages, true );
+    }
+
+    /**
+     * Return the existing birthplace values for a licence without modifying it.
+     *
+     * @param int $licence_id Licence id.
+     * @return array<string,string>
+     */
+    private static function get_licence_birthplace_payload( $licence_id ) {
+        $payload = array(
+            'ville_naissance'       => '',
+            'departement_naissance' => '',
+            'pays_naissance'        => '',
+        );
+        $licence_id = absint( $licence_id );
+        if ( ! $licence_id || ! class_exists( 'UFSC_SQL' ) ) { return $payload; }
+
+        global $wpdb;
+        $settings = (array) UFSC_SQL::get_settings();
+        $table    = preg_replace( '/[^A-Za-z0-9_]/', '', (string) ( $settings['table_licences'] ?? '' ) );
+        $pk       = preg_replace( '/[^A-Za-z0-9_]/', '', (string) ( $settings['pk_licence'] ?? 'id' ) );
+        $columns  = function_exists( 'ufsc_table_columns' ) ? (array) ufsc_table_columns( $table ) : array();
+        if ( '' === $table || '' === $pk || empty( $columns ) ) { return $payload; }
+
+        $select = array();
+        foreach ( array_keys( $payload ) as $field ) {
+            if ( in_array( $field, $columns, true ) ) { $select[] = '`' . $field . '`'; }
+        }
+        if ( empty( $select ) ) { return $payload; }
+
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                'SELECT ' . implode( ',', $select ) . " FROM `{$table}` WHERE `{$pk}`=%d LIMIT 1",
+                $licence_id
+            ),
+            ARRAY_A
+        ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery
+
+        if ( ! is_array( $row ) ) { return $payload; }
+        foreach ( array_keys( $payload ) as $field ) {
+            if ( array_key_exists( $field, $row ) ) { $payload[ $field ] = (string) $row[ $field ]; }
+        }
+        return $payload;
+    }
+
+    private static function requested_admin_licence_id() {
+        foreach ( array( 'id', 'licence_id' ) as $key ) {
+            if ( isset( $_GET[ $key ] ) && ! is_array( $_GET[ $key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                $id = absint( wp_unslash( $_GET[ $key ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                if ( $id ) { return $id; }
+            }
+        }
+        return 0;
+    }
+
+    private static function requested_front_licence_id() {
+        foreach ( array( 'edit_licence', 'licence_id' ) as $key ) {
+            if ( isset( $_GET[ $key ] ) && ! is_array( $_GET[ $key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                $id = absint( wp_unslash( $_GET[ $key ] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                if ( $id ) { return $id; }
+            }
+        }
+        return 0;
     }
 
     /**
@@ -136,18 +209,32 @@ final class UFSC_FFST_Licence_Role_UI {
 
     private static function render_form_script( $action ) {
         $role_options = self::role_labels();
-        $leader_roles = array(
-            'president', 'secretaire', 'tresorier', 'dirigeant', 'entraineur',
-            'encadrant', 'responsable_technique', 'instructeur', 'coach',
-            'educateur', 'enseignant',
-        );
+        $leader_roles = self::leader_roles();
+        $birthplace   = self::get_licence_birthplace_payload( self::requested_admin_licence_id() );
         ?>
         <script>
         (function(){
             var leaderRoles=<?php echo wp_json_encode( array_values( $leader_roles ) ); ?>;
             var roleOptions=<?php echo wp_json_encode( $role_options ); ?>;
+            var birthplaceData=<?php echo wp_json_encode( $birthplace ); ?>;
             function ready(fn){if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',fn);}else{fn();}}
             function wrap(el){return el && (el.closest('.ufsc-field,.form-field,.field,.ufsc-admin-field,.ufsc-form-field,tr')||el.parentNode);}
+            function addBirthplaceField(name,label,anchor){
+                var existing=document.querySelector('[name="'+name+'"]');
+                if(existing)return existing;
+                if(!anchor || !anchor.parentNode)return null;
+                var field=document.createElement('div');
+                field.className='ufsc-field ufsc-ffst-birthplace-field';
+                var lab=document.createElement('label');
+                lab.setAttribute('for',name);
+                lab.textContent=label;
+                var input=document.createElement('input');
+                input.type='text';input.id=name;input.name=name;input.autocomplete='off';
+                input.value=birthplaceData[name]||'';
+                field.appendChild(lab);field.appendChild(input);
+                anchor.parentNode.insertBefore(field,anchor.nextSibling);
+                return input;
+            }
             ready(function(){
                 var role=document.querySelector('select[name="role"]');
                 if(!role)return;
@@ -175,6 +262,14 @@ final class UFSC_FFST_Licence_Role_UI {
                     identityGrid.insertBefore(roleWrap,identityGrid.firstElementChild);
                 }
 
+                /* Le formulaire SQL admin ne rendait pas ces champs : on les ajoute une seule fois. */
+                var anchor=dateWrap||roleWrap;
+                var ville=addBirthplaceField('ville_naissance','Ville de naissance',anchor);
+                if(ville)anchor=wrap(ville)||anchor;
+                var departement=addBirthplaceField('departement_naissance','Département de naissance',anchor);
+                if(departement)anchor=wrap(departement)||anchor;
+                addBirthplaceField('pays_naissance','Pays de naissance',anchor);
+
                 var birthplaceInputs=['ville_naissance','departement_naissance','pays_naissance'].map(function(name){return document.querySelector('[name="'+name+'"]');}).filter(Boolean);
                 birthplaceInputs.forEach(function(input){var field=wrap(input);if(field)field.classList.add('ufsc-ffst-birthplace-field');});
 
@@ -189,6 +284,78 @@ final class UFSC_FFST_Licence_Role_UI {
                 }
                 role.addEventListener('change',refresh);
                 refresh();
+            });
+        })();
+        </script>
+        <?php
+    }
+
+    /**
+     * Keep the real six-step club wizard aligned with the admin form without
+     * duplicating the licence business logic.
+     */
+    public static function render_front_wizard_script() {
+        if ( is_admin() || ! is_user_logged_in() ) { return; }
+        $role_options = self::role_labels();
+        $leader_roles = self::leader_roles();
+        $birthplace   = self::get_licence_birthplace_payload( self::requested_front_licence_id() );
+        ?>
+        <script>
+        (function(){
+            var leaderRoles=<?php echo wp_json_encode( array_values( $leader_roles ) ); ?>;
+            var roleOptions=<?php echo wp_json_encode( $role_options ); ?>;
+            var birthplaceData=<?php echo wp_json_encode( $birthplace ); ?>;
+            function ready(fn){if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',fn);}else{fn();}}
+            function fieldWrap(el){return el && (el.closest('.ufsc-field,.form-field,.field,.ufsc-form-field')||el.parentNode);}
+            function addField(name,label,anchor){
+                var existing=document.querySelector('.ufsc-licence-wizard-progress ~ * [name="'+name+'"]')||document.querySelector('[name="'+name+'"]');
+                if(existing)return existing;
+                if(!anchor || !anchor.parentNode)return null;
+                var field=document.createElement('div');field.className='ufsc-field ufsc-ffst-birthplace-field';
+                var lab=document.createElement('label');lab.setAttribute('for',name);lab.textContent=label+' *';
+                var input=document.createElement('input');input.type='text';input.id=name;input.name=name;input.autocomplete='off';input.value=birthplaceData[name]||'';
+                field.appendChild(lab);field.appendChild(input);anchor.parentNode.insertBefore(field,anchor.nextSibling);return input;
+            }
+            ready(function(){
+                var wizard=document.querySelector('.ufsc-licence-wizard-progress');
+                if(!wizard)return;
+                var form=wizard.closest('form');
+                if(!form)return;
+                var role=form.querySelector('select[name="role"]');
+                var nom=form.querySelector('[name="nom"]');
+                var birthDate=form.querySelector('[name="date_naissance"]');
+                if(!role || !nom || !birthDate)return;
+
+                Object.keys(roleOptions).forEach(function(value){
+                    var existing=role.querySelector('option[value="'+value+'"]');
+                    if(!existing){var option=document.createElement('option');option.value=value;option.textContent=roleOptions[value];role.appendChild(option);}else{existing.textContent=roleOptions[value];}
+                });
+                if(!role.value){role.value='adherent';}
+                role.required=true;
+
+                var roleWrap=fieldWrap(role);
+                var nomWrap=fieldWrap(nom);
+                var identityCard=nomWrap ? nomWrap.closest('.ufsc-card.ufsc-form-section') : null;
+                if(roleWrap && identityCard && roleWrap.parentNode!==identityCard){identityCard.insertBefore(roleWrap,nomWrap||identityCard.firstElementChild);}
+                else if(roleWrap && identityCard && roleWrap!==identityCard.firstElementChild){identityCard.insertBefore(roleWrap,nomWrap||identityCard.firstElementChild);}
+
+                var anchor=fieldWrap(birthDate)||roleWrap;
+                var ville=addField('ville_naissance','Ville de naissance',anchor);
+                if(ville)anchor=fieldWrap(ville)||anchor;
+                var departement=addField('departement_naissance','Département de naissance',anchor);
+                if(departement)anchor=fieldWrap(departement)||anchor;
+                addField('pays_naissance','Pays de naissance',anchor);
+
+                var inputs=['ville_naissance','departement_naissance','pays_naissance'].map(function(name){return form.querySelector('[name="'+name+'"]');}).filter(Boolean);
+                function refresh(){
+                    var required=leaderRoles.indexOf((role.value||'').toLowerCase())!==-1;
+                    inputs.forEach(function(input){
+                        var field=fieldWrap(input);
+                        if(field){field.style.display=required?'':'none';field.setAttribute('aria-hidden',required?'false':'true');}
+                        input.required=required;
+                    });
+                }
+                role.addEventListener('change',refresh);refresh();
             });
         })();
         </script>
