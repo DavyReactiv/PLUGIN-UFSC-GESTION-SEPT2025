@@ -84,13 +84,13 @@ function ufsc_pack_row_consumes_slot( $row ) {
 	if ( ! empty( $data['deleted_at'] ) && '0000-00-00 00:00:00' !== (string) $data['deleted_at'] ) {
 		return false;
 	}
-	if ( ! empty( $data['is_included'] ) ) {
-		return true;
-	}
-
 	$status = ufsc_pack_row_status( $data );
 	if ( ! in_array( $status, array( 'en_attente', 'valide', 'validee', 'validated' ), true ) ) {
 		return false;
+	}
+
+	if ( ! empty( $data['is_included'] ) ) {
+		return true;
 	}
 
 	$payment = sanitize_key( (string) ( $data['payment_link_status'] ?? ( $data['payment_status'] ?? '' ) ) );
