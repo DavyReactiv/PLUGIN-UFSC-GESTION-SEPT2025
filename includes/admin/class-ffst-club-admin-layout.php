@@ -23,6 +23,8 @@ final class UFSC_FFST_Club_Admin_Layout {
         <style>
             .ufsc-ffst-admin-layout{margin-top:16px}
             .ufsc-ffst-admin-layout__intro{margin:0 0 14px;color:#50575e}
+            .ufsc-ffst-admin-layout__status{margin:12px 0 16px;padding:12px 14px;border:1px solid #dcdcde;border-radius:8px;background:#f7f9fb}
+            .ufsc-ffst-admin-layout__status .ufsc-ffst-progress{margin-top:0}
             .ufsc-ffst-leaders{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px}
             .ufsc-ffst-leader{border:1px solid #dcdcde;border-radius:10px;background:#fbfbfc;padding:16px;min-width:0}
             .ufsc-ffst-leader__title{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid #e5e7eb;color:#0b4a78;font-size:15px;font-weight:700}
@@ -127,8 +129,16 @@ final class UFSC_FFST_Club_Admin_Layout {
                 var header=document.createElement('header');header.className='ufsc-admin-card-header';
                 var h=document.createElement('h3');h.textContent='Affiliation & dossier FFST';header.appendChild(h);section.appendChild(header);
                 var intro=document.createElement('p');intro.className='ufsc-ffst-admin-layout__intro';intro.textContent='Informations utilisées pour préparer et préremplir les documents officiels FFST. Les champs restent non bloquants.';section.appendChild(intro);
-                var grid=document.createElement('div');grid.className='ufsc-ffst-admin-grid';section.appendChild(grid);
 
+                var legacy=document.querySelector('.ufsc-ffst-profile-box');
+                if(legacy){
+                    var status=document.createElement('div');status.className='ufsc-ffst-admin-layout__status';
+                    ['.ufsc-ffst-progress','.ufsc-ffst-summary','details'].forEach(function(selector){var node=legacy.querySelector(selector);if(node)status.appendChild(node);});
+                    if(status.children.length)section.appendChild(status);
+                    legacy.remove();
+                }
+
+                var grid=document.createElement('div');grid.className='ufsc-ffst-admin-grid';section.appendChild(grid);
                 ffstGroups.forEach(function(group){
                     grid.appendChild(heading(group.title));
                     group.fields.forEach(function(name){move(name,grid,'');});
