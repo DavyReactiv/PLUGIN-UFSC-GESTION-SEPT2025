@@ -13,8 +13,6 @@ final class UFSC_FFST_Leaders_Export_Fix {
     const TEMPLATE_BASENAME = '02-BORDEREAU-LICENCES-DIRIGEANTS-26-27.xls';
 
     public static function init() {
-        // Le générateur historique reste intact ; seule cette action d'export
-        // est remplacée pour garantir le préremplissage du modèle officiel.
         remove_action( 'admin_post_' . self::ACTION, array( 'UFSC_FFST_Export_Admin', 'handle_generate_licences' ) );
         add_action( 'admin_post_' . self::ACTION, array( __CLASS__, 'handle_generate' ) );
     }
@@ -50,24 +48,16 @@ final class UFSC_FFST_Leaders_Export_Fix {
         }
 
         $licences = self::get_licences( $club_id, $season );
-        $people   = self::build_officers( $club, $licences );
+        $officers = self::build_officers( $club, $licences );
+        $people   = array_values( array_filter( $officers, array( __CLASS__, 'has_identity' ) ) );
 
         try {
             $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load( $template );
             $sheet = $spreadsheet->getActiveSheet();
-            $mapping = self::detect_table_mapping( $sheet );
-
-            if ( empty( $mapping['header_row'] ) || empty( $mapping['nom'] ) || empty( $mapping['prenom'] ) ) {
-                throw new RuntimeException( 'En-têtes du tableau dirigeants non détectés dans le modèle officiel.' );
-            }
 
             self::fill_club_header( $sheet, $club, $season );
-            $row = (int) $mapping['header_row'] + 1;
-            foreach ( $people as $person ) {
-                self::write_person( $sheet, $row, $mapping, $person, $season );
-                $row++;
-            }
-            self::write_control_sheet( $spreadsheet, $club, $people, $season );
+            self::fill_official_blocks( $sheet, $people );
+            self::write_control_sheet( $spreadsheet, $club, $officers, $people, $season );
 
             $filename = 'ffst-licences-dirigeants-' . sanitize_title( self::value( $club, array( 'nom', 'name', 'club_name' ) ) ?: 'club-' . $club_id ) . '-' . sanitize_title( $season ) . '.xlsx';
             $tmp = wp_tempnam( $filename );
@@ -133,60 +123,65 @@ final class UFSC_FFST_Leaders_Export_Fix {
 
     private static function build_officers( $club, array $licences ) {
         $roles = array(
-            'president'  => array( 'label' => 'PR', 'needles' => array( 'president', 'président' ) ),
-            'secretaire' => array( 'label' => 'S',  'needles' => array( 'secretaire', 'secrétaire' ) ),
-            'tresorier'  => array( 'label' => 'TR', 'needles' => array( 'tresorier', 'trésorier' ) ),
-            'entraineur' => array( 'label' => 'E',  'needles' => array( 'entraineur', 'entraîneur', 'instructeur', 'coach' ) ),
+            'president'  => array( 'label' => 'PR', 'name' => 'Président',  'needles' => array( 'president', 'président' ) ),
+            'secretaire' => array( 'label' => 'S',  'name' => 'Secrétaire', 'needles' => array( 'secretaire', 'secrétaire' ) ),
+            'tresorier'  => array( 'label' => 'TR', 'name' => 'Trésorier',  'needles' => array( 'tresorier', 'trésorier' ) ),
+            'entraineur' => array( 'label' => 'E',  'name' => 'Entraîneur / instructeur', 'needles' => array( 'entraineur', 'entraîneur', 'instructeur', 'coach' ) ),
         );
         $people = array();
 
         foreach ( $roles as $prefix => $role ) {
             $licence = self::find_role_licence( $licences, $role['needles'] );
             $person = array(
+                'role_name' => $role['name'],
                 'fonction' => $role['label'],
                 'nom' => self::value( $club, array( $prefix . '_nom' ) ),
                 'prenom' => self::value( $club, array( $prefix . '_prenom' ) ),
-                'date_naissance' => self::value( $club, array( $prefix . '_date_naissance' ) ),
-                'lieu_naissance' => self::join_non_empty( array(
-                    self::value( $club, array( $prefix . '_ville_naissance' ) ),
-                    self::value( $club, array( $prefix . '_departement_naissance' ) ),
-                    self::value( $club, array( $prefix . '_pays_naissance' ) ),
-                ), ' - ' ),
+                'date_naissance' => self::clean_date( self::value( $club, array( $prefix . '_date_naissance' ) ) ),
+                'ville_naissance' => self::value( $club, array( $prefix . '_ville_naissance' ) ),
+                'departement_naissance' => self::value( $club, array( $prefix . '_departement_naissance' ) ),
+                'pays_naissance' => self::value( $club, array( $prefix . '_pays_naissance' ) ),
+                'pere' => self::value( $club, array( $prefix . '_pere', $prefix . '_pere_nom_prenom' ) ),
+                'mere' => self::value( $club, array( $prefix . '_mere', $prefix . '_mere_nom_prenom' ) ),
                 'adresse' => self::value( $club, array( $prefix . '_adresse' ) ),
                 'complement_adresse' => self::value( $club, array( $prefix . '_complement_adresse' ) ),
                 'code_postal' => self::value( $club, array( $prefix . '_code_postal' ) ),
                 'ville' => self::value( $club, array( $prefix . '_ville' ) ),
                 'telephone' => self::value( $club, array( $prefix . '_tel', $prefix . '_telephone' ) ),
                 'email' => self::value( $club, array( $prefix . '_email' ) ),
+                'genre' => '',
                 'numero_ffst' => $licence ? self::value( $licence, array( 'numero_licence_ffst', 'licence_ffst' ) ) : '',
-                'numero_ufsc' => $licence ? self::value( $licence, array( 'numero_licence_ufsc', 'numero_licence', 'licence_number' ) ) : '',
             );
 
             if ( $licence ) {
-                foreach ( array( 'nom', 'prenom', 'date_naissance', 'email', 'telephone', 'adresse', 'code_postal', 'ville' ) as $key ) {
+                $fallbacks = array(
+                    'nom' => array( 'nom', 'nom_licence', 'last_name' ),
+                    'prenom' => array( 'prenom', 'first_name' ),
+                    'date_naissance' => array( 'date_naissance', 'birth_date', 'dob' ),
+                    'email' => array( 'email', 'mail' ),
+                    'telephone' => array( 'telephone', 'tel', 'phone' ),
+                    'adresse' => array( 'adresse', 'address' ),
+                    'code_postal' => array( 'code_postal', 'postal_code', 'cp' ),
+                    'ville' => array( 'ville', 'city' ),
+                    'genre' => array( 'sexe', 'genre', 'gender' ),
+                    'ville_naissance' => array( 'ville_naissance', 'birth_city' ),
+                    'departement_naissance' => array( 'departement_naissance', 'dept_naissance', 'birth_department' ),
+                    'pays_naissance' => array( 'pays_naissance', 'birth_country' ),
+                );
+                foreach ( $fallbacks as $key => $keys ) {
                     if ( '' === trim( (string) $person[ $key ] ) ) {
-                        $fallbacks = array(
-                            'nom' => array( 'nom', 'nom_licence', 'last_name' ),
-                            'prenom' => array( 'prenom', 'first_name' ),
-                            'date_naissance' => array( 'date_naissance', 'birth_date', 'dob' ),
-                            'email' => array( 'email', 'mail' ),
-                            'telephone' => array( 'telephone', 'tel', 'phone' ),
-                            'adresse' => array( 'adresse', 'address' ),
-                            'code_postal' => array( 'code_postal', 'postal_code', 'cp' ),
-                            'ville' => array( 'ville', 'city' ),
-                        );
-                        $person[ $key ] = self::value( $licence, $fallbacks[ $key ] );
+                        $person[ $key ] = self::value( $licence, $keys );
+                        if ( 'date_naissance' === $key ) { $person[ $key ] = self::clean_date( $person[ $key ] ); }
                     }
                 }
             }
-
-            // Le président, secrétaire et trésorier viennent du compte club :
-            // ils doivent apparaître même si la licence FFST n'est pas encore attribuée.
-            if ( 'entraineur' !== $prefix || self::has_identity( $person ) ) {
-                $people[] = $person;
-            }
+            $people[] = $person;
         }
         return $people;
+    }
+
+    public static function has_identity( array $person ) {
+        return '' !== trim( (string) $person['nom'] ) || '' !== trim( (string) $person['prenom'] );
     }
 
     private static function find_role_licence( array $licences, array $needles ) {
@@ -199,103 +194,88 @@ final class UFSC_FFST_Leaders_Export_Fix {
         return null;
     }
 
-    private static function has_identity( array $person ) {
-        return '' !== trim( (string) $person['nom'] ) || '' !== trim( (string) $person['prenom'] );
-    }
-
-    private static function normalize_label( $value ) {
-        $value = strtolower( remove_accents( trim( (string) $value ) ) );
-        $value = preg_replace( '/[^a-z0-9]+/', ' ', $value );
-        return trim( preg_replace( '/\s+/', ' ', $value ) );
-    }
-
-    private static function detect_table_mapping( $sheet ) {
-        $mapping = array( 'header_row' => 0 );
-        $highest_row = min( 80, (int) $sheet->getHighestDataRow() );
-        $highest_col = min( 40, \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString( $sheet->getHighestDataColumn() ) );
-        $best_score = 0;
-
-        for ( $row = 1; $row <= $highest_row; $row++ ) {
-            $candidate = array( 'header_row' => $row );
-            for ( $col = 1; $col <= $highest_col; $col++ ) {
-                $label = self::normalize_label( $sheet->getCellByColumnAndRow( $col, $row )->getFormattedValue() );
-                if ( '' === $label ) { continue; }
-                if ( false !== strpos( $label, 'nom de naissance' ) || 'nom' === $label ) { $candidate['nom'] = $col; }
-                elseif ( false !== strpos( $label, 'prenom' ) && false === strpos( $label, 'pere' ) && false === strpos( $label, 'mere' ) ) { $candidate['prenom'] = $col; }
-                elseif ( false !== strpos( $label, 'date de naissance' ) ) { $candidate['date_naissance'] = $col; }
-                elseif ( false !== strpos( $label, 'lieu de naissance' ) ) { $candidate['lieu_naissance'] = $col; }
-                elseif ( false !== strpos( $label, 'adresse personnelle' ) || 'adresse' === $label ) { $candidate['adresse'] = $col; }
-                elseif ( false !== strpos( $label, 'code postal' ) ) { $candidate['code_postal'] = $col; }
-                elseif ( 'ville' === $label ) { $candidate['ville'] = $col; }
-                elseif ( false !== strpos( $label, 'fonction' ) ) { $candidate['fonction'] = $col; }
-                elseif ( false !== strpos( $label, 'mail' ) || false !== strpos( $label, 'email' ) ) { $candidate['email'] = $col; }
-                elseif ( false !== strpos( $label, 'licence' ) && ( false !== strpos( $label, 'ffst' ) || false !== strpos( $label, 'n licence' ) || false !== strpos( $label, 'no licence' ) ) ) { $candidate['numero_ffst'] = $col; }
-            }
-            $score = count( array_intersect( array( 'nom', 'prenom', 'date_naissance', 'fonction', 'adresse' ), array_keys( $candidate ) ) );
-            if ( $score > $best_score ) { $best_score = $score; $mapping = $candidate; }
-            if ( $score >= 4 && ! empty( $candidate['nom'] ) && ! empty( $candidate['prenom'] ) ) { break; }
+    /**
+     * Le bordereau FFST officiel n'est pas un tableau continu : chaque personne
+     * dispose d'un bloc de 8 lignes. Les blocs commencent aux lignes 16,24,32,40,48.
+     */
+    private static function fill_official_blocks( $sheet, array $people ) {
+        $block_rows = array( 16, 24, 32, 40, 48 );
+        foreach ( array_slice( $people, 0, count( $block_rows ) ) as $index => $person ) {
+            self::fill_official_person_block( $sheet, $block_rows[ $index ], $person );
         }
-        return $mapping;
     }
 
-    private static function write_person( $sheet, $row, array $mapping, array $person, $season ) {
+    private static function fill_official_person_block( $sheet, $row, array $person ) {
         $address = self::join_non_empty( array( $person['adresse'], $person['complement_adresse'], $person['code_postal'], $person['ville'] ), ' ' );
-        $values = array(
-            'nom' => $person['nom'],
-            'prenom' => $person['prenom'],
-            'date_naissance' => $person['date_naissance'],
-            'lieu_naissance' => $person['lieu_naissance'],
-            'adresse' => $address,
-            'code_postal' => $person['code_postal'],
-            'ville' => $person['ville'],
-            'fonction' => $person['fonction'],
-            'email' => $person['email'],
-            'numero_ffst' => $person['numero_ffst'],
-            'saison' => $season,
-        );
-        foreach ( $values as $key => $value ) {
-            if ( ! empty( $mapping[ $key ] ) ) { $sheet->setCellValueByColumnAndRow( (int) $mapping[ $key ], (int) $row, (string) $value ); }
+        $birth_fr = self::join_non_empty( array( $person['ville_naissance'], $person['departement_naissance'] ), ' - ' );
+        $birth_foreign = self::join_non_empty( array( $person['pays_naissance'], $person['ville_naissance'] ), ' - ' );
+        $country = strtolower( remove_accents( trim( (string) $person['pays_naissance'] ) ) );
+        $is_foreign = $country && ! in_array( $country, array( 'france', 'fr', 'francaise', 'francais' ), true );
+        $gender = strtolower( remove_accents( trim( (string) $person['genre'] ) ) );
+
+        self::set_cell( $sheet, 'B' . $row, $person['numero_ffst'] );
+        self::set_cell( $sheet, 'C' . $row, $person['nom'] );
+        self::set_cell( $sheet, 'D' . $row, $person['prenom'] );
+        if ( in_array( $gender, array( 'm', 'masculin', 'homme', 'male' ), true ) ) { self::set_cell( $sheet, 'E' . $row, 'X' ); }
+        if ( in_array( $gender, array( 'f', 'feminin', 'femme', 'female' ), true ) ) { self::set_cell( $sheet, 'F' . $row, 'X' ); }
+        self::set_cell( $sheet, 'G' . $row, $person['date_naissance'] );
+        self::set_cell( $sheet, 'H' . $row, $address );
+        self::set_cell( $sheet, 'I' . $row, $person['fonction'] );
+
+        self::set_cell( $sheet, 'C' . ( $row + 4 ), $person['telephone'] );
+        self::set_cell( $sheet, 'G' . ( $row + 4 ), $person['email'] );
+        if ( $is_foreign ) {
+            self::set_cell( $sheet, 'C' . ( $row + 7 ), $birth_foreign );
+            self::set_cell( $sheet, 'G' . ( $row + 6 ), $person['pere'] );
+            self::set_cell( $sheet, 'G' . ( $row + 7 ), $person['mere'] );
+        } else {
+            self::set_cell( $sheet, 'C' . ( $row + 6 ), $birth_fr );
         }
+    }
+
+    private static function set_cell( $sheet, $coordinate, $value ) {
+        if ( '' === trim( (string) $value ) ) { return; }
+        $sheet->setCellValue( $coordinate, (string) $value );
     }
 
     private static function fill_club_header( $sheet, $club, $season ) {
-        $highest_row = min( 35, (int) $sheet->getHighestDataRow() );
-        $highest_col = min( 20, \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString( $sheet->getHighestDataColumn() ) );
-        $replacements = array(
-            'nom du club' => self::value( $club, array( 'nom', 'name', 'club_name' ) ),
-            'adresse' => self::join_non_empty( array( self::value( $club, array( 'adresse' ) ), self::value( $club, array( 'complement_adresse' ) ), self::value( $club, array( 'code_postal' ) ), self::value( $club, array( 'ville' ) ) ), ' ' ),
-            'n affiliation' => self::value( $club, array( 'numero_affiliation_ffst' ) ),
-            'no affiliation' => self::value( $club, array( 'numero_affiliation_ffst' ) ),
-            'discipline' => self::value( $club, array( 'disciplines_ffst', 'discipline', 'disciplines' ) ),
-            'code discipline' => self::value( $club, array( 'codes_disciplines_ffst', 'code_discipline' ) ),
-        );
-        foreach ( $replacements as $needle => $value ) {
-            if ( '' === trim( (string) $value ) ) { continue; }
-            for ( $r = 1; $r <= $highest_row; $r++ ) {
-                for ( $c = 1; $c <= $highest_col; $c++ ) {
-                    $text = self::normalize_label( $sheet->getCellByColumnAndRow( $c, $r )->getFormattedValue() );
-                    if ( false === strpos( $text, $needle ) ) { continue; }
-                    $target_col = min( $highest_col, $c + 1 );
-                    $target = $sheet->getCellByColumnAndRow( $target_col, $r );
-                    if ( '' === trim( (string) $target->getValue() ) ) { $target->setValue( (string) $value ); }
-                    break 2;
-                }
-            }
-        }
+        self::set_cell( $sheet, 'C11', self::value( $club, array( 'nom', 'name', 'club_name' ) ) );
+        self::set_cell( $sheet, 'C12', self::join_non_empty( array( self::value( $club, array( 'adresse' ) ), self::value( $club, array( 'complement_adresse' ) ), self::value( $club, array( 'code_postal' ) ), self::value( $club, array( 'ville' ) ) ), ' ' ) );
+        self::set_cell( $sheet, 'I11', self::value( $club, array( 'numero_affiliation_ffst' ) ) );
+        self::set_cell( $sheet, 'I12', self::value( $club, array( 'disciplines_ffst', 'discipline', 'disciplines' ) ) );
+        self::set_cell( $sheet, 'I13', self::value( $club, array( 'codes_disciplines_ffst', 'code_discipline' ) ) );
     }
 
-    private static function write_control_sheet( $spreadsheet, $club, array $people, $season ) {
+    private static function write_control_sheet( $spreadsheet, $club, array $officers, array $people, $season ) {
         $sheet = $spreadsheet->getSheetByName( 'Contrôle UFSC' );
         if ( ! $sheet ) { $sheet = $spreadsheet->createSheet(); $sheet->setTitle( 'Contrôle UFSC' ); }
-        $sheet->fromArray( array( array( 'Contrôle export dirigeants FFST', '' ), array( 'Club', self::value( $club, array( 'nom', 'name', 'club_name' ) ) ), array( 'Saison', $season ), array( 'Dirigeants exportés', count( $people ) ), array(), array( 'Fonction', 'Nom', 'Prénom', 'N° licence FFST', 'État' ) ), null, 'A1' );
+        $sheet->fromArray( array(
+            array( 'Contrôle export dirigeants FFST', '' ),
+            array( 'Club', self::value( $club, array( 'nom', 'name', 'club_name' ) ) ),
+            array( 'Saison', $season ),
+            array( 'Dirigeants réellement exportés', count( $people ) ),
+            array(),
+            array( 'Fonction', 'Nom', 'Prénom', 'N° licence FFST', 'État' ),
+        ), null, 'A1' );
+
         $row = 7;
-        foreach ( $people as $person ) {
+        foreach ( $officers as $person ) {
             $missing = array();
-            foreach ( array( 'nom' => 'nom', 'prenom' => 'prénom', 'date_naissance' => 'date de naissance' ) as $key => $label ) { if ( '' === trim( (string) $person[ $key ] ) ) { $missing[] = $label; } }
-            $sheet->fromArray( array( $person['fonction'], $person['nom'], $person['prenom'], $person['numero_ffst'], $missing ? 'À compléter : ' . implode( ', ', $missing ) : 'OK' ), null, 'A' . $row );
+            foreach ( array( 'nom' => 'nom', 'prenom' => 'prénom', 'date_naissance' => 'date de naissance' ) as $key => $label ) {
+                if ( '' === trim( (string) $person[ $key ] ) ) { $missing[] = $label; }
+            }
+            $state = self::has_identity( $person )
+                ? ( $missing ? 'À compléter : ' . implode( ', ', $missing ) : 'OK' )
+                : 'Fonction obligatoire à renseigner dans le compte club';
+            $sheet->fromArray( array( $person['role_name'], $person['nom'], $person['prenom'], $person['numero_ffst'], $state ), null, 'A' . $row );
             $row++;
         }
         foreach ( range( 'A', 'E' ) as $col ) { $sheet->getColumnDimension( $col )->setAutoSize( true ); }
+    }
+
+    private static function clean_date( $date ) {
+        $date = trim( (string) $date );
+        return in_array( $date, array( '', '0000-00-00', '00/00/0000' ), true ) ? '' : $date;
     }
 
     private static function join_non_empty( array $values, $separator ) {
