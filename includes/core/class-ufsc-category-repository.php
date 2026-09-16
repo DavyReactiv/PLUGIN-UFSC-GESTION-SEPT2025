@@ -214,19 +214,13 @@ class UFSC_Category_Repository {
         return self::detect_for_athlete( $athlete, $discipline, $season );
     }
 
-    /**
-     * Normalize season labels.
-     *
-     * @param string $season Season label/key.
-     * @return string
-     */
+    /** Normalize season labels without rewriting historical rows. */
     public static function normalize_season( $season ) {
         $season = trim( (string) $season );
         if ( '' === $season ) {
             return self::DEFAULT_SEASON;
         }
-        $season = str_replace( '-', '/', $season );
-        return '2025/2026' === $season ? self::DEFAULT_SEASON : $season;
+        return str_replace( '-', '/', $season );
     }
 
     /**
@@ -262,7 +256,9 @@ class UFSC_Category_Repository {
     }
 
     private static function get_referentials() {
-        $age_categories = array(
+        // Historical 2025-2026 referential is kept byte-for-byte in meaning so
+        // existing licences continue to resolve against their original season.
+        $age_categories_2025 = array(
             'pre_poussins'       => array( 'label' => 'Pré-poussins M/F', 'birth_years' => array( 2018, 2019 ), 'genders' => array( 'M', 'F' ) ),
             'poussins'           => array( 'label' => 'Poussins M/F', 'birth_years' => array( 2016, 2017 ), 'genders' => array( 'M', 'F' ) ),
             'benjamins'          => array( 'label' => 'Benjamins M/F', 'birth_years' => array( 2014, 2015 ), 'genders' => array( 'M', 'F' ) ),
@@ -278,6 +274,26 @@ class UFSC_Category_Repository {
             'veterans_masculins' => array( 'label' => 'Vétérans masculins', 'birth_years' => array( 1975, 1984 ), 'genders' => array( 'M' ) ),
         );
 
+        // Official 2026-2027 Tatami/Assaut age grid. The old season above is
+        // intentionally not mutated or backfilled.
+        $age_categories_2026 = array(
+            'pre_poussins'       => array( 'label' => 'Pré-poussins M/F', 'birth_years' => array( 2019, 2020 ), 'genders' => array( 'M', 'F' ) ),
+            'poussins'           => array( 'label' => 'Poussins M/F', 'birth_years' => array( 2017, 2018 ), 'genders' => array( 'M', 'F' ) ),
+            'benjamins'          => array( 'label' => 'Benjamins M/F', 'birth_years' => array( 2015, 2016 ), 'genders' => array( 'M', 'F' ) ),
+            'minimes_filles'     => array( 'label' => 'Minimes filles', 'birth_years' => array( 2013, 2014 ), 'genders' => array( 'F' ) ),
+            'minimes_garcons'    => array( 'label' => 'Minimes garçons', 'birth_years' => array( 2013, 2014 ), 'genders' => array( 'M' ) ),
+            'cadettes'           => array( 'label' => 'Cadettes', 'birth_years' => array( 2011, 2012 ), 'genders' => array( 'F' ) ),
+            'cadets'             => array( 'label' => 'Cadets', 'birth_years' => array( 2011, 2012 ), 'genders' => array( 'M' ) ),
+            'juniors_filles'     => array( 'label' => 'Juniors filles', 'birth_years' => array( 2009, 2010 ), 'genders' => array( 'F' ) ),
+            'juniors_garcons'    => array( 'label' => 'Juniors garçons', 'birth_years' => array( 2009, 2010 ), 'genders' => array( 'M' ) ),
+            'seniors_feminines'  => array( 'label' => 'Seniors féminines', 'birth_years' => array( 1986, 2008 ), 'genders' => array( 'F' ) ),
+            'veterans_feminines' => array( 'label' => 'Vétérans féminines', 'birth_years' => array( 1976, 1985 ), 'genders' => array( 'F' ) ),
+            'seniors_masculins'  => array( 'label' => 'Seniors masculins', 'birth_years' => array( 1986, 2008 ), 'genders' => array( 'M' ) ),
+            'veterans_masculins' => array( 'label' => 'Vétérans masculins', 'birth_years' => array( 1976, 1985 ), 'genders' => array( 'M' ) ),
+        );
+
+        // Weight grid remains season-scoped and is reused only where the same
+        // official Tatami limits apply. No stored category is rewritten.
         $weights = array(
             'pre_poussins'       => self::same_weights_for_all( array( 18, 23, 28, 32, 37, 42, 47 ), 47 ),
             'poussins'           => self::same_weights_for_all( array( 18, 23, 28, 32, 37, 42, 47 ), 47 ),
@@ -301,7 +317,17 @@ class UFSC_Category_Repository {
                     'discipline'         => self::DEFAULT_DISCIPLINE,
                     'discipline_label'   => 'Kickboxing / Tatami / Assaut',
                     'sub_disciplines'    => array( 'Light Contact', 'Kick Light', 'Point Fighting', 'K1 Style Light' ),
-                    'age_categories'     => $age_categories,
+                    'age_categories'     => $age_categories_2025,
+                    'weight_categories'  => $weights,
+                ),
+            ),
+            '2026/2027' => array(
+                self::DEFAULT_DISCIPLINE => array(
+                    'season'             => '2026/2027',
+                    'discipline'         => self::DEFAULT_DISCIPLINE,
+                    'discipline_label'   => 'Kickboxing / Tatami / Assaut',
+                    'sub_disciplines'    => array( 'Light Contact', 'Kick Light', 'Point Fighting', 'K1 Style Light' ),
+                    'age_categories'     => $age_categories_2026,
                     'weight_categories'  => $weights,
                 ),
             ),
