@@ -47,6 +47,7 @@ require_once UFSC_CL_DIR . 'includes/admin/class-ffst-leaders-export-block-map-f
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-leaders-template-bootstrap.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-matrix-export-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-matrix-filters.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-matrix-submit-guard.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-documents-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-template-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-template-sync.php';
