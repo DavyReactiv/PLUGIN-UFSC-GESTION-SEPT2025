@@ -8,11 +8,17 @@ class WP_Error { private $message; public function __construct($code,$message){$
 require dirname( __DIR__ ) . '/inc/common/fighter-level.php';
 $birth = static function ( $age ) { return gmdate( 'Y-m-d', strtotime( '-' . $age . ' years' ) ); };
 $assert = static function ( $condition, $message ) { if(!$condition){fwrite(STDERR,"FAIL: {$message}\n");exit(1);} echo "PASS: {$message}\n"; };
-$assert( array_keys( ufsc_get_sport_level_options() ) === array( 'pro','classe_a','classe_b','classe_c','assaut','veteran' ), 'liste officielle PRO A B C ASSAUT VETERAN' );
-$assert( 'assaut' === ufsc_get_default_fighter_level( $birth(17) ), 'mineur propose Assaut par défaut' );
-$assert( 'classe_c' === ufsc_get_default_fighter_level( $birth(18) ), 'majeur propose Classe C par défaut' );
-$assert( true === ufsc_validate_fighter_level( 'assaut', $birth(17), false ), 'mineur avec Assaut' );
-$assert( is_wp_error( ufsc_validate_fighter_level( 'classe_a', $birth(17), false ) ), 'mineur refusé avec Classe A' );
+$levels = ufsc_get_sport_level_options();
+$assert( array_keys( $levels ) === array( 'pro','classe_a','classe_b','classe_c','combat','assaut','veteran' ), 'liste canonique PRO A B C COMBAT ASSAUT VETERAN' );
+$assert( isset( $levels['classe_a'], $levels['classe_b'], $levels['classe_c'], $levels['assaut'], $levels['veteran'], $levels['pro'] ), 'anciennes clés de niveau conservées sans migration' );
+$assert( 'assaut' === ufsc_get_default_fighter_level( $birth(14) ), 'jeune propose Assaut par défaut' );
+$assert( 'combat' === ufsc_get_default_fighter_level( $birth(15) ), 'cadet 15 ans propose Combat par défaut' );
+$assert( 'combat' === ufsc_get_default_fighter_level( $birth(17) ), 'junior 17 ans propose Combat par défaut' );
+$assert( 'classe_c' === ufsc_get_default_fighter_level( $birth(18) ), 'senior propose Classe C par défaut' );
+$assert( true === ufsc_validate_fighter_level( 'assaut', $birth(14), false ), 'jeune avec Assaut' );
+$assert( true === ufsc_validate_fighter_level( 'combat', $birth(15), false ), 'cadet 15 ans avec Combat' );
+$assert( true === ufsc_validate_fighter_level( 'combat', $birth(17), false ), 'junior 17 ans avec Combat' );
+$assert( is_wp_error( ufsc_validate_fighter_level( 'classe_a', $birth(17), false ) ), 'junior refusé avec Classe A' );
 foreach(array('assaut','classe_c','classe_b','classe_a','pro') as $level){$assert(true===ufsc_validate_fighter_level($level,$birth(25),false),"majeur accepté en {$level}");}
 $assert( is_wp_error( ufsc_validate_fighter_level( 'veteran', $birth(40), false ) ), 'Vétéran refusé avant 41 ans' );
 $assert( true === ufsc_validate_fighter_level( 'veteran', $birth(41), false ), 'Vétéran accepté à 41 ans' );
