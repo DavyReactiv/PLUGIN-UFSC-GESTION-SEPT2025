@@ -19,8 +19,8 @@ final class UFSC_FFST_Matrix_Filters {
         if ( 'ufsc-ffst-documents' !== $page ) { return; }
         if ( ! class_exists( 'UFSC_Permissions' ) || ! current_user_can( UFSC_Permissions::CAP_GESTION_MANAGE ) ) { return; }
 
-        $club_meta         = self::club_meta();
-        $affiliation_meta  = self::annual_affiliation_meta();
+        $club_meta        = self::club_meta();
+        $affiliation_meta = self::annual_affiliation_meta();
         ?>
         <style id="ufsc-ffst-matrix-filters-style">
             .ufsc-ffst-matrix__filters{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr)) auto;gap:10px;align-items:end;margin:0 0 12px;padding:12px;background:#f6f7f7;border:1px solid #dcdcde;border-radius:8px}
@@ -91,6 +91,33 @@ final class UFSC_FFST_Matrix_Filters {
             if(search)search.addEventListener('input',apply);
             if(season){season.addEventListener('input',apply);season.addEventListener('change',apply);}
             reset.addEventListener('click',function(){status.value='';ffst.value='';complete.value='';if(search)search.value='';apply();});
+
+            // UX export : si aucune case n'est cochée, exporter automatiquement
+            // les clubs actuellement affichés par les filtres. Si l'utilisateur a
+            // fait une sélection manuelle, seules les cases cochées et visibles
+            // sont envoyées. Les clubs masqués ne peuvent donc pas partir par erreur.
+            form.addEventListener('submit',function(e){
+                var rows=Array.from(list.querySelectorAll('.ufsc-ffst-matrix__club'));
+                var visible=rows.filter(function(row){return row.style.display!=='none';});
+                rows.forEach(function(row){
+                    if(row.style.display==='none'){
+                        var hiddenCb=row.querySelector('input[type=checkbox]');
+                        if(hiddenCb)hiddenCb.checked=false;
+                    }
+                });
+                var checkedVisible=visible.filter(function(row){var cb=row.querySelector('input[type=checkbox]');return cb&&cb.checked;});
+                if(!checkedVisible.length){
+                    visible.forEach(function(row){var cb=row.querySelector('input[type=checkbox]');if(cb)cb.checked=true;});
+                }
+                if(!visible.length){
+                    e.preventDefault();
+                    alert('Aucun club ne correspond aux filtres sélectionnés.');
+                    return;
+                }
+                var selected=Array.from(list.querySelectorAll('input[type=checkbox]:checked')).length;
+                if(count)count.textContent=selected;
+            },true);
+
             apply();
         })();
         </script>
