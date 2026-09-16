@@ -44,7 +44,6 @@ class UFSC_User_Profile_Scope_Field {
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-export-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-leaders-export-fix.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-leaders-export-block-map-fix.php';
-require_once UFSC_CL_DIR . 'includes/admin/class-ffst-leaders-export-v2.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-leaders-template-bootstrap.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-documents-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-template-admin.php';
