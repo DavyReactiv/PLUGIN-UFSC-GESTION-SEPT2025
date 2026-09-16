@@ -49,7 +49,6 @@ require_once UFSC_CL_DIR . 'includes/admin/class-ffst-affiliation-action-bridge.
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-birthplace-fields.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-club-profile-fields.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-club-admin-layout.php';
-require_once UFSC_CL_DIR . 'includes/admin/class-club-save-route-bridge.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-licence-role-ui.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-club-form-fields-bridge.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-clubs-selected-export.php';
@@ -67,7 +66,6 @@ require_once UFSC_CL_DIR . 'includes/admin/class-ufsc-bank-transfer-admin.php';
 UFSC_FFST_Birthplace_Fields::init();
 UFSC_FFST_Club_Profile_Fields::init();
 UFSC_FFST_Club_Admin_Layout::init();
-UFSC_Club_Save_Route_Bridge::init();
 UFSC_FFST_Licence_Role_UI::init();
 UFSC_FFST_Club_Form_Fields_Bridge::init();
 UFSC_Clubs_Selected_Export::init();
