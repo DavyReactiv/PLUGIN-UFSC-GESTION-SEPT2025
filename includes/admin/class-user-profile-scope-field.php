@@ -42,6 +42,7 @@ class UFSC_User_Profile_Scope_Field {
 
 // Modules d'administration chargés depuis un fichier déjà requis côté admin.
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-export-admin.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-leaders-export-fix.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-documents-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-template-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-template-sync.php';
@@ -60,6 +61,7 @@ require_once UFSC_CL_DIR . 'includes/admin/class-licences-export-season-filter.p
 require_once UFSC_CL_DIR . 'includes/admin/class-club-manual-renewal-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-compliance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-insurance-admin.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-layout-fix.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin-v2.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-layout-admin.php';
