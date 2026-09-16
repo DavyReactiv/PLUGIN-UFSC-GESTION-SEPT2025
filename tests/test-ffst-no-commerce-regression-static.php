@@ -6,6 +6,7 @@
 $root = dirname( __DIR__ );
 $files = array(
     $root . '/includes/admin/class-ffst-club-profile-fields.php',
+    $root . '/includes/admin/class-ffst-club-profile-schema-guard.php',
     $root . '/includes/admin/class-ffst-club-admin-layout.php',
 );
 
