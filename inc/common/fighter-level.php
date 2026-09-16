@@ -5,11 +5,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 function ufsc_get_fighter_levels() {
 	return (array) apply_filters( 'ufsc_sport_level_options', array(
 		'pro'       => __( 'Pro', 'ufsc-clubs' ),
-		'classe_a'  => __( 'Classe A', 'ufsc-clubs' ),
-		'classe_b'  => __( 'Classe B', 'ufsc-clubs' ),
-		'classe_c'  => __( 'Classe C', 'ufsc-clubs' ),
+		'classe_a'  => __( 'Senior Combat — Classe A', 'ufsc-clubs' ),
+		'classe_b'  => __( 'Senior Combat — Classe B', 'ufsc-clubs' ),
+		'classe_c'  => __( 'Senior Combat — Classe C', 'ufsc-clubs' ),
+		'combat'    => __( 'Cadet / Junior Combat', 'ufsc-clubs' ),
 		'assaut'    => __( 'Assaut', 'ufsc-clubs' ),
-		'veteran'   => __( 'Vétéran', 'ufsc-clubs' ),
+		'veteran'   => __( 'Vétéran Assaut', 'ufsc-clubs' ),
 	) );
 }
 
@@ -17,11 +18,11 @@ function ufsc_get_fighter_levels() {
 function ufsc_get_sport_level_options() { return ufsc_get_fighter_levels(); }
 
 function ufsc_get_sport_level_required_message() {
-	return __( 'Merci de vérifier et de sélectionner le niveau correspondant au boxeur avant de finaliser la demande de licence.', 'ufsc-clubs' );
+	return __( 'Merci de vérifier et de sélectionner la catégorie de pratique correspondant au licencié avant de finaliser la demande de licence.', 'ufsc-clubs' );
 }
 
 function ufsc_get_sport_level_help() {
-	return __( 'Merci de vérifier et de sélectionner le niveau correspondant au boxeur avant de finaliser la demande de licence.', 'ufsc-clubs' );
+	return __( 'Assaut de Pré-poussin à Vétéran ; Combat pour Cadet/Junior ; Classes C, B ou A pour Senior Combat.', 'ufsc-clubs' );
 }
 
 function ufsc_fighter_level_label( $level ) {
@@ -42,21 +43,34 @@ function ufsc_normalize_fighter_level( $level ) {
 	$raw = function_exists( 'remove_accents' ) ? remove_accents( $raw ) : strtr( $raw, array( 'é' => 'e', 'É' => 'E' ) );
 	$key = sanitize_key( str_replace( array( ' ', '-' ), '_', $raw ) );
 	$aliases = array(
-		'debutant' => 'debutant', // legacy only: no longer proposed for new licences.
+		'debutant' => 'debutant', // legacy only: never rewritten automatically.
 		'assaut' => 'assaut',
+		'combat' => 'combat',
+		'cadet_combat' => 'combat',
+		'cadette_combat' => 'combat',
+		'junior_combat' => 'combat',
 		'classe_c' => 'classe_c',
+		'senior_combat_classe_c' => 'classe_c',
 		'classe_b' => 'classe_b',
+		'senior_combat_classe_b' => 'classe_b',
 		'classe_a' => 'classe_a',
+		'senior_combat_classe_a' => 'classe_a',
 		'pro' => 'pro',
 		'professionnel' => 'pro',
 		'veteran' => 'veteran',
+		'veteran_assaut' => 'veteran',
 	);
 	return $aliases[ $key ] ?? sanitize_key( (string) $level );
 }
 
-/** Veteran starts at 41, consistently with the existing UFSC age-category grid. */
+/** Veteran starts at 41, consistently with the 2026-2027 age grid. */
 function ufsc_get_veteran_min_age() {
 	return max( 18, (int) apply_filters( 'ufsc_fighter_level_veteran_min_age', 41 ) );
+}
+
+/** Cadet combat starts at 15 (2nd cadet year in the 2026-2027 ring grid). */
+function ufsc_get_combat_min_age() {
+	return max( 14, (int) apply_filters( 'ufsc_fighter_level_combat_min_age', 15 ) );
 }
 
 /** Calculate age on the actual day; never trust a browser-computed age. */
@@ -75,6 +89,9 @@ function ufsc_get_default_fighter_level( $birth_date ) {
 	if ( null === $age ) {
 		return '';
 	}
+	if ( $age >= ufsc_get_veteran_min_age() ) {
+		return 'veteran';
+	}
 	return $age < 18 ? 'assaut' : 'classe_c';
 }
 
@@ -82,7 +99,13 @@ function ufsc_is_selectable_fighter_level( $level ) {
 	return isset( ufsc_get_sport_level_options()[ ufsc_normalize_fighter_level( $level ) ] );
 }
 
-/** Server-side business validation. Empty/legacy is accepted only for historical-compatible callers. */
+/**
+ * Server-side business validation.
+ *
+ * Historical rows are never rewritten automatically. The $allow_empty flag is
+ * intentionally kept for draft/admin compatibility; the actual age/category
+ * rules still apply whenever a current selectable value is submitted.
+ */
 function ufsc_validate_fighter_level( $level, $birth_date, $allow_empty = true ) {
 	$level = ufsc_normalize_fighter_level( $level );
 	if ( '' === $level && $allow_empty ) {
@@ -96,16 +119,36 @@ function ufsc_validate_fighter_level( $level, $birth_date, $allow_empty = true )
 	}
 	$age = ufsc_age_from_birth_date( $birth_date );
 	if ( null === $age ) {
-		return new WP_Error( 'ufsc_invalid_birth_date_for_level', __( 'Une date de naissance valide est requise pour contrôler le niveau sportif.', 'ufsc-clubs' ) );
+		return new WP_Error( 'ufsc_invalid_birth_date_for_level', __( 'Une date de naissance valide est requise pour contrôler la catégorie de pratique.', 'ufsc-clubs' ) );
 	}
-	$allowed = $age < 18 ? array( 'assaut' ) : array( 'assaut', 'classe_c', 'classe_b', 'classe_a', 'pro' );
+
+	// Assaut remains available from the youth categories through adults.
+	$allowed = array( 'assaut' );
+
+	// Ring combat is available from Cadet/Cadette 2e année through Juniors.
+	if ( $age >= ufsc_get_combat_min_age() && $age < 18 ) {
+		$allowed[] = 'combat';
+	}
+
+	// Existing senior combat classes are preserved; no historical row is rewritten.
+	if ( $age >= 18 ) {
+		$allowed = array_merge( $allowed, array( 'classe_c', 'classe_b', 'classe_a', 'pro' ) );
+	}
+
+	// Keep the historical value while presenting it explicitly as Vétéran Assaut.
 	if ( $age >= ufsc_get_veteran_min_age() ) {
 		$allowed[] = 'veteran';
 	}
-	if ( ! in_array( $level, $allowed, true ) ) {
-		return new WP_Error( 'ufsc_invalid_fighter_level', $age < 18
-			? __( 'Pour un mineur, le niveau de licence proposé par défaut est Assaut.', 'ufsc-clubs' )
-			: sprintf( __( 'Sélectionnez un niveau compatible avec le licencié. Vétéran est disponible à partir de %d ans.', 'ufsc-clubs' ), ufsc_get_veteran_min_age() ) );
+
+	if ( ! in_array( $level, array_unique( $allowed ), true ) ) {
+		if ( $age < ufsc_get_combat_min_age() ) {
+			$message = __( 'Pour cette catégorie d’âge, la pratique proposée est Assaut.', 'ufsc-clubs' );
+		} elseif ( $age < 18 ) {
+			$message = __( 'Pour un Cadet/Cadette 2e année ou Junior, sélectionnez Assaut ou Combat.', 'ufsc-clubs' );
+		} else {
+			$message = __( 'Pour un majeur, sélectionnez Assaut ou une classe Senior Combat compatible.', 'ufsc-clubs' );
+		}
+		return new WP_Error( 'ufsc_invalid_fighter_level', $message );
 	}
 	return true;
 }
