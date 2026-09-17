@@ -42,11 +42,20 @@ class UFSC_User_Profile_Scope_Field {
 
 // Modules d'administration chargés depuis un fichier déjà requis côté admin.
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-export-admin.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-leaders-export-fix.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-leaders-export-block-map-fix.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-leaders-template-bootstrap.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-matrix-export-admin.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-matrix-filters.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-matrix-submit-guard.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-documents-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-official-template-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-template-sync.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-affiliation-action-bridge.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-birthplace-fields.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-club-profile-fields.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-club-profile-schema-guard.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-club-admin-layout.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-licence-role-ui.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-club-form-fields-bridge.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-clubs-selected-export.php';
@@ -57,11 +66,15 @@ require_once UFSC_CL_DIR . 'includes/admin/class-licences-export-season-filter.p
 require_once UFSC_CL_DIR . 'includes/admin/class-club-manual-renewal-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-compliance-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-insurance-admin.php';
+require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-layout-fix.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-documents-admin-v2.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ffst-layout-admin.php';
 require_once UFSC_CL_DIR . 'includes/admin/class-ufsc-bank-transfer-admin.php';
 UFSC_FFST_Birthplace_Fields::init();
+UFSC_FFST_Club_Profile_Fields::init();
+UFSC_FFST_Club_Profile_Schema_Guard::init();
+UFSC_FFST_Club_Admin_Layout::init();
 UFSC_FFST_Licence_Role_UI::init();
 UFSC_FFST_Club_Form_Fields_Bridge::init();
 UFSC_Clubs_Selected_Export::init();
