@@ -272,8 +272,16 @@ final class UFSC_FFST_Club_Profile_Fields {
             }
             function subtitle(text){var el=document.createElement('div');el.className='ufsc-ffst-subtitle';el.textContent=text;return el;}
             function findForm(){
-                var anchor=document.querySelector('[name="president_nom"], [name="nom"]');
-                return anchor ? anchor.closest('form') : null;
+                // Ne jamais déduire un formulaire club à partir d'un champ générique
+                // comme "nom" : les formulaires de licence en possèdent aussi.
+                // Le marqueur canonique du formulaire club est son action dédiée.
+                var action=document.querySelector('form input[name="action"][value="ufsc_save_club"]');
+                if(!action)return null;
+                var form=action.closest('form');
+                if(!form)return null;
+                // Sécurité supplémentaire : on doit être sur le vrai formulaire club.
+                if(!form.querySelector('[name="club_id"]')&&!form.querySelector('[name="president_nom"]')&&!form.classList.contains('ufsc-club-form'))return null;
+                return form;
             }
             function existingOrAppend(grid,name,label,type,help,klass){
                 var existing=document.querySelector('[name="'+name+'"]');
