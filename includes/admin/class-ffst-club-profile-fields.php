@@ -24,7 +24,8 @@ final class UFSC_FFST_Club_Profile_Fields {
         add_action( 'ufsc_club_created', array( __CLASS__, 'save_from_hook' ), 20, 2 );
 
         add_action( 'admin_footer', array( __CLASS__, 'render_admin' ), 110 );
-        add_action( 'wp_footer', array( __CLASS__, 'render_front' ), 40 );
+        // Le front Compte Club rend désormais le dossier FFST nativement dans
+        // UFSC_Frontend_Shortcodes afin d'éviter toute injection dans un autre formulaire.
     }
 
     public static function ensure_schema() {
@@ -120,7 +121,10 @@ final class UFSC_FFST_Club_Profile_Fields {
             'entraineur' => 'Entraîneur / instructeur',
         );
         foreach ( $labels as $prefix => $label ) {
-            if ( 'entraineur' === $prefix ) { $fields[ $prefix . '_adresse' ] = array( $label . ' – Adresse', 'text' ); }
+            // L'adresse principale existe déjà pour les dirigeants historiques ;
+            // la déclarer ici permet au même hook canonique de la sauvegarder sans
+            // créer de stockage parallèle. Le filtre n'écrase jamais un champ existant.
+            $fields[ $prefix . '_adresse' ] = array( $label . ' – Adresse', 'text' );
             $fields[ $prefix . '_complement_adresse' ] = array( $label . ' – Complément d’adresse', 'text' );
             $fields[ $prefix . '_code_postal' ] = array( $label . ' – Code postal', 'text' );
             $fields[ $prefix . '_ville' ] = array( $label . ' – Ville', 'text' );
@@ -133,6 +137,19 @@ final class UFSC_FFST_Club_Profile_Fields {
     public static function save_from_hook( $club_id ) {
         $club_id = absint( $club_id );
         if ( ! $club_id || empty( $_POST ) || ! class_exists( 'UFSC_SQL' ) ) { return; }
+
+        // Sécurité de contexte : ces champs ne doivent être écrits que lors d'une
+        // véritable sauvegarde de club. Une licence ou un autre formulaire ne peut
+        // donc jamais modifier les données FFST du club.
+        $action = isset( $_POST['action'] ) && ! is_array( $_POST['action'] )
+            ? sanitize_key( wp_unslash( $_POST['action'] ) )
+            : '';
+        if ( 'ufsc_save_club' !== $action ) { return; }
+        if (
+            ! isset( $_POST['ufsc_club_nonce'] ) ||
+            is_array( $_POST['ufsc_club_nonce'] ) ||
+            ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['ufsc_club_nonce'] ) ), 'ufsc_save_club' )
+        ) { return; }
 
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
@@ -272,8 +289,12 @@ final class UFSC_FFST_Club_Profile_Fields {
             }
             function subtitle(text){var el=document.createElement('div');el.className='ufsc-ffst-subtitle';el.textContent=text;return el;}
             function findForm(){
-                var anchor=document.querySelector('[name="president_nom"], [name="nom"]');
-                return anchor ? anchor.closest('form') : null;
+                var action=document.querySelector('form input[name="action"][value="ufsc_save_club"]');
+                if(!action)return null;
+                var form=action.closest('form');
+                if(!form)return null;
+                if(!form.querySelector('[name="club_id"]')&&!form.classList.contains('ufsc-club-form'))return null;
+                return form;
             }
             function existingOrAppend(grid,name,label,type,help,klass){
                 var existing=document.querySelector('[name="'+name+'"]');
