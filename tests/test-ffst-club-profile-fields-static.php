@@ -22,6 +22,10 @@ $assert( false !== strpos( $module, "'tresorier_code_postal'" ), 'Le code postal
 $assert( false !== strpos( $module, "'disciplines_ffst'" ), 'Les disciplines FFST sont prévues.' );
 $assert( false !== strpos( $module, "'correspondant_email'" ), 'Le correspondant FFST est prévu.' );
 $assert( false !== strpos( $module, 'ne bloquent pas l’utilisation du compte' ), 'L’interface indique explicitement le caractère non bloquant.' );
+$assert( false !== strpos( $module, "'ufsc_save_club' !== \$action" ), 'La sauvegarde FFST est limitée à l’action canonique du club.' );
+$assert( false !== strpos( $module, "wp_verify_nonce" ) && false !== strpos( $module, "'ufsc_save_club'" ), 'La sauvegarde FFST exige le nonce du formulaire club.' );
+$assert( false === strpos( $module, "add_action( 'wp_footer', array( __CLASS__, 'render_front'" ), 'L’ancien injecteur FFST n’est plus chargé globalement sur le front.' );
+$assert( false !== strpos( $module, 'input[name="action"][value="ufsc_save_club"]' ), 'Le fallback admin reste limité au vrai formulaire club.' );
 $assert( false === strpos( $module, "setAttribute('required'" ), 'Les nouveaux champs ne deviennent pas requis côté navigateur.' );
 $assert( false !== strpos( $loader, "class-ffst-club-profile-fields.php" ), 'Le module est chargé par le plugin.' );
 $assert( false !== strpos( $loader, 'UFSC_FFST_Club_Profile_Fields::init();' ), 'Le module est initialisé.' );
