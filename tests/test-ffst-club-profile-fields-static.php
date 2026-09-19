@@ -2,6 +2,8 @@
 $root = dirname( __DIR__ );
 $module = file_get_contents( $root . '/includes/admin/class-ffst-club-profile-fields.php' );
 $loader = file_get_contents( $root . '/includes/admin/class-user-profile-scope-field.php' );
+$front = file_get_contents( $root . '/includes/frontend/class-frontend-shortcodes.php' );
+$css = file_get_contents( $root . '/assets/css/ufsc-front.css' );
 
 $failures = 0;
 $assert = static function( $condition, $message ) use ( &$failures ) {
@@ -29,6 +31,11 @@ $assert( false !== strpos( $module, 'input[name="action"][value="ufsc_save_club"
 $assert( false === strpos( $module, "setAttribute('required'" ), 'Les nouveaux champs ne deviennent pas requis côté navigateur.' );
 $assert( false !== strpos( $loader, "class-ffst-club-profile-fields.php" ), 'Le module est chargé par le plugin.' );
 $assert( false !== strpos( $loader, 'UFSC_FFST_Club_Profile_Fields::init();' ), 'Le module est initialisé.' );
+$assert( false !== strpos( $front, "render_ffst_club_profile_section( \$club, \$is_admin, \$club_status )" ), 'Le dossier FFST est rendu nativement dans Compte Club.' );
+$assert( false !== strpos( $front, 'data-required-for-affiliation="1"' ), 'Les champs de référence portent le contrat obligatoire pour la prochaine affiliation.' );
+$assert( false !== strpos( $front, 'Cela ne désactive pas l’affiliation en cours.' ), 'Un dossier incomplet ne rétrograde pas une affiliation active.' );
+$assert( false === strpos( $front, ' required data-required-for-affiliation' ), 'Le Compte Club reste sauvegardable progressivement.' );
+$assert( false === strpos( $css, 'Compte Club — dossier FFST premium' ), 'Aucune surcouche CSS FFST dédiée n’est ajoutée au portail.' );
 
 if ( $failures ) {
     exit( 1 );
