@@ -1940,6 +1940,7 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
+                <div class="ufsc-grid ufsc-club-portal__section--full">
                 <!-- // UFSC: Coordonnées -->
                 <div class="ufsc-card ufsc-section">
                     <h4><?php esc_html_e( 'Coordonnées', 'ufsc-clubs' ); ?></h4>
@@ -1965,6 +1966,9 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_field( 'num_declaration', $club, __( 'N° déclaration', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
                         <?php self::render_field( 'date_declaration', $club, __( 'Date déclaration', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
                     </div>
+                </div>
+
+
                 </div>
 
                 <?php self::render_ffst_club_profile_section( $club, $is_admin, $club_status ); ?>
