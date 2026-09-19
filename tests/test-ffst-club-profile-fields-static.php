@@ -34,6 +34,8 @@ $assert( false !== strpos( $loader, 'UFSC_FFST_Club_Profile_Fields::init();' ), 
 $assert( false !== strpos( $front, "render_ffst_club_profile_section( \$club, \$is_admin, \$club_status )" ), 'Le dossier FFST est rendu nativement dans Compte Club.' );
 $assert( false !== strpos( $front, 'data-required-for-affiliation="1"' ), 'Les champs de référence portent le contrat obligatoire pour la prochaine affiliation.' );
 $assert( false !== strpos( $front, 'Cela ne désactive pas l’affiliation en cours.' ), 'Un dossier incomplet ne rétrograde pas une affiliation active.' );
+$assert( substr_count( $front, 'ufsc-card ufsc-form-section ufsc-club-portal__section--full' ) >= 4, 'The main account sections stay full-width to avoid staggered card placement.' );
+$assert( false === strpos( $front, '<div class="ufsc-grid ufsc-club-portal__section--full">\n                <!-- // UFSC: Coordonnées -->' ), 'Coordinates/legal are no longer nested in a fragile outer two-column wrapper.' );
 $assert( false === strpos( $front, ' required data-required-for-affiliation' ), 'Le Compte Club reste sauvegardable progressivement.' );
 $assert( false === strpos( $css, 'Compte Club — dossier FFST premium' ), 'Aucune surcouche CSS FFST dédiée n’est ajoutée au portail.' );
 
