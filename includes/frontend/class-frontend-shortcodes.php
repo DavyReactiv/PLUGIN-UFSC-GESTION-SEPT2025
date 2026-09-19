@@ -1917,7 +1917,7 @@ class UFSC_Frontend_Shortcodes {
                 <?php wp_nonce_field( 'ufsc_save_club', 'ufsc_club_nonce' ); ?>
                 <div class="ufsc-club-profile-layout">
                     <div class="ufsc-club-profile-main ufsc-profile-cards">
-                <div class="ufsc-card ufsc-section" id="ufsc-club-information">
+                <div class="ufsc-card ufsc-section ufsc-club-portal__section--full" id="ufsc-club-information">
                     <h4><?php esc_html_e( 'Identité du club', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -1981,6 +1981,7 @@ class UFSC_Frontend_Shortcodes {
                     <?php self::render_coach_licence_cards( $profile_bureau, $current_season ); ?>
                 </div>
 
+                <div class="ufsc-grid ufsc-club-portal__section--full">
                 <div class="ufsc-card ufsc-form-section">
                     <h4><?php esc_html_e( 'Réseaux sociaux', 'ufsc-clubs' ); ?></h4>
 
@@ -1999,6 +2000,9 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_field( 'date_affiliation', $club, __( 'Date d\'affiliation', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
                         <?php self::render_field( 'responsable_id', $club, __( 'ID responsable', 'ufsc-clubs' ), 'number', true, false ); ?>
                     </div>
+                </div>
+
+
                 </div>
 
                 <div class="ufsc-card ufsc-form-section ufsc-club-portal__section--full">
