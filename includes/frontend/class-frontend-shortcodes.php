@@ -1940,9 +1940,8 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-grid ufsc-club-portal__section--full">
                 <!-- // UFSC: Coordonnées -->
-                <div class="ufsc-card ufsc-section">
+                <div class="ufsc-card ufsc-section ufsc-club-portal__section--full">
                     <h4><?php esc_html_e( 'Coordonnées', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -1954,7 +1953,7 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-card ufsc-form-section">
+                <div class="ufsc-card ufsc-form-section ufsc-club-portal__section--full">
                     <h4><?php esc_html_e( 'Informations légales', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -1966,9 +1965,6 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_field( 'num_declaration', $club, __( 'N° déclaration', 'ufsc-clubs' ), 'text', false, $is_admin ); ?>
                         <?php self::render_field( 'date_declaration', $club, __( 'Date déclaration', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
                     </div>
-                </div>
-
-
                 </div>
 
                 <?php self::render_ffst_club_profile_section( $club, $is_admin, $club_status ); ?>
@@ -1985,8 +1981,7 @@ class UFSC_Frontend_Shortcodes {
                     <?php self::render_coach_licence_cards( $profile_bureau, $current_season ); ?>
                 </div>
 
-                <div class="ufsc-grid ufsc-club-portal__section--full">
-                <div class="ufsc-card ufsc-form-section">
+                <div class="ufsc-card ufsc-form-section ufsc-club-portal__section--full">
                     <h4><?php esc_html_e( 'Réseaux sociaux', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -1996,7 +1991,7 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-card ufsc-form-section">
+                <div class="ufsc-card ufsc-form-section ufsc-club-portal__section--full">
                     <h4><?php esc_html_e( 'Chiffres et dates', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -2004,9 +1999,6 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_field( 'date_affiliation', $club, __( 'Date d\'affiliation', 'ufsc-clubs' ), 'date', false, $is_admin ); ?>
                         <?php self::render_field( 'responsable_id', $club, __( 'ID responsable', 'ufsc-clubs' ), 'number', true, false ); ?>
                     </div>
-                </div>
-
-
                 </div>
 
                 <div class="ufsc-card ufsc-form-section ufsc-club-portal__section--full">
