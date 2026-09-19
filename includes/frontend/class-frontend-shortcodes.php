@@ -1917,7 +1917,7 @@ class UFSC_Frontend_Shortcodes {
                 <?php wp_nonce_field( 'ufsc_save_club', 'ufsc_club_nonce' ); ?>
                 <div class="ufsc-club-profile-layout">
                     <div class="ufsc-club-profile-main ufsc-profile-cards">
-                <div class="ufsc-card ufsc-section" id="ufsc-club-information">
+                <div class="ufsc-card ufsc-section ufsc-club-portal__section--full" id="ufsc-club-information">
                     <h4><?php esc_html_e( 'Identité du club', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -1941,7 +1941,7 @@ class UFSC_Frontend_Shortcodes {
                 </div>
 
                 <!-- // UFSC: Coordonnées -->
-                <div class="ufsc-card ufsc-section">
+                <div class="ufsc-card ufsc-section ufsc-club-portal__section--full">
                     <h4><?php esc_html_e( 'Coordonnées', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -1953,7 +1953,7 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-card ufsc-form-section">
+                <div class="ufsc-card ufsc-form-section ufsc-club-portal__section--full">
                     <h4><?php esc_html_e( 'Informations légales', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -1967,6 +1967,8 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
+                <?php self::render_ffst_club_profile_section( $club, $is_admin, $club_status ); ?>
+
                 <div class="ufsc-card ufsc-form-section ufsc-section-board ufsc-club-portal__section--full" id="ufsc-club-officers">
                     <h4><?php esc_html_e( 'Dirigeants', 'ufsc-clubs' ); ?></h4>
                     <p class="ufsc-admin-help"><?php esc_html_e( 'La licence individuelle de la saison est la source de référence. Les anciennes coordonnées du club ne sont pas utilisées pour attribuer une fonction.', 'ufsc-clubs' ); ?></p>
@@ -1979,7 +1981,7 @@ class UFSC_Frontend_Shortcodes {
                     <?php self::render_coach_licence_cards( $profile_bureau, $current_season ); ?>
                 </div>
 
-                <div class="ufsc-card ufsc-form-section">
+                <div class="ufsc-card ufsc-form-section ufsc-club-portal__section--full">
                     <h4><?php esc_html_e( 'Réseaux sociaux', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -1989,7 +1991,7 @@ class UFSC_Frontend_Shortcodes {
                     </div>
                 </div>
 
-                <div class="ufsc-card ufsc-form-section">
+                <div class="ufsc-card ufsc-form-section ufsc-club-portal__section--full">
                     <h4><?php esc_html_e( 'Chiffres et dates', 'ufsc-clubs' ); ?></h4>
 
                     <div class="ufsc-grid">
@@ -4041,8 +4043,217 @@ class UFSC_Frontend_Shortcodes {
     }
 
     /**
-     * Render a form field with proper permissions and validation
+     * Dossier FFST du Compte Club.
+     *
+     * Présentation uniquement : les noms de champs restent ceux du stockage
+     * canonique existant. Aucun mécanisme panier/licence n'est utilisé ici.
      */
+    private static function render_ffst_club_profile_section( $club, $is_admin = false, $annual_status = '' ) {
+        $value = static function( $field ) use ( $club ) {
+            return isset( $club->{$field} ) ? (string) $club->{$field} : '';
+        };
+
+        $required_fields = array(
+            'disciplines_ffst',
+            'adresse_salle',
+            'code_postal_salle',
+            'ville_salle',
+            'correspondant_nom',
+            'correspondant_prenom',
+            'correspondant_tel',
+            'correspondant_email',
+            'signataire_nom',
+            'signataire_prenom',
+            'signataire_qualite',
+            'president_nom',
+            'president_prenom',
+            'president_date_naissance',
+            'president_adresse',
+            'president_code_postal',
+            'president_ville',
+            'secretaire_nom',
+            'secretaire_prenom',
+            'secretaire_date_naissance',
+            'secretaire_adresse',
+            'secretaire_code_postal',
+            'secretaire_ville',
+            'tresorier_nom',
+            'tresorier_prenom',
+            'tresorier_date_naissance',
+            'tresorier_adresse',
+            'tresorier_code_postal',
+            'tresorier_ville',
+        );
+
+        $missing = array();
+        foreach ( $required_fields as $field ) {
+            if ( '' === trim( $value( $field ) ) ) { $missing[] = $field; }
+        }
+        $total = count( $required_fields );
+        $done = $total - count( $missing );
+        $percent = $total ? (int) round( ( $done / $total ) * 100 ) : 100;
+
+        $active_statuses = array( 'active', 'actif', 'valide', 'validated', 'approved' );
+        $is_active = in_array( sanitize_key( (string) $annual_status ), $active_statuses, true );
+
+        $leaders = array(
+            'president' => __( 'Président', 'ufsc-clubs' ),
+            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+            'tresorier' => __( 'Trésorier', 'ufsc-clubs' ),
+            'entraineur' => __( 'Entraîneur / instructeur', 'ufsc-clubs' ),
+        );
+        ?>
+        <section class="ufsc-card ufsc-form-section ufsc-club-portal__section--full" id="ufsc-club-ffst">
+            <div class="ufsc-section-header">
+                <div>
+                    <h4><?php esc_html_e( 'Affiliation & informations FFST', 'ufsc-clubs' ); ?></h4>
+                    <p class="ufsc-admin-help">
+                        <?php
+                        if ( $is_active && $missing ) {
+                            esc_html_e( 'Votre affiliation actuelle reste active. Les informations marquées d’un * devront être complétées avant la prochaine affiliation ou réaffiliation.', 'ufsc-clubs' );
+                        } elseif ( $missing ) {
+                            esc_html_e( 'Les informations marquées d’un * sont obligatoires pour finaliser une prochaine affiliation FFST. Vous pouvez enregistrer votre progression sans bloquer votre compte.', 'ufsc-clubs' );
+                        } else {
+                            esc_html_e( 'Le dossier FFST contient toutes les informations de référence actuellement attendues.', 'ufsc-clubs' );
+                        }
+                        ?>
+                    </p>
+                </div>
+                <div class="ufsc-profile-insight">
+                    <strong class="ufsc-profile-insight__value"><?php echo esc_html( $percent ); ?> %</strong>
+                    <span class="ufsc-profile-insight__label"><?php echo esc_html( sprintf( __( '%1$d / %2$d informations', 'ufsc-clubs' ), $done, $total ) ); ?></span>
+                </div>
+            </div>
+
+            <?php if ( $missing ) : ?>
+                <div class="ufsc-message ufsc-info">
+                    <strong><?php echo esc_html( sprintf( _n( '%d information reste à compléter.', '%d informations restent à compléter.', count( $missing ), 'ufsc-clubs' ), count( $missing ) ) ); ?></strong>
+                    <?php if ( $is_active ) : ?>
+                        <?php esc_html_e( ' Cela ne désactive pas l’affiliation en cours.', 'ufsc-clubs' ); ?>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <div class="ufsc-grid">
+                <div class="ufsc-card ufsc-form-section">
+                    <h5><?php esc_html_e( 'Références fédérales', 'ufsc-clubs' ); ?></h5>
+                    <div class="ufsc-grid">
+                        <?php self::render_ffst_profile_input( $club, 'numero_affiliation_ffst', __( 'N° affiliation FFST', 'ufsc-clubs' ), 'text', ! $is_admin, __( 'Attribué par la FFST.', 'ufsc-clubs' ), false ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'disciplines_ffst', __( 'Disciplines FFST pratiquées', 'ufsc-clubs' ), 'text', false, __( 'Séparez plusieurs disciplines par une virgule.', 'ufsc-clubs' ), true ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'codes_disciplines_ffst', __( 'Codes disciplines FFST', 'ufsc-clubs' ), 'text', false, __( 'Codes correspondant aux disciplines.', 'ufsc-clubs' ), false ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'numero_agrement_js', __( 'N° agrément Jeunesse et Sports', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'date_agrement_js', __( 'Date agrément Jeunesse et Sports', 'ufsc-clubs' ), 'date' ); ?>
+                    </div>
+                </div>
+
+                <div class="ufsc-card ufsc-form-section">
+                    <h5><?php esc_html_e( 'Lieu principal d’entraînement', 'ufsc-clubs' ); ?></h5>
+                    <div class="ufsc-grid">
+                        <?php self::render_ffst_profile_input( $club, 'adresse_salle', __( 'Adresse de la salle', 'ufsc-clubs' ), 'text', false, '', true ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'complement_adresse_salle', __( 'Complément d’adresse', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'code_postal_salle', __( 'Code postal', 'ufsc-clubs' ), 'text', false, '', true ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'ville_salle', __( 'Ville', 'ufsc-clubs' ), 'text', false, '', true ); ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ufsc-grid">
+                <div class="ufsc-card ufsc-form-section">
+                    <h5><?php esc_html_e( 'Correspondant FFST', 'ufsc-clubs' ); ?></h5>
+                    <p class="ufsc-admin-help"><?php esc_html_e( 'Contact privilégié pour les échanges fédéraux.', 'ufsc-clubs' ); ?></p>
+                    <div class="ufsc-grid">
+                        <?php self::render_ffst_profile_input( $club, 'correspondant_nom', __( 'Nom', 'ufsc-clubs' ), 'text', false, '', true ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'correspondant_prenom', __( 'Prénom', 'ufsc-clubs' ), 'text', false, '', true ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'correspondant_tel', __( 'Téléphone', 'ufsc-clubs' ), 'tel', false, '', true ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'correspondant_email', __( 'E-mail', 'ufsc-clubs' ), 'email', false, '', true ); ?>
+                    </div>
+                </div>
+
+                <div class="ufsc-card ufsc-form-section">
+                    <h5><?php esc_html_e( 'Signataire du dossier', 'ufsc-clubs' ); ?></h5>
+                    <p class="ufsc-admin-help"><?php esc_html_e( 'Personne qui signe les documents d’affiliation.', 'ufsc-clubs' ); ?></p>
+                    <div class="ufsc-grid">
+                        <?php self::render_ffst_profile_input( $club, 'signataire_nom', __( 'Nom', 'ufsc-clubs' ), 'text', false, '', true ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'signataire_prenom', __( 'Prénom', 'ufsc-clubs' ), 'text', false, '', true ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'signataire_qualite', __( 'Qualité', 'ufsc-clubs' ), 'text', false, __( 'Ex. Président, secrétaire général.', 'ufsc-clubs' ), true ); ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ufsc-card ufsc-form-section ufsc-club-portal__section--full">
+                <div class="ufsc-section-header">
+                    <div>
+                        <h5><?php esc_html_e( 'Bureau & encadrement', 'ufsc-clubs' ); ?></h5>
+                        <p class="ufsc-admin-help"><?php esc_html_e( 'Les identités déjà enregistrées sont conservées. Les champs marqués d’un * sont requis pour le prochain dossier FFST.', 'ufsc-clubs' ); ?></p>
+                    </div>
+                    <a class="ufsc-btn ufsc-btn-secondary" href="<?php echo esc_url( self::get_club_portal_url( 'club-officers' ) ); ?>"><?php esc_html_e( 'Gérer les dirigeants', 'ufsc-clubs' ); ?></a>
+                </div>
+
+                <div class="ufsc-board-columns">
+                    <?php foreach ( array( 'president', 'secretaire', 'tresorier' ) as $prefix ) :
+                        $role_label = $leaders[ $prefix ];
+                        $name = trim( $value( $prefix . '_prenom' ) . ' ' . $value( $prefix . '_nom' ) );
+                    ?>
+                        <article class="ufsc-card ufsc-form-section">
+                            <h5><?php echo esc_html( $role_label . ( $name ? ' — ' . $name : '' ) ); ?></h5>
+                            <div class="ufsc-grid">
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_date_naissance', __( 'Date de naissance', 'ufsc-clubs' ), 'date', false, '', true ); ?>
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_ville_naissance', __( 'Ville de naissance', 'ufsc-clubs' ) ); ?>
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_departement_naissance', __( 'Département de naissance', 'ufsc-clubs' ) ); ?>
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_pays_naissance', __( 'Pays de naissance', 'ufsc-clubs' ) ); ?>
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_adresse', __( 'Adresse', 'ufsc-clubs' ), 'text', false, '', true ); ?>
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_complement_adresse', __( 'Complément d’adresse', 'ufsc-clubs' ) ); ?>
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_code_postal', __( 'Code postal', 'ufsc-clubs' ), 'text', false, '', true ); ?>
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_ville', __( 'Ville', 'ufsc-clubs' ), 'text', false, '', true ); ?>
+                            </div>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+
+                <?php
+                    $prefix = 'entraineur';
+                    $name = trim( $value( 'entraineur_prenom' ) . ' ' . $value( 'entraineur_nom' ) );
+                ?>
+                <article class="ufsc-card ufsc-form-section">
+                    <h5><?php echo esc_html( $leaders['entraineur'] . ( $name ? ' — ' . $name : '' ) ); ?></h5>
+                    <div class="ufsc-grid">
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_date_naissance', __( 'Date de naissance', 'ufsc-clubs' ), 'date' ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_ville_naissance', __( 'Ville de naissance', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_departement_naissance', __( 'Département de naissance', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_pays_naissance', __( 'Pays de naissance', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_adresse', __( 'Adresse', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_complement_adresse', __( 'Complément d’adresse', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_code_postal', __( 'Code postal', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_ville', __( 'Ville', 'ufsc-clubs' ) ); ?>
+                    </div>
+                </article>
+            </div>
+        </section>
+        <?php
+    }
+
+    private static function render_ffst_profile_input( $club, $field, $label, $type = 'text', $readonly = false, $help = '', $required_for_affiliation = false ) {
+        $value = isset( $club->{$field} ) ? (string) $club->{$field} : '';
+        echo '<div class="ufsc-field">';
+        echo '<label for="' . esc_attr( $field ) . '">' . esc_html( $label );
+        if ( $required_for_affiliation ) {
+            echo ' <span class="required" aria-hidden="true">*</span><span class="screen-reader-text"> ' . esc_html__( 'obligatoire pour la prochaine affiliation', 'ufsc-clubs' ) . '</span>';
+        }
+        echo '</label>';
+        echo '<input type="' . esc_attr( $type ) . '" id="' . esc_attr( $field ) . '" name="' . esc_attr( $field ) . '" value="' . esc_attr( $value ) . '"';
+        if ( $readonly ) { echo ' readonly aria-readonly="true"'; }
+        if ( 'email' === $type ) { echo ' autocomplete="email"'; }
+        if ( 'tel' === $type ) { echo ' autocomplete="tel"'; }
+        if ( $required_for_affiliation ) { echo ' data-required-for-affiliation="1"'; }
+        echo '>';
+        if ( '' !== $help ) {
+            echo '<small>' . esc_html( $help ) . '</small>';
+        } elseif ( $required_for_affiliation ) {
+            echo '<small>' . esc_html__( 'Obligatoire avant la prochaine affiliation ou réaffiliation.', 'ufsc-clubs' ) . '</small>';
+        }
+        echo '<span class="ufsc-field-error" aria-live="polite"></span></div>';
+    }
+
     private static function render_field( $field_key, $club, $label, $type = 'text', $readonly = false, $editable = false ) {
         $value = isset( $club->{$field_key} ) ? $club->{$field_key} : '';
         $field_readonly = $readonly || ! $editable;
