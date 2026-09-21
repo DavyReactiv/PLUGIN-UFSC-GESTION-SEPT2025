@@ -41,6 +41,9 @@ class UFSC_SQL {
 
                 'tresorier_date_naissance'=>array('Trésorier – Date de naissance','date'),
                 'tresorier_adresse'=>array('Trésorier – Adresse','text'),
+                'tresorier_complement_adresse'=>array('Trésorier – Complément d\'adresse','text'),
+                'tresorier_code_postal'=>array('Trésorier – Code postal','text'),
+                'tresorier_ville'=>array('Trésorier – Ville','text'),
                 'tresorier_poste'=>array('Trésorier – Poste','text'),
                 
                 'secretaire_prenom'=>array('Secrétaire – Prénom','text'),
