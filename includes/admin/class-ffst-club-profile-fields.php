@@ -29,7 +29,11 @@ final class UFSC_FFST_Club_Profile_Fields {
     }
 
     public static function ensure_schema() {
-        if ( '1' === get_option( self::SCHEMA_OPTION, '' ) || ! class_exists( 'UFSC_SQL' ) ) { return; }
+        // Always verify the live table schema. Production installations may
+        // already have the historical schema option set even though newer
+        // additive officer columns (for example tresorier_ville) are still
+        // missing. The loop below is idempotent and only creates absent columns.
+        if ( ! class_exists( 'UFSC_SQL' ) ) { return; }
 
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
