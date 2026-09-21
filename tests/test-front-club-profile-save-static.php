@@ -31,7 +31,7 @@ foreach ( array(
 }
 
 $assert(
-    false !== strpos( $handler, "array_key_exists( $field, $_POST )" ),
+    false !== strpos( $handler, "array_key_exists( \$field, \$_POST )" ),
     'Seuls les champs effectivement soumis sont sauvegardés.'
 );
 
@@ -41,7 +41,7 @@ $assert(
 );
 
 $assert(
-    false === strpos( $handler, "$allowed_data['tresorier_ville'] = ''" ),
+    false === strpos( $handler, "\$allowed_data['tresorier_ville'] = ''" ),
     'La ville du trésorier n’est jamais remise à vide implicitement.'
 );
 
