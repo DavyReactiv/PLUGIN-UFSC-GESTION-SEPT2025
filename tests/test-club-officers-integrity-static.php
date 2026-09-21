@@ -42,6 +42,15 @@ $assert(
 );
 
 $assert(
+    false === strpos( $profile, "get_option( self::SCHEMA_OPTION, '' ) || ! class_exists( 'UFSC_SQL' )" ),
+    'La vérification du schéma ne doit pas être court-circuitée par une ancienne option de version.'
+);
+$assert(
+    false !== strpos( $profile, "$defs[ $prefix . '_ville' ]" ),
+    'Le schéma additif prévoit la colonne ville pour chaque dirigeant.'
+);
+
+$assert(
     false !== strpos( $layout, "grid-template-columns:repeat(3,minmax(0,1fr))" ),
     'Les cartes dirigeants utilisent une grille desktop compacte.'
 );
