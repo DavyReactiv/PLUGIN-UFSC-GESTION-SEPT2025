@@ -53,7 +53,7 @@ final class UFSC_FFST_Club_Profile_Fields {
             if ( false === $result ) { $ok = false; }
         }
 
-        if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) { ufsc_flush_table_columns_cache(); }
+        if ( function_exists( 'ufsc_flush_table_columns_cache' ) ) { ufsc_flush_table_columns_cache( $table ); }
         if ( $ok ) { update_option( self::SCHEMA_OPTION, '1', false ); }
     }
 
