@@ -4,6 +4,8 @@ $admin  = file_get_contents( $root . '/includes/admin/class-sql-admin.php' );
 $layout = file_get_contents( $root . '/includes/admin/class-ffst-club-admin-layout.php' );
 $profile = file_get_contents( $root . '/includes/admin/class-ffst-club-profile-fields.php' );
 $front = file_get_contents( $root . '/includes/frontend/class-frontend-shortcodes.php' );
+$core = file_get_contents( $root . '/includes/core/class-sql.php' );
+$guard = file_get_contents( $root . '/includes/admin/class-ffst-club-profile-schema-guard.php' );
 
 $failures = 0;
 $assert = static function( $condition, $message ) use ( &$failures ) {
@@ -39,6 +41,22 @@ $assert(
 $assert(
     false !== strpos( $profile, "'tresorier_ville'" ),
     'Le stockage canonique FFST prévoit la ville du trésorier.'
+);
+
+$assert(
+    false !== strpos( $core, "'tresorier_ville'=>array('Trésorier – Ville','text')" ),
+    'La ville du trésorier fait partie du registre canonique UFSC_SQL.'
+);
+$assert(
+    false !== strpos( $guard, "add_action( 'admin_init', array( __CLASS__, 'repair_missing_columns' ), 1 )" ),
+    'Le schéma dirigeants est revérifié sur admin_init avant le rendu.'
+);
+$filter_pos = strpos( $guard, 'public static function filter_unavailable_fields' );
+$repair_pos = false !== $filter_pos ? strpos( $guard, 'self::repair_missing_columns();', $filter_pos ) : false;
+$known_pos = false !== $filter_pos ? strpos( $guard, '$known  = self::actual_columns( $table );', $filter_pos ) : false;
+$assert(
+    false !== $repair_pos && false !== $known_pos && $repair_pos < $known_pos,
+    'Le filtre des champs tente la réparation SQL avant de masquer un champ indisponible.'
 );
 
 $assert(

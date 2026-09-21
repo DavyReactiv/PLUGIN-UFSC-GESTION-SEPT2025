@@ -11,6 +11,9 @@ final class UFSC_FFST_Club_Profile_Schema_Guard {
 
     public static function init() {
         add_action( 'init', array( __CLASS__, 'repair_missing_columns' ), 6 );
+        // Second production-safe pass on admin requests. Some installs may reach
+        // the club field registry before a previous schema repair has taken effect.
+        add_action( 'admin_init', array( __CLASS__, 'repair_missing_columns' ), 1 );
         add_filter( 'ufsc_club_fields', array( __CLASS__, 'filter_unavailable_fields' ), 1000 );
     }
 
@@ -85,6 +88,13 @@ final class UFSC_FFST_Club_Profile_Schema_Guard {
 
     public static function filter_unavailable_fields( $fields ) {
         $fields = is_array( $fields ) ? $fields : array();
+
+        // Last-chance repair immediately before the canonical field registry is
+        // filtered. This guarantees that a missing additive column such as
+        // tresorier_ville is created before the admin form decides whether to
+        // render it. The repair is idempotent and never alters existing values.
+        self::repair_missing_columns();
+
         $table  = self::table_name();
         $known  = self::actual_columns( $table );
         if ( ! $known ) { return $fields; }
