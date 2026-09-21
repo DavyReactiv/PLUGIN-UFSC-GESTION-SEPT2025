@@ -41,6 +41,11 @@ $assert(
 );
 
 $assert(
+    false !== strpos( $handler, "ufsc_table_columns( \$table, true )" ),
+    'La sauvegarde front force une relecture fraîche du schéma après réparation.'
+);
+
+$assert(
     false === strpos( $handler, "\$allowed_data['tresorier_ville'] = ''" ),
     'La ville du trésorier n’est jamais remise à vide implicitement.'
 );
