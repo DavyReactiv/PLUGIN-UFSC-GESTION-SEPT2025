@@ -204,19 +204,114 @@ class UFSC_CL_Club_Form_Handler {
      * @param bool $affiliation Whether affiliation mode is active.
      */
     private static function handle_front_own_club_update( $club_id, $affiliation ) {
-        $allowed_data = array();
-
-        if ( isset( $_POST['email'] ) ) {
-            $allowed_data['email'] = sanitize_email( wp_unslash( $_POST['email'] ) );
+        // Ensure additive FFST columns exist before collecting/saving the front
+        // profile. This is idempotent and never alters existing values.
+        if (
+            class_exists( 'UFSC_FFST_Club_Profile_Schema_Guard' ) &&
+            method_exists( 'UFSC_FFST_Club_Profile_Schema_Guard', 'repair_missing_columns' )
+        ) {
+            UFSC_FFST_Club_Profile_Schema_Guard::repair_missing_columns();
         }
 
-        if ( isset( $_POST['telephone'] ) ) {
-            $allowed_data['telephone'] = sanitize_text_field( wp_unslash( $_POST['telephone'] ) );
+        $allowed_fields = array(
+            'email',
+            'telephone',
+            'disciplines_ffst',
+            'codes_disciplines_ffst',
+            'numero_agrement_js',
+            'date_agrement_js',
+            'adresse_salle',
+            'complement_adresse_salle',
+            'code_postal_salle',
+            'ville_salle',
+            'correspondant_nom',
+            'correspondant_prenom',
+            'correspondant_tel',
+            'correspondant_email',
+            'signataire_nom',
+            'signataire_prenom',
+            'signataire_qualite',
+        );
+
+        foreach ( array( 'president', 'secretaire', 'tresorier', 'entraineur' ) as $prefix ) {
+            foreach (
+                array(
+                    'date_naissance',
+                    'ville_naissance',
+                    'departement_naissance',
+                    'pays_naissance',
+                    'adresse',
+                    'complement_adresse',
+                    'code_postal',
+                    'ville',
+                    'pere_nom_prenom',
+                    'mere_nom_prenom',
+                ) as $suffix
+            ) {
+                $allowed_fields[] = $prefix . '_' . $suffix;
+            }
+        }
+
+        $allowed_data = array();
+        foreach ( $allowed_fields as $field ) {
+            if ( ! array_key_exists( $field, $_POST ) || is_array( $_POST[ $field ] ) ) {
+                continue;
+            }
+
+            $value = wp_unslash( $_POST[ $field ] );
+
+            if ( in_array( $field, array( 'email', 'correspondant_email' ), true ) ) {
+                $allowed_data[ $field ] = sanitize_email( $value );
+                continue;
+            }
+
+            if ( false !== strpos( $field, 'date_' ) && '' !== trim( (string) $value ) ) {
+                $date_value = sanitize_text_field( $value );
+                if ( ! preg_match( '/^\\d{4}-\\d{2}-\\d{2}$/', $date_value ) ) {
+                    self::redirect_with_error( __( 'Une date du dossier club est invalide.', 'ufsc-clubs' ), $club_id, $affiliation );
+                    return;
+                }
+                $allowed_data[ $field ] = $date_value;
+                continue;
+            }
+
+            $allowed_data[ $field ] = sanitize_text_field( $value );
         }
 
         if ( empty( $allowed_data ) ) {
             self::redirect_with_error( __( 'Aucune information autorisée à mettre à jour.', 'ufsc-clubs' ), $club_id, $affiliation );
             return;
+        }
+
+        // Never report a successful save when a posted profile field has no
+        // backing SQL column. This catches schema drift instead of silently
+        // discarding e.g. tresorier_ville.
+        $settings = UFSC_SQL::get_settings();
+        $table    = $settings['table_clubs'];
+        $columns  = function_exists( 'ufsc_table_columns' )
+            ? (array) ufsc_table_columns( $table )
+            : array();
+
+        if ( ! empty( $columns ) ) {
+            $missing_columns = array();
+            foreach ( array_keys( $allowed_data ) as $field ) {
+                if ( ! in_array( $field, $columns, true ) ) {
+                    $missing_columns[] = $field;
+                }
+            }
+
+            if ( $missing_columns ) {
+                UFSC_CL_Utils::log(
+                    'Club profile save blocked: missing SQL columns for club #' . absint( $club_id ) . ': ' . implode( ', ', $missing_columns ),
+                    'error'
+                );
+                self::redirect_with_error(
+                    __( 'Certaines informations du dossier ne peuvent pas encore être enregistrées. Merci de réessayer après actualisation de la page.', 'ufsc-clubs' ),
+                    $club_id,
+                    $affiliation
+                );
+                return;
+            }
         }
 
         $result_club_id = self::save_club_data( $allowed_data, $club_id );
@@ -226,7 +321,7 @@ class UFSC_CL_Club_Form_Handler {
         }
 
         do_action( 'ufsc_club_updated', $club_id );
-        self::redirect_with_success( __( 'Les informations autorisées du club ont été mises à jour.', 'ufsc-clubs' ), $club_id, $affiliation );
+        self::redirect_with_success( __( 'Les informations du club ont été mises à jour.', 'ufsc-clubs' ), $club_id, $affiliation );
     }
 
     /**
