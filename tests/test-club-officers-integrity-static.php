@@ -46,7 +46,7 @@ $assert(
     'La vérification du schéma ne doit pas être court-circuitée par une ancienne option de version.'
 );
 $assert(
-    false !== strpos( $profile, "$defs[ $prefix . '_ville' ]" ),
+    false !== strpos( $profile, "\$defs[ \$prefix . '_ville' ]" ),
     'Le schéma additif prévoit la colonne ville pour chaque dirigeant.'
 );
 
