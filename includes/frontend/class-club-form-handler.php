@@ -609,6 +609,9 @@ class UFSC_CL_Club_Form_Handler {
      */
     private static function redirect_with_error( $message, $club_id, $affiliation ) {
         $redirect_url = wp_get_referer() ?: home_url();
+        // A failed save must never keep a stale success flag from the previous
+        // request; otherwise the page renders contradictory success + error notices.
+        $redirect_url = remove_query_arg( array( 'ufsc_success', 'ufsc_message' ), $redirect_url );
         $redirect_url = add_query_arg( array(
             'ufsc_error' => urlencode( $message )
         ), $redirect_url );
@@ -626,6 +629,8 @@ class UFSC_CL_Club_Form_Handler {
      */
     private static function redirect_with_success( $message, $club_id, $affiliation ) {
         $redirect_url = wp_get_referer() ?: home_url();
+        // Symmetric cleanup: a successful save must not preserve an older error.
+        $redirect_url = remove_query_arg( array( 'ufsc_error', 'ufsc_message' ), $redirect_url );
         $redirect_url = add_query_arg( array(
             'ufsc_success' => urlencode( $message )
         ), $redirect_url );
