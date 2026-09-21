@@ -25,10 +25,12 @@ final class UFSC_FFST_Club_Admin_Layout {
             .ufsc-ffst-admin-layout__intro{margin:0 0 14px;color:#50575e}
             .ufsc-ffst-admin-layout__status{margin:12px 0 16px;padding:12px 14px;border:1px solid #dcdcde;border-radius:8px;background:#f7f9fb}
             .ufsc-ffst-admin-layout__status .ufsc-ffst-progress{margin-top:0}
-            .ufsc-ffst-leaders{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px}
-            .ufsc-ffst-leader{border:1px solid #dcdcde;border-radius:10px;background:#fbfbfc;padding:16px;min-width:0}
+            .ufsc-ffst-leaders{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:12px}
+            .ufsc-ffst-leader{border:1px solid #dcdcde;border-radius:12px;background:#fbfbfc;padding:16px;min-width:0;box-sizing:border-box}
             .ufsc-ffst-leader__title{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid #e5e7eb;color:#0b4a78;font-size:15px;font-weight:700}
             .ufsc-ffst-leader__grid,.ufsc-ffst-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+            .ufsc-ffst-leader__group{grid-column:1/-1;margin:4px 0 -2px;padding-top:10px;border-top:1px solid #e5e7eb;color:#50575e;font-size:11px;font-weight:700;letter-spacing:.035em;text-transform:uppercase}
+            .ufsc-ffst-leader__group:first-child{margin-top:0;padding-top:0;border-top:0}
             .ufsc-ffst-admin-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:14px}
             .ufsc-ffst-admin-group{grid-column:1/-1;margin:8px 0 0;padding-top:12px;border-top:1px solid #e5e7eb;font-size:13px;font-weight:700;color:#1d2327}
             .ufsc-ffst-leader .ufsc-field,.ufsc-ffst-leader .ufsc-admin-field,.ufsc-ffst-leader .ufsc-form-field,.ufsc-ffst-leader .form-field,.ufsc-ffst-leader .field,
@@ -36,8 +38,9 @@ final class UFSC_FFST_Club_Admin_Layout {
             .ufsc-ffst-leader input,.ufsc-ffst-leader select,.ufsc-ffst-leader textarea,.ufsc-ffst-admin-grid input,.ufsc-ffst-admin-grid select,.ufsc-ffst-admin-grid textarea{width:100%;max-width:100%;box-sizing:border-box}
             .ufsc-ffst-foreign-parent{display:none!important}.ufsc-ffst-foreign-parent.is-visible{display:block!important}
             .ufsc-ffst-empty-grid{display:none!important}
-            @media(max-width:1200px){.ufsc-ffst-leaders{grid-template-columns:1fr}.ufsc-ffst-admin-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-            @media(max-width:782px){.ufsc-ffst-leader__grid,.ufsc-ffst-admin-grid{grid-template-columns:1fr}}
+            @media(max-width:1500px){.ufsc-ffst-leaders{grid-template-columns:repeat(2,minmax(0,1fr))}}
+            @media(max-width:1100px){.ufsc-ffst-leaders{grid-template-columns:1fr}.ufsc-ffst-admin-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+            @media(max-width:782px){.ufsc-ffst-leader__grid,.ufsc-ffst-admin-grid{grid-template-columns:1fr}.ufsc-ffst-leader{padding:14px}}
         </style>
         <script>
         (function(){
@@ -93,14 +96,25 @@ final class UFSC_FFST_Club_Admin_Layout {
                 }
                 if(country){country.addEventListener('input',update);country.addEventListener('change',update);}update();
             }
-            function leaderFields(prefix){
-                var fields=[
-                    prefix+'_prenom',prefix+'_nom',prefix+'_poste',prefix+'_tel',prefix+'_telephone',prefix+'_email',
-                    prefix+'_date_naissance',prefix+'_ville_naissance',prefix+'_departement_naissance',prefix+'_pays_naissance',
-                    prefix+'_adresse',prefix+'_complement_adresse',prefix+'_code_postal',prefix+'_ville',
-                    prefix+'_pere_nom_prenom',prefix+'_mere_nom_prenom'
+            function leaderGroups(prefix){
+                return [
+                    {title:'Identité & contact',fields:[prefix+'_prenom',prefix+'_nom',prefix+'_poste',prefix+'_tel',prefix+'_telephone',prefix+'_email']},
+                    {title:'Naissance',fields:[prefix+'_date_naissance',prefix+'_ville_naissance',prefix+'_departement_naissance',prefix+'_pays_naissance']},
+                    {title:'Adresse',fields:[prefix+'_adresse',prefix+'_complement_adresse',prefix+'_code_postal',prefix+'_ville']},
+                    {title:'Filiation (naissance à l’étranger)',fields:[prefix+'_pere_nom_prenom',prefix+'_mere_nom_prenom']}
                 ];
-                return fields.filter(function(name,index,self){return self.indexOf(name)===index;});
+            }
+            function appendLeaderGroup(grid,group){
+                var existing=group.fields.filter(function(name){return !!field(name);});
+                if(!existing.length)return 0;
+                var groupTitle=document.createElement('div');
+                groupTitle.className='ufsc-ffst-leader__group';
+                groupTitle.textContent=group.title;
+                grid.appendChild(groupTitle);
+                existing.forEach(function(name){
+                    move(name,grid,(name.indexOf('_pere_nom_prenom')>0||name.indexOf('_mere_nom_prenom')>0)?'ufsc-ffst-foreign-parent':'');
+                });
+                return existing.length;
             }
             function buildLeaders(){
                 var section=sectionByTitle('Dirigeants');if(!section)return false;
@@ -110,7 +124,7 @@ final class UFSC_FFST_Club_Admin_Layout {
                     var card=document.createElement('article');card.className='ufsc-ffst-leader';
                     var title=document.createElement('h4');title.className='ufsc-ffst-leader__title';title.textContent=leaderLabels[prefix];card.appendChild(title);
                     var grid=document.createElement('div');grid.className='ufsc-ffst-leader__grid';card.appendChild(grid);
-                    leaderFields(prefix).forEach(function(name){move(name,grid,(name.indexOf('_pere_nom_prenom')>0||name.indexOf('_mere_nom_prenom')>0)?'ufsc-ffst-foreign-parent':'');});
+                    leaderGroups(prefix).forEach(function(group){appendLeaderGroup(grid,group);});
                     if(grid.querySelector('input,select,textarea'))leaders.appendChild(card);
                 });
                 section.appendChild(leaders);
