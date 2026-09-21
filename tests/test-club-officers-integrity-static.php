@@ -51,6 +51,15 @@ $assert(
     false !== strpos( $guard, "add_action( 'admin_init', array( __CLASS__, 'repair_missing_columns' ), 1 )" ),
     'Le schéma dirigeants est revérifié sur admin_init avant le rendu.'
 );
+$assert(
+    false !== strpos( $guard, 'ufsc_flush_table_columns_cache( $table )' ),
+    'La réparation vide le cache de colonnes de la table exacte, transient compris.'
+);
+$assert(
+    false !== stripos( $guard, 'row size too large' ) &&
+    false !== strpos( $guard, 'text NULL' ),
+    'La migration sait retenter en TEXT uniquement en cas de limite de taille de ligne.'
+);
 $filter_pos = strpos( $guard, 'public static function filter_unavailable_fields' );
 $repair_pos = false !== $filter_pos ? strpos( $guard, 'self::repair_missing_columns();', $filter_pos ) : false;
 $known_pos = false !== $filter_pos ? strpos( $guard, '$known  = self::actual_columns( $table );', $filter_pos ) : false;

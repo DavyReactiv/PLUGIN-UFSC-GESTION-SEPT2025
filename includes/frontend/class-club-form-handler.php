@@ -289,8 +289,8 @@ class UFSC_CL_Club_Form_Handler {
         $settings = UFSC_SQL::get_settings();
         $table    = $settings['table_clubs'];
         $columns  = function_exists( 'ufsc_table_columns' )
-            ? (array) ufsc_table_columns( $table )
-            : array();
+            ? (array) ufsc_table_columns( $table, true )
+            : (array) $GLOBALS['wpdb']->get_col( "SHOW COLUMNS FROM `{$table}`", 0 ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         if ( ! empty( $columns ) ) {
             $missing_columns = array();
