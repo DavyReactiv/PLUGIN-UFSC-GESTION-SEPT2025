@@ -58,9 +58,9 @@ $assert(
 );
 
 $assert(
-    false !== strpos( $front, "$prefix . '_complement_adresse'" )
-    && false !== strpos( $front, "$prefix . '_code_postal'" )
-    && false !== strpos( $front, "$prefix . '_ville'" ),
+    false !== strpos( $front, "\$prefix . '_complement_adresse'" )
+    && false !== strpos( $front, "\$prefix . '_code_postal'" )
+    && false !== strpos( $front, "\$prefix . '_ville'" ),
     'Le Compte Club front conserve l’adresse détaillée des dirigeants, y compris la ville.'
 );
 
