@@ -74,15 +74,44 @@ final class UFSC_FFST_Club_Profile_Schema_Guard {
         $changed = false;
         foreach ( self::definitions() as $column => $definition ) {
             if ( in_array( $column, $known, true ) ) { continue; }
+
             $result = $wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+            // Production databases with very wide legacy club tables can hit
+            // MySQL/InnoDB row-size limits on additional VARCHAR columns.
+            // Retry only that specific failure as TEXT, which remains
+            // non-destructive and preserves all existing rows/values.
+            if (
+                false === $result &&
+                is_string( $wpdb->last_error ) &&
+                (
+                    false !== stripos( $wpdb->last_error, 'row size too large' ) ||
+                    false !== stripos( $wpdb->last_error, '1118' )
+                ) &&
+                0 === stripos( ltrim( $definition ), 'varchar(' )
+            ) {
+                $result = $wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN `{$column}` text NULL" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            }
+
             if ( false !== $result ) {
                 $known[] = $column;
                 $changed = true;
+                continue;
+            }
+
+            if ( class_exists( 'UFSC_CL_Utils' ) && method_exists( 'UFSC_CL_Utils', 'log' ) ) {
+                UFSC_CL_Utils::log(
+                    'FFST club profile schema: unable to add ' . $column . ' to ' . $table . ': ' . (string) $wpdb->last_error,
+                    'error'
+                );
             }
         }
 
         if ( $changed && function_exists( 'ufsc_flush_table_columns_cache' ) ) {
-            ufsc_flush_table_columns_cache();
+            // Flush this table specifically so both the object cache and the
+            // transient cache are cleared. A global wp_cache_flush() alone does
+            // not delete the persistent ufsc_table_columns_* transient.
+            ufsc_flush_table_columns_cache( $table );
         }
     }
 
