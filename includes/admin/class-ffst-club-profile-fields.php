@@ -29,7 +29,13 @@ final class UFSC_FFST_Club_Profile_Fields {
     }
 
     public static function ensure_schema() {
-        if ( '1' === get_option( self::SCHEMA_OPTION, '' ) || ! class_exists( 'UFSC_SQL' ) ) { return; }
+        // Ne jamais court-circuiter la vérification sur la seule présence de
+        // l'option de version. Des colonnes ont pu être ajoutées à la définition
+        // après qu'une installation de production a déjà marqué ce schéma comme
+        // installé (ex. tresorier_ville). La vérification ci-dessous est
+        // idempotente et strictement additive : seules les colonnes absentes sont
+        // créées, aucune donnée existante n'est modifiée ou supprimée.
+        if ( ! class_exists( 'UFSC_SQL' ) ) { return; }
 
         global $wpdb;
         $settings = UFSC_SQL::get_settings();
