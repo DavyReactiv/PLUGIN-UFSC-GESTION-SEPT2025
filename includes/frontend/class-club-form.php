@@ -557,17 +557,19 @@ class UFSC_CL_Club_Form {
      * Display success/error messages
      */
     private static function display_messages() {
-        if ( isset( $_GET['ufsc_success'] ) ) {
-            $message = sanitize_text_field( $_GET['ufsc_success'] );
+        $has_error   = isset( $_GET['ufsc_error'] ) && '' !== (string) $_GET['ufsc_error'];
+        $has_success = isset( $_GET['ufsc_success'] ) && '' !== (string) $_GET['ufsc_success'];
+
+        if ( $has_error ) {
+            $message = sanitize_text_field( wp_unslash( $_GET['ufsc_error'] ) );
+            echo '<div class="ufsc-alert error">' . esc_html( $message ) . '</div>';
+        } elseif ( $has_success ) {
+            $message = sanitize_text_field( wp_unslash( $_GET['ufsc_success'] ) );
             echo '<div class="ufsc-alert success">' . esc_html( $message ) . '</div>';
         }
 
-        if ( isset( $_GET['ufsc_error'] ) ) {
-            $message   = sanitize_text_field( $_GET['ufsc_error'] );
-            $clean_url = esc_url( remove_query_arg( 'ufsc_error' ) );
-
-            echo '<div class="ufsc-alert error">' . esc_html( $message ) . '</div>';
-            echo '<script>if(window.history.replaceState){window.history.replaceState({},document.title,\'' . $clean_url . '\');}</script>';
+        if ( $has_error || $has_success || isset( $_GET['ufsc_message'] ) ) {
+            echo '<script>(function(){if(!window.history||!window.history.replaceState){return;}var u=new URL(window.location.href);u.searchParams.delete("ufsc_error");u.searchParams.delete("ufsc_success");u.searchParams.delete("ufsc_message");window.history.replaceState({},document.title,u.pathname+(u.search?"?"+u.searchParams.toString():"")+u.hash);})();</script>';
         }
     }
 }

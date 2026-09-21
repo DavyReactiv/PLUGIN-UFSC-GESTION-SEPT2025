@@ -609,6 +609,7 @@ class UFSC_CL_Club_Form_Handler {
      */
     private static function redirect_with_error( $message, $club_id, $affiliation ) {
         $redirect_url = wp_get_referer() ?: home_url();
+        $redirect_url = remove_query_arg( array( 'ufsc_success', 'ufsc_message' ), $redirect_url );
         $redirect_url = add_query_arg( array(
             'ufsc_error' => urlencode( $message )
         ), $redirect_url );
@@ -626,6 +627,7 @@ class UFSC_CL_Club_Form_Handler {
      */
     private static function redirect_with_success( $message, $club_id, $affiliation ) {
         $redirect_url = wp_get_referer() ?: home_url();
+        $redirect_url = remove_query_arg( array( 'ufsc_error', 'ufsc_message' ), $redirect_url );
         $redirect_url = add_query_arg( array(
             'ufsc_success' => urlencode( $message )
         ), $redirect_url );
@@ -639,11 +641,15 @@ class UFSC_CL_Club_Form_Handler {
     */
     public static function display_save_club_results()
     {
-        if ( isset( $_GET['ufsc_error'] ) && '' !== $_GET['ufsc_error'] ) {
+        $has_error   = isset( $_GET['ufsc_error'] ) && '' !== (string) $_GET['ufsc_error'];
+        $has_success = isset( $_GET['ufsc_success'] ) && '' !== (string) $_GET['ufsc_success'];
+
+        // One request state = one notice. If both are present because an older
+        // URL was reused, the error wins and stale success is never rendered.
+        if ( $has_error ) {
             $errors = explode( ',', sanitize_text_field( wp_unslash( $_GET['ufsc_error'] ) ) );
 
             echo '<div class="ufsc-notice ufsc-notice-error is-dismissible"><p>';
-
             echo '<span class="dashicons dashicons-error" style="color: #ffb900;"></span> <br/>';
             $safe_errors = array();
             foreach ( $errors as $error ) {
@@ -651,13 +657,16 @@ class UFSC_CL_Club_Form_Handler {
             }
             echo implode( '<br/>', $safe_errors );
             echo '</p></div>';
-
-        } 
-        
-        if ( isset( $_GET['ufsc_success'] ) && '' !== $_GET['ufsc_success'] ) {
+        } elseif ( $has_success ) {
             echo '<div class="ufsc-notice ufsc-notice-success is-dismissible"><p>';
             echo esc_html( sanitize_text_field( wp_unslash( $_GET['ufsc_success'] ) ) );
             echo '</p></div>';
+        }
+
+        // Flash semantics: after the first render, remove notice parameters from
+        // the browser URL so F5 does not replay the same message indefinitely.
+        if ( $has_error || $has_success || isset( $_GET['ufsc_message'] ) ) {
+            echo '<script>(function(){if(!window.history||!window.history.replaceState){return;}var u=new URL(window.location.href);u.searchParams.delete("ufsc_error");u.searchParams.delete("ufsc_success");u.searchParams.delete("ufsc_message");window.history.replaceState({},document.title,u.pathname+(u.search?"?"+u.searchParams.toString():"")+u.hash);})();</script>';
         }
     }
 }
