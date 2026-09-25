@@ -2116,9 +2116,7 @@ class UFSC_SQL_Admin
                     'entraineur_pere_nom_prenom', 'entraineur_mere_nom_prenom',
                 )
             ),
-            array( 'Documents administratifs', '', array( 'statuts', 'recepisse', 'jo', 'pv_ag', 'cer', 'attestation_cer', 'doc_attestation_affiliation', 'doc_statuts', 'doc_recepisse', 'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer' ) ),
             array( 'Statut permanent historique', 'Compatibilité uniquement : ces champs ne pilotent pas l’affiliation annuelle.', array( 'statut', 'date_affiliation', 'num_affiliation' ) ),
-            array( 'Traçabilité', '', array( 'date_creation', 'responsable_id', 'contact' ) ),
         );
 
         foreach ( $sections as $section ) {
@@ -2129,6 +2127,26 @@ class UFSC_SQL_Admin
             self::render_club_form_section( $section[0], $section[1], $keys, $fields, $row, $readonly );
             $rendered_keys = array_merge( $rendered_keys, $keys );
         }
+
+        // Technical document IDs and traceability fields remain stored exactly as
+        // before, but are no longer exposed as raw editable values in the generic
+        // form. Dedicated read-only summaries below present useful information
+        // without mutating or migrating any historical data.
+        $technical_summary_keys = array(
+            'statuts', 'recepisse', 'jo', 'pv_ag', 'cer', 'attestation_cer',
+            'doc_attestation_affiliation', 'doc_statuts', 'doc_recepisse',
+            'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer',
+            'date_creation', 'responsable_id', 'contact',
+        );
+        $rendered_keys = array_merge(
+            $rendered_keys,
+            self::get_existing_section_keys( $fields, $technical_summary_keys )
+        );
+
+        if ( $id ) {
+            self::render_club_documents_overview( $id, $row );
+        }
+        self::render_club_traceability_overview( $row );
 
         $remaining_keys = array();
         foreach ( array_keys( $fields ) as $k ) {
@@ -2206,6 +2224,140 @@ class UFSC_SQL_Admin
         echo '</div>';
     }
 
+    /**
+     * Render a non-destructive document presence summary.
+     *
+     * Raw attachment IDs stay in storage but are never presented as business
+     * information. Legacy SQL values, managed document storage and historical
+     * URL fields are all read without writing anything back.
+     *
+     * @param int         $club_id Club ID.
+     * @param object|null $row     Current club row.
+     * @return void
+     */
+    private static function render_club_documents_overview( $club_id, $row ) {
+        $documents = array(
+            'doc_statuts'         => array( 'label' => __( 'Statuts', 'ufsc-clubs' ), 'legacy' => array( 'statuts' ) ),
+            'doc_recepisse'       => array( 'label' => __( 'Récépissé', 'ufsc-clubs' ), 'legacy' => array( 'recepisse' ) ),
+            'doc_jo'              => array( 'label' => __( 'Journal Officiel', 'ufsc-clubs' ), 'legacy' => array( 'jo' ) ),
+            'doc_pv_ag'           => array( 'label' => __( 'PV d’assemblée générale', 'ufsc-clubs' ), 'legacy' => array( 'pv_ag' ) ),
+            'doc_cer'             => array( 'label' => __( 'CER', 'ufsc-clubs' ), 'legacy' => array( 'cer' ) ),
+            'doc_attestation_cer' => array( 'label' => __( 'Attestation CER', 'ufsc-clubs' ), 'legacy' => array( 'attestation_cer' ) ),
+        );
+
+        echo '<section class="ufsc-admin-card ufsc-admin-section ufsc-club-documents-overview">';
+        echo '<header class="ufsc-admin-card-header"><h3 class="ufsc-admin-card-title">' . esc_html__( 'Documents administratifs', 'ufsc-clubs' ) . '</h3>';
+        echo '<p class="ufsc-admin-card-description">' . esc_html__( 'État de présence des pièces jointes. Les identifiants techniques de médias restent conservés mais ne sont pas affichés comme des données métier.', 'ufsc-clubs' ) . '</p></header>';
+        echo '<div class="ufsc-doc-overview-grid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;">';
+
+        foreach ( $documents as $doc_key => $config ) {
+            $file = self::ufsc_docs_get_file( $club_id, $doc_key );
+            $attachment_id = ! empty( $file['attachment_id'] ) ? absint( $file['attachment_id'] ) : 0;
+            $url = ! empty( $file['url'] ) ? (string) $file['url'] : '';
+            $filename = ! empty( $file['filename'] ) ? (string) $file['filename'] : '';
+
+            // The legacy SQL club row may contain the attachment reference even
+            // when the newer document storage has never been initialized.
+            if ( ! $attachment_id && is_object( $row ) && isset( $row->{$doc_key} ) ) {
+                $legacy_id = absint( $row->{$doc_key} );
+                if ( $legacy_id ) {
+                    $attachment_id = $legacy_id;
+                    $url = (string) wp_get_attachment_url( $legacy_id );
+                    $filename = (string) get_the_title( $legacy_id );
+                    if ( '' === $filename && $url ) {
+                        $filename = basename( wp_parse_url( $url, PHP_URL_PATH ) );
+                    }
+                }
+            }
+
+            // Some very old installations stored a URL/path in the historical
+            // document field. Read it for presence only; never rewrite it here.
+            if ( ! $attachment_id && '' === $url && is_object( $row ) ) {
+                foreach ( (array) $config['legacy'] as $legacy_key ) {
+                    if ( ! isset( $row->{$legacy_key} ) ) {
+                        continue;
+                    }
+                    $legacy_value = trim( (string) $row->{$legacy_key} );
+                    if ( '' !== $legacy_value && preg_match( '#^(?:https?://|/)#i', $legacy_value ) ) {
+                        $url = $legacy_value;
+                        $filename = basename( (string) wp_parse_url( $legacy_value, PHP_URL_PATH ) );
+                        break;
+                    }
+                }
+            }
+
+            $present = $attachment_id > 0 || '' !== $url;
+            echo '<div class="ufsc-doc-overview-item" style="padding:12px;border:1px solid #dcdcde;border-radius:8px;background:#fff;">';
+            echo '<strong>' . esc_html( $config['label'] ) . '</strong><br>';
+            if ( $present ) {
+                echo '<span class="ufsc-badge ufsc-badge-success">' . esc_html__( 'Présent', 'ufsc-clubs' ) . '</span>';
+                if ( '' !== $filename ) {
+                    echo '<div class="description" style="margin-top:6px;">' . esc_html( $filename ) . '</div>';
+                } elseif ( $attachment_id ) {
+                    echo '<div class="description" style="margin-top:6px;">' . esc_html__( 'Référence de pièce jointe enregistrée', 'ufsc-clubs' ) . '</div>';
+                }
+                if ( '' !== $url ) {
+                    echo '<p style="margin:8px 0 0;"><a class="button button-small" href="' . esc_url( $url ) . '" target="_blank" rel="noopener">' . esc_html__( 'Voir', 'ufsc-clubs' ) . '</a></p>';
+                }
+            } else {
+                echo '<span class="ufsc-badge ufsc-badge-neutral">' . esc_html__( 'Absent', 'ufsc-clubs' ) . '</span>';
+            }
+            echo '</div>';
+        }
+
+        echo '</div></section>';
+    }
+
+    /**
+     * Render traceability without inventing or backfilling historical dates.
+     *
+     * @param object|null $row Current club row.
+     * @return void
+     */
+    private static function render_club_traceability_overview( $row ) {
+        $creation = is_object( $row ) && isset( $row->date_creation ) ? trim( (string) $row->date_creation ) : '';
+        if ( in_array( $creation, array( '0000-00-00', '0000-00-00 00:00:00' ), true ) ) {
+            $creation = '';
+        }
+
+        $responsable_id = is_object( $row ) && isset( $row->responsable_id ) ? absint( $row->responsable_id ) : 0;
+        $contact = is_object( $row ) && isset( $row->contact ) ? trim( (string) $row->contact ) : '';
+        $responsable = $responsable_id ? get_userdata( $responsable_id ) : false;
+        $account_created = ( $responsable && ! empty( $responsable->user_registered ) )
+            ? (string) $responsable->user_registered
+            : '';
+
+        echo '<section class="ufsc-admin-card ufsc-admin-section ufsc-club-traceability">';
+        echo '<header class="ufsc-admin-card-header"><h3 class="ufsc-admin-card-title">' . esc_html__( 'Traçabilité', 'ufsc-clubs' ) . '</h3>';
+        echo '<p class="ufsc-admin-card-description">' . esc_html__( 'Lecture seule : aucune date historique manquante n’est inventée ou réécrite.', 'ufsc-clubs' ) . '</p></header>';
+        echo '<div class="ufsc-grid ufsc-admin-grid">';
+
+        echo '<div class="ufsc-field"><label>' . esc_html__( 'Date de création du club', 'ufsc-clubs' ) . '</label><div class="ufsc-admin-readonly-value"><strong>' .
+            esc_html( $creation ?: __( 'Non renseignée dans les données historiques', 'ufsc-clubs' ) ) .
+            '</strong></div></div>';
+
+        echo '<div class="ufsc-field"><label>' . esc_html__( 'Responsable associé', 'ufsc-clubs' ) . '</label><div class="ufsc-admin-readonly-value"><strong>';
+        if ( $responsable ) {
+            echo esc_html( (string) $responsable->display_name );
+            echo ' <span class="description">(#' . esc_html( (string) $responsable_id ) . ')</span>';
+        } elseif ( $responsable_id ) {
+            echo esc_html( sprintf( __( 'Utilisateur #%d', 'ufsc-clubs' ), $responsable_id ) );
+        } else {
+            echo esc_html__( 'Non renseigné', 'ufsc-clubs' );
+        }
+        echo '</strong></div></div>';
+
+        echo '<div class="ufsc-field"><label>' . esc_html__( 'Création du compte responsable', 'ufsc-clubs' ) . '</label><div class="ufsc-admin-readonly-value"><strong>' .
+            esc_html( $account_created ?: __( 'Non disponible', 'ufsc-clubs' ) ) .
+            '</strong></div><p class="description">' . esc_html__( 'Cette date concerne le compte WordPress et ne remplace pas la date de création du club.', 'ufsc-clubs' ) . '</p></div>';
+
+        echo '<div class="ufsc-field"><label>' . esc_html__( 'Contact historique', 'ufsc-clubs' ) . '</label><div class="ufsc-admin-readonly-value"><strong>' .
+            esc_html( $contact ?: __( 'Non renseigné', 'ufsc-clubs' ) ) .
+            '</strong></div></div>';
+
+        echo '</div></section>';
+    }
+
 	/** Render the current-season record separately from permanent club fields. */
 	private static function render_annual_affiliation_panel( $club_id ) {
 		$season = UFSC_Season_Service::get_current_season();
@@ -2274,7 +2426,32 @@ class UFSC_SQL_Admin
             }
             echo '</select>';
         } else {
-            echo '<input type="text" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
+            $identifier_fields = array(
+                'siren', 'siret', 'rna_number', 'num_declaration',
+                'num_affiliation', 'numero_affiliation_ffst', 'numero_agrement_js',
+            );
+            $is_identifier = in_array( $k, $identifier_fields, true );
+            $identifier_attrs = $is_identifier ? ' autocomplete="off" spellcheck="false"' : '';
+            if ( in_array( $k, array( 'siren', 'siret' ), true ) ) {
+                $identifier_attrs .= ' inputmode="numeric"';
+            }
+            echo '<input type="text" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '"' . $identifier_attrs . ' ' . $readonly_attr . ' />';
+
+            if (
+                $is_identifier &&
+                function_exists( 'ufsc_prod_hotfix_is_scientific_identifier' ) &&
+                ufsc_prod_hotfix_is_scientific_identifier( $val )
+            ) {
+                echo '<p class="description"><strong>' . esc_html__( 'Format scientifique détecté.', 'ufsc-clubs' ) . '</strong> ' .
+                    esc_html__( 'La valeur historique est conservée telle quelle pour éviter toute perte. Vérifiez l’identifiant exact dans la source du club avant de modifier ce champ.', 'ufsc-clubs' ) .
+                    '</p>';
+            }
+
+            if ( preg_match( '/^(president|secretaire|tresorier|entraineur)_adresse$/', (string) $k ) ) {
+                echo '<p class="description">' .
+                    esc_html__( 'Pour les nouvelles saisies : indiquez ici uniquement le numéro et la voie. Le code postal et la ville disposent de champs séparés. Les anciennes adresses complètes sont conservées sans modification automatique.', 'ufsc-clubs' ) .
+                    '</p>';
+            }
         }
         echo '</div>';
     }

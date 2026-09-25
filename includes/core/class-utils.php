@@ -169,6 +169,32 @@ class UFSC_CL_Utils {
             $errors['date_declaration'] = __('Format de date invalide (AAAA-MM-JJ)', 'ufsc-clubs');
         }
 
+        // Administrative identifiers are strings, not mathematical values.
+        // Scientific notation means an upstream source has transformed the value
+        // and may already have lost significant digits. Reject it instead of
+        // guessing or silently rewriting the identifier.
+        $identifier_labels = array(
+            'siren'                   => __( 'Le SIREN', 'ufsc-clubs' ),
+            'siret'                   => __( 'Le SIRET', 'ufsc-clubs' ),
+            'rna_number'              => __( 'Le numéro RNA', 'ufsc-clubs' ),
+            'num_declaration'         => __( 'Le numéro de déclaration', 'ufsc-clubs' ),
+            'num_affiliation'         => __( 'Le numéro d’affiliation', 'ufsc-clubs' ),
+            'numero_affiliation_ffst' => __( 'Le numéro d’affiliation FFST', 'ufsc-clubs' ),
+            'numero_agrement_js'      => __( 'Le numéro d’agrément Jeunesse et Sports', 'ufsc-clubs' ),
+        );
+        foreach ( $identifier_labels as $identifier_key => $identifier_label ) {
+            if ( empty( $data[ $identifier_key ] ) ) {
+                continue;
+            }
+            $identifier_value = trim( (string) $data[ $identifier_key ] );
+            if ( preg_match( '/^[+-]?\\d+(?:[.,]\\d+)?[eE][+-]?\\d+$/', $identifier_value ) ) {
+                $errors[ $identifier_key ] = sprintf(
+                    __( '%s ne doit pas être saisi en notation scientifique.', 'ufsc-clubs' ),
+                    $identifier_label
+                );
+            }
+        }
+
         // Basic IBAN validation (optional)
         if ( !empty($data['iban']) && !self::validate_iban($data['iban']) ) {
             $errors['iban'] = __('Format IBAN invalide', 'ufsc-clubs');

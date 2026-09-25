@@ -278,7 +278,7 @@ class UFSC_CL_Club_Form {
                     <div class="ufsc-grid">
                         <div class="ufsc-field">
                             <label for="siren" class="ufsc-label"><?php esc_html_e( 'SIREN', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="siren" name="siren" value="<?php echo esc_attr( $club_data['siren'] ?? '' ); ?>" />
+                            <input type="text" id="siren" name="siren" inputmode="numeric" autocomplete="off" spellcheck="false" value="<?php echo esc_attr( $club_data['siren'] ?? '' ); ?>" />
                         <div class="ufsc-field-error" aria-live="polite"></div></div>
                         <div class="ufsc-field">
                             <label for="rna_number" class="ufsc-label"><?php esc_html_e( 'RNA', 'ufsc-clubs' ); ?></label>

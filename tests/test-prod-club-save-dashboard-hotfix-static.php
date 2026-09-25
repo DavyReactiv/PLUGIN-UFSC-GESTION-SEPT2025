@@ -2,6 +2,11 @@
 $root = dirname( __DIR__ );
 $hotfix = file_get_contents( $root . '/inc/common/prod-club-save-dashboard-hotfix.php' );
 $loader = file_get_contents( $root . '/inc/common/front-club-registration-scope-hotfix.php' );
+$sql = file_get_contents( $root . '/includes/core/class-sql.php' );
+$utils = file_get_contents( $root . '/includes/core/class-utils.php' );
+$admin = file_get_contents( $root . '/includes/admin/class-sql-admin.php' );
+$front_form = file_get_contents( $root . '/includes/frontend/class-club-form.php' );
+$layout = file_get_contents( $root . '/includes/admin/class-ffst-club-admin-layout.php' );
 
 $failures = array();
 $assert = static function ( $condition, $message ) use ( &$failures ) {
@@ -15,6 +20,19 @@ $assert( false !== strpos( $hotfix, "'date' === \$type" ), 'Les dates vides/zér
 $assert( false !== strpos( $hotfix, "'num_affiliation'" ), 'Le numéro d’affiliation vide doit être protégé sur une édition existante.' );
 $assert( false !== strpos( $hotfix, "'rna_number'" ), 'Le RNA vide doit être protégé sur une édition existante.' );
 $assert( false !== strpos( $hotfix, "'siren'" ), 'Le SIREN vide doit être protégé sur une édition existante.' );
+$assert( false !== strpos( $sql, "'siren'=>array('SIREN','text')" ), 'Le SIREN doit rester un champ texte dans le modèle canonique.' );
+$assert( false !== strpos( $hotfix, 'ufsc_prod_hotfix_is_scientific_identifier' ), 'La notation scientifique des identifiants doit être détectée avant sauvegarde admin.' );
+$assert( false !== strpos( $hotfix, 'ufsc_prod_hotfix_normalize_digit_identifier' ), 'La normalisation des identifiants doit rester une opération sur chaîne.' );
+$assert( false !== strpos( $hotfix, "'numero_affiliation_ffst'" ) && false !== strpos( $hotfix, "'numero_agrement_js'" ), 'Les identifiants FFST doivent aussi être protégés.' );
+$assert( false !== strpos( $hotfix, "unset( \$_POST[ \$key ], \$_REQUEST[ \$key ] )" ), 'Un SIREN scientifique ne doit jamais écraser la valeur stockée.' );
+$assert( false !== strpos( $utils, 'ne doit pas être saisi en notation scientifique' ), 'Les nouvelles saisies scientifiques doivent être refusées.' );
+$assert( false !== strpos( $admin, "array( 'siren', 'siret' )" ) && false !== strpos( $admin, 'inputmode="numeric"' ), 'SIREN/SIRET admin doivent rester textuels avec clavier numérique.' );
+$assert( false !== strpos( $front_form, 'id="siren" name="siren" inputmode="numeric"' ), 'Le champ SIREN front doit rester textuel avec clavier numérique.' );
+$assert( false === strpos( $front_form, 'type="number" id="siren"' ), 'Le SIREN front ne doit jamais devenir un input number.' );
+$assert( false !== strpos( $layout, '.ufsc-ffst-foreign-parent{display:block!important}' ), 'Les champs de filiation doivent rester visibles en admin.' );
+$assert( false !== strpos( $admin, 'render_club_documents_overview' ), 'Les pièces jointes doivent être présentées par présence/absence plutôt que par ID brut.' );
+$assert( false !== strpos( $admin, 'Non renseignée dans les données historiques' ), 'Une date de création historique absente doit être explicitée sans backfill.' );
+$assert( false !== strpos( $admin, 'Les anciennes adresses complètes sont conservées sans modification automatique.' ), 'Les anciennes adresses ne doivent pas être découpées automatiquement.' );
 $assert( false !== strpos( $hotfix, "SELECT statut FROM" ), 'Le statut existant doit être conservé lorsque non soumis.' );
 $assert( false !== strpos( $hotfix, '$wpdb->last_error' ), 'La vraie erreur SQL doit pouvoir être journalisée sans exposition utilisateur.' );
 $assert( false !== strpos( $hotfix, 'DONOTCACHEPAGE' ), 'Le portail dynamique doit désactiver le cache de page.' );
