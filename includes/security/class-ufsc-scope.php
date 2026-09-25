@@ -146,7 +146,10 @@ class UFSC_Scope {
         if ( function_exists( 'ufsc_get_user_regions' ) ) {
             $regions = ufsc_get_user_regions();
             if ( ! empty( $regions ) ) {
-                return array_values( array_unique( array_map( 'sanitize_text_field', $regions ) ) );
+                $regions = array_values( array_unique( array_map( 'sanitize_text_field', $regions ) ) );
+                return function_exists( 'ufsc_expand_region_access_values' )
+                    ? ufsc_expand_region_access_values( $regions )
+                    : $regions;
             }
         }
 
@@ -156,10 +159,16 @@ class UFSC_Scope {
         }
 
         $label = self::get_region_label( $slug );
+        if ( function_exists( 'ufsc_normalize_region_access_value' ) ) {
+            $label = ufsc_normalize_region_access_value( $label ? $label : $slug );
+        }
+
         $values = array_filter( array( $slug, $label ) );
         $values = array_values( array_unique( $values ) );
 
-        return $values;
+        return function_exists( 'ufsc_expand_region_access_values' )
+            ? ufsc_expand_region_access_values( $values )
+            : $values;
     }
 
     /**

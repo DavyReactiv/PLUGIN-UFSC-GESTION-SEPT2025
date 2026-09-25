@@ -624,29 +624,121 @@ if ( ! function_exists( 'ufsc_user_can' ) ) {
     }
 }
 
+if ( ! function_exists( 'ufsc_normalize_region_access_value' ) ) {
+    /**
+     * Normalize legacy/alternate region labels to the canonical club-region label.
+     *
+     * This is read-time compatibility only: it does not migrate or rewrite club
+     * records. Overseas department labels are intentionally grouped under the
+     * canonical DROM-COM UFSC region used by club records.
+     *
+     * @param string $region Region label or slug-like value.
+     * @return string
+     */
+    function ufsc_normalize_region_access_value( $region ) {
+        $region = sanitize_text_field( (string) $region );
+        if ( '' === $region ) {
+            return '';
+        }
+
+        $key = sanitize_title( remove_accents( $region ) );
+        if ( '-ufsc' === substr( $key, -5 ) ) {
+            $key = substr( $key, 0, -5 );
+        }
+
+        $map = array(
+            'auvergne-rhone-alpes'      => 'Auvergne-Rhône-Alpes UFSC',
+            'bourgogne-franche-comte'   => 'Bourgogne-Franche-Comté UFSC',
+            'bretagne'                  => 'Bretagne UFSC',
+            'centre-val-de-loire'       => 'Centre-Val de Loire UFSC',
+            'corse'                     => 'Corse UFSC',
+            'grand-est'                 => 'Grand Est UFSC',
+            'hauts-de-france'           => 'Hauts-de-France UFSC',
+            'ile-de-france'             => 'Île-de-France UFSC',
+            'normandie'                 => 'Normandie UFSC',
+            'nouvelle-aquitaine'        => 'Nouvelle-Aquitaine UFSC',
+            'occitanie'                 => 'Occitanie UFSC',
+            'pays-de-la-loire'          => 'Pays de la Loire UFSC',
+            'provence-alpes-cote-dazur' => "Provence-Alpes-Côte d'Azur UFSC",
+            'provence-alpes-cote-d-azur'=> "Provence-Alpes-Côte d'Azur UFSC",
+            'drom-com'                  => 'DROM-COM UFSC',
+            'guadeloupe'                => 'DROM-COM UFSC',
+            'martinique'                => 'DROM-COM UFSC',
+            'guyane'                    => 'DROM-COM UFSC',
+            'reunion'                   => 'DROM-COM UFSC',
+            'la-reunion'                => 'DROM-COM UFSC',
+            'mayotte'                   => 'DROM-COM UFSC',
+        );
+
+        return isset( $map[ $key ] ) ? $map[ $key ] : $region;
+    }
+}
+
 if ( ! function_exists( 'ufsc_get_regions' ) ) {
     function ufsc_get_regions() {
-        $regions = array(
-            'Auvergne-Rhône-Alpes',
-            'Bourgogne-Franche-Comté',
-            'Bretagne',
-            'Centre-Val de Loire',
-            'Corse',
-            'Grand Est',
-            'Hauts-de-France',
-            'Île-de-France',
-            'Normandie',
-            'Nouvelle-Aquitaine',
-            'Occitanie',
-            'Pays de la Loire',
-            'Provence-Alpes-Côte d’Azur',
-            'Guadeloupe',
-            'Martinique',
-            'Guyane',
-            'La Réunion',
-            'Mayotte',
-        );
+        $regions = function_exists( 'ufsc_get_regions_labels' )
+            ? ufsc_get_regions_labels()
+            : array(
+                'Auvergne-Rhône-Alpes UFSC',
+                'Bourgogne-Franche-Comté UFSC',
+                'Bretagne UFSC',
+                'Centre-Val de Loire UFSC',
+                'Corse UFSC',
+                'Grand Est UFSC',
+                'Hauts-de-France UFSC',
+                'Île-de-France UFSC',
+                'Normandie UFSC',
+                'Nouvelle-Aquitaine UFSC',
+                'Occitanie UFSC',
+                'Pays de la Loire UFSC',
+                "Provence-Alpes-Côte d'Azur UFSC",
+                'DROM-COM UFSC',
+            );
+
+        $regions = array_values( array_unique( array_filter( array_map( 'ufsc_normalize_region_access_value', (array) $regions ) ) ) );
         return apply_filters( 'ufsc_regions_list', $regions );
+    }
+}
+
+if ( ! function_exists( 'ufsc_expand_region_access_values' ) ) {
+    /**
+     * Expand canonical access regions to safe legacy DB/query aliases.
+     *
+     * No data is written. This only makes reads tolerant of historic labels.
+     *
+     * @param string[] $regions Canonical or legacy region labels.
+     * @return string[]
+     */
+    function ufsc_expand_region_access_values( array $regions ) {
+        $expanded = array();
+
+        foreach ( $regions as $region ) {
+            $canonical = ufsc_normalize_region_access_value( $region );
+            if ( '' === $canonical ) {
+                continue;
+            }
+
+            $expanded[] = $canonical;
+            if ( ' UFSC' === substr( $canonical, -5 ) ) {
+                $expanded[] = substr( $canonical, 0, -5 );
+            }
+
+            if ( 'DROM-COM UFSC' === $canonical ) {
+                $expanded = array_merge(
+                    $expanded,
+                    array(
+                        'DROM-COM',
+                        'Guadeloupe', 'Guadeloupe UFSC',
+                        'Martinique', 'Martinique UFSC',
+                        'Guyane', 'Guyane UFSC',
+                        'La Réunion', 'Réunion', 'Réunion UFSC',
+                        'Mayotte', 'Mayotte UFSC',
+                    )
+                );
+            }
+        }
+
+        return array_values( array_unique( array_filter( array_map( 'sanitize_text_field', $expanded ) ) ) );
     }
 }
 
@@ -656,13 +748,15 @@ if ( ! function_exists( 'ufsc_get_user_regions' ) ) {
         if ( ! $user_id ) {
             return array();
         }
+
         $regions = get_user_meta( $user_id, UFSC_Permissions::META_ALLOWED_REGIONS, true );
         if ( ! is_array( $regions ) ) {
             $regions = array();
         }
+
         $valid = ufsc_get_regions();
-        $clean = array_map( 'sanitize_text_field', $regions );
-        return array_values( array_unique( array_intersect( $clean, $valid ) ) );
+        $clean = array_values( array_unique( array_filter( array_map( 'ufsc_normalize_region_access_value', $regions ) ) ) );
+        return array_values( array_intersect( $clean, $valid ) );
     }
 }
 
@@ -672,9 +766,10 @@ if ( ! function_exists( 'ufsc_set_user_regions' ) ) {
         if ( ! $user_id || ! get_userdata( $user_id ) ) {
             return false;
         }
+
         $valid = ufsc_get_regions();
-        $clean = array_map( 'sanitize_text_field', $regions );
-        $clean = array_values( array_unique( array_intersect( $clean, $valid ) ) );
+        $clean = array_values( array_unique( array_filter( array_map( 'ufsc_normalize_region_access_value', $regions ) ) ) );
+        $clean = array_values( array_intersect( $clean, $valid ) );
         return false !== update_user_meta( $user_id, UFSC_Permissions::META_ALLOWED_REGIONS, $clean );
     }
 }
@@ -697,7 +792,7 @@ if ( ! function_exists( 'ufsc_user_has_all_regions_access' ) ) {
 
 if ( ! function_exists( 'ufsc_user_can_access_region' ) ) {
     function ufsc_user_can_access_region( $region, $user_id = null ) {
-        $region = sanitize_text_field( (string) $region );
+        $region = ufsc_normalize_region_access_value( $region );
         if ( '' === $region || ! in_array( $region, ufsc_get_regions(), true ) ) {
             return false;
         }
@@ -734,6 +829,7 @@ if ( ! function_exists( 'ufsc_filter_query_by_allowed_regions' ) ) {
         }
 
         $regions = ufsc_current_user_allowed_regions();
+        $regions = function_exists( 'ufsc_expand_region_access_values' ) ? ufsc_expand_region_access_values( $regions ) : $regions;
         if ( empty( $regions ) ) {
             $regions = array( '__ufsc_no_region_allowed__' );
         }
