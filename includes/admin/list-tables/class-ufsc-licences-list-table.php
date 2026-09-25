@@ -182,9 +182,21 @@ class UFSC_Licences_List_Table {
             $conditions[] = $wpdb->prepare( "l.club_id = %d", $filters['club_id'] );
         }
 
-        // Region filter
+        // Region filter. Keep it aligned with the regional permission
+        // scope and accept legacy labels at read time only.
         if ( ! empty( $filters['club_region'] ) && self::has_column( $club_columns, $clubs_table, 'region' ) ) {
-            $conditions[] = $wpdb->prepare( "c.region = %s", $filters['club_region'] );
+            $region_values = array( $filters['club_region'] );
+            if ( function_exists( 'ufsc_expand_region_access_values' ) ) {
+                $region_values = ufsc_expand_region_access_values( $region_values );
+            }
+            $region_values = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', $region_values ) ) ) );
+
+            if ( count( $region_values ) > 1 ) {
+                $placeholders = implode( ',', array_fill( 0, count( $region_values ), '%s' ) );
+                $conditions[] = $wpdb->prepare( "c.region IN ({$placeholders})", $region_values );
+            } elseif ( ! empty( $region_values ) ) {
+                $conditions[] = $wpdb->prepare( "c.region = %s", reset( $region_values ) );
+            }
         }
 
         // Status filter
