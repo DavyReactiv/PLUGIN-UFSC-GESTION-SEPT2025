@@ -364,9 +364,22 @@ class UFSC_Clubs_List_Table {
             }
         }
 
-        // Region filter
+        // Region filter. Use the same read-time aliases as the regional
+        // permission scope so a canonical value such as "DROM-COM UFSC" also
+        // matches legacy club-region labels without rewriting any stored data.
         if ( ! empty( $filters['region'] ) && self::has_column( $columns, $clubs_table, 'region' ) ) {
-            $conditions[] = $wpdb->prepare( "region = %s", $filters['region'] );
+            $region_values = array( $filters['region'] );
+            if ( function_exists( 'ufsc_expand_region_access_values' ) ) {
+                $region_values = ufsc_expand_region_access_values( $region_values );
+            }
+            $region_values = array_values( array_unique( array_filter( array_map( 'sanitize_text_field', $region_values ) ) ) );
+
+            if ( count( $region_values ) > 1 ) {
+                $placeholders = implode( ',', array_fill( 0, count( $region_values ), '%s' ) );
+                $conditions[] = $wpdb->prepare( "region IN ({$placeholders})", $region_values );
+            } elseif ( ! empty( $region_values ) ) {
+                $conditions[] = $wpdb->prepare( "region = %s", reset( $region_values ) );
+            }
         }
 
         // Status filter
