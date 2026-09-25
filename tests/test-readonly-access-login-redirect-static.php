@@ -25,6 +25,8 @@ $assert( false === strpos( $redirect, '$wpdb->' ), 'login redirect must not quer
 $assert( false !== strpos( $bootstrap, 'UFSC_Simplified_Admin::init();' ), 'limited-admin redirect guards must register while the plugin is loading, before init redirects can fire' );
 $assert( false === strpos( $bootstrap, "add_action( 'init', array( 'UFSC_Simplified_Admin', 'init' ) )" ), 'limited-admin redirect guards must not wait for the init hook' );
 $assert( false !== strpos( $simplified, 'static $initialized = false' ), 'simplified admin bootstrap must be idempotent when initialized early' );
+$assert( false !== strpos( $simplified, 'trace_final_location_header' ), 'routing diagnostics must capture the final Location header' );
+$assert( false !== strpos( $simplified, "Do not let the public landing request overwrite the useful admin trace" ), 'public landing requests must not overwrite useful admin routing evidence' );
 $assert( false !== strpos( $bootstrap, "UFSC_CL_ROUTING_DIAGNOSTIC_BUILD" ) && false !== strpos( $bootstrap, 'diag-20260925-1' ), 'production diagnostics must expose a deployment marker' );
 $assert( false !== strpos( $simplified, 'record_routing_trace' ), 'limited-admin routing diagnostics must record bounded technical traces' );
 $assert( false !== strpos( $simplified, "'_ufsc_admin_routing_trace'" ), 'routing trace must use dedicated technical user meta' );
