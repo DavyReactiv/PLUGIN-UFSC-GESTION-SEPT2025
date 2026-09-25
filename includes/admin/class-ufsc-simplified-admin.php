@@ -44,8 +44,9 @@ class UFSC_Simplified_Admin {
      * Bootstrap admin hooks.
      */
     public static function init() {
-        add_filter( 'login_redirect', array( __CLASS__, 'filter_login_redirect' ), 999999, 3 );
-        add_filter( 'wp_redirect', array( __CLASS__, 'prevent_front_office_redirect' ), 999999, 2 );
+        add_filter( 'login_redirect', array( __CLASS__, 'filter_login_redirect' ), PHP_INT_MAX, 3 );
+        add_filter( 'wp_redirect', array( __CLASS__, 'prevent_front_office_redirect' ), PHP_INT_MAX - 1, 2 );
+        add_filter( 'wp_redirect', array( __CLASS__, 'keep_limited_user_in_admin_after_login' ), PHP_INT_MAX, 2 );
 
         if ( ! is_admin() ) {
             return;
@@ -698,6 +699,32 @@ class UFSC_Simplified_Admin {
         }
 
         return $location;
+    }
+
+    /**
+     * Last-resort guard for native WordPress login redirects.
+     *
+     * Some membership/security plugins redirect non-administrators to the front
+     * office after WordPress has already resolved login_redirect. Keep only UFSC
+     * limited users inside their authorized back office; ordinary club accounts
+     * and all other users remain untouched.
+     */
+    public static function keep_limited_user_in_admin_after_login( $location, $status = 302 ) {
+        unset( $status );
+
+        if ( ! self::is_enabled() || ! is_user_logged_in() || ! self::is_limited_ufsc_user() ) {
+            return $location;
+        }
+
+        $pagenow = isset( $GLOBALS['pagenow'] ) ? (string) $GLOBALS['pagenow'] : '';
+        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+        $is_native_login = 'wp-login.php' === $pagenow || ( '' !== $request_uri && false !== strpos( $request_uri, 'wp-login.php' ) );
+
+        if ( ! $is_native_login ) {
+            return $location;
+        }
+
+        return self::get_first_authorized_url();
     }
 
     /**
