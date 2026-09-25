@@ -51,6 +51,7 @@ class UFSC_Simplified_Admin {
         $initialized = true;
 
         add_filter( 'login_redirect', array( __CLASS__, 'filter_login_redirect' ), PHP_INT_MAX, 3 );
+        add_filter( 'woocommerce_prevent_admin_access', array( __CLASS__, 'allow_limited_ufsc_admin_access' ), PHP_INT_MAX );
         add_filter( 'wp_redirect', array( __CLASS__, 'trace_wp_redirect_input' ), PHP_INT_MIN, 2 );
         add_filter( 'wp_redirect', array( __CLASS__, 'prevent_front_office_redirect' ), PHP_INT_MAX - 1, 2 );
         add_filter( 'wp_redirect', array( __CLASS__, 'keep_limited_user_in_admin_after_login' ), PHP_INT_MAX, 2 );
@@ -72,6 +73,31 @@ class UFSC_Simplified_Admin {
         add_action( 'admin_menu', array( __CLASS__, 'normalize_ufsc_menu_capabilities' ), 9998 );
         add_action( 'admin_menu', array( __CLASS__, 'filter_admin_menu' ), 9999 );
         add_action( 'admin_bar_menu', array( __CLASS__, 'simplify_admin_bar' ), 9999 );
+    }
+
+    /**
+     * Let authenticated UFSC limited accounts enter WordPress admin without
+     * granting any WooCommerce capability.
+     *
+     * WooCommerce blocks wp-admin for users that cannot edit posts by default.
+     * This filter only disables that specific WooCommerce redirect for users
+     * already recognized by UFSC as limited back-office accounts. Cart,
+     * checkout, orders, products, payments and all WooCommerce capabilities
+     * remain untouched and continue to use their existing permissions.
+     *
+     * @param bool $prevent_access Whether WooCommerce should block wp-admin.
+     * @return bool
+     */
+    public static function allow_limited_ufsc_admin_access( $prevent_access ) {
+        if (
+            self::is_enabled()
+            && is_user_logged_in()
+            && self::is_limited_ufsc_user()
+        ) {
+            return false;
+        }
+
+        return (bool) $prevent_access;
     }
 
     /**
