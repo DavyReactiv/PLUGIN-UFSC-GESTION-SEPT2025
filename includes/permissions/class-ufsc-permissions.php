@@ -719,9 +719,7 @@ if ( ! function_exists( 'ufsc_expand_region_access_values' ) ) {
             }
 
             $expanded[] = $canonical;
-            if ( '- UFSC' !== substr( $canonical, -6 ) && ' UFSC' === substr( $canonical, -5 ) ) {
-                $expanded[] = substr( $canonical, 0, -5 );
-            } elseif ( ' UFSC' === substr( $canonical, -5 ) ) {
+            if ( ' UFSC' === substr( $canonical, -5 ) ) {
                 $expanded[] = substr( $canonical, 0, -5 );
             }
 
