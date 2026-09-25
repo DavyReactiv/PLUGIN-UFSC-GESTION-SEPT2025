@@ -2426,19 +2426,30 @@ class UFSC_SQL_Admin
             }
             echo '</select>';
         } else {
-            $identifier_attrs = '';
-            if ( 'siren' === $k ) {
-                $identifier_attrs = ' inputmode="numeric" autocomplete="off" spellcheck="false"';
+            $identifier_fields = array(
+                'siren', 'siret', 'rna_number', 'num_declaration',
+                'num_affiliation', 'numero_affiliation_ffst', 'numero_agrement_js',
+            );
+            $is_identifier = in_array( $k, $identifier_fields, true );
+            $identifier_attrs = $is_identifier ? ' autocomplete="off" spellcheck="false"' : '';
+            if ( in_array( $k, array( 'siren', 'siret' ), true ) ) {
+                $identifier_attrs .= ' inputmode="numeric"';
             }
             echo '<input type="text" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '"' . $identifier_attrs . ' ' . $readonly_attr . ' />';
 
             if (
-                'siren' === $k &&
-                function_exists( 'ufsc_prod_hotfix_is_scientific_numeric_identifier' ) &&
-                ufsc_prod_hotfix_is_scientific_numeric_identifier( $val )
+                $is_identifier &&
+                function_exists( 'ufsc_prod_hotfix_is_scientific_identifier' ) &&
+                ufsc_prod_hotfix_is_scientific_identifier( $val )
             ) {
                 echo '<p class="description"><strong>' . esc_html__( 'Format scientifique détecté.', 'ufsc-clubs' ) . '</strong> ' .
-                    esc_html__( 'La valeur historique est conservée telle quelle pour éviter toute perte. Ressaisissez le SIREN exact depuis la source du club avant de modifier ce champ.', 'ufsc-clubs' ) .
+                    esc_html__( 'La valeur historique est conservée telle quelle pour éviter toute perte. Vérifiez l’identifiant exact dans la source du club avant de modifier ce champ.', 'ufsc-clubs' ) .
+                    '</p>';
+            }
+
+            if ( preg_match( '/^(president|secretaire|tresorier|entraineur)_adresse$/', (string) $k ) ) {
+                echo '<p class="description">' .
+                    esc_html__( 'Pour les nouvelles saisies : indiquez ici uniquement le numéro et la voie. Le code postal et la ville disposent de champs séparés. Les anciennes adresses complètes sont conservées sans modification automatique.', 'ufsc-clubs' ) .
                     '</p>';
             }
         }
