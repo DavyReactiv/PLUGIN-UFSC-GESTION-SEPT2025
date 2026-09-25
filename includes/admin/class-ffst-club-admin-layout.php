@@ -36,7 +36,8 @@ final class UFSC_FFST_Club_Admin_Layout {
             .ufsc-ffst-leader .ufsc-field,.ufsc-ffst-leader .ufsc-admin-field,.ufsc-ffst-leader .ufsc-form-field,.ufsc-ffst-leader .form-field,.ufsc-ffst-leader .field,
             .ufsc-ffst-admin-grid .ufsc-field,.ufsc-ffst-admin-grid .ufsc-admin-field,.ufsc-ffst-admin-grid .ufsc-form-field,.ufsc-ffst-admin-grid .form-field,.ufsc-ffst-admin-grid .field{min-width:0;margin:0!important}
             .ufsc-ffst-leader input,.ufsc-ffst-leader select,.ufsc-ffst-leader textarea,.ufsc-ffst-admin-grid input,.ufsc-ffst-admin-grid select,.ufsc-ffst-admin-grid textarea{width:100%;max-width:100%;box-sizing:border-box}
-            .ufsc-ffst-foreign-parent{display:none!important}.ufsc-ffst-foreign-parent.is-visible{display:block!important}
+            .ufsc-ffst-foreign-parent{display:block!important}
+            .ufsc-ffst-foreign-parent.is-foreign-required label:after{content:' · requis si naissance à l’étranger';font-size:10px;font-weight:600;color:#8a5a00}
             .ufsc-ffst-empty-grid{display:none!important}
             @media(max-width:1500px){.ufsc-ffst-leaders{grid-template-columns:repeat(2,minmax(0,1fr))}}
             @media(max-width:1100px){.ufsc-ffst-leaders{grid-template-columns:1fr}.ufsc-ffst-admin-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -91,8 +92,8 @@ final class UFSC_FFST_Club_Admin_Layout {
                 [father,mother].forEach(function(node){if(node)node.classList.add('ufsc-ffst-foreign-parent');});
                 function update(){
                     var value=norm(country?country.value:'');
-                    var foreign=!!value && !['france','fr','f'].includes(value);
-                    [father,mother].forEach(function(node){if(node)node.classList.toggle('is-visible',foreign);});
+                    var foreign=!!value && !['france','fr','f','francaise','francais'].includes(value);
+                    [father,mother].forEach(function(node){if(node)node.classList.toggle('is-foreign-required',foreign);});
                 }
                 if(country){country.addEventListener('input',update);country.addEventListener('change',update);}update();
             }
