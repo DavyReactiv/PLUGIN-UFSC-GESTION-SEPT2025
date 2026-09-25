@@ -41,5 +41,14 @@ $assert( false !== strpos( $permissions, 'Marqueur diagnostic' ), 'administrator
 $assert( false !== strpos( $permissions, 'Aucune trace' ), 'administrator diagnostics must explain missing routing traces' );
 $assert( false !== strpos( $simplified, 'trace_final_location_header' ), 'routing diagnostics must capture the final Location header' );
 $assert( false !== strpos( $simplified, 'headers_list()' ), 'routing diagnostics must inspect final response headers' );
+$assert( false !== strpos( $simplified, "'woocommerce_prevent_admin_access'" ), 'UFSC limited users must bypass only the WooCommerce wp-admin blocker' );
+$assert( false !== strpos( $simplified, 'allow_limited_ufsc_admin_access' ), 'WooCommerce admin compatibility must use a dedicated UFSC method' );
+$assert( false !== strpos( $simplified, 'return false;' ), 'authorized UFSC limited users must disable only the WooCommerce admin redirect decision' );
+$assert( false !== strpos( $simplified, 'return (bool) $prevent_access;' ), 'non-UFSC users must retain the original WooCommerce admin access decision' );
+$assert( false === strpos( $simplified, "'woocommerce_add_cart_item_data'" ), 'admin access compatibility must not hook cart item creation' );
+$assert( false === strpos( $simplified, "'woocommerce_before_calculate_totals'" ), 'admin access compatibility must not alter cart totals' );
+$assert( false === strpos( $simplified, "'woocommerce_checkout_process'" ), 'admin access compatibility must not alter checkout' );
+$assert( false === strpos( $simplified, "'woocommerce_payment_complete'" ), 'admin access compatibility must not alter payment completion' );
+$assert( false === strpos( $simplified, 'WC()->cart' ), 'simplified admin compatibility must not touch the WooCommerce cart object' );
 
 echo "Read-only federation admin login redirect safeguards OK\n";
