@@ -451,6 +451,9 @@ class UFSC_Clubs_List_Table {
 
             if ( function_exists( 'ufsc_user_has_all_regions_access' ) && ! ufsc_user_has_all_regions_access() ) {
                 $allowed_regions = function_exists( 'ufsc_current_user_allowed_regions' ) ? ufsc_current_user_allowed_regions() : array();
+                if ( function_exists( 'ufsc_expand_region_access_values' ) ) {
+                    $allowed_regions = ufsc_expand_region_access_values( $allowed_regions );
+                }
                 if ( empty( $allowed_regions ) ) {
                     $conditions[] = '1 = 0';
                 } else {
