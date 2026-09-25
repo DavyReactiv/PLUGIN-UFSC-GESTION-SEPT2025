@@ -4,6 +4,7 @@ $loader   = file_get_contents( $root . '/inc/common/readonly-access-denied-messa
 $redirect = file_get_contents( $root . '/inc/common/readonly-access-login-redirect.php' );
 $bootstrap = file_get_contents( $root . '/ufsc-clubs-licences-sql.php' );
 $simplified = file_get_contents( $root . '/includes/admin/class-ufsc-simplified-admin.php' );
+$permissions = file_get_contents( $root . '/includes/permissions/class-ufsc-permissions.php' );
 
 $assert = static function ( $condition, $message ) {
     if ( ! $condition ) {
@@ -24,5 +25,12 @@ $assert( false === strpos( $redirect, '$wpdb->' ), 'login redirect must not quer
 $assert( false !== strpos( $bootstrap, 'UFSC_Simplified_Admin::init();' ), 'limited-admin redirect guards must register while the plugin is loading, before init redirects can fire' );
 $assert( false === strpos( $bootstrap, "add_action( 'init', array( 'UFSC_Simplified_Admin', 'init' ) )" ), 'limited-admin redirect guards must not wait for the init hook' );
 $assert( false !== strpos( $simplified, 'static $initialized = false' ), 'simplified admin bootstrap must be idempotent when initialized early' );
+$assert( false !== strpos( $bootstrap, "UFSC_CL_ROUTING_DIAGNOSTIC_BUILD" ) && false !== strpos( $bootstrap, 'diag-20260925-1' ), 'production diagnostics must expose a deployment marker' );
+$assert( false !== strpos( $simplified, 'record_routing_trace' ), 'limited-admin routing diagnostics must record bounded technical traces' );
+$assert( false !== strpos( $simplified, "'_ufsc_admin_routing_trace'" ), 'routing trace must use dedicated technical user meta' );
+$assert( false !== strpos( $simplified, 'array_slice( $trace, -12 )' ), 'routing trace must remain bounded' );
+$assert( false !== strpos( $permissions, 'Comptes UFSC et dernière trace de routage' ), 'administrator diagnostics must expose the last routing trace' );
+$assert( false !== strpos( $permissions, 'Marqueur diagnostic' ), 'administrator diagnostics must expose the production deployment marker' );
+$assert( false !== strpos( $permissions, 'Aucune trace' ), 'administrator diagnostics must explain missing routing traces' );
 
 echo "Read-only federation admin login redirect safeguards OK\n";
