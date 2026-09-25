@@ -171,7 +171,14 @@ class UFSC_Simplified_Admin {
 
         if ( '' !== $location ) {
             self::record_routing_trace( 'final_location_header', 0, $location );
-        } else {
+            return;
+        }
+
+        // Do not let the public landing request overwrite the useful admin trace.
+        // Record "no location" only for wp-admin / wp-login requests.
+        $pagenow = isset( $GLOBALS['pagenow'] ) ? (string) $GLOBALS['pagenow'] : '';
+        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+        if ( is_admin() || 'wp-login.php' === $pagenow || false !== strpos( $request_uri, '/wp-admin' ) || false !== strpos( $request_uri, 'wp-login.php' ) ) {
             self::record_routing_trace( 'shutdown_no_location' );
         }
     }
