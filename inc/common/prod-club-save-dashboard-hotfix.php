@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * @param mixed $value Raw identifier value.
  * @return bool
  */
-function ufsc_prod_hotfix_is_scientific_numeric_identifier( $value ) {
+function ufsc_prod_hotfix_is_scientific_identifier( $value ) {
     $value = trim( (string) $value );
     return '' !== $value && 1 === preg_match( '/^[+-]?\\d+(?:[.,]\\d+)?[eE][+-]?\\d+$/', $value );
 }
@@ -36,7 +36,7 @@ function ufsc_prod_hotfix_is_scientific_numeric_identifier( $value ) {
  * @param mixed $value Raw identifier value.
  * @return string
  */
-function ufsc_prod_hotfix_normalize_plain_numeric_identifier( $value ) {
+function ufsc_prod_hotfix_normalize_digit_identifier( $value ) {
     $value      = sanitize_text_field( (string) $value );
     $normalized = str_replace( array( ' ', "\xc2\xa0", "\xe2\x80\xaf" ), '', trim( $value ) );
 
@@ -85,15 +85,28 @@ function ufsc_prod_hotfix_prepare_admin_club_update_payload() {
         $type  = isset( $conf[1] ) ? sanitize_key( (string) $conf[1] ) : 'text';
         $value = trim( (string) wp_unslash( $_POST[ $key ] ) );
 
-        // SIREN is an identifier, never a mathematical value. If a spreadsheet
-        // or another upstream system has converted it to scientific notation,
-        // do not guess the missing digits and do not overwrite the stored value.
-        if ( 'siren' === $key && '' !== $value ) {
-            if ( ufsc_prod_hotfix_is_scientific_numeric_identifier( $value ) ) {
+        // Administrative identifiers are strings, never mathematical values.
+        // If an upstream spreadsheet converted one to scientific notation, do
+        // not guess missing digits and never overwrite the value already stored.
+        $protected_identifiers = array(
+            'siren',
+            'siret',
+            'rna_number',
+            'num_declaration',
+            'num_affiliation',
+            'numero_affiliation_ffst',
+            'numero_agrement_js',
+        );
+        if ( in_array( $key, $protected_identifiers, true ) && '' !== $value ) {
+            if ( ufsc_prod_hotfix_is_scientific_identifier( $value ) ) {
                 unset( $_POST[ $key ], $_REQUEST[ $key ] );
                 if ( class_exists( 'UFSC_CL_Utils' ) ) {
                     UFSC_CL_Utils::log(
-                        sprintf( 'Club admin update ignored scientific SIREN for club #%d; stored value preserved.', $club_id ),
+                        sprintf(
+                            'Club admin update ignored scientific identifier %s for club #%d; stored value preserved.',
+                            sanitize_key( (string) $key ),
+                            $club_id
+                        ),
                         'warning'
                     );
                 }
@@ -101,8 +114,8 @@ function ufsc_prod_hotfix_prepare_admin_club_update_payload() {
             }
 
             // Only remove harmless visual spacing from digit-only identifiers.
-            // Do not cast to int/float: leading zeroes and all digits must survive.
-            $value            = ufsc_prod_hotfix_normalize_plain_numeric_identifier( $value );
+            // Alphanumeric identifiers (RNA, agrément...) remain unchanged.
+            $value            = ufsc_prod_hotfix_normalize_digit_identifier( $value );
             $_POST[ $key ]    = $value;
             $_REQUEST[ $key ] = $value;
         }
