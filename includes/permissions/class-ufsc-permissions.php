@@ -324,6 +324,9 @@ class UFSC_Permissions {
                     if ( ! empty( $entry['location'] ) ) {
                         echo '<br>→ <code>' . esc_html( $entry['location'] ) . '</code>';
                     }
+                    if ( ! empty( $entry['source'] ) ) {
+                        echo '<br><span class="description"><strong>source:</strong> ' . esc_html( $entry['source'] ) . '</span>';
+                    }
                     if ( ! empty( $entry['build'] ) ) {
                         echo '<br><span class="description">build: ' . esc_html( $entry['build'] ) . '</span>';
                     }
