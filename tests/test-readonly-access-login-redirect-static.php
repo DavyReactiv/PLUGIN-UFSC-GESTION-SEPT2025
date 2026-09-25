@@ -2,6 +2,8 @@
 $root     = dirname( __DIR__ );
 $loader   = file_get_contents( $root . '/inc/common/readonly-access-denied-messages.php' );
 $redirect = file_get_contents( $root . '/inc/common/readonly-access-login-redirect.php' );
+$bootstrap = file_get_contents( $root . '/ufsc-clubs-licences-sql.php' );
+$simplified = file_get_contents( $root . '/includes/admin/class-ufsc-simplified-admin.php' );
 
 $assert = static function ( $condition, $message ) {
     if ( ! $condition ) {
@@ -19,5 +21,8 @@ $assert( false !== strpos( $redirect, "'wp-login.php' === $pagenow" ), 'wp_redir
 $assert( false === strpos( $redirect, 'UFSC_Unified_Handlers::' ), 'login redirect must not call licence mutation handlers' );
 $assert( false === strpos( $redirect, 'WC()->cart' ), 'login redirect must not touch cart logic' );
 $assert( false === strpos( $redirect, '$wpdb->' ), 'login redirect must not query or mutate business data' );
+$assert( false !== strpos( $bootstrap, 'UFSC_Simplified_Admin::init();' ), 'limited-admin redirect guards must register while the plugin is loading, before init redirects can fire' );
+$assert( false === strpos( $bootstrap, "add_action( 'init', array( 'UFSC_Simplified_Admin', 'init' ) )" ), 'limited-admin redirect guards must not wait for the init hook' );
+$assert( false !== strpos( $simplified, 'static $initialized = false' ), 'simplified admin bootstrap must be idempotent when initialized early' );
 
 echo "Read-only federation admin login redirect safeguards OK\n";

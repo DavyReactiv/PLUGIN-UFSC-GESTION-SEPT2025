@@ -44,6 +44,12 @@ class UFSC_Simplified_Admin {
      * Bootstrap admin hooks.
      */
     public static function init() {
+        static $initialized = false;
+        if ( $initialized ) {
+            return;
+        }
+        $initialized = true;
+
         add_filter( 'login_redirect', array( __CLASS__, 'filter_login_redirect' ), PHP_INT_MAX, 3 );
         add_filter( 'wp_redirect', array( __CLASS__, 'prevent_front_office_redirect' ), PHP_INT_MAX - 1, 2 );
         add_filter( 'wp_redirect', array( __CLASS__, 'keep_limited_user_in_admin_after_login' ), PHP_INT_MAX, 2 );
