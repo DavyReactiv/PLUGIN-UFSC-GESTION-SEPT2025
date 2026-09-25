@@ -21,11 +21,12 @@ $assert( false !== strpos( $hotfix, "'num_affiliation'" ), 'Le numéro d’affil
 $assert( false !== strpos( $hotfix, "'rna_number'" ), 'Le RNA vide doit être protégé sur une édition existante.' );
 $assert( false !== strpos( $hotfix, "'siren'" ), 'Le SIREN vide doit être protégé sur une édition existante.' );
 $assert( false !== strpos( $sql, "'siren'=>array('SIREN','text')" ), 'Le SIREN doit rester un champ texte dans le modèle canonique.' );
-$assert( false !== strpos( $hotfix, 'ufsc_prod_hotfix_is_scientific_numeric_identifier' ), 'La notation scientifique du SIREN doit être détectée avant sauvegarde admin.' );
-$assert( false !== strpos( $hotfix, 'ufsc_prod_hotfix_normalize_plain_numeric_identifier' ), 'La normalisation SIREN doit rester une opération sur chaîne.' );
+$assert( false !== strpos( $hotfix, 'ufsc_prod_hotfix_is_scientific_identifier' ), 'La notation scientifique des identifiants doit être détectée avant sauvegarde admin.' );
+$assert( false !== strpos( $hotfix, 'ufsc_prod_hotfix_normalize_digit_identifier' ), 'La normalisation des identifiants doit rester une opération sur chaîne.' );
+$assert( false !== strpos( $hotfix, "'numero_affiliation_ffst'" ) && false !== strpos( $hotfix, "'numero_agrement_js'" ), 'Les identifiants FFST doivent aussi être protégés.' );
 $assert( false !== strpos( $hotfix, "unset( \$_POST[ \$key ], \$_REQUEST[ \$key ] )" ), 'Un SIREN scientifique ne doit jamais écraser la valeur stockée.' );
-$assert( false !== strpos( $utils, 'Le SIREN doit être saisi en chiffres, sans notation scientifique.' ), 'Les nouvelles saisies scientifiques doivent être refusées.' );
-$assert( false !== strpos( $admin, "'siren' === \$k" ) && false !== strpos( $admin, 'inputmode="numeric"' ), 'Le champ SIREN admin doit rester textuel avec clavier numérique.' );
+$assert( false !== strpos( $utils, 'ne doit pas être saisi en notation scientifique' ), 'Les nouvelles saisies scientifiques doivent être refusées.' );
+$assert( false !== strpos( $admin, "array( 'siren', 'siret' )" ) && false !== strpos( $admin, 'inputmode="numeric"' ), 'SIREN/SIRET admin doivent rester textuels avec clavier numérique.' );
 $assert( false !== strpos( $front_form, 'id="siren" name="siren" inputmode="numeric"' ), 'Le champ SIREN front doit rester textuel avec clavier numérique.' );
 $assert( false === strpos( $front_form, 'type="number" id="siren"' ), 'Le SIREN front ne doit jamais devenir un input number.' );
 $assert( false !== strpos( $layout, '.ufsc-ffst-foreign-parent{display:block!important}' ), 'Les champs de filiation doivent rester visibles en admin.' );
