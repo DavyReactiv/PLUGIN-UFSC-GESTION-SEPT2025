@@ -89,26 +89,39 @@ class UFSC_Simplified_Admin {
         }
 
         $source = '';
-        $frames = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 14 );
+        $frames = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 30 );
+        $plugin_dir = defined( 'WP_PLUGIN_DIR' ) ? trailingslashit( wp_normalize_path( WP_PLUGIN_DIR ) ) : '';
+        $mu_dir = defined( 'WPMU_PLUGIN_DIR' ) ? trailingslashit( wp_normalize_path( WPMU_PLUGIN_DIR ) ) : '';
+        $theme_root = function_exists( 'get_theme_root' ) ? trailingslashit( wp_normalize_path( get_theme_root() ) ) : '';
+        $abspath = defined( 'ABSPATH' ) ? trailingslashit( wp_normalize_path( ABSPATH ) ) : '';
+        $self_file = wp_normalize_path( __FILE__ );
+
+        // Prefer the first non-core caller outside this diagnostic class. This
+        // avoids reporting WP_Hook::apply_filters / wp-includes/plugin.php,
+        // which only describes the filter dispatch and not the code that asked
+        // WordPress to redirect.
         foreach ( $frames as $frame ) {
             $file = isset( $frame['file'] ) ? wp_normalize_path( (string) $frame['file'] ) : '';
-            if ( '' === $file || false !== strpos( $file, '/wp-includes/pluggable.php' ) || false !== strpos( $file, '/wp-includes/class-wp-hook.php' ) ) {
+            if ( '' === $file || $file === $self_file ) {
+                continue;
+            }
+
+            $is_core = $abspath && 0 === strpos( $file, $abspath ) &&
+                0 !== strpos( $file, $plugin_dir ) &&
+                0 !== strpos( $file, $mu_dir ) &&
+                0 !== strpos( $file, $theme_root );
+
+            if ( $is_core ) {
                 continue;
             }
 
             $label = $file;
-            $plugin_dir = defined( 'WP_PLUGIN_DIR' ) ? trailingslashit( wp_normalize_path( WP_PLUGIN_DIR ) ) : '';
-            $mu_dir = defined( 'WPMU_PLUGIN_DIR' ) ? trailingslashit( wp_normalize_path( WPMU_PLUGIN_DIR ) ) : '';
-            $theme_root = function_exists( 'get_theme_root' ) ? trailingslashit( wp_normalize_path( get_theme_root() ) ) : '';
-
             if ( $plugin_dir && 0 === strpos( $file, $plugin_dir ) ) {
                 $label = 'plugin:' . substr( $file, strlen( $plugin_dir ) );
             } elseif ( $mu_dir && 0 === strpos( $file, $mu_dir ) ) {
                 $label = 'mu-plugin:' . substr( $file, strlen( $mu_dir ) );
             } elseif ( $theme_root && 0 === strpos( $file, $theme_root ) ) {
                 $label = 'theme:' . substr( $file, strlen( $theme_root ) );
-            } elseif ( defined( 'ABSPATH' ) && 0 === strpos( $file, wp_normalize_path( ABSPATH ) ) ) {
-                $label = 'wordpress:' . substr( $file, strlen( wp_normalize_path( ABSPATH ) ) );
             } else {
                 $label = basename( $file );
             }
@@ -117,6 +130,24 @@ class UFSC_Simplified_Admin {
             $class = isset( $frame['class'] ) ? sanitize_text_field( (string) $frame['class'] ) : '';
             $source = sanitize_text_field( $label . ( $class || $function ? ' :: ' . $class . $function : '' ) );
             break;
+        }
+
+        // Fallback: keep one compact core frame only if no plugin/theme caller
+        // could be found at all.
+        if ( '' === $source ) {
+            foreach ( $frames as $frame ) {
+                $file = isset( $frame['file'] ) ? wp_normalize_path( (string) $frame['file'] ) : '';
+                if ( '' === $file || $file === $self_file ) {
+                    continue;
+                }
+                $function = isset( $frame['function'] ) ? sanitize_text_field( (string) $frame['function'] ) : '';
+                $class = isset( $frame['class'] ) ? sanitize_text_field( (string) $frame['class'] ) : '';
+                $label = $abspath && 0 === strpos( $file, $abspath )
+                    ? 'wordpress:' . substr( $file, strlen( $abspath ) )
+                    : basename( $file );
+                $source = sanitize_text_field( $label . ( $class || $function ? ' :: ' . $class . $function : '' ) );
+                break;
+            }
         }
 
         self::record_routing_trace(
