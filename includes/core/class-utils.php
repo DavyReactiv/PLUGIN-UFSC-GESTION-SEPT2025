@@ -169,6 +169,16 @@ class UFSC_CL_Utils {
             $errors['date_declaration'] = __('Format de date invalide (AAAA-MM-JJ)', 'ufsc-clubs');
         }
 
+        // SIREN is an identifier, not a number. Scientific notation means the
+        // source has already transformed the identifier and may have lost digits.
+        // Reject that representation rather than guessing or silently rewriting it.
+        if ( ! empty( $data['siren'] ) ) {
+            $siren = trim( (string) $data['siren'] );
+            if ( preg_match( '/^[+-]?\\d+(?:[.,]\\d+)?[eE][+-]?\\d+$/', $siren ) ) {
+                $errors['siren'] = __( 'Le SIREN doit être saisi en chiffres, sans notation scientifique.', 'ufsc-clubs' );
+            }
+        }
+
         // Basic IBAN validation (optional)
         if ( !empty($data['iban']) && !self::validate_iban($data['iban']) ) {
             $errors['iban'] = __('Format IBAN invalide', 'ufsc-clubs');
