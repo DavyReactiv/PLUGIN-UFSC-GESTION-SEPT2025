@@ -14,6 +14,36 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  */
 
 /**
+ * Detect a numeric identifier that has already been converted to scientific notation.
+ *
+ * Never expand this representation automatically: significant digits may already
+ * have been lost before the value reached UFSC Gestion.
+ *
+ * @param mixed $value Raw identifier value.
+ * @return bool
+ */
+function ufsc_prod_hotfix_is_scientific_numeric_identifier( $value ) {
+    $value = trim( (string) $value );
+    return '' !== $value && 1 === preg_match( '/^[+-]?\\d+(?:[.,]\\d+)?[eE][+-]?\\d+$/', $value );
+}
+
+/**
+ * Normalize harmless visual spacing while keeping numeric identifiers as strings.
+ *
+ * This function deliberately performs no integer/float cast, so leading zeroes
+ * and every submitted digit remain untouched.
+ *
+ * @param mixed $value Raw identifier value.
+ * @return string
+ */
+function ufsc_prod_hotfix_normalize_plain_numeric_identifier( $value ) {
+    $value      = sanitize_text_field( (string) $value );
+    $normalized = str_replace( array( ' ', "\xc2\xa0", "\xe2\x80\xaf" ), '', trim( $value ) );
+
+    return preg_match( '/^\\d+$/D', $normalized ) ? $normalized : trim( $value );
+}
+
+/**
  * Normaliser uniquement le POST d'édition admin d'un club avant le handler canonique.
  *
  * Le handler historique transmet les champs postés directement à wpdb::update().
@@ -54,6 +84,28 @@ function ufsc_prod_hotfix_prepare_admin_club_update_payload() {
 
         $type  = isset( $conf[1] ) ? sanitize_key( (string) $conf[1] ) : 'text';
         $value = trim( (string) wp_unslash( $_POST[ $key ] ) );
+
+        // SIREN is an identifier, never a mathematical value. If a spreadsheet
+        // or another upstream system has converted it to scientific notation,
+        // do not guess the missing digits and do not overwrite the stored value.
+        if ( 'siren' === $key && '' !== $value ) {
+            if ( ufsc_prod_hotfix_is_scientific_numeric_identifier( $value ) ) {
+                unset( $_POST[ $key ], $_REQUEST[ $key ] );
+                if ( class_exists( 'UFSC_CL_Utils' ) ) {
+                    UFSC_CL_Utils::log(
+                        sprintf( 'Club admin update ignored scientific SIREN for club #%d; stored value preserved.', $club_id ),
+                        'warning'
+                    );
+                }
+                continue;
+            }
+
+            // Only remove harmless visual spacing from digit-only identifiers.
+            // Do not cast to int/float: leading zeroes and all digits must survive.
+            $value            = ufsc_prod_hotfix_normalize_plain_numeric_identifier( $value );
+            $_POST[ $key ]    = $value;
+            $_REQUEST[ $key ] = $value;
+        }
 
         // Legacy zero-dates and empty date inputs must not be written back.
         if ( 'date' === $type && in_array( $value, array( '', '0000-00-00', '0000-00-00 00:00:00' ), true ) ) {
