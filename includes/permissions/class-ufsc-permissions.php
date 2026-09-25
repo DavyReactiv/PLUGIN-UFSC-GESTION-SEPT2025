@@ -305,7 +305,7 @@ class UFSC_Permissions {
             $trace = method_exists( 'UFSC_Simplified_Admin', 'get_routing_trace' )
                 ? UFSC_Simplified_Admin::get_routing_trace( $user->ID )
                 : array();
-            $last = $trace ? end( $trace ) : array();
+            $recent = $trace ? array_slice( $trace, -6 ) : array();
 
             echo '<tr>';
             echo '<td><strong>' . esc_html( $user->display_name ) . '</strong><br><code>' . esc_html( $user->user_login ) . '</code></td>';
@@ -315,15 +315,19 @@ class UFSC_Permissions {
             echo '<td>' . esc_html( $regions ? implode( ', ', $regions ) : __( 'Aucune', 'ufsc-clubs' ) ) . '</td>';
             echo '<td><code>' . esc_html( $target ) . '</code></td>';
             echo '<td>';
-            if ( $last ) {
-                echo '<strong>' . esc_html( isset( $last['event'] ) ? $last['event'] : '' ) . '</strong><br>';
-                echo '<span class="description">' . esc_html( isset( $last['time'] ) ? $last['time'] : '' ) . '</span><br>';
-                echo '<code>' . esc_html( isset( $last['request'] ) ? $last['request'] : '' ) . '</code>';
-                if ( ! empty( $last['location'] ) ) {
-                    echo '<br>→ <code>' . esc_html( $last['location'] ) . '</code>';
-                }
-                if ( ! empty( $last['build'] ) ) {
-                    echo '<br><span class="description">build: ' . esc_html( $last['build'] ) . '</span>';
+            if ( $recent ) {
+                foreach ( array_reverse( $recent ) as $entry ) {
+                    echo '<div style="padding:6px 0;border-bottom:1px solid #eee;">';
+                    echo '<strong>' . esc_html( isset( $entry['event'] ) ? $entry['event'] : '' ) . '</strong> ';
+                    echo '<span class="description">' . esc_html( isset( $entry['time'] ) ? $entry['time'] : '' ) . '</span><br>';
+                    echo '<code>' . esc_html( isset( $entry['request'] ) ? $entry['request'] : '' ) . '</code>';
+                    if ( ! empty( $entry['location'] ) ) {
+                        echo '<br>→ <code>' . esc_html( $entry['location'] ) . '</code>';
+                    }
+                    if ( ! empty( $entry['build'] ) ) {
+                        echo '<br><span class="description">build: ' . esc_html( $entry['build'] ) . '</span>';
+                    }
+                    echo '</div>';
                 }
             } else {
                 echo '<strong>' . esc_html__( 'Aucune trace', 'ufsc-clubs' ) . '</strong><br>';
