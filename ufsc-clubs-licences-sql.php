@@ -9,6 +9,7 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 define( 'UFSC_CL_VERSION', '082026' );
+define( 'UFSC_CL_ROUTING_DIAGNOSTIC_BUILD', 'diag-20260925-1' );
 define( 'UFSC_CL_DIR', plugin_dir_path( __FILE__ ) );
 define( 'UFSC_CL_URL', plugin_dir_url( __FILE__ ) );
 
