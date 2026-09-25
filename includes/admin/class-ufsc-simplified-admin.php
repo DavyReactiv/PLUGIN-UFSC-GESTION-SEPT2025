@@ -54,6 +54,7 @@ class UFSC_Simplified_Admin {
         add_filter( 'wp_redirect', array( __CLASS__, 'prevent_front_office_redirect' ), PHP_INT_MAX - 1, 2 );
         add_filter( 'wp_redirect', array( __CLASS__, 'keep_limited_user_in_admin_after_login' ), PHP_INT_MAX, 2 );
         add_action( 'admin_init', array( __CLASS__, 'trace_admin_entry' ), PHP_INT_MIN );
+        add_action( 'shutdown', array( __CLASS__, 'trace_final_location_header' ), PHP_INT_MAX );
 
         if ( ! is_admin() ) {
             return;
@@ -147,6 +148,32 @@ class UFSC_Simplified_Admin {
     public static function get_routing_trace( $user_id ) {
         $trace = get_user_meta( absint( $user_id ), '_ufsc_admin_routing_trace', true );
         return is_array( $trace ) ? $trace : array();
+    }
+
+    /**
+     * Capture the final HTTP Location header, including redirects emitted via
+     * raw header() calls that bypass WordPress wp_redirect filters.
+     *
+     * shutdown still runs after most exit/die paths, making this useful for
+     * identifying third-party admin blockers without changing their behaviour.
+     */
+    public static function trace_final_location_header() {
+        if ( ! is_user_logged_in() || ! self::is_limited_ufsc_user() ) {
+            return;
+        }
+
+        $location = '';
+        foreach ( headers_list() as $header ) {
+            if ( 0 === stripos( $header, 'Location:' ) ) {
+                $location = trim( substr( $header, strlen( 'Location:' ) ) );
+            }
+        }
+
+        if ( '' !== $location ) {
+            self::record_routing_trace( 'final_location_header', 0, $location );
+        } else {
+            self::record_routing_trace( 'shutdown_no_location' );
+        }
     }
 
     /**
