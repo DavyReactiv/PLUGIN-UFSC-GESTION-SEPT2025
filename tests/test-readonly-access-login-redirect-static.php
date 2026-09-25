@@ -28,6 +28,8 @@ $assert( false !== strpos( $simplified, 'static $initialized = false' ), 'simpli
 $assert( false !== strpos( $simplified, 'trace_final_location_header' ), 'routing diagnostics must capture the final Location header' );
 $assert( false !== strpos( $simplified, 'trace_wp_redirect_input' ), 'routing diagnostics must capture the original wp_redirect destination' );
 $assert( false !== strpos( $simplified, 'debug_backtrace' ), 'routing diagnostics must capture the likely redirect caller source' );
+$assert( false !== strpos( $simplified, 'debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 30 )' ), 'redirect diagnostics must inspect enough frames to get beyond WordPress hook dispatch' );
+$assert( false !== strpos( $simplified, 'which only describes the filter dispatch and not the code that asked' ), 'redirect diagnostics must explicitly skip hook-dispatch-only frames' );
 $assert( false !== strpos( $simplified, "plugin:" ), 'redirect caller paths must be reduced to plugin-relative labels' );
 $assert( false !== strpos( $simplified, "Do not let the public landing request overwrite the useful admin trace" ), 'public landing requests must not overwrite useful admin routing evidence' );
 $assert( false !== strpos( $bootstrap, "UFSC_CL_ROUTING_DIAGNOSTIC_BUILD" ) && false !== strpos( $bootstrap, 'diag-20260925-1' ), 'production diagnostics must expose a deployment marker' );
