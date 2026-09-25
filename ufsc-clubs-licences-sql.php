@@ -186,7 +186,13 @@ final class UFSC_CL_Bootstrap {
         add_action( 'init', array( 'UFSC_Cache_Manager', 'init' ) );
         add_action( 'init', array( 'UFSC_Capabilities', 'register_caps' ) );
         add_action( 'init', array( 'UFSC_Permissions', 'init' ) );
-        add_action( 'init', array( 'UFSC_Simplified_Admin', 'init' ) );
+
+        // Register UFSC limited-admin redirect guards immediately while plugins
+        // are loading. Waiting until the `init` hook is too late when another
+        // membership/security plugin redirects non-administrators at init priority 0.
+        // UFSC_Simplified_Admin::init() is idempotent, so this remains safe.
+        UFSC_Simplified_Admin::init();
+
         add_action( 'init', array( 'UFSC_User_Profile_Scope_Field', 'init' ) );
         add_action( 'admin_init', array( 'UFSC_DB_Migrations', 'run_migrations' ) );
 
