@@ -53,6 +53,7 @@ class UFSC_Simplified_Admin {
         add_filter( 'login_redirect', array( __CLASS__, 'filter_login_redirect' ), PHP_INT_MAX, 3 );
         add_filter( 'wp_redirect', array( __CLASS__, 'prevent_front_office_redirect' ), PHP_INT_MAX - 1, 2 );
         add_filter( 'wp_redirect', array( __CLASS__, 'keep_limited_user_in_admin_after_login' ), PHP_INT_MAX, 2 );
+        add_action( 'admin_init', array( __CLASS__, 'trace_admin_entry' ), PHP_INT_MIN );
 
         if ( ! is_admin() ) {
             return;
@@ -69,6 +70,83 @@ class UFSC_Simplified_Admin {
         add_action( 'admin_menu', array( __CLASS__, 'normalize_ufsc_menu_capabilities' ), 9998 );
         add_action( 'admin_menu', array( __CLASS__, 'filter_admin_menu' ), 9999 );
         add_action( 'admin_bar_menu', array( __CLASS__, 'simplify_admin_bar' ), 9999 );
+    }
+
+    /**
+     * Technical routing trace used only to diagnose limited UFSC back-office access.
+     *
+     * Stores a bounded, non-business log on the affected user. Query parameters
+     * are intentionally reduced to the UFSC page slug to avoid recording secrets.
+     */
+    public static function record_routing_trace( $event, $user_id = 0, $location = '' ) {
+        $user_id = $user_id ? absint( $user_id ) : get_current_user_id();
+        if ( ! $user_id || ! self::is_limited_ufsc_user( $user_id ) ) {
+            return;
+        }
+
+        $user = get_userdata( $user_id );
+        if ( ! $user ) {
+            return;
+        }
+
+        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+        $request_path = wp_parse_url( $request_uri, PHP_URL_PATH );
+        $request_page = isset( $_REQUEST['page'] ) && ! is_array( $_REQUEST['page'] )
+            ? sanitize_key( wp_unslash( $_REQUEST['page'] ) )
+            : '';
+
+        $safe_location = '';
+        if ( '' !== (string) $location ) {
+            $loc_path = wp_parse_url( (string) $location, PHP_URL_PATH );
+            $loc_query = wp_parse_url( (string) $location, PHP_URL_QUERY );
+            $loc_page = '';
+            if ( $loc_query ) {
+                $args = array();
+                wp_parse_str( $loc_query, $args );
+                $loc_page = isset( $args['page'] ) ? sanitize_key( (string) $args['page'] ) : '';
+            }
+            $safe_location = (string) $loc_path . ( $loc_page ? '?page=' . $loc_page : '' );
+        }
+
+        $entry = array(
+            'time'       => current_time( 'mysql' ),
+            'event'      => sanitize_key( (string) $event ),
+            'pagenow'    => isset( $GLOBALS['pagenow'] ) ? sanitize_text_field( (string) $GLOBALS['pagenow'] ) : '',
+            'request'    => (string) $request_path . ( $request_page ? '?page=' . $request_page : '' ),
+            'location'   => $safe_location,
+            'enabled'    => self::is_enabled() ? '1' : '0',
+            'roles'      => array_values( array_map( 'sanitize_key', (array) $user->roles ) ),
+            'first_url'  => wp_parse_url( self::get_first_authorized_url_for_user( $user ), PHP_URL_PATH ) . '?page=ufsc-limited-dashboard',
+            'build'      => defined( 'UFSC_CL_ROUTING_DIAGNOSTIC_BUILD' ) ? UFSC_CL_ROUTING_DIAGNOSTIC_BUILD : '',
+        );
+
+        $trace = get_user_meta( $user_id, '_ufsc_admin_routing_trace', true );
+        $trace = is_array( $trace ) ? $trace : array();
+        $trace[] = $entry;
+        if ( count( $trace ) > 12 ) {
+            $trace = array_slice( $trace, -12 );
+        }
+        update_user_meta( $user_id, '_ufsc_admin_routing_trace', $trace );
+    }
+
+    /**
+     * Record that a limited UFSC account reached wp-admin at all.
+     */
+    public static function trace_admin_entry() {
+        if ( self::is_limited_ufsc_user() ) {
+            self::record_routing_trace( 'admin_entry' );
+        }
+    }
+
+    /**
+     * Return the bounded routing trace for administrator diagnostics.
+     *
+     * @param int $user_id User ID.
+     * @return array<int,array<string,mixed>>
+     */
+    public static function get_routing_trace( $user_id ) {
+        $trace = get_user_meta( absint( $user_id ), '_ufsc_admin_routing_trace', true );
+        return is_array( $trace ) ? $trace : array();
     }
 
     /**
@@ -646,7 +724,9 @@ class UFSC_Simplified_Admin {
         }
 
         if ( self::is_limited_ufsc_user( $user->ID ) ) {
-            return self::get_first_authorized_url_for_user( $user );
+            $target = self::get_first_authorized_url_for_user( $user );
+            self::record_routing_trace( 'login_redirect', $user->ID, $target );
+            return $target;
         }
 
         return $redirect_to;
@@ -690,18 +770,23 @@ class UFSC_Simplified_Admin {
 
         if ( self::is_front_office_url( $location ) ) {
             $pagenow = isset( $GLOBALS['pagenow'] ) ? (string) $GLOBALS['pagenow'] : '';
+            $target = '';
             if ( 'profile.php' === $pagenow ) {
-                return admin_url( 'profile.php' );
-            }
-
-            if ( 'admin.php' === $pagenow ) {
+                $target = admin_url( 'profile.php' );
+            } elseif ( 'admin.php' === $pagenow ) {
                 $page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
                 if ( '' !== $page && self::is_authorized_page_slug( $page ) ) {
-                    return admin_url( 'admin.php?page=' . rawurlencode( $page ) );
+                    $target = admin_url( 'admin.php?page=' . rawurlencode( $page ) );
                 }
             }
 
-            return self::get_first_authorized_url();
+            if ( '' === $target ) {
+                $target = self::get_first_authorized_url();
+            }
+
+            self::record_routing_trace( 'front_redirect_rewritten', 0, $location );
+            self::record_routing_trace( 'front_redirect_target', 0, $target );
+            return $target;
         }
 
         return $location;
@@ -730,7 +815,9 @@ class UFSC_Simplified_Admin {
             return $location;
         }
 
-        return self::get_first_authorized_url();
+        $target = self::get_first_authorized_url();
+        self::record_routing_trace( 'native_login_guard', 0, $target );
+        return $target;
     }
 
     /**

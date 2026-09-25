@@ -261,19 +261,80 @@ class UFSC_Permissions {
         }
 
         $diagnostics = UFSC_Simplified_Admin::get_module_url_diagnostics();
-        if ( empty( $diagnostics ) ) {
-            return;
+        $users = self::get_ufsc_users();
+        $build_id = function_exists( 'ufsc_get_build_id' ) ? ufsc_get_build_id() : ( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : '' );
+        $routing_build = defined( 'UFSC_CL_ROUTING_DIAGNOSTIC_BUILD' ) ? UFSC_CL_ROUTING_DIAGNOSTIC_BUILD : __( 'Absent', 'ufsc-clubs' );
+        $enabled = '0' !== (string) get_option( 'ufsc_enable_simplified_admin', '1' );
+
+        echo '<details class="ufsc-simplified-admin-diagnostics" open style="max-width:1200px;margin-bottom:24px;padding:12px 16px;background:#fff;border:1px solid #dcdcde;">';
+        echo '<summary style="cursor:pointer;font-weight:600;">' . esc_html__( 'Diagnostic technique admin simplifié', 'ufsc-clubs' ) . '</summary>';
+        echo '<p><strong>' . esc_html__( 'Version plugin chargée :', 'ufsc-clubs' ) . '</strong> <code>' . esc_html( defined( 'UFSC_CL_VERSION' ) ? UFSC_CL_VERSION : '—' ) . '</code> ';
+        echo ' · <strong>' . esc_html__( 'Build détecté :', 'ufsc-clubs' ) . '</strong> <code>' . esc_html( $build_id ) . '</code> ';
+        echo ' · <strong>' . esc_html__( 'Marqueur diagnostic :', 'ufsc-clubs' ) . '</strong> <code>' . esc_html( $routing_build ) . '</code> ';
+        echo ' · <strong>' . esc_html__( 'Interface simplifiée :', 'ufsc-clubs' ) . '</strong> ' . esc_html( $enabled ? __( 'Activée', 'ufsc-clubs' ) : __( 'Désactivée', 'ufsc-clubs' ) ) . '</p>';
+        echo '<p class="description">' . esc_html__( 'Le marqueur diag-20260925-1 confirme que cette version du diagnostic est réellement déployée sur le serveur. Les traces ci-dessous ne contiennent ni mot de passe, ni nonce, ni données club/licence.', 'ufsc-clubs' ) . '</p>';
+
+        if ( ! empty( $diagnostics ) ) {
+            echo '<h3>' . esc_html__( 'Routes UFSC calculées', 'ufsc-clubs' ) . '</h3>';
+            echo '<table class="widefat striped" style="margin-top:12px;"><thead><tr>';
+            echo '<th>' . esc_html__( 'Module', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Slug détecté', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Capability', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'URL utilisée', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Raison', 'ufsc-clubs' ) . '</th>';
+            echo '</tr></thead><tbody>';
+            foreach ( $diagnostics as $module => $item ) {
+                echo '<tr><td>' . esc_html( $module ) . '</td><td><code>' . esc_html( $item['slug'] ) . '</code></td><td><code>' . esc_html( $item['capability'] ) . '</code></td><td><code>' . esc_html( $item['url'] ) . '</code></td><td>' . esc_html( $item['reason'] ) . '</td></tr>';
+            }
+            echo '</tbody></table>';
         }
 
-        echo '<details class="ufsc-simplified-admin-diagnostics" style="max-width:900px;margin-bottom:24px;padding:12px 16px;background:#fff;border:1px solid #dcdcde;">';
-        echo '<summary style="cursor:pointer;font-weight:600;">' . esc_html__( 'Diagnostic technique admin simplifié', 'ufsc-clubs' ) . '</summary>';
-        echo '<table class="widefat striped" style="margin-top:12px;"><thead><tr>';
-        echo '<th>' . esc_html__( 'Module', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Slug détecté', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Capability', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'URL utilisée', 'ufsc-clubs' ) . '</th><th>' . esc_html__( 'Raison', 'ufsc-clubs' ) . '</th>';
+        echo '<h3 style="margin-top:20px;">' . esc_html__( 'Comptes UFSC et dernière trace de routage', 'ufsc-clubs' ) . '</h3>';
+        echo '<table class="widefat striped"><thead><tr>';
+        echo '<th>' . esc_html__( 'Utilisateur', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'Rôle(s)', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'Read', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'UFSC limité', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'Régions', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'URL cible', 'ufsc-clubs' ) . '</th>';
+        echo '<th>' . esc_html__( 'Dernière trace', 'ufsc-clubs' ) . '</th>';
         echo '</tr></thead><tbody>';
-        foreach ( $diagnostics as $module => $item ) {
-            echo '<tr><td>' . esc_html( $module ) . '</td><td><code>' . esc_html( $item['slug'] ) . '</code></td><td><code>' . esc_html( $item['capability'] ) . '</code></td><td><code>' . esc_html( $item['url'] ) . '</code></td><td>' . esc_html( $item['reason'] ) . '</td></tr>';
+
+        foreach ( $users as $user ) {
+            $is_limited = UFSC_Simplified_Admin::is_limited_ufsc_user( $user->ID );
+            $regions = function_exists( 'ufsc_user_has_all_regions_access' ) && ufsc_user_has_all_regions_access( $user->ID )
+                ? array( __( 'Toutes les régions', 'ufsc-clubs' ) )
+                : ( function_exists( 'ufsc_get_user_regions' ) ? ufsc_get_user_regions( $user->ID ) : array() );
+            $target = UFSC_Simplified_Admin::get_first_authorized_url_for_user( $user );
+            $trace = method_exists( 'UFSC_Simplified_Admin', 'get_routing_trace' )
+                ? UFSC_Simplified_Admin::get_routing_trace( $user->ID )
+                : array();
+            $last = $trace ? end( $trace ) : array();
+
+            echo '<tr>';
+            echo '<td><strong>' . esc_html( $user->display_name ) . '</strong><br><code>' . esc_html( $user->user_login ) . '</code></td>';
+            echo '<td>' . esc_html( implode( ', ', (array) $user->roles ) ) . '</td>';
+            echo '<td>' . esc_html( user_can( $user->ID, 'read' ) ? __( 'Oui', 'ufsc-clubs' ) : __( 'Non', 'ufsc-clubs' ) ) . '</td>';
+            echo '<td>' . esc_html( $is_limited ? __( 'Oui', 'ufsc-clubs' ) : __( 'Non', 'ufsc-clubs' ) ) . '</td>';
+            echo '<td>' . esc_html( $regions ? implode( ', ', $regions ) : __( 'Aucune', 'ufsc-clubs' ) ) . '</td>';
+            echo '<td><code>' . esc_html( $target ) . '</code></td>';
+            echo '<td>';
+            if ( $last ) {
+                echo '<strong>' . esc_html( isset( $last['event'] ) ? $last['event'] : '' ) . '</strong><br>';
+                echo '<span class="description">' . esc_html( isset( $last['time'] ) ? $last['time'] : '' ) . '</span><br>';
+                echo '<code>' . esc_html( isset( $last['request'] ) ? $last['request'] : '' ) . '</code>';
+                if ( ! empty( $last['location'] ) ) {
+                    echo '<br>→ <code>' . esc_html( $last['location'] ) . '</code>';
+                }
+                if ( ! empty( $last['build'] ) ) {
+                    echo '<br><span class="description">build: ' . esc_html( $last['build'] ) . '</span>';
+                }
+            } else {
+                echo '<strong>' . esc_html__( 'Aucune trace', 'ufsc-clubs' ) . '</strong><br>';
+                echo '<span class="description">' . esc_html__( 'Après une tentative /wp-admin/ avec ce compte, l’absence persistante de trace indique que la requête est probablement redirigée avant que ce code UFSC soit exécuté, ou que cette version du plugin n’est pas déployée.', 'ufsc-clubs' ) . '</span>';
+            }
+            echo '</td>';
+            echo '</tr>';
         }
-        echo '</tbody></table></details>';
+        echo '</tbody></table>';
+        echo '<p class="description" style="margin-top:12px;">' . esc_html__( 'Pour tester : ouvrez /wp-admin/ avec le compte concerné, laissez la redirection se produire, puis revenez ici avec votre compte administrateur et actualisez cette page.', 'ufsc-clubs' ) . '</p>';
+        echo '</details>';
     }
 
     /**
