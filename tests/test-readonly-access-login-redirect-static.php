@@ -32,5 +32,7 @@ $assert( false !== strpos( $simplified, 'array_slice( $trace, -12 )' ), 'routing
 $assert( false !== strpos( $permissions, 'Comptes UFSC et dernière trace de routage' ), 'administrator diagnostics must expose the last routing trace' );
 $assert( false !== strpos( $permissions, 'Marqueur diagnostic' ), 'administrator diagnostics must expose the production deployment marker' );
 $assert( false !== strpos( $permissions, 'Aucune trace' ), 'administrator diagnostics must explain missing routing traces' );
+$assert( false !== strpos( $simplified, 'trace_final_location_header' ), 'routing diagnostics must capture the final Location header' );
+$assert( false !== strpos( $simplified, 'headers_list()' ), 'routing diagnostics must inspect final response headers' );
 
 echo "Read-only federation admin login redirect safeguards OK\n";
