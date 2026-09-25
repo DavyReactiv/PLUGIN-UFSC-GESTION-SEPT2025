@@ -6,6 +6,7 @@ $sql = file_get_contents( $root . '/includes/core/class-sql.php' );
 $utils = file_get_contents( $root . '/includes/core/class-utils.php' );
 $admin = file_get_contents( $root . '/includes/admin/class-sql-admin.php' );
 $front_form = file_get_contents( $root . '/includes/frontend/class-club-form.php' );
+$layout = file_get_contents( $root . '/includes/admin/class-ffst-club-admin-layout.php' );
 
 $failures = array();
 $assert = static function ( $condition, $message ) use ( &$failures ) {
@@ -27,6 +28,10 @@ $assert( false !== strpos( $utils, 'Le SIREN doit être saisi en chiffres, sans 
 $assert( false !== strpos( $admin, "'siren' === \$k" ) && false !== strpos( $admin, 'inputmode="numeric"' ), 'Le champ SIREN admin doit rester textuel avec clavier numérique.' );
 $assert( false !== strpos( $front_form, 'id="siren" name="siren" inputmode="numeric"' ), 'Le champ SIREN front doit rester textuel avec clavier numérique.' );
 $assert( false === strpos( $front_form, 'type="number" id="siren"' ), 'Le SIREN front ne doit jamais devenir un input number.' );
+$assert( false !== strpos( $layout, '.ufsc-ffst-foreign-parent{display:block!important}' ), 'Les champs de filiation doivent rester visibles en admin.' );
+$assert( false !== strpos( $admin, 'render_club_documents_overview' ), 'Les pièces jointes doivent être présentées par présence/absence plutôt que par ID brut.' );
+$assert( false !== strpos( $admin, 'Non renseignée dans les données historiques' ), 'Une date de création historique absente doit être explicitée sans backfill.' );
+$assert( false !== strpos( $admin, 'Les anciennes adresses complètes sont conservées sans modification automatique.' ), 'Les anciennes adresses ne doivent pas être découpées automatiquement.' );
 $assert( false !== strpos( $hotfix, "SELECT statut FROM" ), 'Le statut existant doit être conservé lorsque non soumis.' );
 $assert( false !== strpos( $hotfix, '$wpdb->last_error' ), 'La vraie erreur SQL doit pouvoir être journalisée sans exposition utilisateur.' );
 $assert( false !== strpos( $hotfix, 'DONOTCACHEPAGE' ), 'Le portail dynamique doit désactiver le cache de page.' );
