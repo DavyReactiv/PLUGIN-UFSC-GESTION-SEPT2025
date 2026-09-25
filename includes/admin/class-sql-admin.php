@@ -2274,7 +2274,21 @@ class UFSC_SQL_Admin
             }
             echo '</select>';
         } else {
-            echo '<input type="text" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '" ' . $readonly_attr . ' />';
+            $identifier_attrs = '';
+            if ( 'siren' === $k ) {
+                $identifier_attrs = ' inputmode="numeric" autocomplete="off" spellcheck="false"';
+            }
+            echo '<input type="text" name="' . esc_attr($k) . '" value="' . esc_attr($val) . '"' . $identifier_attrs . ' ' . $readonly_attr . ' />';
+
+            if (
+                'siren' === $k &&
+                function_exists( 'ufsc_prod_hotfix_is_scientific_numeric_identifier' ) &&
+                ufsc_prod_hotfix_is_scientific_numeric_identifier( $val )
+            ) {
+                echo '<p class="description"><strong>' . esc_html__( 'Format scientifique détecté.', 'ufsc-clubs' ) . '</strong> ' .
+                    esc_html__( 'La valeur historique est conservée telle quelle pour éviter toute perte. Ressaisissez le SIREN exact depuis la source du club avant de modifier ce champ.', 'ufsc-clubs' ) .
+                    '</p>';
+            }
         }
         echo '</div>';
     }
