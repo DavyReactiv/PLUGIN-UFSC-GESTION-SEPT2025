@@ -26,6 +26,9 @@ $assert( false !== strpos( $bootstrap, 'UFSC_Simplified_Admin::init();' ), 'limi
 $assert( false === strpos( $bootstrap, "add_action( 'init', array( 'UFSC_Simplified_Admin', 'init' ) )" ), 'limited-admin redirect guards must not wait for the init hook' );
 $assert( false !== strpos( $simplified, 'static $initialized = false' ), 'simplified admin bootstrap must be idempotent when initialized early' );
 $assert( false !== strpos( $simplified, 'trace_final_location_header' ), 'routing diagnostics must capture the final Location header' );
+$assert( false !== strpos( $simplified, 'trace_wp_redirect_input' ), 'routing diagnostics must capture the original wp_redirect destination' );
+$assert( false !== strpos( $simplified, 'debug_backtrace' ), 'routing diagnostics must capture the likely redirect caller source' );
+$assert( false !== strpos( $simplified, "plugin:" ), 'redirect caller paths must be reduced to plugin-relative labels' );
 $assert( false !== strpos( $simplified, "Do not let the public landing request overwrite the useful admin trace" ), 'public landing requests must not overwrite useful admin routing evidence' );
 $assert( false !== strpos( $bootstrap, "UFSC_CL_ROUTING_DIAGNOSTIC_BUILD" ) && false !== strpos( $bootstrap, 'diag-20260925-1' ), 'production diagnostics must expose a deployment marker' );
 $assert( false !== strpos( $simplified, 'record_routing_trace' ), 'limited-admin routing diagnostics must record bounded technical traces' );

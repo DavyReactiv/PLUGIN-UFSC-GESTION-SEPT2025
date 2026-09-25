@@ -51,6 +51,7 @@ class UFSC_Simplified_Admin {
         $initialized = true;
 
         add_filter( 'login_redirect', array( __CLASS__, 'filter_login_redirect' ), PHP_INT_MAX, 3 );
+        add_filter( 'wp_redirect', array( __CLASS__, 'trace_wp_redirect_input' ), PHP_INT_MIN, 2 );
         add_filter( 'wp_redirect', array( __CLASS__, 'prevent_front_office_redirect' ), PHP_INT_MAX - 1, 2 );
         add_filter( 'wp_redirect', array( __CLASS__, 'keep_limited_user_in_admin_after_login' ), PHP_INT_MAX, 2 );
         add_action( 'admin_init', array( __CLASS__, 'trace_admin_entry' ), PHP_INT_MIN );
@@ -74,12 +75,67 @@ class UFSC_Simplified_Admin {
     }
 
     /**
+     * Observe the original destination passed to wp_redirect() before any UFSC
+     * rewrite, and capture the likely caller file/function.
+     *
+     * This is diagnostic only. Paths are reduced to plugin/theme-relative labels
+     * when possible and never include request secrets.
+     */
+    public static function trace_wp_redirect_input( $location, $status = 302 ) {
+        unset( $status );
+
+        if ( ! is_user_logged_in() || ! self::is_limited_ufsc_user() ) {
+            return $location;
+        }
+
+        $source = '';
+        $frames = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 14 );
+        foreach ( $frames as $frame ) {
+            $file = isset( $frame['file'] ) ? wp_normalize_path( (string) $frame['file'] ) : '';
+            if ( '' === $file || false !== strpos( $file, '/wp-includes/pluggable.php' ) || false !== strpos( $file, '/wp-includes/class-wp-hook.php' ) ) {
+                continue;
+            }
+
+            $label = $file;
+            $plugin_dir = defined( 'WP_PLUGIN_DIR' ) ? trailingslashit( wp_normalize_path( WP_PLUGIN_DIR ) ) : '';
+            $mu_dir = defined( 'WPMU_PLUGIN_DIR' ) ? trailingslashit( wp_normalize_path( WPMU_PLUGIN_DIR ) ) : '';
+            $theme_root = function_exists( 'get_theme_root' ) ? trailingslashit( wp_normalize_path( get_theme_root() ) ) : '';
+
+            if ( $plugin_dir && 0 === strpos( $file, $plugin_dir ) ) {
+                $label = 'plugin:' . substr( $file, strlen( $plugin_dir ) );
+            } elseif ( $mu_dir && 0 === strpos( $file, $mu_dir ) ) {
+                $label = 'mu-plugin:' . substr( $file, strlen( $mu_dir ) );
+            } elseif ( $theme_root && 0 === strpos( $file, $theme_root ) ) {
+                $label = 'theme:' . substr( $file, strlen( $theme_root ) );
+            } elseif ( defined( 'ABSPATH' ) && 0 === strpos( $file, wp_normalize_path( ABSPATH ) ) ) {
+                $label = 'wordpress:' . substr( $file, strlen( wp_normalize_path( ABSPATH ) ) );
+            } else {
+                $label = basename( $file );
+            }
+
+            $function = isset( $frame['function'] ) ? sanitize_text_field( (string) $frame['function'] ) : '';
+            $class = isset( $frame['class'] ) ? sanitize_text_field( (string) $frame['class'] ) : '';
+            $source = sanitize_text_field( $label . ( $class || $function ? ' :: ' . $class . $function : '' ) );
+            break;
+        }
+
+        self::record_routing_trace(
+            'wp_redirect_input',
+            0,
+            $location,
+            array( 'source' => $source )
+        );
+
+        return $location;
+    }
+
+    /**
      * Technical routing trace used only to diagnose limited UFSC back-office access.
      *
      * Stores a bounded, non-business log on the affected user. Query parameters
      * are intentionally reduced to the UFSC page slug to avoid recording secrets.
      */
-    public static function record_routing_trace( $event, $user_id = 0, $location = '' ) {
+    public static function record_routing_trace( $event, $user_id = 0, $location = '', array $extra = array() ) {
         $user_id = $user_id ? absint( $user_id ) : get_current_user_id();
         if ( ! $user_id || ! self::is_limited_ufsc_user( $user_id ) ) {
             return;
@@ -119,6 +175,7 @@ class UFSC_Simplified_Admin {
             'roles'      => array_values( array_map( 'sanitize_key', (array) $user->roles ) ),
             'first_url'  => wp_parse_url( self::get_first_authorized_url_for_user( $user ), PHP_URL_PATH ) . '?page=ufsc-limited-dashboard',
             'build'      => defined( 'UFSC_CL_ROUTING_DIAGNOSTIC_BUILD' ) ? UFSC_CL_ROUTING_DIAGNOSTIC_BUILD : '',
+            'source'     => isset( $extra['source'] ) ? sanitize_text_field( (string) $extra['source'] ) : '',
         );
 
         $trace = get_user_meta( $user_id, '_ufsc_admin_routing_trace', true );
