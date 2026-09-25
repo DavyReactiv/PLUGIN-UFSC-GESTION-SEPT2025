@@ -87,6 +87,78 @@ function ufsc_readonly_access_has_conflicting_rights( $user_id ) {
     return false;
 }
 
+
+/**
+ * Whether this page may edit only the regional perimeter of an existing
+ * regional manager, without touching roles or capabilities.
+ *
+ * @param int $user_id User ID.
+ * @return bool
+ */
+function ufsc_readonly_access_can_manage_region_manager_scope( $user_id ) {
+    $user = get_userdata( absint( $user_id ) );
+    if ( ! $user || ufsc_readonly_access_is_raw_administrator( $user ) ) {
+        return false;
+    }
+
+    return in_array( 'ufsc_region_manager', (array) $user->roles, true );
+}
+
+/**
+ * Save only the allowed regions for an existing regional manager.
+ *
+ * This deliberately leaves every role, capability and read-only profile
+ * untouched. It uses the canonical multi-region storage already consumed by
+ * UFSC scope checks.
+ *
+ * @param int      $user_id User ID.
+ * @param string[] $regions Allowed regions.
+ * @return true|WP_Error
+ */
+function ufsc_readonly_access_save_region_manager_scope( $user_id, array $regions ) {
+    $user_id = absint( $user_id );
+    if ( ! ufsc_readonly_access_can_manage_region_manager_scope( $user_id ) ) {
+        return new WP_Error(
+            'ufsc_region_manager_scope_forbidden',
+            __( 'Ce compte n’est pas un gestionnaire régional UFSC.', 'ufsc-clubs' )
+        );
+    }
+
+    $regions = array_values(
+        array_unique(
+            array_intersect(
+                array_map( 'sanitize_text_field', $regions ),
+                ufsc_get_regions()
+            )
+        )
+    );
+
+    if ( empty( $regions ) ) {
+        return new WP_Error(
+            'ufsc_region_manager_regions_required',
+            __( 'Sélectionnez au moins une région autorisée pour ce gestionnaire régional.', 'ufsc-clubs' )
+        );
+    }
+
+    if ( ! function_exists( 'ufsc_set_user_regions' ) || ! ufsc_set_user_regions( $user_id, $regions ) ) {
+        return new WP_Error(
+            'ufsc_region_manager_scope_save_failed',
+            __( 'Impossible d’enregistrer le périmètre régional.', 'ufsc-clubs' )
+        );
+    }
+
+    if ( class_exists( 'UFSC_Permissions' ) ) {
+        update_user_meta( $user_id, UFSC_Permissions::META_ALL_REGIONS, '0' );
+    }
+
+    // Multi-region metadata is canonical once this screen is used.
+    if ( class_exists( 'UFSC_Scope' ) ) {
+        delete_user_meta( $user_id, UFSC_Scope::USER_META_KEY );
+    }
+
+    return true;
+}
+
 /** Register the administrator-only assignment screen. */
 function ufsc_readonly_access_register_admin_page() {
     add_submenu_page(
@@ -208,8 +280,11 @@ function ufsc_readonly_access_handle_save() {
     $regions = isset( $_POST['ufsc_readonly_regions'] ) && is_array( $_POST['ufsc_readonly_regions'] )
         ? array_map( 'sanitize_text_field', wp_unslash( $_POST['ufsc_readonly_regions'] ) )
         : array();
+    $save_mode = isset( $_POST['ufsc_readonly_save_mode'] ) ? sanitize_key( wp_unslash( $_POST['ufsc_readonly_save_mode'] ) ) : 'readonly_profile';
 
-    $result = ufsc_readonly_access_apply_profile( $user_id, $profile, $regions );
+    $result = 'region_manager_scope' === $save_mode
+        ? ufsc_readonly_access_save_region_manager_scope( $user_id, $regions )
+        : ufsc_readonly_access_apply_profile( $user_id, $profile, $regions );
     $args   = array( 'page' => 'ufsc-readonly-access', 'user_id' => $user_id );
     if ( is_wp_error( $result ) ) {
         $args['ufsc_access_error'] = $result->get_error_message();
@@ -271,37 +346,60 @@ function ufsc_readonly_access_render_admin_page() {
 
     if ( $selected_user ) {
         $conflict = ufsc_readonly_access_has_conflicting_rights( $selected_user_id ) && ! ufsc_readonly_access_is_user( $selected_user_id );
+        $manager_scope_only = $conflict && ufsc_readonly_access_can_manage_region_manager_scope( $selected_user_id );
         echo '<form method="post" style="max-width:900px;background:#fff;border:1px solid #dcdcde;padding:20px;">';
         wp_nonce_field( 'ufsc_readonly_access_save', 'ufsc_readonly_access_nonce' );
         echo '<input type="hidden" name="ufsc_readonly_access_page" value="save">';
         echo '<input type="hidden" name="ufsc_readonly_user_id" value="' . esc_attr( (string) $selected_user_id ) . '">';
         echo '<h2>' . esc_html( $selected_user->display_name ) . '</h2>';
 
-        if ( $conflict ) {
-            echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Ce compte possède déjà des droits UFSC de gestion. Ce formulaire ne les modifiera pas automatiquement : utilisez Droits & accès avancés.', 'ufsc-clubs' ) . '</p></div>';
-        }
+        if ( $manager_scope_only ) {
+            echo '<div class="notice notice-info inline"><p><strong>' .
+                esc_html__( 'Gestion régionale détectée.', 'ufsc-clubs' ) .
+                '</strong> ' .
+                esc_html__( 'Vous pouvez modifier ici uniquement les régions autorisées. Le rôle Gestion régionale et tous les droits UFSC existants seront conservés.', 'ufsc-clubs' ) .
+                '</p></div>';
+            echo '<input type="hidden" name="ufsc_readonly_save_mode" value="region_manager_scope">';
+            echo '<input type="hidden" name="ufsc_readonly_profile" value="">';
+        } else {
+            echo '<input type="hidden" name="ufsc_readonly_save_mode" value="readonly_profile">';
+            if ( $conflict ) {
+                echo '<div class="notice notice-warning inline"><p>' . esc_html__( 'Ce compte possède déjà des droits UFSC de gestion. Ce formulaire de consultation ne modifiera pas automatiquement ses permissions : utilisez Droits & accès avancés.', 'ufsc-clubs' ) . '</p></div>';
+            }
 
-        echo '<p><label for="ufsc-readonly-profile"><strong>' . esc_html__( 'Type d’accès', 'ufsc-clubs' ) . '</strong></label><br>';
-        echo '<select id="ufsc-readonly-profile" name="ufsc_readonly_profile" style="min-width:420px;max-width:100%;margin-top:8px;">';
-        foreach ( ufsc_readonly_access_profiles() as $key => $label ) {
-            echo '<option value="' . esc_attr( $key ) . '" ' . selected( $profile, $key, false ) . '>' . esc_html( $label ) . '</option>';
+            echo '<p><label for="ufsc-readonly-profile"><strong>' . esc_html__( 'Type d’accès', 'ufsc-clubs' ) . '</strong></label><br>';
+            echo '<select id="ufsc-readonly-profile" name="ufsc_readonly_profile" style="min-width:420px;max-width:100%;margin-top:8px;">';
+            foreach ( ufsc_readonly_access_profiles() as $key => $label ) {
+                echo '<option value="' . esc_attr( $key ) . '" ' . selected( $profile, $key, false ) . '>' . esc_html( $label ) . '</option>';
+            }
+            echo '</select></p>';
         }
-        echo '</select></p>';
 
         echo '<div id="ufsc-readonly-regions"><h3>' . esc_html__( 'Régions autorisées', 'ufsc-clubs' ) . '</h3>';
-        echo '<p class="description">' . esc_html__( 'Plusieurs régions peuvent être attribuées au même responsable. Le profil national donne accès à toutes les régions en lecture seule.', 'ufsc-clubs' ) . '</p>';
+        echo '<p class="description">' . esc_html(
+            $manager_scope_only
+                ? __( 'Sélectionnez une ou plusieurs régions. Cette opération ne modifie ni le rôle Gestion régionale ni ses permissions de gestion.', 'ufsc-clubs' )
+                : __( 'Plusieurs régions peuvent être attribuées au même responsable. Le profil national donne accès à toutes les régions en lecture seule.', 'ufsc-clubs' )
+        ) . '</p>';
         echo '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px 18px;max-width:820px;">';
         foreach ( ufsc_get_regions() as $region ) {
             echo '<label><input type="checkbox" name="ufsc_readonly_regions[]" value="' . esc_attr( $region ) . '" ' . checked( in_array( $region, $allowed_regions, true ), true, false ) . '> ' . esc_html( $region ) . '</label>';
         }
         echo '</div></div>';
         echo '<hr style="margin:22px 0;">';
-        echo '<p><strong>' . esc_html__( 'Jamais accessible avec ce profil :', 'ufsc-clubs' ) . '</strong> ' . esc_html__( 'modification des clubs/licences, validations, imports, réglages, commandes, paiements, données comptables et administration WooCommerce.', 'ufsc-clubs' ) . '</p>';
-
-        if ( $conflict ) {
-            echo '<button type="button" class="button button-primary" disabled>' . esc_html__( 'Enregistrement bloqué par sécurité', 'ufsc-clubs' ) . '</button>';
+        if ( $manager_scope_only ) {
+            echo '<p><strong>' . esc_html__( 'Conservation garantie :', 'ufsc-clubs' ) . '</strong> ' .
+                esc_html__( 'aucun rôle ni droit UFSC n’est ajouté, retiré ou remplacé par cette opération ; seul le périmètre régional est enregistré.', 'ufsc-clubs' ) .
+                '</p>';
+            submit_button( __( 'Enregistrer le périmètre régional', 'ufsc-clubs' ), 'primary', 'submit', false );
         } else {
-            submit_button( __( 'Enregistrer l’accès de consultation', 'ufsc-clubs' ), 'primary', 'submit', false );
+            echo '<p><strong>' . esc_html__( 'Jamais accessible avec ce profil :', 'ufsc-clubs' ) . '</strong> ' . esc_html__( 'modification des clubs/licences, validations, imports, réglages, commandes, paiements, données comptables et administration WooCommerce.', 'ufsc-clubs' ) . '</p>';
+
+            if ( $conflict ) {
+                echo '<button type="button" class="button button-primary" disabled>' . esc_html__( 'Enregistrement bloqué par sécurité', 'ufsc-clubs' ) . '</button>';
+            } else {
+                submit_button( __( 'Enregistrer l’accès de consultation', 'ufsc-clubs' ), 'primary', 'submit', false );
+            }
         }
         echo '</form>';
     }

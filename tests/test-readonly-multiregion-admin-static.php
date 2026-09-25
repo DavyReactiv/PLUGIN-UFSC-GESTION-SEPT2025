@@ -17,6 +17,11 @@ $assert( false !== strpos( $module, "'Responsable national – Consultation'" ),
 $assert( false !== strpos( $module, "'ufsc-readonly-access'" ), 'administrator assignment page must be registered inside UFSC admin' );
 $assert( false !== strpos( $module, "'manage_options'" ), 'only WordPress administrators may configure read-only access' );
 $assert( false !== strpos( $module, 'ufsc_set_user_regions' ), 'regional profile must use the canonical multi-region storage helper' );
+$assert( false !== strpos( $module, 'ufsc_readonly_access_save_region_manager_scope' ), 'regional managers must have a scope-only save path' );
+$assert( false !== strpos( $module, "'region_manager_scope' === \$save_mode" ), 'scope-only save mode must be explicitly separated from read-only profile conversion' );
+$assert( false !== strpos( $module, "'ufsc_region_manager'" ), 'scope-only path must target the existing regional manager role' );
+$assert( false !== strpos( $module, 'Enregistrer le périmètre régional' ), 'regional manager UI must expose a scope-only save action' );
+$assert( false !== strpos( $module, 'aucun rôle ni droit UFSC n’est ajouté, retiré ou remplacé' ), 'scope-only UI must state role and capability preservation' );
 $assert( false !== strpos( $module, "UFSC_Permissions::META_ALL_REGIONS, '1'" ), 'national viewer must support all-region scope' );
 $assert( false !== strpos( $module, 'UFSC_Permissions::CAP_GESTION_READ' ), 'viewer must retain management read capability' );
 $assert( false !== strpos( $module, 'UFSC_Permissions::CAP_LICENCES_READ' ), 'viewer must retain licence read capability' );
