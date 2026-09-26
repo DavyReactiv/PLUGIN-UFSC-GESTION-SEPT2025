@@ -4207,6 +4207,10 @@ class UFSC_Frontend_Shortcodes {
                                 <?php self::render_ffst_profile_input( $club, $prefix . '_ville_naissance', __( 'Ville de naissance', 'ufsc-clubs' ) ); ?>
                                 <?php self::render_ffst_profile_input( $club, $prefix . '_departement_naissance', __( 'Département de naissance', 'ufsc-clubs' ) ); ?>
                                 <?php self::render_ffst_profile_input( $club, $prefix . '_pays_naissance', __( 'Pays de naissance', 'ufsc-clubs' ) ); ?>
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_pere_nom', __( 'Père — Nom', 'ufsc-clubs' ), 'text', false, __( 'Obligatoire si naissance à l’étranger.', 'ufsc-clubs' ) ); ?>
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_pere_prenom', __( 'Père — Prénom', 'ufsc-clubs' ), 'text', false, __( 'Obligatoire si naissance à l’étranger.', 'ufsc-clubs' ) ); ?>
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_mere_nom', __( 'Mère — Nom', 'ufsc-clubs' ), 'text', false, __( 'Obligatoire si naissance à l’étranger.', 'ufsc-clubs' ) ); ?>
+                                <?php self::render_ffst_profile_input( $club, $prefix . '_mere_prenom', __( 'Mère — Prénom', 'ufsc-clubs' ), 'text', false, __( 'Obligatoire si naissance à l’étranger.', 'ufsc-clubs' ) ); ?>
                                 <?php self::render_ffst_profile_input( $club, $prefix . '_adresse', __( 'Adresse', 'ufsc-clubs' ), 'text', false, '', true ); ?>
                                 <?php self::render_ffst_profile_input( $club, $prefix . '_complement_adresse', __( 'Complément d’adresse', 'ufsc-clubs' ) ); ?>
                                 <?php self::render_ffst_profile_input( $club, $prefix . '_code_postal', __( 'Code postal', 'ufsc-clubs' ), 'text', false, '', true ); ?>
@@ -4227,6 +4231,10 @@ class UFSC_Frontend_Shortcodes {
                         <?php self::render_ffst_profile_input( $club, 'entraineur_ville_naissance', __( 'Ville de naissance', 'ufsc-clubs' ) ); ?>
                         <?php self::render_ffst_profile_input( $club, 'entraineur_departement_naissance', __( 'Département de naissance', 'ufsc-clubs' ) ); ?>
                         <?php self::render_ffst_profile_input( $club, 'entraineur_pays_naissance', __( 'Pays de naissance', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_pere_nom', __( 'Père — Nom', 'ufsc-clubs' ), 'text', false, __( 'Obligatoire si naissance à l’étranger.', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_pere_prenom', __( 'Père — Prénom', 'ufsc-clubs' ), 'text', false, __( 'Obligatoire si naissance à l’étranger.', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_mere_nom', __( 'Mère — Nom', 'ufsc-clubs' ), 'text', false, __( 'Obligatoire si naissance à l’étranger.', 'ufsc-clubs' ) ); ?>
+                        <?php self::render_ffst_profile_input( $club, 'entraineur_mere_prenom', __( 'Mère — Prénom', 'ufsc-clubs' ), 'text', false, __( 'Obligatoire si naissance à l’étranger.', 'ufsc-clubs' ) ); ?>
                         <?php self::render_ffst_profile_input( $club, 'entraineur_adresse', __( 'Adresse', 'ufsc-clubs' ) ); ?>
                         <?php self::render_ffst_profile_input( $club, 'entraineur_complement_adresse', __( 'Complément d’adresse', 'ufsc-clubs' ) ); ?>
                         <?php self::render_ffst_profile_input( $club, 'entraineur_code_postal', __( 'Code postal', 'ufsc-clubs' ) ); ?>
@@ -4235,12 +4243,45 @@ class UFSC_Frontend_Shortcodes {
                 </article>
             </div>
         </section>
+        <?php self::render_foreign_parent_requirements_script(); ?>
+        <?php
+    }
+
+    private static function render_foreign_parent_requirements_script() {
+        static $rendered = false;
+        if ( $rendered ) { return; }
+        $rendered = true;
+        ?>
+        <script>
+        (function(){
+            function norm(v){v=String(v||'').trim().toLowerCase();try{v=v.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}return v.replace(/[^a-z]/g,'');}
+            function init(prefix){
+                var country=document.querySelector('[name="'+prefix+'_pays_naissance"]');
+                var inputs=document.querySelectorAll('[data-ufsc-foreign-parent-input="'+prefix+'"]');
+                if(!country||!inputs.length)return;
+                function update(){
+                    var value=norm(country.value);
+                    var foreign=!!value&&['france','fr','f','francais','francaise'].indexOf(value)===-1;
+                    inputs.forEach(function(input){
+                        if(foreign){input.setAttribute('required','required');input.setAttribute('aria-required','true');}
+                        else{input.removeAttribute('required');input.setAttribute('aria-required','false');}
+                    });
+                }
+                country.addEventListener('input',update);
+                country.addEventListener('change',update);
+                update();
+            }
+            ['president','secretaire','tresorier','entraineur'].forEach(init);
+        })();
+        </script>
         <?php
     }
 
     private static function render_ffst_profile_input( $club, $field, $label, $type = 'text', $readonly = false, $help = '', $required_for_affiliation = false ) {
         $value = isset( $club->{$field} ) ? (string) $club->{$field} : '';
-        echo '<div class="ufsc-field">';
+        $is_foreign_parent_field = (bool) preg_match( '/_(pere|mere)_(nom|prenom)$/', (string) $field );
+        $foreign_prefix = $is_foreign_parent_field ? preg_replace( '/_(pere|mere)_(nom|prenom)$/', '', (string) $field ) : '';
+        echo '<div class="ufsc-field' . ( $is_foreign_parent_field ? ' ufsc-foreign-parent-field' : '' ) . '"' . ( $is_foreign_parent_field ? ' data-ufsc-foreign-parent="' . esc_attr( $foreign_prefix ) . '"' : '' ) . '>';
         echo '<label for="' . esc_attr( $field ) . '">' . esc_html( $label );
         if ( $required_for_affiliation ) {
             echo ' <span class="required" aria-hidden="true">*</span><span class="screen-reader-text"> ' . esc_html__( 'obligatoire pour la prochaine affiliation', 'ufsc-clubs' ) . '</span>';
@@ -4251,6 +4292,7 @@ class UFSC_Frontend_Shortcodes {
         if ( 'email' === $type ) { echo ' autocomplete="email"'; }
         if ( 'tel' === $type ) { echo ' autocomplete="tel"'; }
         if ( $required_for_affiliation ) { echo ' data-required-for-affiliation="1"'; }
+        if ( $is_foreign_parent_field ) { echo ' data-ufsc-foreign-parent-input="' . esc_attr( $foreign_prefix ) . '"'; }
         echo '>';
         if ( '' !== $help ) {
             echo '<small>' . esc_html( $help ) . '</small>';
