@@ -26,6 +26,9 @@ class UFSC_DB_Migrations {
         $season_archive_option   = 'ufsc_season_archive_table_ready';
         $attestations_option     = 'ufsc_attestations_table_ready';
 
+        // Targeted 2026-2027 migration. Historical seasons are never touched.
+        self::migrate_current_season_classe_c_to_b();
+
         if ( version_compare( $current_version, self::MIGRATION_VERSION, '>=' ) && '1' !== get_option( $category_columns_option, '' ) ) {
             $category_columns_ready = self::ensure_licences_category_columns();
             if ( $category_columns_ready ) {
@@ -74,6 +77,121 @@ class UFSC_DB_Migrations {
             
             add_action( 'admin_notices', array( __CLASS__, 'migration_success_notice' ) );
         }
+    }
+
+
+    /**
+     * Convert only current-season Classe C rows to Classe B.
+     *
+     * @return bool
+     */
+    public static function migrate_current_season_classe_c_to_b() {
+        global $wpdb;
+
+        $done_key   = 'ufsc_2026_classe_c_to_b_done';
+        $backup_key = 'ufsc_2026_classe_c_to_b_backup';
+
+        if ( '1' === (string) get_option( $done_key, '' ) ) {
+            return true;
+        }
+
+        $season = class_exists( 'UFSC_Season_Service' )
+            ? (string) UFSC_Season_Service::get_current_season()
+            : ( function_exists( 'ufsc_get_current_season' ) ? (string) ufsc_get_current_season() : '' );
+        $season = str_replace( '/', '-', trim( $season ) );
+
+        if ( '2026-2027' !== $season ) {
+            return false;
+        }
+
+        $settings = UFSC_SQL::get_settings();
+        $table    = $settings['table_licences'];
+
+        if ( ! self::table_exists( $table ) ) {
+            return false;
+        }
+
+        $columns = (array) $wpdb->get_col( "SHOW COLUMNS FROM {$table}", 0 );
+        if ( ! in_array( 'id', $columns, true ) || ! in_array( 'fighter_level', $columns, true ) ) {
+            self::log_migration_error( 'Classe C to B migration skipped: required licence columns are missing.' );
+            return false;
+        }
+
+        $season_column = function_exists( 'ufsc_get_detected_season_column' )
+            ? ufsc_get_detected_season_column( $table )
+            : '';
+        if ( ! $season_column || ! in_array( $season_column, $columns, true ) ) {
+            self::log_migration_error( 'Classe C to B migration skipped: no reliable season column was detected.' );
+            return false;
+        }
+
+        if ( 'season_end_year' === $season_column ) {
+            $season_sql = $wpdb->prepare( "{$season_column} = %d", 2027 );
+        } else {
+            $season_sql = $wpdb->prepare( "REPLACE(TRIM({$season_column}), '/', '-') = %s", $season );
+        }
+
+        $ids = array_map(
+            'absint',
+            (array) $wpdb->get_col(
+                "SELECT id FROM {$table} WHERE {$season_sql} AND fighter_level = 'classe_c' ORDER BY id"
+            )
+        );
+        $ids = array_values( array_filter( array_unique( $ids ) ) );
+
+        if ( empty( $ids ) ) {
+            update_option( $done_key, '1', false );
+            return true;
+        }
+
+        $backup = array(
+            'season'        => $season,
+            'season_column' => $season_column,
+            'old_value'     => 'classe_c',
+            'new_value'     => 'classe_b',
+            'licence_ids'   => $ids,
+            'count'         => count( $ids ),
+            'created_at'    => current_time( 'mysql' ),
+        );
+        update_option( $backup_key, $backup, false );
+
+        $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+        $sql = $wpdb->prepare(
+            "UPDATE {$table} SET fighter_level = 'classe_b' WHERE id IN ({$placeholders}) AND {$season_sql} AND fighter_level = 'classe_c'",
+            ...$ids
+        );
+
+        $wpdb->query( 'START TRANSACTION' );
+        $affected = $wpdb->query( $sql );
+
+        if ( false === $affected || (int) $affected !== count( $ids ) ) {
+            $wpdb->query( 'ROLLBACK' );
+            self::log_migration_error( sprintf( 'Classe C to B migration rolled back: expected %d updates, got %s.', count( $ids ), false === $affected ? 'SQL error' : (string) $affected ) );
+            return false;
+        }
+
+        $remaining = (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$table} WHERE {$season_sql} AND fighter_level = 'classe_c'"
+        );
+        if ( 0 !== $remaining ) {
+            $wpdb->query( 'ROLLBACK' );
+            self::log_migration_error( 'Classe C to B migration rolled back: current-season Classe C rows remain.' );
+            return false;
+        }
+
+        $wpdb->query( 'COMMIT' );
+        update_option( $done_key, '1', false );
+        update_option(
+            'ufsc_2026_classe_c_to_b_result',
+            array(
+                'season'       => $season,
+                'updated'      => count( $ids ),
+                'completed_at' => current_time( 'mysql' ),
+            ),
+            false
+        );
+
+        return true;
     }
 
     /** Additive, idempotent storage for permanent identifiers and their monotone sequences. */
