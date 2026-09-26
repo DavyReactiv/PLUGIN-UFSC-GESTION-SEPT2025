@@ -2359,13 +2359,19 @@ class UFSC_Frontend_Shortcodes {
                         </div>
                         <div class="ufsc-field ufsc-field--full">
                             <label for="fighter_level"><?php esc_html_e( 'Niveau du boxeur', 'ufsc-clubs' ); ?></label>
-                            <select id="fighter_level" name="fighter_level" data-ufsc-fighter-level data-veteran-min-age="<?php echo esc_attr( ufsc_get_veteran_min_age() ); ?>">
-                                <option value=""><?php esc_html_e( 'Non renseigné', 'ufsc-clubs' ); ?></option>
+                            <?php
+                            $sport_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '2026-2027' );
+                            $sport_season_start = function_exists( 'ufsc_get_season_start_year_for_levels' ) ? ufsc_get_season_start_year_for_levels( $sport_season ) : 2026;
+                            $selected_level = function_exists( 'ufsc_normalize_fighter_level' ) ? ufsc_normalize_fighter_level( $form_data['fighter_level'] ?? '' ) : sanitize_key( (string) ( $form_data['fighter_level'] ?? '' ) );
+                            ?>
+                            <select id="fighter_level" name="fighter_level" data-ufsc-fighter-level data-veteran-min-age="<?php echo esc_attr( ufsc_get_veteran_min_age() ); ?>" data-season-start-year="<?php echo esc_attr( $sport_season_start ); ?>">
+                                <option value=""><?php esc_html_e( 'Sélectionner la catégorie de pratique', 'ufsc-clubs' ); ?></option>
                                 <?php foreach ( ufsc_get_fighter_levels() as $level_key => $level_label ) : ?>
-                                    <option value="<?php echo esc_attr( $level_key ); ?>" <?php selected( $form_data['fighter_level'] ?? '', $level_key ); ?>><?php echo esc_html( $level_label ); ?></option>
+                                    <option value="<?php echo esc_attr( $level_key ); ?>" <?php selected( $selected_level, $level_key ); ?>><?php echo esc_html( $level_label ); ?></option>
                                 <?php endforeach; ?>
                             </select>
                             <small data-ufsc-level-help><?php echo esc_html( ufsc_get_sport_level_help() ); ?></small>
+                            <div class="ufsc-sport-category-preview" data-ufsc-sport-category-preview role="status" aria-live="polite"><?php esc_html_e( 'La catégorie d’âge et de poids sera calculée automatiquement à partir de la saison, de la date de naissance, du sexe, du niveau et du poids.', 'ufsc-clubs' ); ?></div>
                         </div>
                     </div>
 
