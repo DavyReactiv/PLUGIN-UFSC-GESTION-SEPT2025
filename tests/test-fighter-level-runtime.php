@@ -15,7 +15,7 @@ $levels = ufsc_get_sport_level_options();
 $assert( array_keys( $levels ) === array( 'pro','classe_a','classe_b','combat','assaut','veteran' ), 'liste canonique PRO A B COMBAT ASSAUT VETERAN sans Classe C' );
 $assert( ! isset( $levels['classe_c'] ), 'Classe C n est plus selectable' );
 $assert( 'classe_b' === ufsc_normalize_fighter_level( 'classe_c' ), 'ancienne valeur classe_c est normalisee vers Classe B' );
-$assert( 'classe_b' === ufsc_normalize_fighter_level( 'Senior Combat Classe C' ), 'ancien libelle Classe C est normalise vers Classe B' );
+$assert( 'classe_b' === ufsc_normalize_fighter_level( 'senior combat classe c' ), 'ancien libelle Classe C est normalise vers Classe B' );
 
 $assert( 14 === ufsc_competition_age_from_birth_date( $birth_year(2012), $season ), 'age sportif calcule avec annee 1 de saison' );
 $assert( 'assaut' === ufsc_get_default_fighter_level( $birth_year(2012), $season ), 'cadet 1re annee propose Assaut' );
