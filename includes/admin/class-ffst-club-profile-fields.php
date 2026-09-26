@@ -50,6 +50,17 @@ final class UFSC_FFST_Club_Profile_Fields {
         foreach ( $definitions as $column => $definition ) {
             if ( in_array( $column, $known, true ) ) { continue; }
             $result = $wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN `{$column}` {$definition}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            if (
+                false === $result &&
+                is_string( $wpdb->last_error ) &&
+                (
+                    false !== stripos( $wpdb->last_error, 'row size too large' ) ||
+                    false !== stripos( $wpdb->last_error, '1118' )
+                ) &&
+                0 === stripos( ltrim( $definition ), 'varchar(' )
+            ) {
+                $result = $wpdb->query( "ALTER TABLE `{$table}` ADD COLUMN `{$column}` text NULL" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+            }
             if ( false === $result ) { $ok = false; }
         }
 
@@ -345,6 +356,30 @@ final class UFSC_FFST_Club_Profile_Fields {
                 $missing[ $field ] = $label;
             }
         }
+        foreach ( self::$leader_prefixes as $prefix ) {
+            $country = isset( $row[ $prefix . '_pays_naissance' ] ) ? $row[ $prefix . '_pays_naissance' ] : '';
+            if ( ! self::is_foreign_birth_country( $country ) ) {
+                continue;
+            }
+
+            $legacy_father = trim( (string) ( $row[ $prefix . '_pere_nom_prenom' ] ?? '' ) );
+            $legacy_mother = trim( (string) ( $row[ $prefix . '_mere_nom_prenom' ] ?? '' ) );
+            $parent_requirements = array(
+                $prefix . '_pere_nom'    => 'Nom du père',
+                $prefix . '_pere_prenom' => 'Prénom du père',
+                $prefix . '_mere_nom'    => 'Nom de la mère',
+                $prefix . '_mere_prenom' => 'Prénom de la mère',
+            );
+            foreach ( $parent_requirements as $field => $label ) {
+                $is_father = false !== strpos( $field, '_pere_' );
+                $legacy_ok = $is_father ? '' !== $legacy_father : '' !== $legacy_mother;
+                if ( '' === trim( (string) ( $row[ $field ] ?? '' ) ) && ! $legacy_ok ) {
+                    $missing[ $field ] = $label . ' (naissance à l’étranger)';
+                }
+                $requirements[ $field ] = $label;
+            }
+        }
+
         $total = count( $requirements );
         $done = $total - count( $missing );
         return array(
