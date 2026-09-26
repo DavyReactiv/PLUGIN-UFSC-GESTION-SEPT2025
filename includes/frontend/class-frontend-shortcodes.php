@@ -205,6 +205,7 @@ class UFSC_Frontend_Shortcodes {
     }
 
     public static function render_club_dashboard( $atts = array() ) {
+        if ( function_exists( 'ufsc_address_assist_enqueue' ) ) { ufsc_address_assist_enqueue(); }
         wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/css/ufsc-front.css' ) : UFSC_CL_VERSION );
         $atts = shortcode_atts( array(
             'show_sections' => 'licences,stats,profile,add_licence'
@@ -1724,6 +1725,7 @@ class UFSC_Frontend_Shortcodes {
      * @return string HTML output
      */
     public static function render_club_profile( $atts = array() ) {
+        if ( function_exists( 'ufsc_address_assist_enqueue' ) ) { ufsc_address_assist_enqueue(); }
         wp_enqueue_style( 'ufsc-front', UFSC_CL_URL . 'assets/css/ufsc-front.css', array(), function_exists( 'ufsc_asset_version' ) ? ufsc_asset_version( 'assets/css/ufsc-front.css' ) : UFSC_CL_VERSION );
         $atts = shortcode_atts( array(
             'club_id'    => 0,
@@ -2147,6 +2149,7 @@ class UFSC_Frontend_Shortcodes {
      * @return string HTML output
      */
     public static function render_add_licence( $atts = array() ) {
+        if ( function_exists( 'ufsc_address_assist_enqueue' ) ) { ufsc_address_assist_enqueue(); }
 		wp_enqueue_style( 'ufsc-licence-form', UFSC_CL_URL . 'assets/css/ufsc-frontend.css', array(), UFSC_CL_VERSION );
 		$layout_path    = UFSC_CL_DIR . 'assets/css/ufsc-licence-form.css';
 		$layout_version = file_exists( $layout_path ) ? (string) filemtime( $layout_path ) : UFSC_CL_VERSION;
