@@ -84,8 +84,14 @@ final class UFSC_FFST_Club_Profile_Fields {
             $defs[ $prefix . '_complement_adresse' ] = "varchar(255) NULL DEFAULT NULL";
             $defs[ $prefix . '_code_postal' ] = "varchar(20) NULL DEFAULT NULL";
             $defs[ $prefix . '_ville' ] = "varchar(120) NULL DEFAULT NULL";
+            // Legacy combined fields are preserved for historical compatibility.
             $defs[ $prefix . '_pere_nom_prenom' ] = "varchar(255) NULL DEFAULT NULL";
             $defs[ $prefix . '_mere_nom_prenom' ] = "varchar(255) NULL DEFAULT NULL";
+            // New canonical split identity fields (additive only).
+            $defs[ $prefix . '_pere_nom' ] = "varchar(120) NULL DEFAULT NULL";
+            $defs[ $prefix . '_pere_prenom' ] = "varchar(120) NULL DEFAULT NULL";
+            $defs[ $prefix . '_mere_nom' ] = "varchar(120) NULL DEFAULT NULL";
+            $defs[ $prefix . '_mere_prenom' ] = "varchar(120) NULL DEFAULT NULL";
         }
         return $defs;
     }
@@ -132,10 +138,102 @@ final class UFSC_FFST_Club_Profile_Fields {
             $fields[ $prefix . '_complement_adresse' ] = array( $label . ' – Complément d’adresse', 'text' );
             $fields[ $prefix . '_code_postal' ] = array( $label . ' – Code postal', 'text' );
             $fields[ $prefix . '_ville' ] = array( $label . ' – Ville', 'text' );
-            $fields[ $prefix . '_pere_nom_prenom' ] = array( $label . ' – Père (si naissance à l’étranger)', 'text' );
-            $fields[ $prefix . '_mere_nom_prenom' ] = array( $label . ' – Mère (si naissance à l’étranger)', 'text' );
+            $fields[ $prefix . '_pere_nom' ] = array( $label . ' – Père – Nom (si naissance à l’étranger)', 'text' );
+            $fields[ $prefix . '_pere_prenom' ] = array( $label . ' – Père – Prénom (si naissance à l’étranger)', 'text' );
+            $fields[ $prefix . '_mere_nom' ] = array( $label . ' – Mère – Nom (si naissance à l’étranger)', 'text' );
+            $fields[ $prefix . '_mere_prenom' ] = array( $label . ' – Mère – Prénom (si naissance à l’étranger)', 'text' );
         }
         return $fields;
+    }
+
+    /**
+     * Whether a birthplace country is explicitly foreign.
+     *
+     * Empty values are not guessed. Existing French aliases remain accepted.
+     */
+    public static function is_foreign_birth_country( $country ) {
+        $country = trim( (string) $country );
+        if ( '' === $country ) {
+            return false;
+        }
+
+        $normalized = strtolower( remove_accents( $country ) );
+        $normalized = preg_replace( '/[^a-z]/', '', $normalized );
+
+        return ! in_array(
+            $normalized,
+            array( 'france', 'fr', 'f', 'francais', 'francaise', 'francaises', 'francaisefrance' ),
+            true
+        );
+    }
+
+    /**
+     * Validate parent identities for foreign-born club leaders/coaches.
+     *
+     * Historical combined parent fields are accepted as a non-blocking legacy
+     * fallback. They are never rewritten or split automatically.
+     *
+     * @param array $submitted Submitted/sanitized club values.
+     * @param int   $club_id   Existing club ID when editing.
+     * @return array<int,string> Validation messages.
+     */
+    public static function validate_foreign_parent_identity( array $submitted, $club_id = 0 ) {
+        $row = array();
+        if ( $club_id ) {
+            $row = self::get_row( absint( $club_id ) );
+        }
+        $values = array_merge( $row, $submitted );
+
+        $labels = array(
+            'president'  => __( 'Président', 'ufsc-clubs' ),
+            'secretaire' => __( 'Secrétaire', 'ufsc-clubs' ),
+            'tresorier'  => __( 'Trésorier', 'ufsc-clubs' ),
+            'entraineur' => __( 'Entraîneur / instructeur', 'ufsc-clubs' ),
+        );
+
+        $errors = array();
+        foreach ( $labels as $prefix => $label ) {
+            $country = isset( $values[ $prefix . '_pays_naissance' ] ) ? $values[ $prefix . '_pays_naissance' ] : '';
+            if ( ! self::is_foreign_birth_country( $country ) ) {
+                continue;
+            }
+
+            $father_nom    = trim( (string) ( $values[ $prefix . '_pere_nom' ] ?? '' ) );
+            $father_prenom = trim( (string) ( $values[ $prefix . '_pere_prenom' ] ?? '' ) );
+            $mother_nom    = trim( (string) ( $values[ $prefix . '_mere_nom' ] ?? '' ) );
+            $mother_prenom = trim( (string) ( $values[ $prefix . '_mere_prenom' ] ?? '' ) );
+            $legacy_father = trim( (string) ( $values[ $prefix . '_pere_nom_prenom' ] ?? '' ) );
+            $legacy_mother = trim( (string) ( $values[ $prefix . '_mere_nom_prenom' ] ?? '' ) );
+
+            $father_started  = '' !== $father_nom || '' !== $father_prenom;
+            $mother_started  = '' !== $mother_nom || '' !== $mother_prenom;
+            $father_complete = '' !== $father_nom && '' !== $father_prenom;
+            $mother_complete = '' !== $mother_nom && '' !== $mother_prenom;
+
+            // A legacy combined value avoids breaking an old record until it is
+            // voluntarily completed with the new split fields.
+            $father_ok = $father_complete || ( ! $father_started && '' !== $legacy_father );
+            $mother_ok = $mother_complete || ( ! $mother_started && '' !== $legacy_mother );
+
+            if ( ! $father_ok ) {
+                if ( '' === $father_nom ) {
+                    $errors[] = sprintf( __( '%s né(e) à l’étranger : le nom du père est obligatoire.', 'ufsc-clubs' ), $label );
+                }
+                if ( '' === $father_prenom ) {
+                    $errors[] = sprintf( __( '%s né(e) à l’étranger : le prénom du père est obligatoire.', 'ufsc-clubs' ), $label );
+                }
+            }
+            if ( ! $mother_ok ) {
+                if ( '' === $mother_nom ) {
+                    $errors[] = sprintf( __( '%s né(e) à l’étranger : le nom de la mère est obligatoire.', 'ufsc-clubs' ), $label );
+                }
+                if ( '' === $mother_prenom ) {
+                    $errors[] = sprintf( __( '%s né(e) à l’étranger : le prénom de la mère est obligatoire.', 'ufsc-clubs' ), $label );
+                }
+            }
+        }
+
+        return $errors;
     }
 
     public static function save_from_hook( $club_id ) {
