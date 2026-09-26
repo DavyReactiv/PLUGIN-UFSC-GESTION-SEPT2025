@@ -37,7 +37,7 @@ $assert( false !== strpos( $js, "age <= 50 ? 'veteran' : 'assaut'" ), 'front JS 
 
 $assert( false === strpos( $admin, 'Mineur : Assaut. Majeur : Classe C' ), 'admin help must no longer advertise Classe C' );
 $assert( false !== strpos( $admin, 'ufsc_get_sport_level_help' ), 'admin must reuse central sport-level help' );
-$assert( false !== strpos( $handlers, "'fighter_level'  => $licence->fighter_level ?? ''" ), 'weight recalculation must use stored fighter level' );
+$assert( false !== strpos( $handlers, "'fighter_level'  => \$licence->fighter_level ?? ''" ), 'weight recalculation must use stored fighter level' );
 
 $assert( false !== strpos( $migration, "'ufsc_2026_classe_c_to_b_backup'" ), 'migration must save a backup manifest before changing current Classe C rows' );
 $assert( false !== strpos( $migration, "'2026-2027' !== $season" ), 'migration must be restricted to season 2026-2027' );
