@@ -7,6 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class UFSC_Category_Repository {
     const DEFAULT_SEASON     = '2025/2026';
     const DEFAULT_DISCIPLINE = 'kickboxing_tatami_assaut';
+    const RING_DISCIPLINE    = 'kickboxing_ring_combat';
 
     /**
      * Get age categories for a season and discipline.
@@ -56,7 +57,7 @@ class UFSC_Category_Repository {
      * @param string $season Season label/key.
      * @return array<string,mixed>|null
      */
-    public static function detect_age_category( $birthdate, $gender, $season = self::DEFAULT_SEASON ) {
+    public static function detect_age_category( $birthdate, $gender, $season = self::DEFAULT_SEASON, $discipline = self::DEFAULT_DISCIPLINE ) {
         $birth_year = self::extract_birth_year( $birthdate );
         $gender     = self::normalize_gender( $gender );
 
@@ -64,7 +65,7 @@ class UFSC_Category_Repository {
             return null;
         }
 
-        foreach ( self::get_age_categories( $season, self::DEFAULT_DISCIPLINE ) as $key => $category ) {
+        foreach ( self::get_age_categories( $season, $discipline ) as $key => $category ) {
             $genders = isset( $category['genders'] ) ? (array) $category['genders'] : array();
             if ( ! in_array( $gender, $genders, true ) ) {
                 continue;
@@ -98,7 +99,7 @@ class UFSC_Category_Repository {
             return null;
         }
 
-        $age_category = self::detect_age_category( $birthdate, $gender, $season );
+        $age_category = self::detect_age_category( $birthdate, $gender, $season, $discipline );
         if ( ! $age_category || empty( $age_category['key'] ) ) {
             return null;
         }
@@ -180,8 +181,13 @@ class UFSC_Category_Repository {
         $birthdate = self::get_value( $athlete, 'date_naissance' );
         $gender    = self::get_value( $athlete, 'sexe' );
         $weight    = self::get_first_value( $athlete, array( 'poids', 'weight' ) );
+        $level     = function_exists( 'ufsc_normalize_fighter_level' ) ? ufsc_normalize_fighter_level( self::get_value( $athlete, 'fighter_level' ) ) : sanitize_key( (string) self::get_value( $athlete, 'fighter_level' ) );
 
-        $age_category    = self::detect_age_category( $birthdate, $gender, $season );
+        if ( self::DEFAULT_DISCIPLINE === self::normalize_discipline( $discipline ) && in_array( $level, array( 'combat', 'classe_b', 'classe_a', 'pro' ), true ) ) {
+            $discipline = self::RING_DISCIPLINE;
+        }
+
+        $age_category    = self::detect_age_category( $birthdate, $gender, $season, $discipline );
         $weight_category = self::detect_weight_category( $birthdate, $gender, $weight, $discipline, $season );
         $normalized      = self::normalize_weight( $weight );
 
@@ -242,6 +248,12 @@ class UFSC_Category_Repository {
             'kick_light'               => self::DEFAULT_DISCIPLINE,
             'point_fighting'           => self::DEFAULT_DISCIPLINE,
             'k1_style_light'           => self::DEFAULT_DISCIPLINE,
+            'kickboxing_ring_combat'   => self::RING_DISCIPLINE,
+            'ring'                      => self::RING_DISCIPLINE,
+            'combat'                    => self::RING_DISCIPLINE,
+            'low_kick'                  => self::RING_DISCIPLINE,
+            'full_contact'              => self::RING_DISCIPLINE,
+            'k1_style'                  => self::RING_DISCIPLINE,
         );
 
         return $aliases[ $discipline ] ?? $discipline;
@@ -292,6 +304,24 @@ class UFSC_Category_Repository {
             'veterans_masculins' => array( 'label' => 'Vétérans masculins', 'birth_years' => array( 1976, 1985 ), 'genders' => array( 'M' ) ),
         );
 
+        // Official 2026-2027 Ring/Combat grid.
+        $age_categories_ring_2026 = array(
+            'cadettes_2e_annee'   => array( 'label' => 'Cadettes 2e année', 'birth_years' => array( 2011, 2011 ), 'genders' => array( 'F' ) ),
+            'cadets_2e_annee'     => array( 'label' => 'Cadets 2e année', 'birth_years' => array( 2011, 2011 ), 'genders' => array( 'M' ) ),
+            'juniors_filles'      => array( 'label' => 'Juniors filles', 'birth_years' => array( 2009, 2010 ), 'genders' => array( 'F' ) ),
+            'juniors_garcons'     => array( 'label' => 'Juniors garçons', 'birth_years' => array( 2009, 2010 ), 'genders' => array( 'M' ) ),
+            'seniors_feminines'   => array( 'label' => 'Seniors féminines', 'birth_years' => array( 1986, 2008 ), 'genders' => array( 'F' ) ),
+            'seniors_masculins'   => array( 'label' => 'Seniors masculins', 'birth_years' => array( 1986, 2008 ), 'genders' => array( 'M' ) ),
+        );
+        $weights_ring_2026 = array(
+            'cadettes_2e_annee' => array( 'F' => self::build_weight_categories( array( 40, 44, 48, 52, 56, 60, 65 ), 65 ) ),
+            'cadets_2e_annee'   => array( 'M' => self::build_weight_categories( array( 45, 48, 51, 54, 57, 60, 63.5, 67, 71, 75, 81 ), 81 ) ),
+            'juniors_filles'    => array( 'F' => self::build_weight_categories( array( 40, 44, 48, 52, 56, 60, 65 ), 65 ) ),
+            'juniors_garcons'   => array( 'M' => self::build_weight_categories( array( 45, 48, 51, 54, 57, 60, 63.5, 67, 71, 75, 81 ), 81 ) ),
+            'seniors_feminines' => array( 'F' => self::build_weight_categories( array( 48, 52, 56, 60, 65, 70 ), 70 ) ),
+            'seniors_masculins' => array( 'M' => self::build_weight_categories( array( 51, 54, 57, 60, 63.5, 67, 71, 75, 81, 86, 91 ), 91 ) ),
+        );
+
         // Weight grid remains season-scoped and is reused only where the same
         // official Tatami limits apply. No stored category is rewritten.
         $weights = array(
@@ -329,6 +359,14 @@ class UFSC_Category_Repository {
                     'sub_disciplines'    => array( 'Light Contact', 'Kick Light', 'Point Fighting', 'K1 Style Light' ),
                     'age_categories'     => $age_categories_2026,
                     'weight_categories'  => $weights,
+                ),
+                self::RING_DISCIPLINE => array(
+                    'season'             => '2026/2027',
+                    'discipline'         => self::RING_DISCIPLINE,
+                    'discipline_label'   => 'Kickboxing / Ring / Combat',
+                    'sub_disciplines'    => array( 'Low Kick', 'Full Contact', 'K1 Style' ),
+                    'age_categories'     => $age_categories_ring_2026,
+                    'weight_categories'  => $weights_ring_2026,
                 ),
             ),
         );

@@ -192,7 +192,7 @@ function ufsc_renewal_native_handoff_process_source( $source_id, $club_id, $seas
             return $renewable;
         }
 
-        $profile = UFSC_Renewal_Service::sanitize_renewal_updates( $source, $profile_updates );
+        $profile = UFSC_Renewal_Service::sanitize_renewal_updates( $source, $profile_updates, $target_season );
         if ( ! empty( $profile['errors'] ) ) {
             return new WP_Error( 'ufsc_renewal_native_profile_invalid', implode( ' ', array_values( $profile['errors'] ) ) );
         }

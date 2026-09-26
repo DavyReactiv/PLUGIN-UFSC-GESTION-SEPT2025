@@ -20,17 +20,17 @@ $birth = static function ( $age ) { return gmdate( 'Y-m-d', strtotime( '-' . (in
 $options = ufsc_get_sport_level_options();
 $assert( isset( $options['assaut'] ), 'Assaut remains selectable' );
 $assert( isset( $options['combat'] ), 'Cadet/Junior Combat is selectable' );
-$assert( isset( $options['classe_c'], $options['classe_b'], $options['classe_a'] ), 'Senior Combat classes A/B/C remain selectable' );
+$assert( ! isset( $options['classe_c'] ) && isset( $options['classe_b'], $options['classe_a'] ), 'Senior Combat only classes B/A remain selectable beside Pro' );
 $assert( isset( $options['pro'], $options['veteran'] ), 'historical Pro/Veteran values remain represented' );
 $assert( 'combat' === ufsc_normalize_fighter_level( 'cadet combat' ), 'cadet combat alias normalizes safely' );
-$assert( 'classe_c' === ufsc_normalize_fighter_level( 'senior combat classe c' ), 'senior class C alias normalizes safely' );
+$assert( 'classe_b' === ufsc_normalize_fighter_level( 'senior combat classe c' ), 'legacy senior class C normalizes to class B' );
 
 $assert( is_wp_error( ufsc_validate_fighter_level( 'combat', $birth( 14 ), false ) ), 'combat is blocked before cadet 2nd year' );
 $assert( true === ufsc_validate_fighter_level( 'combat', $birth( 15 ), false ), 'combat is allowed from age 15' );
 $assert( true === ufsc_validate_fighter_level( 'combat', $birth( 17 ), false ), 'junior combat remains allowed at 17' );
 $assert( is_wp_error( ufsc_validate_fighter_level( 'combat', $birth( 18 ), false ) ), 'generic cadet/junior combat stops at senior age' );
-$assert( true === ufsc_validate_fighter_level( 'classe_c', $birth( 18 ), false ), 'senior combat class C starts at adult age' );
-$assert( 'veteran' === ufsc_get_default_fighter_level( $birth( 41 ) ), 'veteran assaut is the adult default from 41' );
+$assert( true === ufsc_validate_fighter_level( 'classe_b', '2008-05-10', false, '2026-2027' ), 'senior combat class B starts at 18 for 2026-2027' );
+$assert( 'veteran' === ufsc_get_default_fighter_level( '1985-05-10', '2026-2027' ), 'veteran assaut is the default from 41' );
 $assert( true === ufsc_validate_fighter_level( 'debutant', $birth( 30 ), true ), 'legacy debutant stays accepted for historical/admin compatibility' );
 
 $pre_2026 = UFSC_Category_Repository::detect_age_category( '2020-05-10', 'M', '2026-2027' );
@@ -41,6 +41,14 @@ $senior_2026 = UFSC_Category_Repository::detect_age_category( '1986-05-10', 'M',
 $assert( is_array( $senior_2026 ) && 'seniors_masculins' === $senior_2026['key'], '2026-2027 senior male lower birth-year bound is recognized' );
 $veteran_2026 = UFSC_Category_Repository::detect_age_category( '1985-05-10', 'F', '2026-2027' );
 $assert( is_array( $veteran_2026 ) && 'veterans_feminines' === $veteran_2026['key'], '2026-2027 veteran female is recognized' );
+
+
+$ring_cadet = UFSC_Category_Repository::detect_weight_category( '2011-05-10', 'F', 43, UFSC_Category_Repository::RING_DISCIPLINE, '2026-2027' );
+$assert( is_array( $ring_cadet ) && '-44 kg' === $ring_cadet['label'], 'ring cadette 2e annee weight grid is available' );
+$ring_senior = UFSC_Category_Repository::detect_weight_category( '2000-05-10', 'M', 68, UFSC_Category_Repository::RING_DISCIPLINE, '2026-2027' );
+$assert( is_array( $ring_senior ) && '-71 kg' === $ring_senior['label'], 'ring senior male weight grid is available' );
+$auto_ring = UFSC_Category_Repository::detect_for_athlete( array( 'date_naissance'=>'2000-05-10','sexe'=>'M','poids'=>68,'fighter_level'=>'classe_b' ), UFSC_Category_Repository::DEFAULT_DISCIPLINE, '2026-2027' );
+$assert( 'kickboxing_ring_combat' === $auto_ring['discipline'] && '-71 kg' === $auto_ring['weight_category_label'], 'fighter level selects ring referential automatically' );
 
 // Regression guard: historical season remains unchanged.
 $historic = UFSC_Category_Repository::detect_age_category( '2018-05-10', 'M', '2025-2026' );

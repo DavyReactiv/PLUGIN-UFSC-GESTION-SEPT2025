@@ -1085,7 +1085,7 @@ class UFSC_Frontend_Shortcodes {
                         <label><?php esc_html_e( 'Téléphone principal', 'ufsc-clubs' ); ?><input type="tel" name="<?php echo esc_attr( $prefix . '[telephone]' ); ?>" value="<?php echo esc_attr( $row->telephone ?? '' ); ?>"></label>
                         <label><?php esc_html_e( 'Rôle dans le club', 'ufsc-clubs' ); ?><input type="text" name="<?php echo esc_attr( $prefix . '[role]' ); ?>" value="<?php echo esc_attr( $row->role ?? '' ); ?>"></label>
                         <label><?php esc_html_e( 'Type de pratique / discipline', 'ufsc-clubs' ); ?><input type="text" name="<?php echo esc_attr( $prefix . '[pratique]' ); ?>" value="<?php echo esc_attr( $row->pratique ?? $row->discipline ?? '' ); ?>"></label>
-                        <label><?php esc_html_e( 'Niveau du boxeur', 'ufsc-clubs' ); ?><select name="<?php echo esc_attr( $prefix . '[fighter_level]' ); ?>"><option value=""><?php esc_html_e( 'Non renseigné', 'ufsc-clubs' ); ?></option><?php foreach ( ufsc_get_sport_level_options() as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $level, $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><small><?php echo esc_html( ufsc_get_sport_level_help() ); ?></small></label>
+                        <label><?php esc_html_e( 'Niveau du boxeur', 'ufsc-clubs' ); ?><select name="<?php echo esc_attr( $prefix . '[fighter_level]' ); ?>"><option value=""><?php esc_html_e( 'Sélectionner', 'ufsc-clubs' ); ?></option><?php $athlete_levels = function_exists( 'ufsc_get_sport_level_options_for_athlete' ) ? ufsc_get_sport_level_options_for_athlete( $row->date_naissance ?? '', $target ) : ufsc_get_sport_level_options(); foreach ( $athlete_levels as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $level, $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><small><?php echo esc_html( ufsc_get_sport_level_help() ); ?></small></label>
                         <label><?php esc_html_e( 'Poids déclaratif courant (kg)', 'ufsc-clubs' ); ?><input type="text" inputmode="decimal" pattern="[0-9]+([,.][0-9]+)?" name="<?php echo esc_attr( $prefix . '[poids]' ); ?>" value="<?php echo esc_attr( $weight ); ?>"><small><?php esc_html_e( 'La pesée officielle historique n’est jamais modifiée.', 'ufsc-clubs' ); ?></small></label>
                         <label><input type="checkbox" name="<?php echo esc_attr( $prefix . '[competition]' ); ?>" value="1" <?php checked( ! empty( $row->competition ) ); ?>> <?php esc_html_e( 'Pratique en compétition', 'ufsc-clubs' ); ?></label>
                         </div>
@@ -2359,13 +2359,19 @@ class UFSC_Frontend_Shortcodes {
                         </div>
                         <div class="ufsc-field ufsc-field--full">
                             <label for="fighter_level"><?php esc_html_e( 'Niveau du boxeur', 'ufsc-clubs' ); ?></label>
-                            <select id="fighter_level" name="fighter_level" data-ufsc-fighter-level data-veteran-min-age="<?php echo esc_attr( ufsc_get_veteran_min_age() ); ?>">
-                                <option value=""><?php esc_html_e( 'Non renseigné', 'ufsc-clubs' ); ?></option>
+                            <?php
+                            $sport_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '2026-2027' );
+                            $sport_season_start = function_exists( 'ufsc_get_season_start_year_for_levels' ) ? ufsc_get_season_start_year_for_levels( $sport_season ) : 2026;
+                            $selected_level = function_exists( 'ufsc_normalize_fighter_level' ) ? ufsc_normalize_fighter_level( $form_data['fighter_level'] ?? '' ) : sanitize_key( (string) ( $form_data['fighter_level'] ?? '' ) );
+                            ?>
+                            <select id="fighter_level" name="fighter_level" data-ufsc-fighter-level data-veteran-min-age="<?php echo esc_attr( ufsc_get_veteran_min_age() ); ?>" data-season-start-year="<?php echo esc_attr( $sport_season_start ); ?>">
+                                <option value=""><?php esc_html_e( 'Sélectionner la catégorie de pratique', 'ufsc-clubs' ); ?></option>
                                 <?php foreach ( ufsc_get_fighter_levels() as $level_key => $level_label ) : ?>
-                                    <option value="<?php echo esc_attr( $level_key ); ?>" <?php selected( $form_data['fighter_level'] ?? '', $level_key ); ?>><?php echo esc_html( $level_label ); ?></option>
+                                    <option value="<?php echo esc_attr( $level_key ); ?>" <?php selected( $selected_level, $level_key ); ?>><?php echo esc_html( $level_label ); ?></option>
                                 <?php endforeach; ?>
                             </select>
                             <small data-ufsc-level-help><?php echo esc_html( ufsc_get_sport_level_help() ); ?></small>
+                            <div class="ufsc-sport-category-preview" data-ufsc-sport-category-preview role="status" aria-live="polite"><?php esc_html_e( 'La catégorie d’âge et de poids sera calculée automatiquement à partir de la saison, de la date de naissance, du sexe, du niveau et du poids.', 'ufsc-clubs' ); ?></div>
                         </div>
                     </div>
 

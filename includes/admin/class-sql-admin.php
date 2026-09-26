@@ -783,6 +783,7 @@ class UFSC_SQL_Admin
                 'date_naissance' => $birthdate,
                 'sexe'           => $gender,
                 'poids'          => $weight,
+                'fighter_level'  => array_key_exists( 'fighter_level', $data ) ? $data['fighter_level'] : self::get_row_field_value( $existing, 'fighter_level' ),
             ),
             UFSC_Category_Repository::DEFAULT_DISCIPLINE,
             $season
@@ -845,6 +846,9 @@ class UFSC_SQL_Admin
             $summary['gender']       = (string) $detected['normalized_gender'];
             $summary['weight']       = '' !== (string) $detected['weight'] ? (string) $detected['weight'] : $weight;
             $summary['season']       = str_replace( '/', '-', (string) $detected['season'] );
+            $summary['discipline']   = isset( $detected['discipline'] ) && defined( 'UFSC_Category_Repository::RING_DISCIPLINE' ) && UFSC_Category_Repository::RING_DISCIPLINE === $detected['discipline']
+                ? 'Kickboxing / Ring / Combat'
+                : 'Kickboxing / Tatami / Assaut';
         }
 
         switch ( $summary['status'] ) {
@@ -4713,12 +4717,15 @@ class UFSC_SQL_Admin
             }
         } elseif ( 'fighter_level' === $type ) {
             $levels = function_exists( 'ufsc_get_fighter_levels' ) ? ufsc_get_fighter_levels() : array();
-            echo '<select name="fighter_level" id="fighter_level" data-ufsc-fighter-level data-veteran-min-age="' . esc_attr( ufsc_get_veteran_min_age() ) . '" ' . $disabled_attr . '>';
+            $sport_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '2026-2027' );
+            $sport_season_start = function_exists( 'ufsc_get_season_start_year_for_levels' ) ? ufsc_get_season_start_year_for_levels( $sport_season ) : 2026;
+            $normalized_level = function_exists( 'ufsc_normalize_fighter_level' ) ? ufsc_normalize_fighter_level( $val ) : sanitize_key( (string) $val );
+            echo '<select name="fighter_level" id="fighter_level" data-ufsc-fighter-level data-veteran-min-age="' . esc_attr( ufsc_get_veteran_min_age() ) . '" data-season-start-year="' . esc_attr( $sport_season_start ) . '" ' . $disabled_attr . '>';
             echo '<option value="">' . esc_html__( 'Non renseigné', 'ufsc-clubs' ) . '</option>';
             foreach ( $levels as $level_key => $level_label ) {
-                echo '<option value="' . esc_attr( $level_key ) . '" ' . selected( $val, $level_key, false ) . '>' . esc_html( $level_label ) . '</option>';
+                echo '<option value="' . esc_attr( $level_key ) . '" ' . selected( $normalized_level, $level_key, false ) . '>' . esc_html( $level_label ) . '</option>';
             }
-            echo '</select><p class="description" data-ufsc-level-help>' . esc_html( sprintf( __( 'Mineur : Assaut. Majeur : Classe C, Classe B ou Classe A. Vétéran à partir de %d ans. Le contrôle final est effectué par le serveur.', 'ufsc-clubs' ), ufsc_get_veteran_min_age() ) ) . '</p>';
+            echo '</select><p class="description" data-ufsc-level-help>' . esc_html( function_exists( 'ufsc_get_sport_level_help' ) ? ufsc_get_sport_level_help() : __( 'Catégorie de pratique contrôlée selon l’année de naissance et la saison sportive.', 'ufsc-clubs' ) ) . '</p>';
         } elseif ($type === 'region') {
             echo '<select name="' . esc_attr($k) . '" ' . $disabled_attr . '>';
             $scope_slug  = UFSC_Scope::get_user_scope_region();
@@ -4893,7 +4900,13 @@ class UFSC_SQL_Admin
         }
 
         if ( array_key_exists( 'fighter_level', $data ) && function_exists( 'ufsc_validate_fighter_level' ) ) {
-            $level_validation = ufsc_validate_fighter_level( $data['fighter_level'], $data['date_naissance'] ?? '', true );
+            if ( function_exists( 'ufsc_normalize_fighter_level' ) ) {
+                $data['fighter_level'] = ufsc_normalize_fighter_level( $data['fighter_level'] );
+            }
+            $sport_season = $id && function_exists( 'ufsc_get_licence_season' )
+                ? ufsc_get_licence_season( $id )
+                : ( class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ) );
+            $level_validation = ufsc_validate_fighter_level( $data['fighter_level'], $data['date_naissance'] ?? '', true, $sport_season );
             if ( is_wp_error( $level_validation ) ) {
                 self::maybe_redirect( self::get_licences_admin_page_url( array_merge( $id ? array( 'action' => 'edit', 'id' => $id ) : array( 'action' => 'new' ), array( 'return_to' => $return_to, 'error' => $level_validation->get_error_message() ) ) ) );
                 return;
@@ -5724,7 +5737,7 @@ class UFSC_SQL_Admin
             'nom'                        => 'l.nom',
             'prenom'                     => 'l.prenom',
             'date_naissance'             => 'l.date_naissance',
-            'fighter_level'              => "CASE l.fighter_level WHEN 'pro' THEN 'Pro' WHEN 'classe_a' THEN 'Classe A' WHEN 'classe_b' THEN 'Classe B' WHEN 'classe_c' THEN 'Classe C' WHEN 'assaut' THEN 'Assaut' WHEN 'veteran' THEN 'Vétéran' WHEN 'debutant' THEN 'Débutant' ELSE 'Non renseigné' END AS fighter_level",
+            'fighter_level'              => "CASE l.fighter_level WHEN 'pro' THEN 'Pro' WHEN 'classe_a' THEN 'Classe A' WHEN 'classe_b' THEN 'Classe B' WHEN 'classe_c' THEN 'Classe B' WHEN 'assaut' THEN 'Assaut' WHEN 'veteran' THEN 'Vétéran' WHEN 'debutant' THEN 'Débutant' ELSE 'Non renseigné' END AS fighter_level",
             'sexe'                       => 'l.sexe',
             'email'                      => 'l.email',
             'adresse'                    => 'l.adresse',

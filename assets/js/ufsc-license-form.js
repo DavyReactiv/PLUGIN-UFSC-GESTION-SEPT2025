@@ -16,27 +16,98 @@
 
 	function initFighterLevel() {
 		const birth = $('#date_naissance');
+		const sex = $('#sexe');
+		const weight = $('#poids');
 		const level = $('[data-ufsc-fighter-level]');
+		const preview = $('[data-ufsc-sport-category-preview]');
 		if (!birth.length || !level.length) return;
 		let userSelected = Boolean(level.val());
-		level.on('change', function() { userSelected = Boolean(level.val()); });
-		function refreshLevelOptions() {
-			const date = birth.val() ? new Date(birth.val() + 'T00:00:00') : null;
-			const now = new Date();
-			let age = date && !isNaN(date.getTime()) ? now.getFullYear() - date.getFullYear() : null;
-			if (date && (now.getMonth() < date.getMonth() || (now.getMonth() === date.getMonth() && now.getDate() < date.getDate()))) age--;
-			level.find('option').prop('hidden', false);
-			if (age === null || age < 0) return;
-			level.find('option[value="pro"], option[value^="classe_"]').prop('hidden', age < 18);
-			const veteranMinAge = parseInt(level.attr('data-veteran-min-age'), 10) || 41;
-			level.find('option[value="veteran"]').prop('hidden', age < veteranMinAge);
-			if (level.find('option:selected').prop('hidden')) { level.val(''); userSelected = false; }
-			if (!userSelected && !level.val()) {
-				level.val(age < 18 ? 'assaut' : 'classe_c').trigger('change.select2');
+
+		const ringWeights = {
+			'cadette_15_F':[40,44,48,52,56,60,65],
+			'cadet_15_M':[45,48,51,54,57,60,63.5,67,71,75,81],
+			'junior_F':[40,44,48,52,56,60,65],
+			'junior_M':[45,48,51,54,57,60,63.5,67,71,75,81],
+			'senior_F':[48,52,56,60,65,70],
+			'senior_M':[51,54,57,60,63.5,67,71,75,81,86,91]
+		};
+		const tatamiWeights = {
+			'pre_M':[18,23,28,32,37,42,47], 'pre_F':[18,23,28,32,37,42,47],
+			'poussin_M':[18,23,28,32,37,42,47], 'poussin_F':[18,23,28,32,37,42,47],
+			'benjamin_M':[23,28,32,37,42,47,52], 'benjamin_F':[23,28,32,37,42,47,52],
+			'minime_F':[28,32,37,42,46,50,55,60], 'minime_M':[28,32,37,42,47,52,57,63,69],
+			'cadet_F':[37,42,46,50,55,60,65], 'cadet_M':[37,42,47,52,57,63,69,74],
+			'junior_F':[42,46,50,55,60,65,70], 'junior_M':[47,52,57,63,69,74,79,84,89,94],
+			'senior_F':[50,55,60,65,70], 'senior_M':[57,63,69,74,79,84,89,94],
+			'veteran_F':[50,55,60,65,70], 'veteran_M':[57,63,69,74,79,84,89,94]
+		};
+
+		function sportAge() {
+			const value = birth.val();
+			if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return null;
+			const birthYear = parseInt(value.slice(0,4),10);
+			const seasonStart = parseInt(level.attr('data-season-start-year'),10) || (new Date()).getFullYear();
+			return seasonStart - birthYear;
+		}
+		function ageCategory(age, gender, ring) {
+			if (ring) {
+				if (age === 15) return {key:(gender==='F'?'cadette_15_F':'cadet_15_M'), label:(gender==='F'?'Cadette 2e année':'Cadet 2e année')};
+				if (age >= 16 && age <= 17) return {key:'junior_'+gender,label:(gender==='F'?'Junior fille':'Junior garçon')};
+				if (age >= 18 && age <= 40) return {key:'senior_'+gender,label:(gender==='F'?'Senior féminine':'Senior masculin')};
+				return null;
 			}
+			if (age >= 6 && age <= 7) return {key:'pre_'+gender,label:'Pré-poussin'};
+			if (age >= 8 && age <= 9) return {key:'poussin_'+gender,label:'Poussin'};
+			if (age >= 10 && age <= 11) return {key:'benjamin_'+gender,label:'Benjamin'};
+			if (age >= 12 && age <= 13) return {key:'minime_'+gender,label:'Minime'};
+			if (age >= 14 && age <= 15) return {key:'cadet_'+gender,label:(gender==='F'?'Cadette':'Cadet')};
+			if (age >= 16 && age <= 17) return {key:'junior_'+gender,label:(gender==='F'?'Junior fille':'Junior garçon')};
+			if (age >= 18 && age <= 40) return {key:'senior_'+gender,label:(gender==='F'?'Senior féminine':'Senior masculin')};
+			if (age >= 41 && age <= 50) return {key:'veteran_'+gender,label:(gender==='F'?'Vétéran féminine':'Vétéran masculin')};
+			return null;
+		}
+		function weightCategory(limits, kilos) {
+			if (!limits || !limits.length || !Number.isFinite(kilos)) return '';
+			for (let i=0;i<limits.length;i++) if (kilos <= limits[i]) return '-' + limits[i] + ' kg';
+			return '+' + limits[limits.length-1] + ' kg';
+		}
+		function refreshPreview(age) {
+			if (!preview.length) return;
+			const gender = sex.val();
+			const kilos = parseFloat(String(weight.val() || '').replace(',','.'));
+			const currentLevel = level.val();
+			const ring = ['combat','classe_b','classe_a','pro'].indexOf(currentLevel) !== -1;
+			if (age === null || (gender !== 'M' && gender !== 'F')) {
+				preview.text('Renseignez la date de naissance et le sexe pour calculer la catégorie 2026/2027.');
+				return;
+			}
+			const cat = ageCategory(age, gender, ring);
+			if (!cat) {
+				preview.text('Aucune catégorie de compétition détectée pour cette pratique et cet âge.');
+				return;
+			}
+			const limits = (ring ? ringWeights : tatamiWeights)[cat.key] || [];
+			const weightLabel = weightCategory(limits, kilos);
+			preview.text('Catégorie détectée : ' + cat.label + (weightLabel ? ' — ' + weightLabel : ' — renseignez le poids'));
+		}
+		function refreshLevelOptions() {
+			const age = sportAge();
+			level.find('option').prop('hidden', false).prop('disabled', false);
+			if (age === null || age < 0) { refreshPreview(age); return; }
+
+			level.find('option[value="classe_b"],option[value="classe_a"],option[value="pro"]').prop('hidden', !(age >= 18 && age <= 40)).prop('disabled', !(age >= 18 && age <= 40));
+			level.find('option[value="combat"]').prop('hidden', !(age >= 15 && age < 18)).prop('disabled', !(age >= 15 && age < 18));
+			level.find('option[value="veteran"]').prop('hidden', !(age >= 41 && age <= 50)).prop('disabled', !(age >= 41 && age <= 50));
+			if (level.find('option:selected').prop('disabled')) { level.val(''); userSelected = false; }
+			if (!userSelected && !level.val()) {
+				level.val(age < 18 ? 'assaut' : (age <= 40 ? 'classe_b' : (age <= 50 ? 'veteran' : 'assaut'))).trigger('change.select2');
+			}
+			refreshPreview(age);
 		}
 		birth.on('change input', function() { if (!level.data('ufsc-manual-level')) userSelected = false; refreshLevelOptions(); });
-		level.on('change', function() { if (document.activeElement === level[0]) level.data('ufsc-manual-level', true); });
+		sex.on('change', refreshLevelOptions);
+		weight.on('change input', refreshLevelOptions);
+		level.on('change', function() { userSelected = Boolean(level.val()); if (document.activeElement === level[0]) level.data('ufsc-manual-level', true); refreshPreview(sportAge()); });
 		refreshLevelOptions();
 	}
 
