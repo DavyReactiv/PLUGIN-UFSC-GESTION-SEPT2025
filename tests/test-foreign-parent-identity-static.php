@@ -29,7 +29,7 @@ $assert( false === stripos( $profile, 'DROP COLUMN' ) && false === stripos( $pro
 $assert( false === stripos( $guard, 'DROP COLUMN' ) && false === stripos( $guard, 'RENAME COLUMN' ), 'schema guard must never remove/rename historical data' );
 
 $assert( false !== strpos( $layout, "prefix+'_pere_nom'" ) && false !== strpos( $layout, "prefix+'_mere_prenom'" ), 'admin layout must show four split parent fields' );
-$assert( false !== strpos( $front, "$prefix . '_pere_nom'" ) && false !== strpos( $front, "'entraineur_mere_prenom'" ), 'front profile must show split parent fields for leaders and trainer' );
+$assert( false !== strpos( $front, "\$prefix . '_pere_nom'" ) && false !== strpos( $front, "'entraineur_mere_prenom'" ), 'front profile must show split parent fields for leaders and trainer' );
 $assert( false !== strpos( $front, 'data-ufsc-foreign-parent-input' ), 'front must mark conditional foreign-parent fields' );
 
 $assert( false !== strpos( $handler, 'validate_foreign_parent_identity' ), 'front club save must enforce server-side foreign parent validation' );
