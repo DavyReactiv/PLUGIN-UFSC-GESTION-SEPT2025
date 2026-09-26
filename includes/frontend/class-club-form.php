@@ -206,7 +206,7 @@ class UFSC_CL_Club_Form {
                     <div class="ufsc-grid">
                         <div class="ufsc-field">
                             <label for="code_postal" class="ufsc-label required"><?php esc_html_e( 'Code postal', 'ufsc-clubs' ); ?></label>
-                            <input type="text" id="code_postal" name="code_postal" value="<?php echo esc_attr( $club_data['code_postal'] ?? '' ); ?>" pattern="\d{5}" required />
+                            <input type="text" id="code_postal" name="code_postal" value="<?php echo esc_attr( $club_data['code_postal'] ?? '' ); ?>" autocomplete="postal-code" required />
                         <div class="ufsc-field-error" aria-live="polite"></div></div>
                         <div class="ufsc-field">
                             <label for="ville" class="ufsc-label required"><?php esc_html_e( 'Ville', 'ufsc-clubs' ); ?></label>
