@@ -96,7 +96,7 @@ function ufsc_add_renewal_sources_to_cart( $product_id, $club_id, $source_ids, $
 			$renewable = UFSC_Renewal_Service::can_renew( $source, $club_id, $season );
 			if ( is_wp_error( $renewable ) ) { $result['skipped'][ $source_id ] = $renewable->get_error_message(); continue; }
 		}
-		$profile = UFSC_Renewal_Service::sanitize_renewal_updates( $source, $profiles[$source_id] ?? array() );
+		$profile = UFSC_Renewal_Service::sanitize_renewal_updates( $source, $profiles[$source_id] ?? array(), $season );
 		if ( ! empty( $profile['errors'] ) ) { $result['skipped'][$source_id] = implode( ' ', array_values( $profile['errors'] ) ); continue; }
 		$target = UFSC_Renewal_Service::create_target_draft( $source, $club_id, $season, $profile['data'] );
 		if ( is_wp_error( $target ) ) { $result['skipped'][ $source_id ] = $target->get_error_message(); continue; }
