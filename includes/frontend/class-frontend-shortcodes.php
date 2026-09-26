@@ -4263,8 +4263,8 @@ class UFSC_Frontend_Shortcodes {
                     var value=norm(country.value);
                     var foreign=!!value&&['france','fr','f','francais','francaise'].indexOf(value)===-1;
                     inputs.forEach(function(input){
-                        if(foreign){input.setAttribute('required','required');input.setAttribute('aria-required','true');}
-                        else{input.removeAttribute('required');input.setAttribute('aria-required','false');}
+                        input.removeAttribute('required');
+                        input.setAttribute('aria-required',foreign?'true':'false');
                     });
                 }
                 country.addEventListener('input',update);
