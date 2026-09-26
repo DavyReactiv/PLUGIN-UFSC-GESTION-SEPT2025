@@ -2645,6 +2645,15 @@ class UFSC_SQL_Admin
             $data['statut'] = 'en_attente';
         }
 
+        if ( class_exists( 'UFSC_FFST_Club_Profile_Fields' ) && method_exists( 'UFSC_FFST_Club_Profile_Fields', 'validate_foreign_parent_identity' ) ) {
+            $parent_errors = UFSC_FFST_Club_Profile_Fields::validate_foreign_parent_identity( $data, $id );
+            if ( $parent_errors ) {
+                $error_message = implode( ' ', $parent_errors );
+                self::maybe_redirect( admin_url( 'admin.php?page=ufsc-sql-clubs&action=' . ( $id ? 'edit&id=' . $id : 'new' ) . '&error=' . urlencode( $error_message ) ) );
+                return;
+            }
+        }
+
         // Handle file uploads before validation
         $upload_errors = [];
 
