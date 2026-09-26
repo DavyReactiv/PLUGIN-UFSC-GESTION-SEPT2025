@@ -26,7 +26,7 @@ $assert( false !== strpos( $levels, "array( 'assaut', 'combat' )" ), 'Cadet 2nd 
 $assert( false !== strpos( $category, "const RING_DISCIPLINE    = 'kickboxing_ring_combat'" ), 'ring referential must exist' );
 $assert( false !== strpos( $category, "'cadettes_2e_annee'" ) && false !== strpos( $category, "'cadets_2e_annee'" ), 'ring cadet 2nd-year categories must exist' );
 $assert( false !== strpos( $category, '63.5' ) && false !== strpos( $category, '91' ), 'official ring weight limits must be represented' );
-$assert( false !== strpos( $category, "in_array( $level, array( 'combat', 'classe_b', 'classe_a', 'pro' ), true )" ), 'combat levels must select ring referential' );
+$assert( false !== strpos( $category, "in_array( \$level, array( 'combat', 'classe_b', 'classe_a', 'pro' ), true )" ), 'combat levels must select ring referential' );
 
 $assert( false !== strpos( $front, 'data-season-start-year' ), 'front licence form must expose season start year' );
 $assert( false !== strpos( $front, 'data-ufsc-sport-category-preview' ), 'front licence form must expose live category preview' );
