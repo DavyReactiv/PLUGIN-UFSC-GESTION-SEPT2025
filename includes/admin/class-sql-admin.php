@@ -846,6 +846,9 @@ class UFSC_SQL_Admin
             $summary['gender']       = (string) $detected['normalized_gender'];
             $summary['weight']       = '' !== (string) $detected['weight'] ? (string) $detected['weight'] : $weight;
             $summary['season']       = str_replace( '/', '-', (string) $detected['season'] );
+            $summary['discipline']   = isset( $detected['discipline'] ) && defined( 'UFSC_Category_Repository::RING_DISCIPLINE' ) && UFSC_Category_Repository::RING_DISCIPLINE === $detected['discipline']
+                ? 'Kickboxing / Ring / Combat'
+                : 'Kickboxing / Tatami / Assaut';
         }
 
         switch ( $summary['status'] ) {
@@ -4714,12 +4717,15 @@ class UFSC_SQL_Admin
             }
         } elseif ( 'fighter_level' === $type ) {
             $levels = function_exists( 'ufsc_get_fighter_levels' ) ? ufsc_get_fighter_levels() : array();
-            echo '<select name="fighter_level" id="fighter_level" data-ufsc-fighter-level data-veteran-min-age="' . esc_attr( ufsc_get_veteran_min_age() ) . '" ' . $disabled_attr . '>';
+            $sport_season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '2026-2027' );
+            $sport_season_start = function_exists( 'ufsc_get_season_start_year_for_levels' ) ? ufsc_get_season_start_year_for_levels( $sport_season ) : 2026;
+            $normalized_level = function_exists( 'ufsc_normalize_fighter_level' ) ? ufsc_normalize_fighter_level( $val ) : sanitize_key( (string) $val );
+            echo '<select name="fighter_level" id="fighter_level" data-ufsc-fighter-level data-veteran-min-age="' . esc_attr( ufsc_get_veteran_min_age() ) . '" data-season-start-year="' . esc_attr( $sport_season_start ) . '" ' . $disabled_attr . '>';
             echo '<option value="">' . esc_html__( 'Non renseigné', 'ufsc-clubs' ) . '</option>';
             foreach ( $levels as $level_key => $level_label ) {
-                echo '<option value="' . esc_attr( $level_key ) . '" ' . selected( $val, $level_key, false ) . '>' . esc_html( $level_label ) . '</option>';
+                echo '<option value="' . esc_attr( $level_key ) . '" ' . selected( $normalized_level, $level_key, false ) . '>' . esc_html( $level_label ) . '</option>';
             }
-            echo '</select><p class="description" data-ufsc-level-help>' . esc_html( sprintf( __( 'Mineur : Assaut. Majeur : Classe C, Classe B ou Classe A. Vétéran à partir de %d ans. Le contrôle final est effectué par le serveur.', 'ufsc-clubs' ), ufsc_get_veteran_min_age() ) ) . '</p>';
+            echo '</select><p class="description" data-ufsc-level-help>' . esc_html( function_exists( 'ufsc_get_sport_level_help' ) ? ufsc_get_sport_level_help() : __( 'Catégorie de pratique contrôlée selon l’année de naissance et la saison sportive.', 'ufsc-clubs' ) ) . '</p>';
         } elseif ($type === 'region') {
             echo '<select name="' . esc_attr($k) . '" ' . $disabled_attr . '>';
             $scope_slug  = UFSC_Scope::get_user_scope_region();
