@@ -63,6 +63,14 @@ class UFSC_CL_Club_Form_Handler {
             self::redirect_with_error( $error_message, $club_id, $affiliation );
             return;
         }
+
+        if ( class_exists( 'UFSC_FFST_Club_Profile_Fields' ) && method_exists( 'UFSC_FFST_Club_Profile_Fields', 'validate_foreign_parent_identity' ) ) {
+            $parent_errors = UFSC_FFST_Club_Profile_Fields::validate_foreign_parent_identity( $data, $club_id );
+            if ( $parent_errors ) {
+                self::redirect_with_error( implode( ' ', $parent_errors ), $club_id, $affiliation );
+                return;
+            }
+        }
         
         try {
             // Handle file uploads
@@ -244,8 +252,11 @@ class UFSC_CL_Club_Form_Handler {
                     'complement_adresse',
                     'code_postal',
                     'ville',
-                    'pere_nom_prenom',
-                    'mere_nom_prenom',
+                    // Historical combined parent fields remain readable but are not rewritten.
+                    'pere_nom',
+                    'pere_prenom',
+                    'mere_nom',
+                    'mere_prenom',
                 ) as $suffix
             ) {
                 $allowed_fields[] = $prefix . '_' . $suffix;
@@ -281,6 +292,14 @@ class UFSC_CL_Club_Form_Handler {
         if ( empty( $allowed_data ) ) {
             self::redirect_with_error( __( 'Aucune information autorisée à mettre à jour.', 'ufsc-clubs' ), $club_id, $affiliation );
             return;
+        }
+
+        if ( class_exists( 'UFSC_FFST_Club_Profile_Fields' ) && method_exists( 'UFSC_FFST_Club_Profile_Fields', 'validate_foreign_parent_identity' ) ) {
+            $parent_errors = UFSC_FFST_Club_Profile_Fields::validate_foreign_parent_identity( $allowed_data, $club_id );
+            if ( $parent_errors ) {
+                self::redirect_with_error( implode( ' ', $parent_errors ), $club_id, $affiliation );
+                return;
+            }
         }
 
         // Never report a successful save when a posted profile field has no
