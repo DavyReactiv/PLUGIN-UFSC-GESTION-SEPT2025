@@ -58,6 +58,10 @@ final class UFSC_FFST_Club_Profile_Schema_Guard {
             $defs[ $prefix . '_ville' ]              = "varchar(120) NULL DEFAULT NULL";
             $defs[ $prefix . '_pere_nom_prenom' ]    = "varchar(255) NULL DEFAULT NULL";
             $defs[ $prefix . '_mere_nom_prenom' ]    = "varchar(255) NULL DEFAULT NULL";
+            $defs[ $prefix . '_pere_nom' ]            = "varchar(120) NULL DEFAULT NULL";
+            $defs[ $prefix . '_pere_prenom' ]         = "varchar(120) NULL DEFAULT NULL";
+            $defs[ $prefix . '_mere_nom' ]            = "varchar(120) NULL DEFAULT NULL";
+            $defs[ $prefix . '_mere_prenom' ]         = "varchar(120) NULL DEFAULT NULL";
         }
 
         return $defs;

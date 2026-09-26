@@ -190,6 +190,15 @@
             });
     }
 
+    function enhanceCountryField(input) {
+        if (!input || input.dataset.ufscCountryEnhanced === '1') return;
+        var select = buildCountrySelect(input);
+        if (select) {
+            select.dataset.ufscCountryEnhanced = '1';
+            select.setAttribute('autocomplete', 'country-name');
+        }
+    }
+
     function enhancePostal(postalInput) {
         if (!postalInput || postalInput.dataset.ufscAddressEnhanced === '1') return;
 
@@ -245,6 +254,12 @@
 
     function init(root) {
         root = root || document;
+
+        var countryFields = root.querySelectorAll(
+            'input[name="pays"], input[name$="_pays_naissance"], input[name$="[pays]"], input[name$="[pays_naissance]"]'
+        );
+        Array.prototype.forEach.call(countryFields, enhanceCountryField);
+
         var fields = root.querySelectorAll(
             'input[name="code_postal"], input[name$="_code_postal"], input[name^="code_postal_"], input[name$="[code_postal]"]'
         );
