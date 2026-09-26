@@ -2099,25 +2099,25 @@ class UFSC_SQL_Admin
                     'president_prenom', 'president_nom', 'president_poste', 'president_tel', 'president_email',
                     'president_date_naissance', 'president_ville_naissance', 'president_departement_naissance', 'president_pays_naissance',
                     'president_adresse', 'president_complement_adresse', 'president_code_postal', 'president_ville',
-                    'president_pere_nom_prenom', 'president_mere_nom_prenom',
+                    'president_pere_nom', 'president_pere_prenom', 'president_mere_nom', 'president_mere_prenom',
 
                     // Secrétaire — même contrat de données que le président.
                     'secretaire_prenom', 'secretaire_nom', 'secretaire_poste', 'secretaire_tel', 'secretaire_email',
                     'secretaire_date_naissance', 'secretaire_ville_naissance', 'secretaire_departement_naissance', 'secretaire_pays_naissance',
                     'secretaire_adresse', 'secretaire_complement_adresse', 'secretaire_code_postal', 'secretaire_ville',
-                    'secretaire_pere_nom_prenom', 'secretaire_mere_nom_prenom',
+                    'secretaire_pere_nom', 'secretaire_pere_prenom', 'secretaire_mere_nom', 'secretaire_mere_prenom',
 
                     // Trésorier — inclut explicitement la ville, absente de la section admin historique.
                     'tresorier_prenom', 'tresorier_nom', 'tresorier_poste', 'tresorier_tel', 'tresorier_email',
                     'tresorier_date_naissance', 'tresorier_ville_naissance', 'tresorier_departement_naissance', 'tresorier_pays_naissance',
                     'tresorier_adresse', 'tresorier_complement_adresse', 'tresorier_code_postal', 'tresorier_ville',
-                    'tresorier_pere_nom_prenom', 'tresorier_mere_nom_prenom',
+                    'tresorier_pere_nom', 'tresorier_pere_prenom', 'tresorier_mere_nom', 'tresorier_mere_prenom',
 
                     // Entraîneur / instructeur — coordonnées complètes lorsqu'elles existent dans le schéma.
                     'entraineur_prenom', 'entraineur_nom', 'entraineur_poste', 'entraineur_tel', 'entraineur_email',
                     'entraineur_date_naissance', 'entraineur_ville_naissance', 'entraineur_departement_naissance', 'entraineur_pays_naissance',
                     'entraineur_adresse', 'entraineur_complement_adresse', 'entraineur_code_postal', 'entraineur_ville',
-                    'entraineur_pere_nom_prenom', 'entraineur_mere_nom_prenom',
+                    'entraineur_pere_nom', 'entraineur_pere_prenom', 'entraineur_mere_nom', 'entraineur_mere_prenom',
                 )
             ),
             array( 'Statut permanent historique', 'Compatibilité uniquement : ces champs ne pilotent pas l’affiliation annuelle.', array( 'statut', 'date_affiliation', 'num_affiliation' ) ),
@@ -2141,6 +2141,10 @@ class UFSC_SQL_Admin
             'doc_attestation_affiliation', 'doc_statuts', 'doc_recepisse',
             'doc_jo', 'doc_pv_ag', 'doc_cer', 'doc_attestation_cer',
             'date_creation', 'responsable_id', 'contact',
+            'president_pere_nom_prenom', 'president_mere_nom_prenom',
+            'secretaire_pere_nom_prenom', 'secretaire_mere_nom_prenom',
+            'tresorier_pere_nom_prenom', 'tresorier_mere_nom_prenom',
+            'entraineur_pere_nom_prenom', 'entraineur_mere_nom_prenom',
         );
         $rendered_keys = array_merge(
             $rendered_keys,
