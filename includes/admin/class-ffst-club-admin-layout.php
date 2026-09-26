@@ -97,7 +97,7 @@ final class UFSC_FFST_Club_Admin_Layout {
                         node.classList.toggle('is-foreign-required',foreign);
                         var input=node.querySelector('input,select,textarea');
                         if(input){
-                            if(foreign&&!input.readOnly){input.setAttribute('required','required');}
+                            if(foreign&&!input.readOnly&&!input.disabled){input.setAttribute('required','required');}
                             else{input.removeAttribute('required');}
                             input.setAttribute('aria-required',foreign?'true':'false');
                         }
