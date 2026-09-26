@@ -87,13 +87,21 @@ final class UFSC_FFST_Club_Admin_Layout {
             }
             function toggleParents(prefix){
                 var country=field(prefix+'_pays_naissance');
-                var father=wrap(field(prefix+'_pere_nom_prenom'));
-                var mother=wrap(field(prefix+'_mere_nom_prenom'));
-                [father,mother].forEach(function(node){if(node)node.classList.add('ufsc-ffst-foreign-parent');});
+                var names=[prefix+'_pere_nom',prefix+'_pere_prenom',prefix+'_mere_nom',prefix+'_mere_prenom'];
+                var nodes=names.map(function(name){return wrap(field(name));}).filter(Boolean);
+                nodes.forEach(function(node){node.classList.add('ufsc-ffst-foreign-parent');});
                 function update(){
                     var value=norm(country?country.value:'');
                     var foreign=!!value && !['france','fr','f','francaise','francais'].includes(value);
-                    [father,mother].forEach(function(node){if(node)node.classList.toggle('is-foreign-required',foreign);});
+                    nodes.forEach(function(node){
+                        node.classList.toggle('is-foreign-required',foreign);
+                        var input=node.querySelector('input,select,textarea');
+                        if(input){
+                            if(foreign&&!input.readOnly){input.setAttribute('required','required');}
+                            else{input.removeAttribute('required');}
+                            input.setAttribute('aria-required',foreign?'true':'false');
+                        }
+                    });
                 }
                 if(country){country.addEventListener('input',update);country.addEventListener('change',update);}update();
             }
@@ -102,7 +110,7 @@ final class UFSC_FFST_Club_Admin_Layout {
                     {title:'Identité & contact',fields:[prefix+'_prenom',prefix+'_nom',prefix+'_poste',prefix+'_tel',prefix+'_telephone',prefix+'_email']},
                     {title:'Naissance',fields:[prefix+'_date_naissance',prefix+'_ville_naissance',prefix+'_departement_naissance',prefix+'_pays_naissance']},
                     {title:'Adresse',fields:[prefix+'_adresse',prefix+'_complement_adresse',prefix+'_code_postal',prefix+'_ville']},
-                    {title:'Filiation (naissance à l’étranger)',fields:[prefix+'_pere_nom_prenom',prefix+'_mere_nom_prenom']}
+                    {title:'Filiation (obligatoire si naissance à l’étranger)',fields:[prefix+'_pere_nom',prefix+'_pere_prenom',prefix+'_mere_nom',prefix+'_mere_prenom']}
                 ];
             }
             function appendLeaderGroup(grid,group){
@@ -113,7 +121,7 @@ final class UFSC_FFST_Club_Admin_Layout {
                 groupTitle.textContent=group.title;
                 grid.appendChild(groupTitle);
                 existing.forEach(function(name){
-                    move(name,grid,(name.indexOf('_pere_nom_prenom')>0||name.indexOf('_mere_nom_prenom')>0)?'ufsc-ffst-foreign-parent':'');
+                    move(name,grid,(/_(pere|mere)_(nom|prenom)$/.test(name))?'ufsc-ffst-foreign-parent':'');
                 });
                 return existing.length;
             }
