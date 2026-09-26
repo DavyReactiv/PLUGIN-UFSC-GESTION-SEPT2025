@@ -21,6 +21,7 @@ class UFSC_CL_Club_Form {
      * @return string Form HTML
      */
     public static function render_shortcode( $atts ) {
+        if ( function_exists( 'ufsc_address_assist_enqueue' ) ) { ufsc_address_assist_enqueue(); }
         $atts = shortcode_atts( array(
             'affiliation' => '0',
             'club_id' => '0'
@@ -210,6 +211,10 @@ class UFSC_CL_Club_Form {
                         <div class="ufsc-field">
                             <label for="ville" class="ufsc-label required"><?php esc_html_e( 'Ville', 'ufsc-clubs' ); ?></label>
                             <input type="text" id="ville" name="ville" value="<?php echo esc_attr( $club_data['ville'] ?? '' ); ?>" required />
+                        <div class="ufsc-field-error" aria-live="polite"></div></div>
+                        <div class="ufsc-field">
+                            <label for="pays" class="ufsc-label required"><?php esc_html_e( 'Pays', 'ufsc-clubs' ); ?></label>
+                            <input type="text" id="pays" name="pays" value="<?php echo esc_attr( ! empty( $club_data['pays'] ) ? $club_data['pays'] : 'France' ); ?>" required />
                         <div class="ufsc-field-error" aria-live="polite"></div></div>
                     </div>
                     
