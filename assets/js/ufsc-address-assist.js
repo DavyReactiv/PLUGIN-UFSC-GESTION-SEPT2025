@@ -206,13 +206,26 @@
         }
 
         postalInput.dataset.ufscAddressEnhanced = '1';
-        postalInput.setAttribute('inputmode', 'numeric');
         postalInput.setAttribute('autocomplete', 'postal-code');
         cityInput.setAttribute('autocomplete', 'address-level2');
+
+        function applyCountryMode() {
+            if (!countryInput || isFrance(countryInput.value)) {
+                postalInput.setAttribute('inputmode', 'numeric');
+                postalInput.setAttribute('pattern', '\\d{5}');
+                postalInput.setAttribute('maxlength', '5');
+            } else {
+                postalInput.removeAttribute('pattern');
+                postalInput.removeAttribute('maxlength');
+                postalInput.setAttribute('inputmode', 'text');
+                renderCities(cityInput, []);
+            }
+        }
 
         if (countryInput) {
             countryInput.setAttribute('autocomplete', 'country-name');
         }
+        applyCountryMode();
 
         function schedule() {
             if (timers.has(postalInput)) clearTimeout(timers.get(postalInput));
@@ -224,7 +237,10 @@
 
         postalInput.addEventListener('input', schedule);
         postalInput.addEventListener('change', schedule);
-        if (countryInput) countryInput.addEventListener('change', schedule);
+        if (countryInput) countryInput.addEventListener('change', function () {
+            applyCountryMode();
+            schedule();
+        });
     }
 
     function init(root) {
