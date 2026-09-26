@@ -14,7 +14,7 @@ final class UFSC_Renewal_Service {
      * Validate a proposed profile without writing anything to the historical licence.
      * Returned values are safe to carry as nominative cart/order metadata.
      */
-    public static function sanitize_renewal_updates( $source, $raw ) {
+    public static function sanitize_renewal_updates( $source, $raw, $season = '' ) {
         $source = (object) $source;
         $raw = is_array( $raw ) ? $raw : array();
         $data = array(); $errors = array(); $changes = array(); $sensitive = false;
@@ -40,13 +40,16 @@ final class UFSC_Renewal_Service {
             $data['date_naissance'] = $value;
         }
         $birth_for_level = $data['date_naissance'] ?? ( $source->date_naissance ?? '' );
+        if ( '' === trim( (string) $season ) ) {
+            $season = class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' );
+        }
         $level_source = array_key_exists( 'fighter_level', $raw ) ? $raw['fighter_level'] : ( $source->fighter_level ?? '' );
         $level = function_exists( 'ufsc_normalize_fighter_level' ) ? ufsc_normalize_fighter_level( $level_source ) : sanitize_key( (string) $level_source );
         if ( function_exists( 'ufsc_is_selectable_fighter_level' ) && ! ufsc_is_selectable_fighter_level( $level ) && function_exists( 'ufsc_get_default_fighter_level' ) ) {
-            $level = ufsc_get_default_fighter_level( $birth_for_level );
+            $level = ufsc_get_default_fighter_level( $birth_for_level, $season );
         }
         if ( function_exists( 'ufsc_validate_fighter_level' ) ) {
-            $level_validation = ufsc_validate_fighter_level( $level, $birth_for_level, false );
+            $level_validation = ufsc_validate_fighter_level( $level, $birth_for_level, false, $season );
             if ( is_wp_error( $level_validation ) ) { $errors['fighter_level'] = $level_validation->get_error_message(); }
         } elseif ( ! isset( ufsc_get_sport_level_options()[$level] ) ) {
             $errors['fighter_level'] = __( 'Le niveau sportif est obligatoire pour renouveler cette licence.', 'ufsc-clubs' );
