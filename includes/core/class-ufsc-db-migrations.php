@@ -227,6 +227,7 @@ class UFSC_DB_Migrations {
         ) );
         self::add_columns_if_missing( $settings['table_licences'], array(
             'numero_licence_ufsc' => 'varchar(64) NULL DEFAULT NULL',
+            'numero_licence_ffst' => 'varchar(64) NULL DEFAULT NULL',
             'numero_licence_asptt' => 'varchar(64) NULL DEFAULT NULL',
             'person_identifier' => 'varchar(100) NULL DEFAULT NULL',
         ) );
