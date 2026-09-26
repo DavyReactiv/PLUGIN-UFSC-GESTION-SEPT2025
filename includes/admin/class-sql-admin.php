@@ -783,6 +783,7 @@ class UFSC_SQL_Admin
                 'date_naissance' => $birthdate,
                 'sexe'           => $gender,
                 'poids'          => $weight,
+                'fighter_level'  => array_key_exists( 'fighter_level', $data ) ? $data['fighter_level'] : self::get_row_field_value( $existing, 'fighter_level' ),
             ),
             UFSC_Category_Repository::DEFAULT_DISCIPLINE,
             $season
@@ -4893,7 +4894,13 @@ class UFSC_SQL_Admin
         }
 
         if ( array_key_exists( 'fighter_level', $data ) && function_exists( 'ufsc_validate_fighter_level' ) ) {
-            $level_validation = ufsc_validate_fighter_level( $data['fighter_level'], $data['date_naissance'] ?? '', true );
+            if ( function_exists( 'ufsc_normalize_fighter_level' ) ) {
+                $data['fighter_level'] = ufsc_normalize_fighter_level( $data['fighter_level'] );
+            }
+            $sport_season = $id && function_exists( 'ufsc_get_licence_season' )
+                ? ufsc_get_licence_season( $id )
+                : ( class_exists( 'UFSC_Season_Service' ) ? UFSC_Season_Service::get_current_season() : ( function_exists( 'ufsc_get_current_season' ) ? ufsc_get_current_season() : '' ) );
+            $level_validation = ufsc_validate_fighter_level( $data['fighter_level'], $data['date_naissance'] ?? '', true, $sport_season );
             if ( is_wp_error( $level_validation ) ) {
                 self::maybe_redirect( self::get_licences_admin_page_url( array_merge( $id ? array( 'action' => 'edit', 'id' => $id ) : array( 'action' => 'new' ), array( 'return_to' => $return_to, 'error' => $level_validation->get_error_message() ) ) ) );
                 return;
@@ -5724,7 +5731,7 @@ class UFSC_SQL_Admin
             'nom'                        => 'l.nom',
             'prenom'                     => 'l.prenom',
             'date_naissance'             => 'l.date_naissance',
-            'fighter_level'              => "CASE l.fighter_level WHEN 'pro' THEN 'Pro' WHEN 'classe_a' THEN 'Classe A' WHEN 'classe_b' THEN 'Classe B' WHEN 'classe_c' THEN 'Classe C' WHEN 'assaut' THEN 'Assaut' WHEN 'veteran' THEN 'Vétéran' WHEN 'debutant' THEN 'Débutant' ELSE 'Non renseigné' END AS fighter_level",
+            'fighter_level'              => "CASE l.fighter_level WHEN 'pro' THEN 'Pro' WHEN 'classe_a' THEN 'Classe A' WHEN 'classe_b' THEN 'Classe B' WHEN 'classe_c' THEN 'Classe B' WHEN 'assaut' THEN 'Assaut' WHEN 'veteran' THEN 'Vétéran' WHEN 'debutant' THEN 'Débutant' ELSE 'Non renseigné' END AS fighter_level",
             'sexe'                       => 'l.sexe',
             'email'                      => 'l.email',
             'adresse'                    => 'l.adresse',
