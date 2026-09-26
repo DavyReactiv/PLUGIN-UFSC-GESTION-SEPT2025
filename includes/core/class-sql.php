@@ -118,6 +118,7 @@ class UFSC_SQL {
                 'role'=>array('Rôle dans le club','text'),
                 'licence_delegataire'=>array('Licence délégataire','bool'),
                 'numero_licence_delegataire'=>array('N° licence délégataire','text'),
+                'numero_licence_ffst'=>array('N° licence FFST','text'),
                 'diffusion_image'=>array('Autoriser diffusion image','bool'),
                 'infos_fsasptt'=>array('Infos FSASPTT','bool'),
                 'infos_asptt'=>array('Infos ASPTT','bool'),
