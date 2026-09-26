@@ -222,7 +222,7 @@ final class UFSC_Production_Readiness_Hotfix {
 				$result['errors'][ $source_id ] = $renewable->get_error_message();
 				continue;
 			}
-			$profile = UFSC_Renewal_Service::sanitize_renewal_updates( $source, $profiles[ $source_id ] ?? array() );
+			$profile = UFSC_Renewal_Service::sanitize_renewal_updates( $source, $profiles[ $source_id ] ?? array(), $target_season );
 			if ( ! empty( $profile['errors'] ) ) {
 				$result['errors'][ $source_id ] = implode( ' ', array_values( $profile['errors'] ) );
 				continue;
