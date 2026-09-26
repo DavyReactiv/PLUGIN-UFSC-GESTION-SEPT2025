@@ -302,7 +302,7 @@ class UFSC_Unified_Handlers {
                 'date_naissance' => $licence->date_naissance ?? '',
                 'sexe'           => $licence->sexe ?? '',
                 'poids'          => $weight,
-                'fighter_level'  => $data['fighter_level'] ?? '',
+                'fighter_level'  => $licence->fighter_level ?? '',
             ),
             UFSC_Category_Repository::DEFAULT_DISCIPLINE,
             $season
