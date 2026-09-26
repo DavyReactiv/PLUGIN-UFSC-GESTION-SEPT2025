@@ -100,7 +100,7 @@
 			level.find('option[value="veteran"]').prop('hidden', !(age >= 41 && age <= 50)).prop('disabled', !(age >= 41 && age <= 50));
 			if (level.find('option:selected').prop('disabled')) { level.val(''); userSelected = false; }
 			if (!userSelected && !level.val()) {
-				level.val(age < 18 ? 'assaut' : (age <= 40 ? 'classe_b' : 'veteran')).trigger('change.select2');
+				level.val(age < 18 ? 'assaut' : (age <= 40 ? 'classe_b' : (age <= 50 ? 'veteran' : 'assaut'))).trigger('change.select2');
 			}
 			refreshPreview(age);
 		}
