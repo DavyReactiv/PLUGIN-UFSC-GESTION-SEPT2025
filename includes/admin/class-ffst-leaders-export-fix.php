@@ -141,8 +141,8 @@ final class UFSC_FFST_Leaders_Export_Fix {
                 'ville_naissance' => self::value( $club, array( $prefix . '_ville_naissance' ) ),
                 'departement_naissance' => self::value( $club, array( $prefix . '_departement_naissance' ) ),
                 'pays_naissance' => self::value( $club, array( $prefix . '_pays_naissance' ) ),
-                'pere' => self::value( $club, array( $prefix . '_pere', $prefix . '_pere_nom_prenom' ) ),
-                'mere' => self::value( $club, array( $prefix . '_mere', $prefix . '_mere_nom_prenom' ) ),
+                'pere' => self::parent_identity_value( $club, $prefix, 'pere' ),
+                'mere' => self::parent_identity_value( $club, $prefix, 'mere' ),
                 'adresse' => self::value( $club, array( $prefix . '_adresse' ) ),
                 'complement_adresse' => self::value( $club, array( $prefix . '_complement_adresse' ) ),
                 'code_postal' => self::value( $club, array( $prefix . '_code_postal' ) ),
@@ -271,6 +271,23 @@ final class UFSC_FFST_Leaders_Export_Fix {
             $row++;
         }
         foreach ( range( 'A', 'E' ) as $col ) { $sheet->getColumnDimension( $col )->setAutoSize( true ); }
+    }
+
+    private static function parent_identity_value( $row, $prefix, $parent ) {
+        $nom = self::value( $row, array( $prefix . '_' . $parent . '_nom' ) );
+        $prenom = self::value( $row, array( $prefix . '_' . $parent . '_prenom' ) );
+        $split = self::join_non_empty( array( $nom, $prenom ), ' ' );
+        if ( '' !== $split ) {
+            return $split;
+        }
+
+        return self::value(
+            $row,
+            array(
+                $prefix . '_' . $parent,
+                $prefix . '_' . $parent . '_nom_prenom',
+            )
+        );
     }
 
     private static function clean_date( $date ) {
